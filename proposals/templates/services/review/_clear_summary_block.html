@@ -1,0 +1,82 @@
+<div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+  <div class="p-6 space-y-5">
+
+    <!-- Header (ISPSC-QAD-F032a style) -->
+    <div class="text-xs text-gray-600 leading-5">
+      <div class="flex flex-wrap justify-between gap-2">
+        <div>
+          <div class="font-semibold">Communication (Internal)</div>
+          <div>Rev. 5 – 07-07-2025</div>
+          <div class="font-semibold">ISPSC-QAD-F032a</div>
+        </div>
+        <div class="font-semibold">Page 1 of 1</div>
+      </div>
+
+      <div class="mt-4 text-center">
+        <div class="font-semibold">Republic of the Philippines</div>
+        <div class="font-bold tracking-wide">ILOCOS SUR POLYTECHNIC STATE COLLEGE</div>
+        <div>www.ispsc.edu.ph | op@ispsc.edu.ph</div>
+      </div>
+    </div>
+
+    <hr class="border-gray-200">
+
+    <!-- Letter body -->
+    <div class="text-sm text-gray-800 leading-7 whitespace-pre-line">
+      <div class="font-semibold">Office of the Director for Extension</div>
+
+      <div class="mt-4 font-semibold uppercase">
+        EXTENSION PROPOSAL: COMMENTS, SUGGESTIONS, AND RECOMMENDATIONS
+      </div>
+      <div class="mt-1">Re: {{ title }}</div>
+
+      <div class="mt-4">{{ date_str }}</div>
+
+      <div class="mt-4">
+        <div class="font-semibold">{{ campus_director_display }}</div>
+        <div>Campus Director</div>
+        <div>ISPSC, {{ campus }}</div>
+
+        <div class="mt-3">
+          <span class="font-semibold">Thru:</span>
+          <div class="pl-10">{{ campus_coordinator_display }}</div>
+          <div class="pl-10">Campus Extension Coordinator</div>
+        </div>
+
+        <div class="mt-3">
+          <div class="font-semibold">{{ proponent_line }}</div>
+          <div>Proponents</div>
+        </div>
+      </div>
+
+      <div class="mt-4">Dear Dr. {{ dear_last_name }}:</div>
+
+      <div class="mt-4">
+        Congratulations on the extension proposal entitled “{{ title }}”. The proposal is hereby recommended
+        for endorsement provided that the following comments and recommendations be included and accomplished:
+      </div>
+
+      <div class="mt-4 font-semibold">Comments</div>
+
+      {% if points %}
+        <ol class="mt-2 list-decimal pl-6 space-y-2">
+          {% for p in points %}
+            <li>{{ p }}</li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <div class="mt-2 text-gray-600">No significant comments were provided by reviewers.</div>
+      {% endif %}
+
+      <div class="mt-6">
+        Thank you and we appreciate your understanding and cooperation on this matter. If you require further
+        clarification, please do not hesitate to contact us.
+      </div>
+
+      <div class="mt-6">Very Truly Yours,</div>
+
+      <div class="mt-6 font-semibold">{{ director_signature }}</div>
+      <div>Director for Extension</div>
+    </div>
+  </div>
+</div>

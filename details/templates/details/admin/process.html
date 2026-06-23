@@ -1,0 +1,68 @@
+<!-- details/templates/details/admin/processes.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Manage Extension Processes{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Header -->
+        <div class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Extension Processes</h1>
+                <p class="text-gray-600 mt-2">Manage the processes displayed on the home page</p>
+            </div>
+            <a href="{% url 'details:admin_process_create' %}" 
+               class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add New Process
+            </a>
+        </div>
+
+        <!-- Processes List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Icon</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for process in processes %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">{{ process.order }}</td>
+                        <td class="px-6 py-4"><i class="{{ process.icon }}"></i> {{ process.icon }}</td>
+                        <td class="px-6 py-4 font-medium">{{ process.title }}</td>
+                        <td class="px-6 py-4">{{ process.description|truncatechars:50 }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs rounded-full {% if process.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ process.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="{% url 'details:admin_process_edit' process.pk %}" class="text-primary hover:text-secondary mr-3">Edit</a>
+                            <a href="{% url 'details:admin_process_delete' process.pk %}" class="text-red-600 hover:text-red-800" onclick="return confirm('Are you sure?')">Delete</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                            No processes found. Click "Add New Process" to create one.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

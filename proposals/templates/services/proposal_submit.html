@@ -1,0 +1,56 @@
+{% extends "p_base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-10">
+    <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100">
+            <h1 class="text-2xl font-semibold text-gray-900">Submit Proposal</h1>
+            <p class="text-sm text-gray-600 mt-1">
+                You have completed all required steps for this proposal.
+            </p>
+        </div>
+
+        <div class="px-6 py-6 space-y-6">
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                <h2 class="text-sm font-semibold text-amber-800">Before submitting</h2>
+                <p class="text-sm text-amber-700 mt-2">
+                    Once submitted, this proposal will be locked and can no longer be edited unless it is returned for revision.
+                </p>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900">Proposal Summary</h3>
+                <div class="mt-3 rounded-2xl border border-gray-200 bg-gray-50 p-5 space-y-2 text-sm text-gray-700">
+                    <p><span class="font-semibold text-gray-900">Title:</span> {{ proposal.title|default:"—" }}</p>
+                    <p><span class="font-semibold text-gray-900">Extension Type:</span> {{ proposal.get_extension_type_display|default:"—" }}</p>
+                    <p><span class="font-semibold text-gray-900">Scope:</span> {{ proposal.get_scope_type_display|default:"—" }}</p>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 p-5">
+                <h3 class="text-base font-semibold text-gray-900">
+                    Are you sure you want to submit this proposal?
+                </h3>
+                <p class="text-sm text-gray-600 mt-2">
+                    You may submit now, or go back and continue editing your proposal.
+                </p>
+
+                <div class="mt-5 flex flex-col sm:flex-row gap-3">
+                    <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
+                       class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition">
+                        Edit More
+                    </a>
+
+                    <form method="POST" class="sm:ml-auto">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition">
+                            Yes, Submit Proposal
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

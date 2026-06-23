@@ -1,0 +1,50 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="border-b border-gray-100 px-6 py-4">
+            <h1 class="text-xl font-bold text-gray-900">My Profile</h1>
+            <p class="mt-1 text-sm text-gray-600">View your account and organizational details.</p>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">Username</p>
+                <p class="text-sm text-gray-900">{{ request.user.username }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">Email</p>
+                <p class="text-sm text-gray-900">{{ request.user.email }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">Full Name</p>
+                <p class="text-sm text-gray-900">{{ profile.full_name|default:"—" }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">Campus</p>
+                <p class="text-sm text-gray-900">{{ profile.campus|default:"—" }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">College</p>
+                <p class="text-sm text-gray-900">{{ profile.college|default:"—" }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">Department</p>
+                <p class="text-sm text-gray-900">{{ profile.department|default:"—" }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-400">Role</p>
+                <p class="text-sm text-gray-900">{{ profile.get_role_display }}</p>
+            </div>
+
+            <div class="pt-2">
+                <a href="{% url 'profile_edit' %}"
+                   class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
+                    Edit Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

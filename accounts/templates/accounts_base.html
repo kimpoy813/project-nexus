@@ -1,0 +1,390 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NExUS - Networked Extension Unified System</title>
+
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Institutional Theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#103b07',  
+                        secondary: '#5a1113', 
+                        accent: '#f5e587',  
+                    }
+                }
+            }
+        }
+    </script>
+
+
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans flex flex-col min-h-screen">
+    <!-- Toast Container - Single, clean container -->
+    <div id="toast-container" class="fixed top-24 right-6 z-50 space-y-3"></div>
+
+    <!-- NAVBAR -->
+    <nav class="bg-white shadow-sm fixed top-0 w-full z-50 h-20">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center h-full">
+
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-3 group">
+                <img src="{% static 'images/extension-logo.png' %}" 
+                    alt="NEXUS Logo" 
+                    class="w-10 h-10 object-contain">
+                <span class="text-2xl font-semibold tracking-wide text-primary">
+                    NE<span class="text-gray-900">x</span>US
+                </span>
+            </a>
+
+            <!-- Menu -->
+            <div class="hidden md:flex items-center space-x-10 text-sm font-medium text-gray-600">
+                <a href="/" class="relative hover:text-primary transition duration-300">Home</a>
+                <a href="/proposals/" class="hover:text-primary transition duration-300">Services</a>
+                <a href="/reports/" class="hover:text-primary transition duration-300">Reports</a>
+                <a href="/achievements/" class="hover:text-primary transition duration-300">Achievements</a>
+
+                {% if user.is_authenticated %}
+                    <a href="
+                        {% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}
+                        {% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}
+                        {% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}
+                        {% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}
+                        {% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}
+                        {% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}
+                        {% else %}{% url 'faculty_dashboard' %}{% endif %}
+                    " class="text-primary font-semibold hover:text-secondary">
+                        Dashboard
+                    </a>
+
+                    <div class="flex items-center gap-1">
+
+                    <!-- Notifications (ONLY addition; no layout/width changes) -->
+                    <div x-data="{ openNotif: false }" class="relative">
+                        <button type="button"
+                                @click="openNotif = !openNotif"
+                                @keydown.escape.window="openNotif = false"
+                                class="relative inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-primary/10 transition focus:outline-none"
+                                aria-label="Notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 2a6 6 0 00-6 6v2.586l-.707.707A1 1 0 004 13h12a1 1 0 00.707-1.707L16 10.586V8a6 6 0 00-6-6z"/>
+                                <path d="M10 18a3 3 0 01-2.995-2.824L7 15h6a3 3 0 01-3 3z"/>
+                            </svg>
+
+                            {% if nav_notif_count %}
+                                <span class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] font-bold leading-[18px] text-center">
+                                    {{ nav_notif_count }}
+                                </span>
+                            {% endif %}
+                        </button>
+
+                        <div x-show="openNotif"
+                             x-cloak
+                             @click.away="openNotif = false"
+                             x-transition
+                             class="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-50">
+                            <div class="px-4 py-3 border-b border-gray-100">
+                                <p class="text-sm font-semibold text-gray-900">Notifications</p>
+                                <p class="text-xs text-gray-500">Updates that need your attention.</p>
+                            </div>
+
+                            <div class="py-2">
+                                {% if nav_notif_count %}
+                                    <a href="{% url 'dashboard_redirect' %}?focus=attention"
+                                       class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition">
+                                        <span class="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-red-50 text-red-700">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M10 2a6 6 0 00-6 6v2.586l-.707.707A1 1 0 004 13h12a1 1 0 00.707-1.707L16 10.586V8a6 6 0 00-6-6z"/>
+                                                <path d="M10 18a3 3 0 01-2.995-2.824L7 15h6a3 3 0 01-3 3z"/>
+                                            </svg>
+                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-gray-900">
+                                                {{ nav_notif_count }} proposal{{ nav_notif_count|pluralize }} need attention
+                                            </p>
+                                            <p class="text-xs text-gray-500">
+                                                Returned for revision or has pending review comments.
+                                            </p>
+                                        </div>
+                                    </a>
+                                {% else %}
+                                    <div class="px-4 py-3 text-sm text-gray-600">
+                                        No new notifications.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /Notifications -->
+
+                    <div x-data="{ open: false }" class="relative">
+                        <button @click="open = !open"
+                            class="flex items-center gap-2 focus:outline-none px-3 py-2">
+                            <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold hover:bg-gray-200 hover:text-primary hover:border hover:border-primary transition">
+                                {{ request.user.username|first|upper }}
+                            </div>
+                        </button>
+
+                        <div x-show="open"
+                            x-cloak
+                            @click.away="open = false"
+                            x-transition
+                            class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+
+                            <a href="{% url 'profile_view' %}"
+                            class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50">
+                                View Profile
+                            </a>
+
+                            <a href="{% url 'profile_edit' %}"
+                            class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100">
+                                Edit Profile
+                            </a>
+
+                            <a href="{% url 'change_password' %}"
+                            class="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100">
+                                Change Password
+                            </a>
+
+                            <a href="{% url 'logout' %}"
+                            class="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100">
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                    <a href="{% url 'login' %}" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition">
+                        Login
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content - Added padding-top to account for fixed navbar -->
+    <main class="flex-grow pt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-primary text-gray-300 pt-16 pb-10">
+        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12">
+            <!-- Brand -->
+            <div>
+                <h3 class="text-xl font-semibold text-white mb-4">NExUS</h3>
+                <p class="text-sm leading-relaxed text-white/90">
+                    Networked Extension Unified System for monitoring and managing
+                    institutional extension initiatives aligned with sustainable development goals.
+                </p>
+            </div>
+
+            <!-- Important Links -->
+            <div>
+                <h4 class="text-white font-semibold mb-4">Important Links</h4>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/" class="hover:text-white transition">Home</a></li>
+                    <li><a href="/proposals/" class="hover:text-white transition">Services</a></li>
+                    <li><a href="/reports/" class="hover:text-white transition">Reports</a></li>
+                    <li><a href="/achievements/" class="hover:text-white transition">Achievements</a></li>
+                    {% if user.is_authenticated %}
+                        {% if user.profile.role == 'FACULTY' %}
+                            <li><a href="{% url 'faculty_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% elif user.profile.role == 'STAFF' %}
+                            <li><a href="{% url 'staff_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% elif user.profile.role == 'EVALUATOR' %}
+                            <li><a href="{% url 'evaluator_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}
+                            <li><a href="{% url 'department_coordinator_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% elif user.profile.role == 'CAMPUS_COORDINATOR' %}
+                            <li><a href="{% url 'campus_coordinator_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% elif user.profile.role == 'DIRECTOR' %}
+                            <li><a href="{% url 'director_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% elif user.profile.role == 'ADMIN' %}
+                            <li><a href="{% url 'admin_dashboard' %}" class="hover:text-white transition">Dashboard</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li><a href="{% url 'login' %}" class="hover:text-white transition">Login</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Contact -->
+            <div>
+                <h4 class="text-white font-semibold mb-4">Contact</h4>
+                <ul class="space-y-2 text-sm text-white/90">
+                    <li>
+                        <a href="mailto:ispsc.nexus@gmail.com" class="hover:text-white transition">
+                            ispsc.nexus@gmail.com
+                        </a>
+                    </li>
+                    <li>
+                        <a href="https://facebook.com" target="_blank" class="hover:text-white transition">
+                            Facebook Page
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="border-t border-white mt-12 pt-6 text-center text-sm text-white">
+            © {% now "Y" %} NExUS. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Hidden div with messages data -->
+    {% if messages %}
+        <div id="messages-data" style="display: none;">
+            {% for message in messages %}
+                <div data-message="{{ message }}" data-tags="{{ message.tags }}"></div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- AOS Script -->
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 1000,
+            once: true,
+        });
+    </script>
+
+    <!-- Notification script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for messages data
+            const messagesData = document.getElementById('messages-data');
+
+            if (messagesData) {
+                const messageElements = messagesData.querySelectorAll('[data-message]');
+
+                messageElements.forEach(function(msgElement, index) {
+                    const message = msgElement.getAttribute('data-message');
+                    const tags = msgElement.getAttribute('data-tags') || 'info';
+
+                    // Determine color based on message tags
+                    let bgColor = 'bg-gray-800';
+                    if (tags.includes('success')) bgColor = 'bg-green-600';
+                    else if (tags.includes('error')) bgColor = 'bg-red-600';
+                    else if (tags.includes('warning')) bgColor = 'bg-yellow-500';
+                    else if (tags.includes('info')) bgColor = 'bg-blue-600';
+
+                    // Create toast element
+                    const toast = document.createElement('div');
+                    toast.className = `${bgColor} text-white px-5 py-3 rounded-lg shadow-lg max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5`;
+                    toast.setAttribute('role', 'alert');
+
+                    // Add content
+                    toast.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                            <span class="flex-1">${message}</span>
+                            <button onclick="this.closest('[role=alert]').remove()" 
+                                    class="text-lg leading-none opacity-80 hover:opacity-100">
+                                ×
+                            </button>
+                        </div>
+                    `;
+
+                    // Add to container
+                    document.getElementById('toast-container').appendChild(toast);
+
+                    // Trigger animation with delay based on index
+                    setTimeout(() => {
+                        toast.classList.remove('opacity-0', 'translate-x-5');
+                    }, 100 * index);
+
+                    // Auto remove after 4 seconds
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.classList.add('opacity-0', 'translate-x-5');
+                            setTimeout(() => toast.remove(), 500);
+                        }
+                    }, 4000);
+                });
+
+                // Clean up the hidden div
+                messagesData.remove();
+            }
+        });
+
+        (function () {
+        const IDLE_LIMIT_MS = 10 * 60 * 1000; // 10 minutes
+        let idleTimer = null;
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+                }
+            }
+            }
+            return cookieValue;
+        }
+
+        async function logoutIdle() {
+            try {
+            const csrftoken = getCookie("csrftoken");
+            const resp = await fetch("{% url 'logout_idle' %}", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
+                },
+                body: JSON.stringify({ reason: "idle" })
+            });
+
+            // Even if the response fails, redirect to login as a fallback
+            window.location.href = "{% url 'login' %}?reason=idle";
+            } catch (e) {
+            window.location.href = "{% url 'login' %}?reason=idle";
+            }
+        }
+
+        function resetIdleTimer() {
+            if (idleTimer) clearTimeout(idleTimer);
+            idleTimer = setTimeout(logoutIdle, IDLE_LIMIT_MS);
+        }
+
+        // Only run for authenticated users (Django template check)
+        {% if user.is_authenticated %}
+            // Activity events
+            const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+            events.forEach(evt => window.addEventListener(evt, resetIdleTimer, { passive: true }));
+
+            // Start timer
+            resetIdleTimer();
+
+            // If user switches back to tab, reset timer (optional)
+            document.addEventListener("visibilitychange", () => {
+            if (!document.hidden) resetIdleTimer();
+            });
+        {% endif %}
+        })();
+    </script>
+</body>
+</html>

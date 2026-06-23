@@ -1,0 +1,48 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">{% if target %}Edit{% else %}Add{% endif %} Target</h1>
+
+    <form method="POST" class="bg-white border rounded-lg p-4 space-y-3">
+        {% csrf_token %}
+
+        {% if not target %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+            <label class="block text-sm font-medium">Year</label>
+            <input type="number" name="year" value="2026" class="w-full border rounded p-2" required>
+        </div>
+        <div>
+        <label class="block text-sm font-medium">Campus</label>
+        <select name="campus" class="w-full border rounded p-2" required>
+            <option value="" selected disabled>Select campus</option>
+            {% for c in campuses %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+        </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium">Metric</label>
+            <input name="metric" class="w-full border rounded p-2" required>
+        </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><label class="block text-sm">Planned Q1</label><input type="number" name="planned_q1" value="{{ target.planned_q1|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Planned Q2</label><input type="number" name="planned_q2" value="{{ target.planned_q2|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Planned Q3</label><input type="number" name="planned_q3" value="{{ target.planned_q3|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Planned Q4</label><input type="number" name="planned_q4" value="{{ target.planned_q4|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Actual Q1</label><input type="number" name="actual_q1" value="{{ target.actual_q1|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Actual Q2</label><input type="number" name="actual_q2" value="{{ target.actual_q2|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Actual Q3</label><input type="number" name="actual_q3" value="{{ target.actual_q3|default:0 }}" class="w-full border rounded p-2"></div>
+        <div><label class="block text-sm">Actual Q4</label><input type="number" name="actual_q4" value="{{ target.actual_q4|default:0 }}" class="w-full border rounded p-2"></div>
+        </div>
+
+        <div class="flex gap-2">
+        <button class="px-4 py-2 bg-primary text-white rounded" type="submit">Save</button>
+        <a class="px-4 py-2 border rounded" href="{% url 'targets_list' %}">Back</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

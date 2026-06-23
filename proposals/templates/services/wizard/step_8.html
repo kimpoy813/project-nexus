@@ -1,0 +1,271 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl font-semibold text-gray-900">Participants / Proposed Number of Clients</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        Enter the participant profiling by sex and gender classification.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" class="px-6 pb-6 pt-1 space-y-8">
+        {% csrf_token %}
+
+        <div>
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-900">A. Sex</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                    Enter the number of participants by sex.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="sex_male" class="block text-sm font-medium text-gray-700 mb-2">Male</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="sex_male"
+                        id="sex_male"
+                        value="{{ proposal.sex_male|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="sex_female" class="block text-sm font-medium text-gray-700 mb-2">Female</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="sex_female"
+                        id="sex_female"
+                        value="{{ proposal.sex_female|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Total No. of Beneficiaries</label>
+                    <input
+                        type="text"
+                        id="sex_total"
+                        value="{{ sex_total }}"
+                        readonly
+                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-900">B. Gender</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                    Enter the number of participants by gender classification.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="g_lesbian" class="block text-sm font-medium text-gray-700 mb-2">Lesbian</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_lesbian"
+                        id="g_lesbian"
+                        value="{{ proposal.g_lesbian|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_gay" class="block text-sm font-medium text-gray-700 mb-2">Gay</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_gay"
+                        id="g_gay"
+                        value="{{ proposal.g_gay|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_bisexual" class="block text-sm font-medium text-gray-700 mb-2">Bisexual</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_bisexual"
+                        id="g_bisexual"
+                        value="{{ proposal.g_bisexual|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_transgender" class="block text-sm font-medium text-gray-700 mb-2">Transgender</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_transgender"
+                        id="g_transgender"
+                        value="{{ proposal.g_transgender|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_straight" class="block text-sm font-medium text-gray-700 mb-2">Straight (Male/Female)</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_straight"
+                        id="g_straight"
+                        value="{{ proposal.g_straight|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_others" class="block text-sm font-medium text-gray-700 mb-2">Others</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_others"
+                        id="g_others"
+                        value="{{ proposal.g_others|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Total</label>
+                <input
+                    type="text"
+                    id="gender_total"
+                    value="{{ gender_total }}"
+                    readonly
+                    class="w-full md:w-64 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+            </div>
+        </div>
+
+        <div id="totals_warning" class="hidden mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Sex total and Gender total must be the same.
+        </div>
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    type="submit">
+                Save & Next
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+{% if is_edit_mode %}
+<script>
+(function () {
+    const sexMale = document.getElementById("sex_male");
+    const sexFemale = document.getElementById("sex_female");
+    const sexTotal = document.getElementById("sex_total");
+
+    const gLesbian = document.getElementById("g_lesbian");
+    const gGay = document.getElementById("g_gay");
+    const gBisexual = document.getElementById("g_bisexual");
+    const gTransgender = document.getElementById("g_transgender");
+    const gStraight = document.getElementById("g_straight");
+    const gOthers = document.getElementById("g_others");
+    const genderTotal = document.getElementById("gender_total");
+    const totalsWarning = document.getElementById("totals_warning");
+
+    function num(el) {
+        return parseInt(el.value || 0, 10) || 0;
+    }
+
+    function updateTotals() {
+        const sex = num(sexMale) + num(sexFemale);
+        const gender =
+            num(gLesbian) +
+            num(gGay) +
+            num(gBisexual) +
+            num(gTransgender) +
+            num(gStraight) +
+            num(gOthers);
+
+        sexTotal.value = sex;
+        genderTotal.value = gender;
+
+        const hasValues = sex > 0 || gender > 0;
+        const mismatch = sex !== gender;
+
+        totalsWarning.classList.toggle("hidden", !(hasValues && mismatch));
+    }
+
+    [
+        sexMale, sexFemale,
+        gLesbian, gGay, gBisexual, gTransgender, gStraight, gOthers
+    ].forEach(el => {
+        el.addEventListener("input", updateTotals);
+    });
+
+    updateTotals();
+})();
+</script>
+{% endif %}
+{% endblock %}

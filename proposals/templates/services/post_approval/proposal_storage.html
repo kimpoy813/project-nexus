@@ -1,0 +1,225 @@
+{% extends "accounts_base.html" %}
+{% block content %}
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div class="flex items-start gap-3">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-gray-900">Proposal Storage</h1>
+                <p class="mt-1 text-sm text-gray-600">Access all files related to this proposal in one place.</p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            {% if proposal.proposal_status == "FOR_SUBMISSION_AND_UPLOAD" and not signed_doc %}
+            <a href="{% url 'proposal_upload_signed_proposal' proposal.id %}"
+               class="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50">
+                Upload Signed Proposal
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-100 px-6 py-5">
+            <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                    <p class="text-lg font-semibold text-gray-900 break-words">
+                        {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
+                    </p>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Proposal status:
+                        <span class="font-semibold text-gray-700">{{ proposal.get_proposal_status_display|default:proposal.proposal_status }}</span>
+                    </p>
+                </div>
+
+                <div class="shrink-0 rounded-2xl bg-gray-50 px-4 py-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">File groups</p>
+                    <p class="mt-1 text-sm font-semibold text-gray-900">Core, attachments, approvals, and other uploads</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-8 p-6">
+            <section>
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Core Proposal</h2>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 md:flex-row md:items-center md:justify-between">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900">Extension Proposal (Approved DOCX)</p>
+                            <p class="mt-1 text-xs text-gray-500">Final proposal for printing</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{% url 'proposal_download_approved_docx' proposal.id %}"
+                               class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                Download
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-4 md:flex-row md:items-center md:justify-between">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-gray-900">Signed Proposal</p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                {% if signed_doc and signed_doc.file %}Uploaded{% else %}Not uploaded yet{% endif %}
+                            </p>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            {% if signed_doc and signed_doc.file %}
+                                <a href="{{ signed_doc.file.url }}" target="_blank" rel="noopener"
+                                   class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                    View
+                                </a>
+                                <a href="{{ signed_doc.file.url }}" download
+                                   class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                    Download
+                                </a>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">Not available</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Attachments</h2>
+                    <span class="text-xs text-gray-500">Uploaded supporting files</span>
+                </div>
+
+                {% if attachment_rows %}
+                <div class="grid gap-3">
+                    {% for row in attachment_rows %}
+                    <div class="rounded-2xl border border-gray-200 p-4 transition hover:border-gray-300">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 break-words">{{ row.label }}</p>
+                                {% if row.filename %}
+                                <p class="mt-1 text-xs text-gray-500 break-words">{{ row.filename }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    {% if row.file_url %}Available{% else %}Not uploaded{% endif %}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% if row.file_url %}
+                                    <a href="{{ row.file_url }}" target="_blank" rel="noopener"
+                                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                        View
+                                    </a>
+                                    <a href="{{ row.file_url }}" download
+                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                        Download
+                                    </a>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-500">
+                    No attachments are available yet.
+                </div>
+                {% endif %}
+            </section>
+
+            <section>
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Approval Documents</h2>
+                    <span class="text-xs text-gray-500">Released by the office</span>
+                </div>
+
+                {% if approval_rows %}
+                <div class="grid gap-3">
+                    {% for row in approval_rows %}
+                    <div class="rounded-2xl border border-gray-200 p-4 transition hover:border-gray-300">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 break-words">{{ row.label }}</p>
+                                {% if row.filename %}
+                                <p class="mt-1 text-xs text-gray-500 break-words">{{ row.filename }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    {% if row.file_url %}Available{% else %}Not released yet{% endif %}
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% if row.file_url %}
+                                    <a href="{{ row.file_url }}" target="_blank" rel="noopener"
+                                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                        View
+                                    </a>
+                                    {% if row.download_url %}
+                                        <a href="{{ row.download_url }}"
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                            Download
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ row.file_url }}" download
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                            Download
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-500">
+                    No approval documents have been released yet.
+                </div>
+                {% endif %}
+
+
+            </section>
+
+            {% if review_history %}
+            <section>
+                <div class="mb-3 flex items-center justify-between gap-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Previous Versions of the Proposal</h2>
+                    <span class="text-xs text-gray-500">Review rounds and version history</span>
+                </div>
+
+                <div class="space-y-3">
+                    {% for item in review_history %}
+                    <article class="rounded-2xl border border-gray-200 bg-gray-50/70 p-4 shadow-sm">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold text-gray-900">Version {{ item.round_no }}</p>
+                                <p class="mt-1 text-xs text-gray-500">Created {{ item.created_at|date:"M d, Y h:i A" }}</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                {% if item.view_url %}
+                                    <a href="{{ item.view_url }}" target="_blank" rel="noopener"
+                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                        View Version
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

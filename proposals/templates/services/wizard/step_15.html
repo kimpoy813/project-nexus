@@ -1,0 +1,201 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl leading-6 font-semibold text-gray-900">Output / Outcome</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        Enter the expected outputs or outcomes of the proposed extension initiative.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" class="px-6 pb-6 pt-4 space-y-6">
+        {% csrf_token %}
+
+        <div>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-900">Output / Outcome</label>
+            </div>
+
+            <div class="space-y-3 output-outcomes-group" data-group="output-outcomes">
+                {% if output_outcomes %}
+                    {% for item in output_outcomes %}
+                    <div class="flex gap-2 items-start output-outcome-row">
+                        <textarea
+                            name="output_outcomes[]"
+                            rows="2"
+                            {% if not is_edit_mode %}readonly{% endif %}
+                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-output-outcome {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                            placeholder="Enter an expected output or outcome...">{{ item }}</textarea>
+
+                        {% if is_edit_mode %}
+                        <button type="button"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                onclick="removeOutputOutcomeRow(this)">
+                            Remove
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="flex gap-2 items-start output-outcome-row">
+                        <textarea
+                            name="output_outcomes[]"
+                            rows="2"
+                            {% if not is_edit_mode %}readonly{% endif %}
+                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-output-outcome {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                            placeholder="Enter an expected output or outcome..."></textarea>
+
+                        {% if is_edit_mode %}
+                        <button type="button"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                onclick="removeOutputOutcomeRow(this)">
+                            Remove
+                        </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if is_edit_mode %}
+            <button type="button"
+                    class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    onclick="addOutputOutcomeRow()">
+                Add Output / Outcome
+            </button>
+            {% endif %}
+        </div>
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    type="submit">
+                Save & Next
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+{% if is_edit_mode %}
+<script>
+(function () {
+    function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+    }
+
+    function handleTabIndent(e) {
+        if (e.key === "Tab") {
+            e.preventDefault();
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const indent = "    ";
+
+            textarea.value =
+                textarea.value.substring(0, start) +
+                indent +
+                textarea.value.substring(end);
+
+            textarea.selectionStart = textarea.selectionEnd = start + indent.length;
+            autoResize(textarea);
+        }
+    }
+
+    window.addOutputOutcomeRow = function () {
+        const group = document.querySelector('.output-outcomes-group[data-group="output-outcomes"]');
+        if (!group) return;
+
+        const row = document.createElement("div");
+        row.className = "flex gap-2 items-start output-outcome-row";
+        row.innerHTML = `
+            <textarea
+                name="output_outcomes[]"
+                rows="2"
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden auto-resize-output-outcome"
+                placeholder="Enter an expected output or outcome..."></textarea>
+            <button type="button"
+                    class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                    onclick="removeOutputOutcomeRow(this)">
+                Remove
+            </button>
+        `;
+        group.appendChild(row);
+
+        const textarea = row.querySelector("textarea");
+        textarea.addEventListener("input", function () { autoResize(textarea); });
+        textarea.addEventListener("keydown", handleTabIndent);
+        autoResize(textarea);
+    };
+
+    window.removeOutputOutcomeRow = function (btn) {
+        const row = btn.closest(".output-outcome-row");
+        if (!row) return;
+
+        const group = row.parentElement;
+        if (group.querySelectorAll(".output-outcome-row").length > 1) {
+            row.remove();
+        } else {
+            const textarea = row.querySelector("textarea");
+            if (textarea) {
+                textarea.value = "";
+                autoResize(textarea);
+            }
+        }
+    };
+
+    document.querySelectorAll(".auto-resize-output-outcome").forEach(textarea => {
+        textarea.addEventListener("input", function () { autoResize(textarea); });
+        textarea.addEventListener("keydown", handleTabIndent);
+        autoResize(textarea);
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

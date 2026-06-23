@@ -1,0 +1,1181 @@
+{% extends "accounts_base.html" %}
+
+{% block content %}
+<div class="min-h-screen" style="background:#f6f7f5;">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TOP BAR -->
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
+            <div>
+                <h1 class="text-xl font-semibold" style="color:#103b07;letter-spacing:-.02em;">Director Dashboard</h1>
+                <p class="mt-0.5 text-sm text-slate-400">Monitor proposals, reviews, campus activity, and completion.</p>
+            </div>
+            <a href="{% url 'proposal_create' %}" class="dir-btn-primary">Create Proposal</a>
+        </div>
+
+        <!-- GRID: SIDEBAR + MAIN -->
+        <div class="grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-6">
+
+            <!-- LEFT SIDEBAR -->
+            <aside class="xl:sticky xl:top-6 h-fit">
+                <div class="dir-card overflow-hidden">
+                    <div class="px-4 py-4 border-b border-slate-100">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Navigation</p>
+                    </div>
+                    <div class="p-3 space-y-1">
+                        <button type="button" class="dashboard-nav-btn active w-full" data-tab="overview">Overview</button>
+                        <button type="button" class="dashboard-nav-btn w-full" data-tab="queue">Review Queue</button>
+                        <button type="button" class="dashboard-nav-btn w-full" data-tab="campuses">Campuses</button>
+                        <button type="button" class="dashboard-nav-btn w-full" data-tab="extensions">All Extensions</button>
+                        <button type="button" class="dashboard-nav-btn w-full" data-tab="mine">My Proposals</button>
+                    </div>
+
+                    <!-- REVIEW QUEUE FILTER PANEL -->
+                    <div id="rq-filter-panel" class="border-t border-slate-100 p-3 hidden">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-1 mb-2">Filters</p>
+                        <div class="space-y-2">
+                            <input type="text" id="rq-filter-title" placeholder="Proposal title…" class="dir-input w-full">
+                            <input type="text" id="rq-filter-author" placeholder="Author / proponent…" class="dir-input w-full">
+                            <select id="rq-filter-campus" class="dir-input w-full">
+                                <option value="">All Campuses</option>
+                                {% for campus in campus_choices %}<option value="{{ campus }}">{{ campus }}</option>{% endfor %}
+                            </select>
+                            <select id="rq-filter-year" class="dir-input w-full" data-year-filter="true">
+                                <option value="">All Years</option>
+                                {% for d in review_year_choices %}<option value="{{ d.year }}" {% if request.GET.year == d.year|stringformat:"s" %}selected{% endif %}>{{ d.year }}</option>{% endfor %}
+                            </select>
+                            <select id="rq-filter-status" class="dir-input w-full">
+                                <option value="">All Sections</option>
+                                <option value="SUBMITTED_ACTIVE">Submitted / Active Review</option>
+                                <option value="REVISION">Under Revision</option>
+                                <option value="APPROVED">Approved</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- CAMPUS FILTER PANEL -->
+                    <div id="campus-filter-panel" class="border-t border-slate-100 p-3 hidden">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-1 mb-2">Filters</p>
+                        <div class="space-y-2">
+                            <select id="campus-filter-campus" class="dir-input w-full">
+                                <option value="">All Campuses</option>
+                                {% for campus in campus_choices %}<option value="{{ campus }}">{{ campus }}</option>{% endfor %}
+                            </select>
+                            <select id="campus-filter-year" class="dir-input w-full mt-2" data-year-filter="true">
+                                <option value="">All Years</option>
+                                {% for d in review_year_choices %}<option value="{{ d.year }}" {% if request.GET.year == d.year|stringformat:"s" %}selected{% endif %}>{{ d.year }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- EXTENSIONS FILTER PANEL -->
+                    <div id="extensions-filter-panel" class="border-t border-slate-100 p-3 hidden">
+                        <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 px-1 mb-2">Filters</p>
+                        <div class="space-y-2">
+                            <input type="text" id="ext-filter-q" placeholder="Search title…" class="dir-input w-full">
+                            <select id="ext-filter-campus" class="dir-input w-full">
+                                <option value="">All Campuses</option>
+                                {% for campus in campus_choices %}<option value="{{ campus|lower }}">{{ campus }}</option>{% endfor %}
+                            </select>
+                            <select id="ext-filter-process" class="dir-input w-full">
+                                <option value="">All Processes</option>
+                                <option value="PROPOSAL">Proposal</option>
+                                <option value="MOA">MOA</option>
+                                <option value="IMPLEMENTATION">Implementation</option>
+                                <option value="COMPLETED">Completed</option>
+                            </select>
+                            <select id="ext-filter-type" class="dir-input w-full">
+                                <option value="">All Types</option>
+                                <option value="RESEARCH_FACULTY">Research-based (Faculty)</option>
+                                <option value="RESEARCH_STUDENT">Research-based (Student)</option>
+                                <option value="REQUEST_BASED">Request-based</option>
+                                <option value="COMMUNITY_BASED">Community-based</option>
+                            </select>
+                            <select id="ext-filter-scope" class="dir-input w-full">
+                                <option value="">All Scope</option>
+                                <option value="PROGRAM">Program</option>
+                                <option value="PROJECT">Project</option>
+                                <option value="ACTIVITY">Activity</option>
+                            </select>
+                            <select id="ext-filter-year" class="dir-input w-full" data-year-filter="true">
+                                <option value="">All Years</option>
+                                {% for d in review_year_choices %}<option value="{{ d.year }}" {% if request.GET.year == d.year|stringformat:"s" %}selected{% endif %}>{{ d.year }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT -->
+            <main>
+
+<!-- ================================================================
+     GLOBAL STYLES
+================================================================ -->
+<style>
+:root {
+    --green:  #103b07;
+    --green-l:#eaf3de;
+    --red:    #5a1113;
+    --red-l:  #fcebeb;
+    --amber:  #854F0B;
+    --amber-l:#faeeda;
+    --blue:   #0c447c;
+    --blue-l: #e6f1fb;
+    --purple: #3C3489;
+    --purple-l:#eeedfe;
+    --border: rgba(0,0,0,.07);
+    --text:   #0f172a;
+    --muted:  #64748b;
+    --subtle: #94a3b8;
+}
+
+/* Layout */
+.dir-card {
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:16px;
+}
+.dir-card-accent {
+    height:3px;
+    border-radius:16px 16px 0 0;
+}
+
+/* Buttons */
+.dir-btn-primary {
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:.55rem 1.1rem;border-radius:8px;
+    background:var(--green);color:#fff;font-size:.8rem;font-weight:600;
+    transition:opacity .15s;
+}
+.dir-btn-primary:hover { opacity:.85; }
+
+.dir-btn {
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:.45rem .9rem;border-radius:8px;font-size:.75rem;font-weight:500;
+    border:1px solid rgba(16,59,7,.14);color:var(--green);background:#fff;
+    transition:all .15s;white-space:nowrap;
+}
+.dir-btn:hover { background:var(--green);color:#fff; }
+.dir-btn.filled { background:var(--green);color:#fff; }
+.dir-btn.filled:hover { opacity:.85; }
+
+/* Navigation */
+.dashboard-nav-btn {
+    display:flex;width:100%;align-items:center;
+    padding:.65rem .85rem;border-radius:8px;font-size:.85rem;font-weight:500;
+    color:var(--muted);background:transparent;border:none;text-align:left;
+    transition:all .15s;
+}
+.dashboard-nav-btn:hover { background:#f1f5f9;color:var(--text); }
+.dashboard-nav-btn.active { background:var(--green-l);color:var(--green);font-weight:600; }
+
+/* Quick nav */
+.quick-tab-btn {
+    display:inline-flex;align-items:center;justify-content:center;
+    padding:.4rem .85rem;border-radius:8px;font-size:.75rem;font-weight:500;
+    border:1px solid rgba(16,59,7,.14);color:var(--green);background:transparent;
+    transition:all .15s;
+}
+.quick-tab-btn:hover { background:var(--green);color:#fff; }
+
+/* Inputs */
+.dir-input {
+    display:block;width:100%;
+    padding:.5rem .75rem;border-radius:8px;font-size:.8rem;color:var(--text);
+    border:1px solid rgba(0,0,0,.1);background:#fff;outline:none;
+    transition:border-color .15s;
+}
+.dir-input:focus { border-color:var(--green); }
+select.dir-input {
+    appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position:right .6rem center;background-repeat:no-repeat;background-size:1.1rem;
+    padding-right:2rem;
+}
+
+/* KPI cards */
+.kpi-card {
+    background:#fff;border:1px solid var(--border);border-radius:12px;
+    padding:18px 20px;border-top:3px solid transparent;
+    transition:box-shadow .15s,transform .15s;
+}
+.kpi-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.07);transform:translateY(-1px); }
+
+/* Badges */
+.badge {
+    font-size:10px;font-weight:600;padding:3px 10px;border-radius:6px;
+    white-space:nowrap;display:inline-block;flex-shrink:0;
+}
+.badge-green  { background:var(--green-l);color:var(--green); }
+.badge-red    { background:var(--red-l);color:var(--red); }
+.badge-amber  { background:var(--amber-l);color:var(--amber); }
+.badge-blue   { background:var(--blue-l);color:var(--blue); }
+.badge-purple { background:var(--purple-l);color:var(--purple); }
+.badge-gray   { background:#f1f5f9;color:#475569; }
+
+/* Section label */
+.section-label {
+    font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--subtle);margin-bottom:14px;display:block;
+}
+
+/* Stage bar */
+.stage-bar-track { height:4px;border-radius:4px;background:#f1f5f9;overflow:hidden;margin-top:8px; }
+.stage-bar-fill  { height:100%;border-radius:4px;width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1); }
+
+/* Segment bar */
+.seg-bar { height:6px;border-radius:4px;background:#f1f5f9;overflow:hidden;display:flex; }
+.seg-fill { height:100%;width:0;transition:width 1.6s cubic-bezier(.4,0,.2,1); }
+
+/* Proposal rows */
+.prop-row {
+    display:flex;align-items:center;gap:10px;padding:10px 12px;
+    border-radius:10px;border:1px solid rgba(0,0,0,.06);background:#fafafa;
+    transition:all .15s;
+}
+.prop-row:hover { background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06); }
+
+/* Extension / proposal cards */
+.ext-card, .rq-card, .mine-card {
+    background:#fafafa;border:1px solid rgba(0,0,0,.07);border-radius:12px;
+    padding:16px;transition:all .15s;
+}
+.ext-card:hover, .rq-card:hover, .mine-card:hover {
+    background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.07);
+}
+
+/* Section containers */
+.section-block {
+    background:#fff;border:1px solid var(--border);border-radius:12px;
+    overflow:hidden;
+}
+.section-block-head {
+    padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.06);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+}
+
+/* Chip colors */
+.ev-chip {
+    display:inline-flex;align-items:center;gap:6px;
+    border-radius:6px;background:var(--green-l);border:1px solid rgba(16,59,7,.12);
+    padding:3px 8px;font-size:11px;font-weight:500;color:var(--green);
+}
+
+/* Utility */
+.line-clamp-2 { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+@keyframes rise { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.anim { animation:rise .4s ease both; }
+.a1{animation-delay:.05s}.a2{animation-delay:.1s}.a3{animation-delay:.17s}.a4{animation-delay:.24s}
+</style>
+
+
+<!-- ================================================================
+     OVERVIEW TAB
+================================================================ -->
+<section class="dashboard-tab-panel" data-tab-panel="overview">
+<div class="flex flex-col gap-5">
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-3 anim">
+        <div class="kpi-card" style="border-top-color:var(--green);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--green);opacity:.7;">Total Extensions</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--green);">{{ institution_total|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Full portfolio</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--red);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--red);opacity:.7;">Pending Review</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--red);">{{ institution_pending|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Awaiting action</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--amber);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--amber);opacity:.7;">Active Pipeline</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--amber);">{{ proposal_process_total|default:0|add:moa_process_total|default:0|add:implementation_process_total|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Proposal · MOA · Impl.</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--blue);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--blue);opacity:.7;">In Review</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--blue);">{{ under_review_total|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Active evaluations</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--purple);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--purple);opacity:.7;">Completed</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--purple);">{{ completed_process_total|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Fully closed out</p>
+        </div>
+    </div>
+
+    <!-- Pipeline stages -->
+    <div class="dir-card p-5 anim a1">
+        <div class="flex items-center justify-between mb-4">
+            <span class="section-label" style="margin:0;">Pipeline Stages</span>
+            <button type="button" class="quick-tab-btn" data-target-tab="extensions">Browse All →</button>
+        </div>
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--green);">Proposal</p>
+                    <span class="text-sm font-bold" style="color:var(--green);">{{ proposal_process_total|default:0 }}</span>
+                </div>
+                <div class="stage-bar-track"><div class="stage-bar-fill" id="sb-p" style="background:var(--green);"></div></div>
+                <p class="text-[10px] text-slate-400 mt-1.5">Drafting to approval</p>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--red);">MOA</p>
+                    <span class="text-sm font-bold" style="color:var(--red);">{{ moa_process_total|default:0 }}</span>
+                </div>
+                <div class="stage-bar-track"><div class="stage-bar-fill" id="sb-m" style="background:var(--red);"></div></div>
+                <p class="text-[10px] text-slate-400 mt-1.5">Agreement processing</p>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--blue);">Implementation</p>
+                    <span class="text-sm font-bold" style="color:var(--blue);">{{ implementation_process_total|default:0 }}</span>
+                </div>
+                <div class="stage-bar-track"><div class="stage-bar-fill" id="sb-i" style="background:var(--blue);"></div></div>
+                <p class="text-[10px] text-slate-400 mt-1.5">Active field work</p>
+            </div>
+            <div>
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--purple);">Completed</p>
+                    <span class="text-sm font-bold" style="color:var(--purple);">{{ completed_process_total|default:0 }}</span>
+                </div>
+                <div class="stage-bar-track"><div class="stage-bar-fill" id="sb-d" style="background:var(--purple);"></div></div>
+                <p class="text-[10px] text-slate-400 mt-1.5">Formally closed out</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue + Charts -->
+    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_300px] gap-5 anim a2">
+
+        <!-- Queue -->
+        <div class="dir-card overflow-hidden">
+            <div class="section-block-head">
+                <div>
+                    <span class="section-label" style="margin-bottom:4px;">Review Queue</span>
+                    <h2 class="text-base font-semibold" style="color:var(--text);">Proposal Review Status</h2>
+                </div>
+                <button type="button" class="quick-tab-btn" data-target-tab="queue">Open Queue →</button>
+            </div>
+
+            <!-- Status summary row -->
+            <div class="grid grid-cols-4 divide-x divide-slate-100 border-b border-slate-100">
+                <div class="px-4 py-3 text-center">
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Submitted</p>
+                    <p class="text-xl font-bold" style="color:var(--green);">{{ submitted_total|default:0 }}</p>
+                </div>
+                <div class="px-4 py-3 text-center">
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 mb-1">In Review</p>
+                    <p class="text-xl font-bold" style="color:var(--blue);">{{ under_review_total|default:0 }}</p>
+                </div>
+                <div class="px-4 py-3 text-center">
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Revision</p>
+                    <p class="text-xl font-bold" style="color:var(--red);">{{ institution_revision|default:0 }}</p>
+                </div>
+                <div class="px-4 py-3 text-center">
+                    <p class="text-[10px] uppercase tracking-widest text-slate-400 mb-1">Approved</p>
+                    <p class="text-xl font-bold" style="color:var(--purple);">{{ institution_approved|default:0 }}</p>
+                </div>
+            </div>
+
+            <!-- Needs attention list -->
+            <div class="p-4">
+                <p class="section-label">Needs Attention</p>
+                <div class="flex flex-col gap-2">
+                    {% if review_queue %}
+                        {% for proposal in review_queue|slice:":6" %}
+                        {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' or proposal.proposal_status == 'IN_REVIEW' or proposal.proposal_status == 'FOR_REVISION' %}
+                        <div class="prop-row">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-semibold overflow-hidden text-ellipsis whitespace-nowrap" style="color:var(--text);">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</p>
+                                <p class="text-[11px] text-slate-400 mt-0.5">{{ proposal.campus|default:"—" }} · {{ proposal.department|default:"—" }}</p>
+                            </div>
+                            {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}
+                                <span class="badge badge-green">Submitted</span>
+                            {% elif proposal.proposal_status == 'IN_REVIEW' %}
+                                <span class="badge badge-blue">In Review</span>
+                            {% else %}
+                                <span class="badge badge-red">For Revision</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="rounded-lg bg-slate-50 p-6 text-center">
+                            <p class="text-sm font-semibold" style="color:var(--green);">Queue is clear</p>
+                            <p class="text-xs text-slate-400 mt-1">All proposals are up to date.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts stacked -->
+        <div class="flex flex-col gap-4">
+            <div class="dir-card p-4 flex-1">
+                <span class="section-label">Review Distribution</span>
+                <div style="height:160px;"><canvas id="proposalStatusChart"></canvas></div>
+            </div>
+            <div class="dir-card p-4 flex-1">
+                <span class="section-label">Stage Distribution</span>
+                <div style="height:160px;"><canvas id="processOverviewChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campus breakdown -->
+    <div class="dir-card overflow-hidden anim a3">
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;">Campus</span>
+                <h2 class="text-base font-semibold" style="color:var(--text);">Campus Breakdown</h2>
+            </div>
+            <button type="button" class="quick-tab-btn" data-target-tab="campuses">Full Analytics →</button>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+            <div class="p-5 border-r border-slate-100">
+                <div style="height:240px;"><canvas id="campusComparisonChart"></canvas></div>
+            </div>
+            <div class="p-5">
+                <!-- Legend -->
+                <div class="flex flex-wrap gap-3 mb-4">
+                    <span class="flex items-center gap-1.5 text-[10px] font-semibold" style="color:var(--green);"><span style="width:8px;height:8px;border-radius:2px;background:var(--green);display:inline-block;"></span>Proposal</span>
+                    <span class="flex items-center gap-1.5 text-[10px] font-semibold" style="color:var(--red);"><span style="width:8px;height:8px;border-radius:2px;background:var(--red);display:inline-block;"></span>MOA</span>
+                    <span class="flex items-center gap-1.5 text-[10px] font-semibold" style="color:var(--blue);"><span style="width:8px;height:8px;border-radius:2px;background:var(--blue);display:inline-block;"></span>Impl.</span>
+                    <span class="flex items-center gap-1.5 text-[10px] font-semibold" style="color:var(--purple);"><span style="width:8px;height:8px;border-radius:2px;background:var(--purple);display:inline-block;"></span>Done</span>
+                </div>
+                {% if campus_stats %}
+                <div class="flex flex-col gap-4">
+                    {% for item in campus_stats|slice:":7" %}
+                    <div>
+                        <div class="flex justify-between items-baseline gap-2 mb-1.5">
+                            <p class="text-xs font-semibold overflow-hidden text-ellipsis whitespace-nowrap" style="color:var(--text);flex:1;">{{ item.campus }}</p>
+                            <span class="text-xs font-bold flex-shrink-0" style="color:var(--text);">{{ item.total|default:0 }}</span>
+                        </div>
+                        <div class="seg-bar" data-inst="{{ institution_total|default:1 }}" data-ct="{{ item.total|default:0 }}" data-p="{{ item.proposal_count|default:0 }}" data-m="{{ item.moa_count|default:0 }}" data-i="{{ item.implementation_count|default:0 }}" data-d="{{ item.completed_count|default:0 }}">
+                            <div class="seg-fill" style="background:var(--green);"></div>
+                            <div class="seg-fill" style="background:var(--red);"></div>
+                            <div class="seg-fill" style="background:var(--blue);"></div>
+                            <div class="seg-fill" style="background:var(--purple);border-radius:0 4px 4px 0;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if campus_stats|length > 7 %}
+                    <button type="button" class="quick-tab-btn w-full mt-1" data-target-tab="campuses">View all {{ campus_stats|length }} campuses →</button>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="rounded-lg bg-slate-50 p-6 text-center">
+                    <p class="text-sm font-semibold" style="color:var(--green);">No campus data yet</p>
+                    <p class="text-xs text-slate-400 mt-1">Stats appear once extensions are recorded.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+<script>
+(function(){
+    const vals={p:{{ proposal_process_total|default:0 }},m:{{ moa_process_total|default:0 }},i:{{ implementation_process_total|default:0 }},d:{{ completed_process_total|default:0 }}};
+    const peak=Math.max(vals.p,vals.m,vals.i,vals.d,1);
+    const inst={{ institution_total|default:1 }};
+    [['sb-p',vals.p],['sb-m',vals.m],['sb-i',vals.i],['sb-d',vals.d]].forEach(([id,v],idx)=>{
+        const el=document.getElementById(id);if(!el)return;
+        setTimeout(()=>{el.style.width=Math.round(v/peak*100)+'%';},100+idx*60);
+    });
+    document.querySelectorAll('.seg-bar').forEach(bar=>{
+        const ct=+bar.dataset.ct||0,p=+bar.dataset.p||0,m=+bar.dataset.m||0,i=+bar.dataset.i||0,d=+bar.dataset.d||0;
+        const tot=(p+m+i+d)||1,pct=ct/(inst||1)*100;
+        setTimeout(()=>{
+            const fills=bar.querySelectorAll('.seg-fill');
+            [p,m,i,d].forEach((v,idx)=>{if(fills[idx])fills[idx].style.width=(v/tot*pct).toFixed(2)+'%';});
+        },220);
+    });
+})();
+</script>
+</section>
+
+
+<!-- ================================================================
+     REVIEW QUEUE TAB
+================================================================ -->
+<section class="dashboard-tab-panel hidden" data-tab-panel="queue">
+<div class="flex flex-col gap-5">
+
+    <!-- KPI strip -->
+    <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div class="kpi-card" style="border-top-color:var(--green);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--green);opacity:.7;">Submitted</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--green);">{{ submitted_total|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Awaiting first review</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--blue);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--blue);opacity:.7;">In Review</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--blue);">{{ under_review_total|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Active evaluations</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--red);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--red);opacity:.7;">Under Revision</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--red);">{{ institution_revision|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Returned to proponent</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--purple);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--purple);opacity:.7;">Approved</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--purple);">{{ institution_approved|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Cleared by director</p>
+        </div>
+    </div>
+
+    <!-- SUBMITTED / ACTIVE -->
+    <div class="section-block rq-section-container" data-section-container="SUBMITTED_ACTIVE">
+        <div class="dir-card-accent" style="background:var(--green);"></div>
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;">Submitted &amp; Active Review</span>
+                <p class="text-xs text-slate-400">Faculty-submitted proposals the director can open, comment on, assign evaluators, and move forward.</p>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 rq-grid" data-grid-section="SUBMITTED_ACTIVE">
+                {% for proposal in review_queue %}
+                {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' or proposal.proposal_status == 'IN_REVIEW' or proposal.proposal_status == 'REVIEW_SUMMARY_ISSUED' %}
+                <div class="rq-card"
+                     data-section="SUBMITTED_ACTIVE"
+                     data-title="{{ proposal.title|default:proposal.research_title|default:'Untitled Proposal'|lower }}"
+                     data-author="{{ proposal.created_by.profile.full_name|default:proposal.created_by.username|lower }}"
+                     data-campus="{{ proposal.campus|default:''|lower }}"
+                     data-year="{% if proposal.submitted_at %}{{ proposal.submitted_at|date:'Y' }}{% endif %}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</h3>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ proposal.get_scope_type_display|default:proposal.scope_type|default:"Proposal" }}</p>
+                        </div>
+                        {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}<span class="badge badge-green">Submitted</span>
+                        {% elif proposal.proposal_status == 'IN_REVIEW' %}<span class="badge badge-blue">In Review</span>
+                        {% elif proposal.proposal_status == 'REVIEW_SUMMARY_ISSUED' %}<span class="badge badge-amber">Summary Issued</span>
+                        {% else %}<span class="badge badge-gray">{{ proposal.get_proposal_status_display }}</span>{% endif %}
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Proponent</p><p class="mt-0.5 text-xs text-slate-600 line-clamp-2">{{ proposal.created_by.profile.full_name|default:proposal.created_by.username }}</p></div>
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</p><p class="mt-0.5 text-xs text-slate-600">{{ proposal.campus|default:"—" }}</p></div>
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Department</p><p class="mt-0.5 text-xs text-slate-600 line-clamp-2">{{ proposal.department|default:"—" }}</p></div>
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Submitted</p><p class="mt-0.5 text-xs text-slate-600">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p></div>
+                    </div>
+
+                    <!-- Evaluator assignment -->
+                    <div class="mt-3 rounded-lg border border-slate-200 bg-white p-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">Assigned Evaluators</p>
+                        <p class="text-[11px] text-slate-400 mb-2">Search a faculty name to assign immediately.</p>
+                        <div id="assigned-evaluators-{{ proposal.id }}" class="flex flex-wrap gap-1.5 mb-2">
+                            {% if proposal.assigned_evaluators %}
+                                {% for evaluator in proposal.assigned_evaluators %}
+                                <div class="ev-chip evaluator-chip" data-evaluator-id="{{ evaluator.id }}">
+                                    <span>{{ evaluator.profile.full_name|default:evaluator.username }}</span>
+                                    <button type="button" class="remove-evaluator-btn font-bold leading-none hover:opacity-60" data-proposal-id="{{ proposal.id }}" data-remove-url="{% url 'proposal_remove_evaluator' proposal.id evaluator.id %}">×</button>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-xs text-slate-400 empty-evaluator-text">No evaluators assigned yet.</p>
+                            {% endif %}
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="faculty-search-{{ proposal.id }}" class="dir-input faculty-search-input w-full" placeholder="Search faculty name…" data-proposal-id="{{ proposal.id }}" data-assign-url-template="{% url 'proposal_assign_evaluator_ajax' proposal.id 0 %}" data-remove-url-template="{% url 'proposal_remove_evaluator' proposal.id 0 %}" autocomplete="off">
+                            <div id="faculty-results-{{ proposal.id }}" class="hidden space-y-1 absolute left-0 right-0 top-full mt-1 z-20"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn block w-full text-center">View Proposal</a>
+                    </div>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        <form method="post" action="{% url 'proposal_mark_ready_for_summary' proposal.id %}">{% csrf_token %}<button type="submit" class="dir-btn w-full">Ready for Summary</button></form>
+                        <form method="post" action="{% url 'proposal_approve' proposal.id %}">{% csrf_token %}<button type="submit" class="dir-btn filled w-full">Approve</button></form>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="hidden rounded-lg bg-slate-50 p-6 text-center rq-empty-state" data-empty-section="SUBMITTED_ACTIVE">
+                <p class="text-sm font-semibold" style="color:var(--green);">No proposals found</p>
+                <p class="mt-1 text-xs text-slate-400">No submitted or active-review proposals matched your filters.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- REVISION -->
+    <div class="section-block rq-section-container" data-section-container="REVISION">
+        <div class="dir-card-accent" style="background:var(--red);"></div>
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;color:var(--red);">Under Revision</span>
+                <p class="text-xs text-slate-400">Proposals returned for revision and awaiting resubmission.</p>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 rq-grid" data-grid-section="REVISION">
+                {% for proposal in review_queue %}
+                {% if proposal.proposal_status == 'FOR_REVISION' %}
+                <div class="rq-card"
+                     data-section="REVISION"
+                     data-title="{{ proposal.title|default:proposal.research_title|default:'Untitled Proposal'|lower }}"
+                     data-author="{{ proposal.created_by.profile.full_name|default:proposal.created_by.username|lower }}"
+                     data-campus="{{ proposal.campus|default:''|lower }}"
+                     data-year="{% if proposal.submitted_at %}{{ proposal.submitted_at|date:'Y' }}{% endif %}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</h3>
+                            <p class="mt-0.5 text-xs text-slate-400">Waiting for revised submission</p>
+                        </div>
+                        <span class="badge badge-red">For Revision</span>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center">View Proposal</a>
+                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center">View Summary</a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="hidden rounded-lg bg-slate-50 p-6 text-center rq-empty-state" data-empty-section="REVISION">
+                <p class="text-sm font-semibold" style="color:var(--green);">No proposals found</p>
+                <p class="mt-1 text-xs text-slate-400">No revision proposals matched your filters.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPROVED -->
+    <div class="section-block rq-section-container" data-section-container="APPROVED">
+        <div class="dir-card-accent" style="background:var(--purple);"></div>
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;color:var(--purple);">Approved Proposals</span>
+                <p class="text-xs text-slate-400">Proposals cleared by the director and ready for the next phase.</p>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 rq-grid" data-grid-section="APPROVED">
+                {% for proposal in review_queue %}
+                {% if proposal.proposal_status == 'APPROVED' or proposal.proposal_status == 'COMPLETED' %}
+                <div class="rq-card"
+                     data-section="APPROVED"
+                     data-title="{{ proposal.title|default:proposal.research_title|default:'Untitled Proposal'|lower }}"
+                     data-author="{{ proposal.created_by.profile.full_name|default:proposal.created_by.username|lower }}"
+                     data-campus="{{ proposal.campus|default:''|lower }}"
+                     data-year="{% if proposal.submitted_at %}{{ proposal.submitted_at|date:'Y' }}{% endif %}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</h3>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ proposal.created_by.profile.full_name|default:proposal.created_by.username }}</p>
+                        </div>
+                        {% if proposal.proposal_status == 'COMPLETED' %}<span class="badge badge-purple">Completed</span>{% else %}<span class="badge badge-purple">Approved</span>{% endif %}
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</p><p class="mt-0.5 text-xs text-slate-600">{{ proposal.campus|default:"—" }}</p></div>
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Updated</p><p class="mt-0.5 text-xs text-slate-600">{% if proposal.last_saved_at %}{{ proposal.last_saved_at|date:"M d, Y" }}{% else %}—{% endif %}</p></div>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center">View Proposal</a>
+                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center">View Summary</a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            <div class="hidden rounded-lg bg-slate-50 p-6 text-center rq-empty-state" data-empty-section="APPROVED">
+                <p class="text-sm font-semibold" style="color:var(--green);">No proposals found</p>
+                <p class="mt-1 text-xs text-slate-400">No approved proposals matched your filters.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</section>
+
+
+<!-- ================================================================
+     CAMPUSES TAB
+================================================================ -->
+<section class="dashboard-tab-panel hidden" data-tab-panel="campuses">
+<div class="flex flex-col gap-5">
+
+    <div class="section-block">
+        <div class="dir-card-accent" style="background:linear-gradient(90deg,var(--green),var(--red),var(--blue),var(--purple));"></div>
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;">Campus Extension Metrics</span>
+                <p class="text-xs text-slate-400">Total Proposal, MOA, Implementation, and Completed extensions per campus.</p>
+            </div>
+        </div>
+        <div class="p-5"><div style="height:360px;"><canvas id="campusStageChart"></canvas></div></div>
+    </div>
+
+    <div class="section-block">
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;">Campus Statistics</span>
+                <p class="text-xs text-slate-400">Exact values for each campus across all extension stages.</p>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            {% if campus_stats %}
+            <table class="min-w-full divide-y divide-black/5">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400">Total</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wide" style="color:var(--green);">Proposal</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wide" style="color:var(--red);">MOA</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wide" style="color:var(--blue);">Implementation</th>
+                        <th class="px-5 py-3 text-center text-[10px] font-bold uppercase tracking-wide" style="color:var(--purple);">Completed</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-black/5 bg-white">
+                    {% for item in campus_stats %}
+                    <tr class="hover:bg-slate-50 transition campus-stat-row" data-campus="{{ item.campus }}">
+                        <td class="px-5 py-3 text-sm font-semibold" style="color:var(--green);">{{ item.campus }}</td>
+                        <td class="px-5 py-3 text-center text-sm font-bold" style="color:var(--text);">{{ item.total|default:0 }}</td>
+                        <td class="px-5 py-3 text-center"><span class="badge badge-green">{{ item.proposal_count|default:0 }}</span></td>
+                        <td class="px-5 py-3 text-center"><span class="badge badge-red">{{ item.moa_count|default:0 }}</span></td>
+                        <td class="px-5 py-3 text-center"><span class="badge badge-blue">{{ item.implementation_count|default:0 }}</span></td>
+                        <td class="px-5 py-3 text-center"><span class="badge badge-purple">{{ item.completed_count|default:0 }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="p-8 text-center">
+                <p class="text-sm font-semibold" style="color:var(--green);">No campus statistics available</p>
+                <p class="mt-1 text-xs text-slate-400">Data will appear here once records are available.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+</section>
+
+
+<!-- ================================================================
+     ALL EXTENSIONS TAB
+================================================================ -->
+<section class="dashboard-tab-panel hidden" data-tab-panel="extensions">
+<div class="section-block">
+    <div class="dir-card-accent" style="background:linear-gradient(90deg,var(--green),var(--red),var(--blue),var(--purple));"></div>
+    <div class="section-block-head">
+        <div>
+            <span class="section-label" style="margin-bottom:4px;">Extension Data Explorer</span>
+            <p class="text-xs text-slate-400">Browse institution-wide extension records. Use <strong>Review Queue</strong> to take action.</p>
+        </div>
+
+        
+    </div>
+    <div class="p-4">
+        {% if monitored_page %}
+        <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3" id="ext-card-grid">
+            {% for item in monitored_page %}
+            <div class="ext-card"
+                data-title="{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|lower }}"
+                data-campus="{{ item.proposal.campus|default:''|lower }}"
+                data-process="{{ item.status_stage|default:'PROPOSAL' }}"
+                data-ext-type="{{ item.proposal.extension_type|default:'' }}"
+                data-scope="{{ item.proposal.scope_type|default:'' }}">
+
+                <div class="flex items-start justify-between gap-3 mb-3">
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</h3>
+                        <p class="mt-0.5 text-xs text-slate-400">{{ item.scope_label|default:"—" }}</p>
+                    </div>
+                    {% if item.is_draft %}<span class="badge badge-gray">Draft</span>
+                    {% elif item.process_label == 'Proposal' or item.status_stage == 'PROPOSAL' %}<span class="badge badge-green">Proposal</span>
+                    {% elif item.process_label == 'MOA' or item.status_stage == 'MOA' %}<span class="badge badge-red">MOA</span>
+                    {% elif item.process_label == 'Implementation' or item.status_stage == 'IMPLEMENTATION' %}<span class="badge badge-blue">Implementation</span>
+                    {% elif item.process_label == 'Completed' or item.status_stage == 'COMPLETED' %}<span class="badge badge-purple">Completed</span>
+                    {% else %}<span class="badge badge-gray">{{ item.process_label|default:item.status_stage|default:"Proposal" }}</span>{% endif %}
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="relative shrink-0" style="width:102px;height:102px;">
+                        <canvas id="extGauge{{ item.proposal.id }}" style="width:102px;height:102px;"></canvas>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="text-center">
+                                <div id="extGaugeText{{ item.proposal.id }}" class="text-xl font-extrabold text-slate-800 leading-none">0%</div>
+                                <div class="text-[8px] uppercase tracking-wide text-slate-400 mt-0.5">Progress</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="min-w-0 flex-1 space-y-1.5">
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Proponent</p><p class="text-xs text-slate-600 line-clamp-1">{{ item.proposal.created_by.profile.full_name|default:item.proposal.created_by.username }}</p></div>
+                        <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</p><p class="text-xs text-slate-600 line-clamp-1">{{ item.proposal.campus|default:"—" }}</p></div>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500">
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                <span>Proposal</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                                <span>MOA</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300""></span>
+                                <span>Implementation</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+                
+
+                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wide text-slate-400">{% if item.is_draft %}Last saved{% else %}Submitted{% endif %}</p>
+                        <p class="text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="{% url 'proposal_storage' item.proposal.id %}" class="dir-btn inline-flex items-center gap-1.5" title="Proposal storage" aria-label="Proposal storage">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
+                            </svg>
+                        </a>
+                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled">View</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="ext-empty-state" class="hidden rounded-lg bg-slate-50 p-6 text-center">
+            <p class="text-sm font-semibold" style="color:var(--green);">No extensions found</p>
+            <p class="mt-1 text-xs text-slate-400">Try adjusting the filters on the left.</p>
+        </div>
+        {% else %}
+        <div class="rounded-lg bg-slate-50 p-8 text-center">
+            <p class="text-sm font-semibold" style="color:var(--green);">No extensions found</p>
+            <p class="mt-1 text-xs text-slate-400">Records will appear here once extensions are created.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+</section>
+
+
+<!-- ================================================================
+     MY PROPOSALS TAB
+================================================================ -->
+<section class="dashboard-tab-panel hidden" data-tab-panel="mine">
+<div class="flex flex-col gap-5">
+
+    <div class="grid grid-cols-2 xl:grid-cols-5 gap-3">
+        <div class="kpi-card" style="border-top-color:#94a3b8;">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Drafts</p>
+            <p id="draft-count" class="text-4xl font-bold tracking-tight text-slate-500">{{ draft_count|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">In progress</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--green);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--green);opacity:.7;">Proposal</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--green);">{{ proposal_phase_count|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Proposal stage</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--red);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--red);opacity:.7;">MOA</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--red);">{{ moa_phase_count|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Agreement stage</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--blue);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--blue);opacity:.7;">Implementation</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--blue);">{{ implementation_phase_count|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Active field work</p>
+        </div>
+        <div class="kpi-card" style="border-top-color:var(--purple);">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--purple);opacity:.7;">Completed</p>
+            <p class="text-4xl font-bold tracking-tight" style="color:var(--purple);">{{ completed_phase_count|default:0 }}</p>
+            <p class="mt-1 text-[11px] text-slate-400">Closed out</p>
+        </div>
+    </div>
+
+    <div class="section-block">
+        <div class="dir-card-accent" style="background:linear-gradient(90deg,var(--green),var(--red),var(--blue),var(--purple));"></div>
+        <div class="section-block-head">
+            <div>
+                <span class="section-label" style="margin-bottom:4px;">My Proposal Portfolio</span>
+                <p class="text-xs text-slate-400">Track your own extension records from draft to completion.</p>
+            </div>
+        </div>
+        <div class="p-4">
+            {% if all_proposals %}
+            <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+                {% for item in all_proposals %}
+                <div id="proposal-card-{{ item.proposal.id }}" class="mine-card">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</h3>
+                            <p class="mt-0.5 text-xs text-slate-400">{{ item.scope_label|default:"—" }}</p>
+                        </div>
+                        {% if item.is_draft %}<span class="badge badge-gray">Draft</span>
+                        {% elif item.process_label == 'Proposal' %}<span class="badge badge-green">Proposal</span>
+                        {% elif item.process_label == 'MOA' %}<span class="badge badge-red">MOA</span>
+                        {% elif item.process_label == 'Implementation' %}<span class="badge badge-blue">Implementation</span>
+                        {% elif item.process_label == 'Completed' %}<span class="badge badge-purple">Completed</span>
+                        {% else %}<span class="badge badge-gray">{{ item.status_stage }}</span>{% endif %}
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="relative shrink-0" style="width:102px;height:102px;">
+                            <canvas id="gaugeChart{{ item.proposal.id }}" style="width:102px;height:102px;"></canvas>
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="text-center">
+                                    <div id="gaugeText{{ item.proposal.id }}" class="text-xl font-extrabold text-slate-800 leading-none">0%</div>
+                                    <div class="text-[8px] uppercase tracking-wide text-slate-400 mt-0.5">Progress</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex-1 space-y-1.5">
+                            <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Status</p><p class="text-xs text-slate-600 line-clamp-2">{{ item.status_label }}</p></div>
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500">
+                                
+                                <div class="flex items-center gap-1.5">
+                                    <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                    <span>Proposal</span>
+                                </div>
+
+                                <div class="flex items-center gap-1.5">
+                                    <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                                    <span>MOA</span>
+                                </div>
+
+                                <div class="flex items-center gap-1.5">
+                                    <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
+                                    <span>Implementation</span>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                        <div>
+                            <p class="text-[10px] uppercase tracking-wide text-slate-400">{% if item.is_draft %}Last Saved{% else %}Submitted{% endif %}</p>
+                            <p class="text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            {% if item.is_draft %}
+                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">Continue</a>
+                                {% if item.proposal.created_by == request.user %}<button type="button" onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Draft"|escapejs }}')" class="dir-btn">Delete</button>{% endif %}
+                            {% else %}
+                                {% if item.is_for_revision %}<a href="{% url 'proposal_wizard' item.proposal.id item.current_step %}" class="dir-btn">Revise</a>{% endif %}
+                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">View</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="rounded-lg bg-slate-50 p-8 text-center">
+                <p class="text-sm font-semibold" style="color:var(--green);">No proposals yet</p>
+                <p class="mt-1 text-xs text-slate-400">Once you create a proposal, it will appear here.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</section>
+
+            </main>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Draft Modal -->
+<div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]" onclick="closeDeleteModal()"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100">
+                <div class="flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.742-2.98l5.58-9.921ZM11 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1-6a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-semibold" style="color:var(--text);">Delete Draft</h3>
+                        <p class="mt-0.5 text-sm text-slate-400">This will permanently remove the draft.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4">
+                <p class="text-sm text-slate-500">You are about to delete <span id="deleteDraftTitle" class="font-semibold" style="color:var(--text);"></span>. This action cannot be undone.</p>
+            </div>
+            <div class="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4">
+                <button type="button" onclick="closeDeleteModal()" class="dir-btn">Cancel</button>
+                <button type="button" id="confirmDeleteDraftBtn" class="dir-btn filled">Delete Draft</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/* ── helpers ── */
+function getCookie(name){let v=null;if(document.cookie){for(const c of document.cookie.split(';')){const t=c.trim();if(t.startsWith(name+'=')){v=decodeURIComponent(t.slice(name.length+1));break;}}}return v;}
+
+/* ── delete draft modal ── */
+let deleteDraftState={proposalId:null,url:null,title:null};
+function openDeleteModal(proposalId,url,title){deleteDraftState={proposalId,url,title};document.getElementById('deleteDraftTitle').textContent=`"${title}"`;document.getElementById('deleteDraftModal').classList.remove('hidden');document.body.classList.add('overflow-hidden');}
+function closeDeleteModal(){document.getElementById('deleteDraftModal').classList.add('hidden');document.body.classList.remove('overflow-hidden');deleteDraftState={proposalId:null,url:null,title:null};}
+async function deleteDraft(proposalId,url){try{const response=await fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const data=await response.json();if(!data.ok){alert(data.message||'Failed to delete draft.');return;}const card=document.getElementById(`proposal-card-${proposalId}`);if(card)card.remove();const el=document.getElementById('draft-count');if(el)el.textContent=typeof data.draft_count!=='undefined'?String(data.draft_count):String(Math.max(0,(parseInt(el.textContent)||0)-1));closeDeleteModal();window.location.reload();}catch(e){alert('Something went wrong while deleting the draft.');console.error(e);}}
+document.getElementById('confirmDeleteDraftBtn')?.addEventListener('click',()=>{if(deleteDraftState.proposalId&&deleteDraftState.url)deleteDraft(deleteDraftState.proposalId,deleteDraftState.url);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDeleteModal();});
+
+/* ── gauge ── */
+function easeOutCubic(t){return 1-Math.pow(1-t,3);}
+function easeInOutCubic(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
+function createDoughnutGauge(canvas,pct){
+    if(!canvas)return;
+    const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+    ctx.clearRect(0,0,w,h);
+    const cx=w/2,cy=h/2,r=Math.min(w,h)/2-8,lw=12;
+    const sA=(-234*Math.PI)/180,tA=(288*Math.PI)/180,eA=sA+tA;
+    const proposalW=0.40,moaW=0.20,implW=0.40;const z1=sA+tA*proposalW,z2=sA+tA*(proposalW+moaW);
+    const pE=sA+tA*(Math.max(0,Math.min(pct,100))/100);
+    ctx.lineCap='butt';
+    // three color zones
+    for(const[s,e,c] of [[sA,z1,'#103b07'],[z1,z2,'#5a1113'],[z2,eA,'#facc15']]){
+        ctx.beginPath();ctx.strokeStyle=c;ctx.lineWidth=lw;
+        ctx.arc(cx,cy,r,s,e,false);ctx.stroke();
+    }
+    // white overlay for unfilled portion
+    if(pE<eA){
+        ctx.beginPath();ctx.strokeStyle='rgba(255,255,255,0.92)';ctx.lineWidth=lw-1;
+        ctx.arc(cx,cy,r,pE,eA,false);ctx.stroke();
+    }
+    // subtle edge rings
+    ctx.beginPath();ctx.strokeStyle='rgba(0,0,0,.05)';ctx.lineWidth=1;
+    ctx.arc(cx,cy,r+lw/2,sA,eA,false);ctx.stroke();
+    ctx.beginPath();ctx.strokeStyle='rgba(0,0,0,.035)';ctx.lineWidth=1;
+    ctx.arc(cx,cy,r-lw/2,sA,eA,false);ctx.stroke();
+}
+function animateDoughnutGauge(canvas,textEl,finalPct){
+    if(!canvas)return;
+    const target=Math.max(0,Math.min(100,Number(finalPct)||0));
+    const rD=1400,hD=260,fD=1400,total=rD+hD+fD,t0=performance.now();
+    function frame(now){const el=now-t0;let cur;if(el<=rD)cur=100*easeOutCubic(el/rD);else if(el<=rD+hD)cur=100;else if(el<=total)cur=100-((100-target)*easeInOutCubic((el-rD-hD)/fD));else cur=target;createDoughnutGauge(canvas,cur);if(textEl)textEl.textContent=`${Math.round(cur)}%`;if(el<total)requestAnimationFrame(frame);else{createDoughnutGauge(canvas,target);if(textEl)textEl.textContent=`${Math.round(target)}%`;}}
+    requestAnimationFrame(frame);
+}
+
+/* ── tab navigation ── */
+function activateDashboardTab(tabName){
+    document.querySelectorAll('.dashboard-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tabName));
+    document.querySelectorAll('.dashboard-tab-panel').forEach(p=>p.classList.toggle('hidden',p.dataset.tabPanel!==tabName));
+    document.getElementById('rq-filter-panel')?.classList.toggle('hidden',tabName!=='queue');
+    document.getElementById('campus-filter-panel')?.classList.toggle('hidden',tabName!=='campuses');
+    document.getElementById('extensions-filter-panel')?.classList.toggle('hidden',tabName!=='extensions');
+    localStorage.setItem('directorAnalyticsTab',tabName);
+    const url=new URL(window.location);url.searchParams.set('tab',tabName);window.history.replaceState({},'',url);
+}
+function bindYearReload(selectEl,tabName){if(!selectEl)return;selectEl.addEventListener('change',function(){const url=new URL(window.location);url.searchParams.set('tab',tabName);if(this.value)url.searchParams.set('year',this.value);else url.searchParams.delete('year');window.location.href=url.toString();});}
+
+/* ── DOMContentLoaded ── */
+document.addEventListener('DOMContentLoaded',function(){
+    const G='#103b07',R='#5a1113',A='#854F0B',B='#0c447c',P='#3C3489';
+    const tick='#94a3b8',grid='rgba(0,0,0,.05)';
+
+    // tab init
+    const urlParams=new URLSearchParams(window.location.search);
+    const savedTab=urlParams.get('tab')||localStorage.getItem('directorAnalyticsTab')||'overview';
+    activateDashboardTab(savedTab);
+    document.querySelectorAll('.dashboard-nav-btn').forEach(btn=>{btn.addEventListener('click',function(){activateDashboardTab(this.dataset.tab);window.scrollTo({top:0,behavior:'smooth'});});});
+    document.querySelectorAll('.quick-tab-btn').forEach(btn=>{btn.addEventListener('click',function(){activateDashboardTab(this.dataset.targetTab);window.scrollTo({top:0,behavior:'smooth'});});});
+    bindYearReload(document.getElementById('rq-filter-year'),'queue');
+    bindYearReload(document.getElementById('campus-filter-year'),'campuses');
+    bindYearReload(document.getElementById('ext-filter-year'),'extensions');
+
+    // shared chart defaults
+    const doughnutOpts={responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{position:'bottom',labels:{color:tick,usePointStyle:true,pointStyle:'circle',font:{size:10},boxWidth:7,padding:10}}}};
+
+    const processCtx=document.getElementById('processOverviewChart');
+    if(processCtx)new Chart(processCtx,{type:'doughnut',data:{labels:['Proposal','MOA','Implementation','Completed'],datasets:[{data:[{{ proposal_process_total|default:0 }},{{ moa_process_total|default:0 }},{{ implementation_process_total|default:0 }},{{ completed_process_total|default:0 }}],backgroundColor:[G,R,B,P],borderColor:'#fff',borderWidth:3}]},options:doughnutOpts});
+
+    const proposalStatusCtx=document.getElementById('proposalStatusChart');
+    if(proposalStatusCtx)new Chart(proposalStatusCtx,{type:'doughnut',data:{labels:['Submitted','In Review','Revision','Approved'],datasets:[{data:[{{ submitted_total|default:0 }},{{ under_review_total|default:0 }},{{ institution_revision|default:0 }},{{ institution_approved|default:0 }}],backgroundColor:[G,B,R,P],borderColor:'#fff',borderWidth:3}]},options:doughnutOpts});
+
+    const barOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:tick,usePointStyle:true,pointStyle:'rectRounded',font:{size:10},padding:10}}},scales:{x:{ticks:{color:tick,font:{size:10}},grid:{display:false},border:{display:false}},y:{beginAtZero:true,ticks:{color:tick,precision:0,font:{size:10}},grid:{color:grid},border:{display:false}}}};
+
+    const campusCtx=document.getElementById('campusComparisonChart');
+    if(campusCtx)new Chart(campusCtx,{type:'bar',data:{labels:{{ campus_chart_labels|safe }},datasets:[{label:'Proposal',data:{{ campus_chart_proposal|safe }},backgroundColor:G,borderRadius:6,maxBarThickness:16},{label:'MOA',data:{{ campus_chart_moa|safe }},backgroundColor:R,borderRadius:6,maxBarThickness:16},{label:'Impl.',data:{{ campus_chart_implementation|safe }},backgroundColor:B,borderRadius:6,maxBarThickness:16},{label:'Done',data:[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],backgroundColor:P,borderRadius:6,maxBarThickness:16}]},options:barOpts});
+
+    let campusStageChartInstance=null;
+    const campusStageCtx=document.getElementById('campusStageChart');
+    if(campusStageCtx){campusStageChartInstance=new Chart(campusStageCtx,{type:'bar',data:{labels:{{ campus_chart_labels|safe }},datasets:[{label:'Proposal',data:{{ campus_chart_proposal|safe }},backgroundColor:G,borderRadius:8,maxBarThickness:28},{label:'MOA',data:{{ campus_chart_moa|safe }},backgroundColor:R,borderRadius:8,maxBarThickness:28},{label:'Implementation',data:{{ campus_chart_implementation|safe }},backgroundColor:B,borderRadius:8,maxBarThickness:28},{label:'Completed',data:[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],backgroundColor:P,borderRadius:8,maxBarThickness:28}]},options:{...barOpts,animation:{duration:1200,easing:'easeOutQuart'},plugins:{...barOpts.plugins,tooltip:{mode:'index',intersect:false}},scales:{...barOpts.scales,y:{...barOpts.scales.y,title:{display:true,text:'Number of Extensions',color:tick,font:{size:10}}}}}});}
+
+    // campus filter
+    const campusFilterCampus=document.getElementById('campus-filter-campus');
+    const _allLabels={{ campus_chart_labels|safe }},_allP={{ campus_chart_proposal|safe }},_allM={{ campus_chart_moa|safe }},_allI={{ campus_chart_implementation|safe }};
+    const _allD=[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    function applyCampusFilters(){const sel=(campusFilterCampus?campusFilterCampus.value:'').trim();document.querySelectorAll('.campus-stat-row').forEach(row=>{row.classList.toggle('hidden',!!(sel&&row.dataset.campus.trim()!==sel));});if(!campusStageChartInstance)return;if(!sel){campusStageChartInstance.data.labels=_allLabels;campusStageChartInstance.data.datasets[0].data=_allP;campusStageChartInstance.data.datasets[1].data=_allM;campusStageChartInstance.data.datasets[2].data=_allI;campusStageChartInstance.data.datasets[3].data=_allD;}else{const i=_allLabels.findIndex(l=>l.trim().toLowerCase()===sel.toLowerCase());if(i===-1){campusStageChartInstance.data.labels=[];campusStageChartInstance.data.datasets.forEach(d=>d.data=[]);}else{campusStageChartInstance.data.labels=[_allLabels[i]];campusStageChartInstance.data.datasets[0].data=[_allP[i]];campusStageChartInstance.data.datasets[1].data=[_allM[i]];campusStageChartInstance.data.datasets[2].data=[_allI[i]];campusStageChartInstance.data.datasets[3].data=[_allD[i]];}}campusStageChartInstance.update();}
+    if(campusFilterCampus)campusFilterCampus.addEventListener('change',applyCampusFilters);
+    applyCampusFilters();
+
+    // gauges
+    {% for item in all_proposals %}
+    (function(){const c=document.getElementById('gaugeChart{{ item.proposal.id }}');const t=document.getElementById('gaugeText{{ item.proposal.id }}');if(!c)return;c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
+    {% endfor %}
+    {% for item in monitored_page %}
+    (function(){const c=document.getElementById('extGauge{{ item.proposal.id }}');const t=document.getElementById('extGaugeText{{ item.proposal.id }}');if(!c)return;c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
+    {% endfor %}
+
+    // extensions filters
+    (function(){
+        const q=document.getElementById('ext-filter-q'),ec=document.getElementById('ext-filter-campus'),ep=document.getElementById('ext-filter-process'),et=document.getElementById('ext-filter-type'),es=document.getElementById('ext-filter-scope');
+        const grid=document.getElementById('ext-card-grid'),empty=document.getElementById('ext-empty-state');
+        if(!grid)return;
+        const cards=Array.from(grid.querySelectorAll('.ext-card'));
+        function norm(v){return(v||'').trim().toLowerCase();}
+        function applyExtFilters(){const qv=norm(q?q.value:''),cv=norm(ec?ec.value:''),pv=norm(ep?ep.value:''),tv=norm(et?et.value:''),sv=norm(es?es.value:'');let visible=0;cards.forEach(card=>{const show=(!qv||norm(card.dataset.title).includes(qv))&&(!cv||norm(card.dataset.campus)===cv)&&(!pv||norm(card.dataset.process)===pv)&&(!tv||norm(card.dataset.extType)===tv)&&(!sv||norm(card.dataset.scope)===sv);card.classList.toggle('hidden',!show);if(show)visible++;});if(empty)empty.classList.toggle('hidden',visible>0);if(grid)grid.classList.toggle('hidden',visible===0);}
+        if(q)q.addEventListener('input',applyExtFilters);
+        [ec,ep,et,es].forEach(s=>{if(s)s.addEventListener('change',applyExtFilters);});
+        applyExtFilters();
+    })();
+});
+
+/* ── evaluator assignment ── */
+document.addEventListener('DOMContentLoaded',function(){
+    const evaluatorPools={
+        {% for proposal in review_queue %}"{{ proposal.id }}":[{% for evaluator in proposal.available_evaluators %}{id:"{{ evaluator.id }}",name:"{{ evaluator.profile.full_name|default:evaluator.username|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}{% endfor %}
+    };
+    const localAssigned={
+        {% for proposal in review_queue %}"{{ proposal.id }}":[{% for ev in proposal.assigned_evaluators %}{id:"{{ ev.id }}",name:"{{ ev.profile.full_name|default:ev.username|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]{% if not forloop.last %},{% endif %}{% endfor %}
+    };
+    function escapeHtml(text){const d=document.createElement('div');d.textContent=text||'';return d.innerHTML;}
+    function getSearchInput(proposalId){return document.getElementById(`faculty-search-${proposalId}`);}
+    function buildRemoveUrl(proposalId,evaluatorId){const inp=getSearchInput(proposalId);const tmpl=inp?inp.dataset.removeUrlTemplate:'';if(!tmpl)return'#';return tmpl.replace(/\/0\/?$/,`/${evaluatorId}/`);}
+    function renderChips(proposalId){const container=document.getElementById(`assigned-evaluators-${proposalId}`);if(!container)return;const list=localAssigned[proposalId]||[];if(!list.length){container.innerHTML='<p class="text-xs text-slate-400 empty-evaluator-text">No evaluators assigned yet.</p>';return;}container.innerHTML=list.map(ev=>{const removeUrl=buildRemoveUrl(proposalId,ev.id);return`<div class="ev-chip evaluator-chip" data-evaluator-id="${ev.id}"><span>${escapeHtml(ev.name)}</span><button type="button" class="remove-evaluator-btn font-bold leading-none hover:opacity-60" data-proposal-id="${proposalId}" data-evaluator-id="${ev.id}" data-remove-url="${escapeHtml(removeUrl)}">×</button></div>`;}).join('');bindRemoveButtons(container);}
+    function isAssigned(proposalId,evaluatorId){return(localAssigned[proposalId]||[]).some(ev=>String(ev.id)===String(evaluatorId));}
+    function clearSearchUI(proposalId){const inp=document.getElementById(`faculty-search-${proposalId}`);const res=document.getElementById(`faculty-results-${proposalId}`);if(inp)inp.value='';if(res){res.innerHTML='';res.classList.add('hidden');}}
+    async function postAjax(url){const r=await fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const ct=r.headers.get('content-type')||'';if(!ct.includes('application/json'))throw new Error('Server returned an unexpected response.');const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.message||'Request failed.');return data;}
+    function bindRemoveButtons(scope=document){scope.querySelectorAll('.remove-evaluator-btn').forEach(btn=>{if(btn.dataset.bound==='1')return;btn.dataset.bound='1';btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,removeUrl=this.dataset.removeUrl;localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));renderChips(proposalId);const chip=this.closest('.evaluator-chip');const name=chip?chip.querySelector('span').textContent:'';if(name){const pool=evaluatorPools[proposalId]||[];if(!pool.some(p=>String(p.id)===String(evaluatorId))){pool.push({id:evaluatorId,name});evaluatorPools[proposalId]=pool;}}try{const data=await postAjax(removeUrl);if(Array.isArray(data.assigned_evaluators)){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;}catch(e){alert(e.message||'Failed to remove evaluator.');}});});}
+    bindRemoveButtons();
+    document.querySelectorAll('.faculty-search-input').forEach(input=>{
+        input.addEventListener('input',function(){const pId=this.dataset.proposalId,q=this.value.trim().toLowerCase();const res=document.getElementById(`faculty-results-${pId}`),pool=evaluatorPools[pId]||[];if(!q){res.innerHTML='';res.classList.add('hidden');return;}const available=pool.filter(p=>!isAssigned(pId,p.id));const matches=available.filter(p=>p.name.toLowerCase().includes(q));if(!matches.length){const alreadyAssigned=pool.some(p=>p.name.toLowerCase().includes(q)&&isAssigned(pId,p.id));res.innerHTML=`<div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-400 shadow-sm">${escapeHtml(alreadyAssigned?'Already assigned.':'No matching faculty found.')}</div>`;res.classList.remove('hidden');return;}res.innerHTML=matches.map(p=>`<button type="button" class="faculty-result-item w-full text-left rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-green-50 hover:border-green-200 transition" data-proposal-id="${pId}" data-evaluator-id="${p.id}" data-evaluator-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`).join('');res.classList.remove('hidden');res.querySelectorAll('.faculty-result-item').forEach(btn=>{btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,evaluatorName=this.dataset.evaluatorName;const inp=getSearchInput(proposalId);const url=inp.dataset.assignUrlTemplate.replace(/\/0\/?$/,`/${evaluatorId}/`);if(isAssigned(proposalId,evaluatorId)){clearSearchUI(proposalId);return;}localAssigned[proposalId]=localAssigned[proposalId]||[];localAssigned[proposalId].push({id:String(evaluatorId),name:evaluatorName});evaluatorPools[proposalId]=(evaluatorPools[proposalId]||[]).filter(p=>String(p.id)!==String(evaluatorId));renderChips(proposalId);clearSearchUI(proposalId);try{const data=await postAjax(url);if(Array.isArray(data.assigned_evaluators)&&data.assigned_evaluators.length){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;}catch(e){localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));evaluatorPools[proposalId]=evaluatorPools[proposalId]||[];evaluatorPools[proposalId].push({id:evaluatorId,name:evaluatorName});renderChips(proposalId);alert(e.message||'Failed to add evaluator.');}});});});
+        input.addEventListener('blur',function(){const res=document.getElementById(`faculty-results-${this.dataset.proposalId}`);setTimeout(()=>{if(res)res.classList.add('hidden');},200);});
+        input.addEventListener('focus',function(){if(this.value.trim())this.dispatchEvent(new Event('input'));});
+    });
+});
+
+/* ── Review Queue filters ── */
+document.addEventListener('DOMContentLoaded',function(){
+    const titleInput=document.getElementById('rq-filter-title'),authorInput=document.getElementById('rq-filter-author'),campusSel=document.getElementById('rq-filter-campus'),statusSel=document.getElementById('rq-filter-status');
+    if(!titleInput||!authorInput||!campusSel||!statusSel)return;
+    const allCards=Array.from(document.querySelectorAll('.rq-card'));
+    const sections=['SUBMITTED_ACTIVE','REVISION','APPROVED'];
+    function norm(v){return(v||'').toString().trim().toLowerCase();}
+    function applyRQFilters(){const title=norm(titleInput.value),author=norm(authorInput.value),campus=norm(campusSel.value),sec=(statusSel.value||'').trim();allCards.forEach(card=>{const show=(!title||norm(card.dataset.title).includes(title))&&(!author||norm(card.dataset.author).includes(author))&&(!campus||norm(card.dataset.campus)===campus)&&(!sec||card.dataset.section===sec);card.classList.toggle('hidden',!show);});sections.forEach(s=>{const container=document.querySelector(`.rq-section-container[data-section-container="${s}"]`);if(!container)return;if(sec&&sec!==s){container.classList.add('hidden');return;}container.classList.remove('hidden');const visible=allCards.filter(c=>c.dataset.section===s&&!c.classList.contains('hidden'));const grid=container.querySelector(`.rq-grid[data-grid-section="${s}"]`);const empty=container.querySelector(`.rq-empty-state[data-empty-section="${s}"]`);if(grid)grid.classList.toggle('hidden',visible.length===0);if(empty)empty.classList.toggle('hidden',visible.length!==0);});}
+    [titleInput,authorInput].forEach(i=>i.addEventListener('input',applyRQFilters));
+    [campusSel,statusSel].forEach(s=>s.addEventListener('change',applyRQFilters));
+    applyRQFilters();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,303 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+{% load roman %}
+{% load phase %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl font-semibold text-gray-900">Proponents</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        List the proponent or proponents and complete their required profile and role information.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" class="px-6 pb-6 pt-1 space-y-8">
+        {% csrf_token %}
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-900">Add Proponent</label>
+            <p class="text-xs text-gray-500 mt-1">Search users (must have an account).</p>
+
+            <div class="mt-3 flex gap-2">
+                <input id="userSearch"
+                    type="text"
+                    {% if not is_edit_mode %}readonly{% endif %}
+                    class="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                    placeholder="Search name, username, or email…"
+                    autocomplete="off">
+
+                {% if is_edit_mode %}
+                <button type="submit"
+                    name="action"
+                    value="add_member"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                    Add
+                </button>
+                {% endif %}
+            </div>
+
+            <input type="hidden" name="add_user_id" id="addUserId">
+            <div id="searchResults" class="mt-2 border border-gray-200 rounded-xl overflow-hidden hidden bg-white"></div>
+        </div>
+
+        {% if proposal.scope_type == "PROGRAM" and program_projects %}
+        <div class="pt-2">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900">Assign Project Leaders</h3>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Pick a leader for each phase. Leaders must be among your proponents.
+                    </p>
+                </div>
+
+                {% if is_edit_mode %}
+                <button type="submit"
+                    name="action"
+                    value="save_members"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition text-sm">
+                    Save Leaders
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 space-y-3">
+                {% for prj in program_projects %}
+                <div class="p-4 rounded-xl border border-gray-100 bg-gray-50">
+                    <div class="text-sm font-semibold text-gray-900">
+                        Phase {{ prj.order|roman }} · {{ prj.title }}
+                    </div>
+
+                    <div class="mt-3">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">
+                            Phase {{ prj.order|roman }} Project Leader
+                        </label>
+
+                        <select name="project_leader_{{ prj.id }}"
+                            {% if not is_edit_mode %}disabled{% endif %}
+                            class="w-full border border-gray-300 rounded-xl px-3 py-2.5 bg-white outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}">
+                            <option value="">— Select leader —</option>
+                            {% for p in proponents %}
+                                <option value="{{ p.user.id }}" {% if prj.leader_user_id == p.user.id %}selected{% endif %}>
+                                    {{ p.full_name }} (@{{ p.user.username }})
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <p class="text-xs text-gray-500 mt-2">
+                            Selecting a user here will mark them as <span class="font-semibold">Project Leader</span> for this phase.
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="pt-2">
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-900">Current Proponents</h3>
+
+                {% if is_edit_mode %}
+                <button type="submit"
+                    name="action"
+                    value="save_members"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition text-sm">
+                    Save Changes
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 space-y-3">
+                {% for p in proponents %}
+                <div class="p-4 rounded-xl border border-gray-100 hover:border-primary transition">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <div class="text-sm font-semibold text-gray-900">{{ p.full_name }}</div>
+                            <div class="text-xs text-gray-500">@{{ p.user.username }} · {{ p.user.email|default:"No email" }}</div>
+
+                            <div class="mt-2 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+                                {% if p.role == 'Program Leader' %}bg-primary/10 text-primary
+                                {% elif p.role == 'Project Leader' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-700{% endif %}">
+                                {{ p.role }}
+                            </div>
+
+                            {% if proposal.scope_type == "PROGRAM" and program_projects %}
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                {% for prj in program_projects %}
+                                    {% if prj.leader_user_id == p.user_id %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">
+                                        Phase {{ prj.order|roman }} Project Leader
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-right">
+                            {% if p.user_id != proposal.created_by_id %}
+                                {% if is_edit_mode %}
+                                <label class="inline-flex items-center gap-2 text-xs text-gray-600">
+                                    <input type="checkbox" name="remove_proponent_ids" value="{{ p.id }}">
+                                    Remove
+                                </label>
+                                {% else %}
+                                <span class="text-xs text-gray-400">Member</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-xs text-gray-400">Creator</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Designation</label>
+                            <input name="p_{{ p.id }}_designation"
+                                value="{{ p.designation|default:'' }}"
+                                {% if not is_edit_mode %}readonly{% endif %}
+                                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Specialization</label>
+                            <input name="p_{{ p.id }}_specialization"
+                                value="{{ p.specialization|default:'' }}"
+                                {% if not is_edit_mode %}readonly{% endif %}
+                                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">CP Number</label>
+                            <input name="p_{{ p.id }}_cp_number"
+                                value="{{ p.cp_number|default:'' }}"
+                                {% if not is_edit_mode %}readonly{% endif %}
+                                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-500 mb-1">Email</label>
+                            <input name="p_{{ p.id }}_email"
+                                value="{{ p.email|default:'' }}"
+                                {% if not is_edit_mode %}readonly{% endif %}
+                                class="w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}">
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-sm text-gray-500">No proponents yet.</div>
+                {% endfor %}
+            </div>
+
+            <p class="text-xs text-gray-500 mt-3">
+                The creator cannot be removed and is automatically assigned as leader based on scope.
+            </p>
+        </div>
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                type="submit">
+                Save & Next
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+{% if is_edit_mode %}
+<script>
+let resultsCache = [];
+
+async function doSearch(q) {
+    const box = document.getElementById("searchResults");
+    const addUserId = document.getElementById("addUserId");
+    addUserId.value = "";
+
+    if (!q || q.trim().length < 2) {
+        box.classList.add("hidden");
+        box.innerHTML = "";
+        resultsCache = [];
+        return;
+    }
+
+    const resp = await fetch("{% url 'proponent_search' %}?q=" + encodeURIComponent(q.trim()));
+    const data = await resp.json();
+    resultsCache = data.results || [];
+
+    if (!resultsCache.length) {
+        box.classList.remove("hidden");
+        box.innerHTML = `<div class="px-4 py-3 text-sm text-gray-500">No results.</div>`;
+        return;
+    }
+
+    box.classList.remove("hidden");
+    box.innerHTML = resultsCache.map((u, idx) => `
+        <button type="button"
+            class="w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-b-0"
+            onclick="pickUser(${idx})">
+            <div class="text-sm font-semibold text-gray-900">${u.name}</div>
+            <div class="text-xs text-gray-500">@${u.username} · ${u.email || ""} · ${u.campus || ""}</div>
+        </button>
+    `).join("");
+}
+
+function pickUser(idx){
+    const u = resultsCache[idx];
+    document.getElementById("addUserId").value = u.id;
+    document.getElementById("userSearch").value = `${u.name} (@${u.username})`;
+    const box = document.getElementById("searchResults");
+    box.classList.add("hidden");
+    box.innerHTML = "";
+}
+
+document.getElementById("userSearch")?.addEventListener("input", (e) => doSearch(e.target.value));
+</script>
+{% endif %}
+{% endblock %}

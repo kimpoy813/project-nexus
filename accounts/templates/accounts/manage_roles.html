@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="text-2xl font-bold mb-6">Manage Roles</h2>
+
+<table class="w-full bg-white shadow rounded-lg">
+    <tr class="bg-gray-100">
+        <th class="p-3 text-left">Name</th>
+        <th class="p-3 text-left">Current Role</th>
+        <th class="p-3 text-left">Change Role</th>
+    </tr>
+
+    {% for profile in profiles %}
+    <tr class="border-t">
+        <td class="p-3">{{ profile.full_name }}</td>
+        <td class="p-3">{{ profile.role }}</td>
+        <td class="p-3">
+            <form method="POST" class="flex gap-2">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                <select name="role" class="border p-2 rounded">
+                    <option value="FACULTY">Faculty</option>
+                    <option value="EVALUATOR">Evaluators</option>
+                    <option value="DEPARTMENT_COORDINATOR">Department Coordinators</option>
+                    <option value="CAMPUS_COORDINATOR">Campus Coordinators</option>
+                    <option value="DIRECTOR">Director</option>
+                    <option value="ADMIN">Admin</option>
+                </select>
+                <button class="bg-indigo-600 text-white px-4 py-2 rounded">
+                    Update
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

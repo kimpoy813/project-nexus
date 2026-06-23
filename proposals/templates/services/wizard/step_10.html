@@ -1,0 +1,124 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl leading-6 font-semibold text-gray-900">Date and Venue / Extension Site</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        Enter the estimated month and year, and specify the venue or extension site.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" class="px-6 pb-6 pt-4 space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="estimated_month" class="block text-sm font-semibold text-gray-900 mb-2">
+                    Estimated Month
+                </label>
+                <select
+                    id="estimated_month"
+                    name="estimated_month"
+                    {% if not is_edit_mode %}disabled{% endif %}
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}">
+                    <option value="">Select month</option>
+                    {% for month in month_choices %}
+                    <option value="{{ month }}" {% if estimated_month == month %}selected{% endif %}>
+                        {{ month }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                {% if not is_edit_mode %}
+                <input type="hidden" name="estimated_month" value="{{ estimated_month }}">
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="estimated_year" class="block text-sm font-semibold text-gray-900 mb-2">
+                    Estimated Year
+                </label>
+                <input
+                    type="number"
+                    id="estimated_year"
+                    name="estimated_year"
+                    value="{{ estimated_year }}"
+                    min="2024"
+                    max="2100"
+                    {% if not is_edit_mode %}readonly{% endif %}
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
+                    placeholder="e.g. 2026">
+            </div>
+        </div>
+
+        <div>
+            <label for="extension_venue" class="block text-sm font-semibold text-gray-900 mb-2">
+                Venue / Extension Site
+            </label>
+            <input
+                type="text"
+                id="extension_venue"
+                name="extension_venue"
+                value="{{ extension_venue|default:'' }}"
+                {% if not is_edit_mode %}readonly{% endif %}
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
+                placeholder="Enter venue or extension site">
+        </div>
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    type="submit">
+                Save & Next
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

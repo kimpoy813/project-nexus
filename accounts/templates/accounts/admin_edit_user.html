@@ -1,0 +1,270 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h1 class="text-xl font-semibold text-gray-900">Edit User Account</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                Update account and profile information.
+            </p>
+        </div>
+
+        <form method="post" class="p-6 space-y-6">
+            {% csrf_token %}
+
+            {% if messages %}
+                <div class="space-y-3">
+                    {% for message in messages %}
+                        <div class="rounded-xl border px-4 py-3 text-sm
+                            {% if message.tags == 'success' %}
+                                border-green-200 bg-green-50 text-green-700
+                            {% elif message.tags == 'error' %}
+                                border-red-200 bg-red-50 text-red-700
+                            {% elif message.tags == 'warning' %}
+                                border-yellow-200 bg-yellow-50 text-yellow-700
+                            {% else %}
+                                border-blue-200 bg-blue-50 text-blue-700
+                            {% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
+                        Username
+                    </label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        value="{{ edit_user.username }}"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                </div>
+
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value="{{ edit_user.email }}"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                </div>
+
+                <div>
+                    <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name
+                    </label>
+                    <input
+                        type="text"
+                        id="full_name"
+                        name="full_name"
+                        value="{{ edit_profile.full_name }}"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                </div>
+
+                <div>
+                    <label for="role" class="block text-sm font-medium text-gray-700 mb-1">
+                        Role
+                    </label>
+                    <select
+                        id="role"
+                        name="role"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                        {% for value, label in role_choices %}
+                            <option value="{{ value }}" {% if edit_profile.role == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="id_campus" class="block text-sm font-medium text-gray-700 mb-1">
+                        Campus
+                    </label>
+                    <select
+                        id="id_campus"
+                        name="campus"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                        <option value="">Select Campus</option>
+                        <option value="Candon" {% if edit_profile.campus == "Candon" %}selected{% endif %}>Candon</option>
+                        <option value="Main" {% if edit_profile.campus == "Main" %}selected{% endif %}>Main</option>
+                        <option value="Sta Maria" {% if edit_profile.campus == "Sta Maria" %}selected{% endif %}>Sta Maria</option>
+                        <option value="Cervantes" {% if edit_profile.campus == "Cervantes" %}selected{% endif %}>Cervantes</option>
+                        <option value="Tagudin" {% if edit_profile.campus == "Tagudin" %}selected{% endif %}>Tagudin</option>
+                        <option value="Narvacan" {% if edit_profile.campus == "Narvacan" %}selected{% endif %}>Narvacan</option>
+                        <option value="Santiago" {% if edit_profile.campus == "Santiago" %}selected{% endif %}>Santiago</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="id_college" class="block text-sm font-medium text-gray-700 mb-1">
+                        College
+                    </label>
+                    <select
+                        id="id_college"
+                        name="college"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                        <option value="{{ edit_profile.college|default:'' }}" selected>
+                            {% if edit_profile.college %}{{ edit_profile.college }}{% else %}Select College (Optional){% endif %}
+                        </option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Optional</p>
+                </div>
+
+                <div>
+                    <label for="id_department" class="block text-sm font-medium text-gray-700 mb-1">
+                        Department
+                    </label>
+                    <select
+                        id="id_department"
+                        name="department"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                        <option value="{{ edit_profile.department|default:'' }}" selected>
+                            {% if edit_profile.department %}{{ edit_profile.department }}{% else %}Select Department (Optional){% endif %}
+                        </option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">Optional</p>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+                        New Password
+                    </label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Leave blank to keep current password"
+                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    >
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-6">
+                <label class="inline-flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        name="is_active"
+                        {% if edit_user.is_active %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary focus:ring-primary"
+                    >
+                    <span class="text-sm text-gray-700">Active account</span>
+                </label>
+
+                <label class="inline-flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        name="email_verified"
+                        {% if edit_profile.email_verified %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary focus:ring-primary"
+                    >
+                    <span class="text-sm text-gray-700">Email verified</span>
+                </label>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <a
+                    href="{% url 'admin_dashboard' %}"
+                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                >
+                    Cancel
+                </a>
+                <button
+                    type="submit"
+                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary"
+                >
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const campusSelect = document.getElementById("id_campus");
+    const collegeSelect = document.getElementById("id_college");
+    const departmentSelect = document.getElementById("id_department");
+
+    // Values already saved in the database — injected once at render time.
+    const savedCollege = "{{ edit_profile.college|default:''|escapejs }}";
+    const savedDepartment = "{{ edit_profile.department|default:''|escapejs }}";
+
+    function populateSelect(selectEl, items, savedValue, placeholder) {
+        selectEl.innerHTML = `<option value="">${placeholder}</option>`;
+        items.forEach(item => {
+            const opt = document.createElement("option");
+            opt.value = item.value;
+            opt.textContent = item.label;
+            if (item.value === savedValue) opt.selected = true;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    async function loadColleges(selectSavedCollege = "") {
+        const campus = campusSelect.value;
+
+        // Reset both dependent selects whenever campus changes.
+        collegeSelect.innerHTML = '<option value="">Select College (Optional)</option>';
+        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
+
+        if (!campus) return;
+
+        try {
+            const res = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}`);
+            const data = await res.json();
+            populateSelect(collegeSelect, data.colleges, selectSavedCollege, "Select College (Optional)");
+        } catch (e) {
+            console.error("Failed to load colleges:", e);
+        }
+    }
+
+    async function loadDepartments(selectSavedDepartment = "") {
+        const campus = campusSelect.value;
+        const college = collegeSelect.value;
+
+        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
+
+        if (!campus) return;
+
+        try {
+            const res = await fetch(
+                `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}`
+            );
+            const data = await res.json();
+            populateSelect(departmentSelect, data.departments, selectSavedDepartment, "Select Department (Optional)");
+        } catch (e) {
+            console.error("Failed to load departments:", e);
+        }
+    }
+
+    // On initial page load: populate colleges then departments,
+    // pre-selecting whatever is already saved in the profile.
+    loadColleges(savedCollege).then(() => loadDepartments(savedDepartment));
+
+    // When the user changes campus, reload both (no pre-selection).
+    campusSelect.addEventListener("change", async () => {
+        await loadColleges();
+        await loadDepartments();
+    });
+
+    // When the user changes college, reload departments only (no pre-selection).
+    collegeSelect.addEventListener("change", () => loadDepartments());
+});
+</script>
+{% endblock %}

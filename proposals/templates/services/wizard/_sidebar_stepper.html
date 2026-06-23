@@ -1,0 +1,116 @@
+<aside class="lg:col-span-3 xl:col-span-3 self-start">
+  <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden sticky top-6">
+    <div class="p-6 border-b border-gray-100">
+      <h1 class="text-xl font-semibold text-gray-900">Create Proposal</h1>
+      <p class="text-sm leading-5 text-gray-600 mt-1">
+        Complete each section to prepare your proposal draft.
+      </p>
+
+      <div class="mt-5">
+        <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+          <span>Progress</span>
+          <span>{{ progress }}%</span>
+        </div>
+        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-primary rounded-full transition-all duration-500"
+               style="width: {{ progress }}%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="wizard-stepper-scroll" class="p-6 max-h-[75vh] overflow-y-auto">
+      <div class="space-y-0">
+        {% for s in wizard_steps %}
+          {# Keep ?readonly=1 through every stepper link so the param is never lost #}
+          <a href="{% url 'proposal_wizard' proposal.id s.no %}{% if request.GET.readonly %}?readonly=1{% endif %}"
+             {% if s.state == 'current' %}data-current-step="true"{% endif %}
+             {% if s.state == 'completed' %}data-step-state="completed"{% endif %}
+             class="group relative z-0 flex items-start gap-3 px-3 py-3 min-h-[76px] rounded-xl transition border
+               {% if s.state == 'current' %}
+                 bg-primary/10 border-primary/20
+               {% else %}
+                 border-transparent hover:bg-gray-50 hover:border-gray-200
+               {% endif %}">
+
+            <!-- Connector + Circle -->
+            <div class="relative flex flex-col items-center flex-shrink-0 w-8">
+              {% if not forloop.last %}
+                <div class="absolute top-8 left-1/2 -translate-x-1/2 w-[2px] h-[calc(100%+0.75rem)] z-20
+                  {% if s.state == 'completed' %}
+                    bg-primary
+                  {% else %}
+                    bg-gray-200
+                  {% endif %}">
+                </div>
+              {% endif %}
+
+              <div class="wizard-step-circle relative z-30 flex items-center justify-center w-8 h-8 rounded-full
+                {% if s.state == 'completed' %}
+                  bg-white border-2 border-primary shadow-sm
+                {% elif s.state == 'current' %}
+                  bg-white border-2 border-primary shadow-sm
+                {% else %}
+                  bg-white border border-gray-200
+                {% endif %}">
+
+                {% if s.state == 'completed' %}
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       class="w-4 h-4 text-primary"
+                       fill="none"
+                       viewBox="0 0 24 24"
+                       stroke="currentColor"
+                       stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                {% elif s.state == 'current' %}
+                  <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+                {% else %}
+                  <div class="w-2 h-2 rounded-full bg-gray-300"></div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Text -->
+            <div class="min-w-0 flex-1 pb-2">
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-sm font-semibold leading-5 line-clamp-1
+                  {% if s.state == 'current' %}
+                    text-primary
+                  {% elif s.state == 'completed' %}
+                    text-primary
+                  {% elif s.state == 'skipped' %}
+                    text-gray-400 group-hover:text-gray-700
+                  {% else %}
+                    text-gray-500 group-hover:text-gray-700
+                  {% endif %}">
+                  {{ s.title }}
+                </p>
+
+                {# Comment marker (shows when this step has reviewer comments) #}
+                {% if proposal.proposal_status == "FOR_REVISION" and s.comment_count %}
+                  <span class="shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-white text-[10px] font-bold leading-[18px] text-center"
+                        title="{{ s.comment_count }} comment{{ s.comment_count|pluralize }} on this step">
+                    {{ s.comment_count }}
+                  </span>
+                {% endif %}
+              </div>
+
+              <p class="text-xs mt-1 leading-4 line-clamp-1
+                {% if s.state == 'current' %}
+                  text-primary/80
+                {% elif s.state == 'completed' %}
+                  text-primary/80
+                {% elif s.state == 'skipped' %}
+                  text-gray-400 group-hover:text-gray-500
+                {% else %}
+                  text-gray-400 group-hover:text-gray-500
+                {% endif %}">
+                {{ s.desc }}
+              </p>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</aside>

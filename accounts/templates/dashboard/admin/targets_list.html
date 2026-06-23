@@ -1,0 +1,49 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <div class="flex items-center justify-between mb-4">
+        <h1 class="text-2xl font-bold">Targets ({{ current_year }})</h1>
+        <a href="{% url 'target_create' %}" class="px-4 py-2 rounded bg-primary text-white">Add Target</a>
+    </div>
+
+    <form method="GET" class="mb-4 flex gap-2 items-center">
+        <select name="year" class="border rounded p-2">
+        {% for y in years %}
+            <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+        </select>
+        <button class="px-3 py-2 border rounded" type="submit">Filter</button>
+    </form>
+
+    <div class="bg-white border rounded-lg overflow-hidden">
+        <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr>
+            <th class="text-left p-3">Campus</th>
+            <th class="text-left p-3">Metric</th>
+            <th class="text-left p-3">Planned</th>
+            <th class="text-left p-3">Actual</th>
+            <th class="text-left p-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in targets %}
+            <tr class="border-t">
+            <td class="p-3">{{ t.campus }}</td>
+            <td class="p-3">{{ t.get_metric_display }}</td>
+            <td class="p-3">Q1 {{ t.planned_q1 }} | Q2 {{ t.planned_q2 }} | Q3 {{ t.planned_q3 }} | Q4 {{ t.planned_q4 }}</td>
+            <td class="p-3">Q1 {{ t.actual_q1 }} | Q2 {{ t.actual_q2 }} | Q3 {{ t.actual_q3 }} | Q4 {{ t.actual_q4 }}</td>
+            <td class="p-3 space-x-2">
+                <a class="text-blue-600" href="{% url 'target_edit' t.id %}">Edit</a>
+                <a class="text-red-600" href="{% url 'target_delete' t.id %}">Delete</a>
+            </td>
+            </tr>
+            {% empty %}
+            <tr><td class="p-3" colspan="5">No targets yet.</td></tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

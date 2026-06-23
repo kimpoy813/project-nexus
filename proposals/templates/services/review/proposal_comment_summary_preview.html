@@ -1,0 +1,29 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Clear Summary Preview</h1>
+      <p class="mt-1 text-sm text-gray-600">
+        Preview of the formatted comment summary (ISPSC-QAD-F032a style).
+      </p>
+    </div>
+
+    <div class="flex gap-2">
+      <a href="{% url 'staff_comment_summary_docx' proposal.id %}"
+         class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+        Download DOCX
+      </a>
+      <a href="{% url 'proposal_comment_summary' proposal.id %}"
+         class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400">
+        Back to Summary Editor
+      </a>
+    </div>
+  </div>
+
+  {% include "services/review/_clear_summary_block.html" %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-96">
+            <h2 class="text-2xl font-bold mb-6">Debug Login</h2>
+            
+            <!-- Debug Info -->
+            <div class="bg-blue-50 p-4 rounded-lg mb-6 text-sm">
+                <h3 class="font-semibold mb-2">Debug Info:</h3>
+                <div id="debug-info"></div>
+            </div>
+
+            <form method="POST" action="{% url 'login' %}" id="login-form">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Username/Email</label>
+                    <input type="text" name="username" required 
+                           class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Password</label>
+                    <input type="password" name="password" required 
+                           class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+                    Login
+                </button>
+            </form>
+
+            <div class="mt-4 text-center">
+                <a href="{% url 'register' %}" class="text-sm text-blue-600">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugInfo = document.getElementById('debug-info');
+            
+            // Check cookies
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            const csrfCookie = cookies.find(c => c.startsWith('csrftoken='));
+            
+            // Check form token
+            const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            
+            let html = `
+                <p><strong>Cookies:</strong> ${cookies.length} found</p>
+                <p><strong>CSRF Cookie:</strong> ${csrfCookie ? 'Present ✓' : 'Missing ✗'}</p>
+                <p><strong>Form Token:</strong> ${tokenInput ? 'Present ✓' : 'Missing ✗'}</p>
+            `;
+            
+            if (csrfCookie) {
+                const tokenValue = csrfCookie.split('=')[1];
+                html += `<p><strong>Cookie token (first 10 chars):</strong> ${tokenValue.substring(0, 10)}...</p>`;
+            }
+            
+            if (tokenInput) {
+                html += `<p><strong>Form token (first 10 chars):</strong> ${tokenInput.value.substring(0, 10)}...</p>`;
+            }
+            
+            debugInfo.innerHTML = html;
+        });
+
+        // Prevent double submission
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn.disabled) {
+                e.preventDefault();
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,539 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<!-- HERO SECTION with Fixed Logo Background -->
+<section class="relative bg-primary text-white py-36 overflow-hidden">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+        <h1 class="text-4xl md:text-5xl font-semibold leading-tight mb-6 tracking-wide">
+            Networked Extension Unified System
+        </h1>
+
+        <p class="text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+            A digital platform for managing, monitoring, and advancing institutional
+            extension initiatives aligned with sustainable development goals.
+        </p>
+    </div>
+</section>
+
+<!-- Section Navigation -->
+<section class="bg-white border-b border-gray-100 sticky top-20 z-40">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
+
+        <a href="#thrust" class="hover:text-primary transition">Thrust</a>
+        <a href="#process" class="hover:text-primary transition">Processes</a>
+        <a href="#targets" class="hover:text-primary transition">Targets</a>
+        <a href="#personnel" class="hover:text-primary transition">Personnel</a>
+        <a href="#sdg" class="hover:text-primary transition">SDGs</a>
+        <a href="#activities" class="hover:text-primary transition">Activities</a>
+
+    </div>
+</section>
+
+<!-- EXTENSION THRUST SECTION -->
+<section id="thrust" class="py-24 bg-white scroll-mt-32">
+    <div class="max-w-7xl mx-auto px-6">
+
+        <!-- Main Title -->
+        <h2 class="text-4xl font-bold text-center mb-12">
+            Extension Thrust
+        </h2>
+
+        <!-- Subtitle: Isem Ni Aran -->
+        <h3 class="text-xl font-semibold text-center text-secondary mb-2" data-aos="fade-up">
+            Isem Ni Aran
+        </h3>
+
+        <!-- Subtitle: Approved BR No. -->
+        <p class="text-base text-center text-gray-700 mb-12" data-aos="fade-up">
+            Approved BR No. 95-1517, S. 2022
+        </p>
+
+        <!-- EXTENSION THRUST CARDS — colored titles like SDGs -->
+        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 ">
+
+        <!-- 1 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-green-600">Indigenous Heritage Protection</h4>
+            <p class="text-gray-500 text-sm">Protecting cultural heritage and indigenous rights within community extension activities.</p>
+        </div>
+
+        <!-- 2 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-blue-600">Environmental Protection</h4>
+            <p class="text-gray-500 text-sm">Programs that conserve ecosystems and promote sustainable practices.</p>
+        </div>
+
+        <!-- 3 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-yellow-500">Resource Sharing</h4>
+            <p class="text-gray-500 text-sm">Facilitating equitable distribution and community access to resources.</p>
+        </div>
+
+        <!-- 4 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-purple-600">Numeracy and Literacy</h4>
+            <p class="text-gray-500 text-sm">Adult and community education initiatives to improve literacy and numeracy.</p>
+        </div>
+
+        <!-- 5 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-red-600">Governance and Administration</h4>
+            <p class="text-gray-500 text-sm">Capacity-building and systems strengthening for local governance and administration.</p>
+        </div>
+
+        <!-- 6 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-indigo-600">IP-TBM Office Establishment</h4>
+            <p class="text-gray-500 text-sm">Setting up institutional structures for technology-business management and IP.</p>
+        </div>
+
+        <!-- 7 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-pink-500">Trade Fair and Exhibit</h4>
+            <p class="text-gray-500 text-sm">Showcasing local products and linking producers to markets.</p>
+        </div>
+
+        <!-- 8 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-teal-600">Technology Transfer & RD Results Dissemination</h4>
+            <p class="text-gray-500 text-sm">Dissemination of research outputs and support for technology uptake.</p>
+        </div>
+
+        <!-- 9 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-orange-500">Network and Linkage</h4>
+            <p class="text-gray-500 text-sm">Building partnerships, MOUs, and collaborative networks.</p>
+        </div>
+
+        <!-- 10 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-lime-600">Adult Education</h4>
+            <p class="text-gray-500 text-sm">Lifelong learning programs and vocational upskilling for adults.</p>
+        </div>
+
+        <!-- 11 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-rose-500">Calamity & Disaster Rehabilitation</h4>
+            <p class="text-gray-500 text-sm">Relief operations, rehabilitation, and disaster risk reduction activities.</p>
+        </div>
+
+        <!-- 12 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-amber-500">Entrepreneurship & Financial Literacy</h4>
+            <p class="text-gray-500 text-sm">Microenterprise support, financial literacy trainings, and market linkages.</p>
+        </div>
+
+        <!-- 13 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-cyan-600">Health and Nutrition</h4>
+            <p class="text-gray-500 text-sm">Health promotion, nutrition education, and preventive care outreach.</p>
+        </div>
+
+        <!-- 14 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <h4 class="font-semibold text-lg mb-2 text-violet-600">Advocacies & Social Justice</h4>
+            <p class="text-gray-500 text-sm">Community advocacy, rights awareness, and social justice initiatives.</p>
+        </div>
+
+        </div>
+    </div>
+</section>
+
+
+<section class="py-20 bg-gray-50 scroll-mt-32" id="process">
+    <div class="max-w-6xl mx-auto px-6">
+
+        <h2 class="text-4xl font-bold text-center mb-12">
+        Extension Processes
+        </h2>
+
+        {% for process in process_steps %}
+        <div class="mb-6 bg-white rounded-xl border border-gray-100 hover:border-primary transition duration-300">
+        
+        <!-- Header -->
+        <button class="w-full text-left p-6 flex justify-between items-center process-toggle">
+            <h3 class="text-lg font-semibold text-primary">
+            {{ process.title }}
+            </h3>
+            <span class="ml-4 inline-flex items-center">
+            <svg class="chev w-6 h-6 text-gray-500 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+            </span>
+        </button>
+
+        <!-- Content -->
+        <div class="process-content hidden px-8 pb-8">
+
+            <div class="space-y-8">
+
+            {% for step in process.steps.all %}
+            <div class="flex items-start gap-6 relative">
+
+                <!-- Vertical Line -->
+                {% if not forloop.last %}
+                <div class="absolute left-4 top-10 h-full w-0.5 bg-gray-200"></div>
+                {% endif %}
+
+                <!-- Circle -->
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-semibold shadow">
+                {{ forloop.counter }}
+                </div>
+
+                <!-- Step Text -->
+                <div>
+                <p class="text-gray-700 leading-relaxed">
+                    {{ step.description }}
+                </p>
+                </div>
+
+            </div>
+            {% endfor %}
+
+            </div>
+
+        </div>
+
+        </div>
+        {% endfor %}
+
+    </div>
+</section>
+<script>
+document.querySelectorAll(".process-toggle").forEach(button => {
+    button.addEventListener("click", () => {
+        const content = button.nextElementSibling;
+        const chev = button.querySelector(".chev");
+
+        const isHidden = content.classList.toggle("hidden");
+        if (!isHidden) {
+        chev.classList.add("rotate-180");
+        } else {
+        chev.classList.remove("rotate-180");
+        }
+    });
+    });
+</script>
+
+
+
+{% load humanize %}
+<!-- EXTENSION TARGETS SECTION -->
+<section id="targets" class="py-24 bg-white scroll-mt-32">
+    <div class="max-w-7xl mx-auto px-6">
+
+        <h2 class="text-4xl font-bold text-center mb-12">
+        Extension Targets
+        </h2>
+
+        <!-- Year Selector -->
+        <div class="text-center mb-10">
+        <form method="get" class="inline-block">
+            <label class="mr-2 font-semibold text-primary">Select Year:</label>
+            <input type="number" name="year" value="{{ selected_year }}" class="border border-gray-300 rounded px-3 py-1">
+            <button type="submit" class="bg-primary text-white px-4 py-2 rounded ml-2">Go</button>
+        </form>
+        </div>
+
+        <!-- Overall Summary Cards -->
+        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+        {% for key, metric in overall_targets.items %}
+        <div class="bg-white p-6 rounded-xl border border-gray-100 text-center">
+            <div class="text-sm font-semibold text-gray-500 mb-2">{{ metric.label }}</div>
+            <div class="text-2xl font-bold text-primary">Target: {{ metric.planned|intcomma }}</div>
+            <div class="text-xl font-semibold text-secondary mt-2">Actual: {{ metric.actual|intcomma }}</div>
+        </div>
+        {% endfor %}
+        </div>
+
+        <!-- Campus Filter -->
+        <div class="mb-10" data-aos="fade-up">
+            <h3 class="text-2xl font-semibold text-primary mb-4">Select Campuses to View</h3>
+
+            <!-- Campus Chips -->
+            <div class="flex flex-wrap gap-4">
+                {% for campus in targets_by_campus %}
+                <div 
+                    class="campus-chip cursor-pointer px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+                        bg-primary text-white border-primary"
+                    data-campus="campus-{{ forloop.counter }}">
+                    {{ campus }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Campus Targets -->
+        {% for campus, campus_targets in targets_by_campus.items %}
+        <div class="mb-10 campus-{{ forloop.counter }}" data-aos="fade-up">
+            <h3 class="text-2xl font-semibold text-primary mb-4">{{ campus }}</h3>
+            <div class="overflow-x-auto bg-white rounded-xl shadow-md">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="bg-gray-100 text-gray-700">
+                        <tr>
+                            <th rowspan="2" class="px-4 py-2">Metric</th>
+                            <th colspan="2" class="px-4 py-2 text-center">Q1</th>
+                            <th colspan="2" class="px-4 py-2 text-center">Q2</th>
+                            <th colspan="2" class="px-4 py-2 text-center">Q3</th>
+                            <th colspan="2" class="px-4 py-2 text-center">Q4</th>
+                            <th colspan="2" class="px-4 py-2 text-center">Total</th>
+                        </tr>
+                        <tr>
+                            <th class="px-4 py-2">Target</th>
+                            <th class="px-4 py-2">Actual</th>
+                            <th class="px-4 py-2">Target</th>
+                            <th class="px-4 py-2">Actual</th>
+                            <th class="px-4 py-2">Target</th>
+                            <th class="px-4 py-2">Actual</th>
+                            <th class="px-4 py-2">Target</th>
+                            <th class="px-4 py-2">Actual</th>
+                            <th class="px-4 py-2">Target</th>
+                            <th class="px-4 py-2">Actual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in campus_targets %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-4 py-3 font-medium">{{ t.get_metric_display }}</td>
+                            <td class="px-4 py-3">{{ t.planned_q1 }}</td>
+                            <td class="px-4 py-3">{{ t.actual_q1 }}</td>
+                            <td class="px-4 py-3">{{ t.planned_q2 }}</td>
+                            <td class="px-4 py-3">{{ t.actual_q2 }}</td>
+                            <td class="px-4 py-3">{{ t.planned_q3 }}</td>
+                            <td class="px-4 py-3">{{ t.actual_q3 }}</td>
+                            <td class="px-4 py-3">{{ t.planned_q4 }}</td>
+                            <td class="px-4 py-3">{{ t.actual_q4 }}</td>
+                            <td class="px-4 py-3 font-semibold text-secondary">{{ t.planned_total }}</td>
+                            <td class="px-4 py-3 font-semibold text-secondary">{{ t.actual_total }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- JS for Campus Filter -->
+        <script>
+        const chips = document.querySelectorAll('.campus-chip');
+
+        chips.forEach((chip, index) => {
+            const campusDiv = document.querySelector(`.campus-${index + 1}`);
+            chip.addEventListener('click', () => {
+                // Toggle colors
+                chip.classList.toggle('bg-primary');
+                chip.classList.toggle('text-white');
+                chip.classList.toggle('bg-white');
+                chip.classList.toggle('text-gray-700');
+                chip.classList.toggle('border-primary');
+                chip.classList.toggle('border-gray-300');
+
+                // Show/hide campus table
+                if (campusDiv) {
+                    campusDiv.style.display = chip.classList.contains('bg-primary') ? '' : 'none';
+                }
+            });
+        });
+        </script>
+    </div>
+</section>
+
+
+
+<!-- PERSONNEL -->
+<section id="personnel" class="py-24 bg-gray-50 scroll-mt-32">
+    <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center mb-12">
+            Extension Personnel
+        </h2>
+
+        <!-- Featured Director Centered - Same size as others -->
+        {% if personnel %}
+        <div class="flex justify-center mb-8">
+            <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center w-full max-w-sm hover:border-primary transition duration-300">
+                <img src="{{ personnel.0.photo.url }}"
+                    class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                <h3 class="text-xl font-semibold mb-1">{{ personnel.0.name }}</h3>
+                <p class="text-secondary font-medium mb-3">{{ personnel.0.position }}</p>
+                <p class="text-sm text-gray-600">{{ personnel.0.description }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Personnel Grid -->
+        <div class="grid md:grid-cols-3 gap-10">
+            {% for person in personnel|slice:"1:" %}
+            <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center hover:border-primary transition duration-300">
+                <img src="{{ person.photo.url }}"
+                    class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                <h3 class="text-xl font-semibold mb-1">{{ person.name }}</h3>
+                <p class="text-secondary font-medium mb-3">{{ person.position }}</p>
+                <p class="text-sm text-gray-600">{{ person.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section id="sdg" class="py-24 bg-white scroll-mt-32">
+    <div class="max-w-7xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center mb-16">
+        Sustainable Development Goals
+        </h2>
+
+        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+
+        <!-- SDG 1 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/01.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#E5243B;">No Poverty</h4>
+        </div>
+
+        <!-- SDG 2 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/02.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#DDA63A;">Zero Hunger</h4>
+        </div>
+
+        <!-- SDG 3 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/03.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#4C9F38;">Good Health and Well-being</h4>
+        </div>
+
+        <!-- SDG 4 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/04.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#C5192D;">Quality Education</h4>
+        </div>
+
+        <!-- SDG 5 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/05.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#FF3A21;">Gender Equality</h4>
+        </div>
+
+        <!-- SDG 6 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/06.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#26BDE2;">Clean Water and Sanitation</h4>
+        </div>
+
+        <!-- SDG 7 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/07.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#FCC30B;">Affordable and Clean Energy</h4>
+        </div>
+
+        <!-- SDG 8 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/08.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#A21942;">Decent Work and Economic Growth</h4>
+        </div>
+
+        <!-- SDG 9 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/09.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#FD6925;">Industry, Innovation and Infrastructure</h4>
+        </div>
+
+        <!-- SDG 10 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/10.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#DD1367;">Reduced Inequalities</h4>
+        </div>
+
+        <!-- SDG 11 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/11.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#FD9D24;">Sustainable Cities and Communities</h4>
+        </div>
+
+        <!-- SDG 12 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/12.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#BF8B2E;">Responsible Consumption and Production</h4>
+        </div>
+
+        <!-- SDG 13 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/13.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#3F7E44;">Climate Action</h4>
+        </div>
+
+        <!-- SDG 14 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/14.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#0A97D9;">Life Below Water</h4>
+        </div>
+
+        <!-- SDG 15 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/15.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#56C02B;">Life on Land</h4>
+        </div>
+
+        <!-- SDG 16 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/16.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#00689D;">Peace, Justice and Strong Institutions</h4>
+        </div>
+
+        <!-- SDG 17 -->
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <img src="{% static 'sdg/17.png' %}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold" style="color:#19486A;">Partnerships for the Goals</h4>
+        </div>
+        
+        </div>
+    </div>
+</section>
+
+
+
+<!-- ACTIVITIES -->
+<section id="activities" class="py-24 bg-gray-50 scroll-mt-32">
+    <div class="max-w-6xl mx-auto px-6">
+        <h2 class="text-4xl font-bold text-center mb-12">
+            Extension Activities
+        </h2>
+
+        <div class="grid md:grid-cols-3 gap-10">
+            {% for activity in activities %}
+            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300" data-aos="fade-up">
+
+                {% if activity.image %}
+                <img src="{{ activity.image.url }}"
+                    class="w-full h-48 object-cover">
+                {% endif %}
+
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold mb-2">
+                        {{ activity.title }}
+                    </h3>
+
+                    <p class="mt-2 text-sm text-gray-600">
+                    {% if activity.first_date and activity.last_date %}
+                        {% if activity.first_date == activity.last_date %}
+                        {{ activity.first_date|date:"M d, Y" }}
+                        {% else %}
+                        {{ activity.first_date|date:"M d, Y" }} – {{ activity.last_date|date:"M d, Y" }}
+                        {% endif %}
+                    {% else %}
+                        <span class="text-gray-400">No dates set</span>
+                    {% endif %}
+                    </p>
+
+                    <p class="text-gray-600 text-sm">
+                        {{ activity.description|truncatewords:25 }}
+                    </p>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+{% endblock %}

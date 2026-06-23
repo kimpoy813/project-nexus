@@ -1,0 +1,44 @@
+{% extends "accounts_base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+    <h1 class="text-xl font-semibold text-gray-900">Upload Signed Proposal</h1>
+    <p class="mt-2 text-sm text-gray-600">
+      Please upload the signed copy of your proposal. After upload, the proposal will move to <span class="font-semibold">APPROVED</span>.
+    </p>
+
+    <div class="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+      <p class="text-sm text-gray-700">
+        <span class="font-semibold">Proposal:</span> {{ proposal.display_title }}
+      </p>
+      <p class="text-sm text-gray-700 mt-1">
+        <span class="font-semibold">Current Status:</span> {{ proposal.get_proposal_status_display }}
+      </p>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="mt-6 space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Signed Proposal File</label>
+        <input type="file" name="signed_proposal_file" required
+               class="mt-2 block w-full text-sm text-gray-700
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-lg file:border-0
+                      file:bg-primary file:text-white
+                      hover:file:bg-secondary" />
+        <p class="mt-2 text-xs text-gray-500">PDF or DOCX accepted (depending on your system policy).</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit"
+                class="bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-secondary">
+          Upload Signed Proposal
+        </button>
+        <a href="{% url 'dashboard_redirect' %}" class="text-sm text-gray-600 hover:text-gray-900">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

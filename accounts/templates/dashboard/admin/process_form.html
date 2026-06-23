@@ -1,0 +1,111 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">{% if process %}Edit{% else %}Add{% endif %} Process</h1>
+
+    <form method="POST" class="bg-white border rounded-lg p-4 space-y-3">
+        {% csrf_token %}
+
+        <div>
+        <label class="block text-sm font-medium">Title</label>
+        <input name="title" value="{{ process.title|default:'' }}" class="w-full border rounded p-2" required>
+        </div>
+
+        <p class="text-sm text-gray-600 mt-2">Steps (drag to reorder):</p>
+
+        <div id="stepsList" class="space-y-2">
+        {% if process %}
+            {% for s in process.steps.all %}
+            <div class="flex gap-2 items-center p-2 border rounded bg-white" data-step-id="{{ s.id }}">
+                <span class="cursor-move px-2 select-none">☰</span>
+                <input type="hidden" name="step_id[]" value="{{ s.id }}">
+                <input name="step_description[]" value="{{ s.description }}" class="flex-1 border rounded p-2">
+                <button type="button" class="px-3 py-2 border rounded" onclick="this.closest('[data-step-id]').remove()">Remove</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- New step row (no id) -->
+        <div class="flex gap-2 items-center p-2 border rounded bg-white" data-step-id="">
+            <span class="cursor-move px-2 select-none">☰</span>
+            <input type="hidden" name="step_id[]" value="">
+            <input name="step_description[]" placeholder="New step description" class="flex-1 border rounded p-2">
+            <button type="button" class="px-3 py-2 border rounded" onclick="this.closest('[data-step-id]').remove()">Remove</button>
+        </div>
+        </div>
+
+        <button type="button" class="mt-2 px-3 py-2 border rounded" onclick="addStep()">+ Add Step</button>
+
+        <div class="flex gap-2 pt-2">
+        <button class="px-4 py-2 bg-primary text-white rounded" type="submit">Save</button>
+        <a class="px-4 py-2 border rounded" href="{% url 'processes_list' %}">Back</a>
+        </div>
+    </form>
+    </div>
+
+    <!-- Load Sortable ONCE -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+    <script>
+    function addStep() {
+        const wrap = document.getElementById('stepsList');
+        const div = document.createElement('div');
+        div.className = 'flex gap-2 items-center p-2 border rounded bg-white';
+        div.setAttribute('data-step-id', '');
+        div.innerHTML = `
+        <span class="cursor-move px-2 select-none">☰</span>
+        <input type="hidden" name="step_id[]" value="">
+        <input name="step_description[]" placeholder="New step description" class="flex-1 border rounded p-2">
+        <button type="button" class="px-3 py-2 border rounded" onclick="this.closest('[data-step-id]').remove()">Remove</button>
+        `;
+        wrap.appendChild(div);
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+            }
+        }
+        }
+        return cookieValue;
+    }
+
+    const stepsList = document.getElementById('stepsList');
+
+    if (stepsList) {
+        new Sortable(stepsList, {
+        handle: '.cursor-move',
+        animation: 150,
+        onEnd: async function () {
+            {% if process %}
+            const REORDER_URL = "{% url 'reorder_process_steps' process.id %}";
+            const csrftoken = getCookie('csrftoken');
+
+            const ids = [...document.querySelectorAll('#stepsList [data-step-id]')]
+                .map(el => el.getAttribute('data-step-id'))
+                .filter(id => id); // ignore blank rows (new steps)
+
+            try {
+                await fetch(REORDER_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrftoken
+                },
+                body: JSON.stringify({ step_ids: ids })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+            {% endif %}
+        }
+        });
+    }
+    </script>
+{% endblock %}

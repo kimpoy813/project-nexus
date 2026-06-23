@@ -1,0 +1,233 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+{% load roman %}
+{% load phase %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl font-semibold text-gray-900">Title of the Program / Project / Activity</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        Provide the official title of the proposed extension initiative.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" class="px-6 pb-6 pt-1 space-y-8">
+        {% csrf_token %}
+
+        <div>
+            <label class="block text-sm font-semibold text-gray-900">
+                {% if proposal.scope_type == "PROJECT" %}
+                    Project Title
+                {% elif proposal.scope_type == "ACTIVITY" %}
+                    Activity Title
+                {% else %}
+                    Program Title
+                {% endif %}
+            </label>
+
+            <input
+                name="title"
+                value="{{ proposal.title|default:'' }}"
+                {% if not is_edit_mode %}readonly{% endif %}
+                class="mt-2 w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                placeholder="Enter a clear, specific title"
+                autocomplete="off"
+            >
+
+            <p class="text-xs text-gray-500 mt-2">
+                Keep it short, action-oriented, and aligned with your extension thrust/SDGs.
+            </p>
+        </div>
+
+        {% if proposal.scope_type == "PROGRAM" %}
+        <div class="space-y-3">
+            <label class="block text-sm font-semibold text-gray-900">Project Titles</label>
+            <p class="text-xs text-gray-500">These will be saved as Phase I, Phase II, … based on the order.</p>
+
+            <div id="projectsWrap" class="space-y-2">
+                {% for prj in program_projects %}
+                <div class="project-row flex gap-2 items-center">
+                    <input type="hidden" name="project_id[]" value="{{ prj.id }}">
+
+                    <div class="phase-label px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600">
+                        Phase {{ prj.order|roman }}
+                    </div>
+
+                    <input
+                        name="project_titles[]"
+                        value="{{ prj.title|strip_phase }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="Enter project title"
+                        autocomplete="off"
+                    >
+
+                    {% if is_edit_mode %}
+                    <button type="button"
+                            class="px-3 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50"
+                            onclick="removeProjectRow(this)">
+                        Remove
+                    </button>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="project-row flex gap-2 items-center">
+                    <input type="hidden" name="project_id[]" value="">
+
+                    <div class="phase-label px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600">
+                        Phase I
+                    </div>
+
+                    <input
+                        name="project_titles[]"
+                        value=""
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="Enter project title"
+                        autocomplete="off"
+                    >
+
+                    {% if is_edit_mode %}
+                    <button type="button"
+                            class="px-3 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50"
+                            onclick="removeProjectRow(this)">
+                        Remove
+                    </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if is_edit_mode %}
+            <button type="button"
+                    class="mt-2 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    onclick="addProjectRow()">
+                + Add Project
+            </button>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if is_edit_mode and proposal.scope_type == "PROGRAM" %}
+        <script>
+        function toRoman(num){
+            const map = [
+                [1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],
+                [100,'C'],[90,'XC'],[50,'L'],[40,'XL'],
+                [10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']
+            ];
+            let n = parseInt(num,10) || 0;
+            let out = '';
+            map.forEach(([v,s]) => { while(n>=v){ out+=s; n-=v; }});
+            return out || '';
+        }
+
+        function stripPhasePrefix(s){
+            return (s || '').replace(/^Phase\s+[IVXLCDM]+\s+/i, '').trim();
+        }
+
+        function renumberPhases(){
+            const rows = document.querySelectorAll('#projectsWrap .project-row');
+            rows.forEach((row, idx) => {
+                const label = row.querySelector('.phase-label');
+                const input = row.querySelector('input[name="project_titles[]"]');
+
+                const roman = toRoman(idx + 1);
+                if (label) label.textContent = `Phase ${roman}`;
+                if (input) input.value = stripPhasePrefix(input.value);
+            });
+        }
+
+        function addProjectRow(){
+            const wrap = document.getElementById('projectsWrap');
+            const row = document.createElement('div');
+            row.className = 'project-row flex gap-2 items-center';
+            row.innerHTML = `
+                <input type="hidden" name="project_id[]" value="">
+                <div class="phase-label px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-xs font-semibold text-gray-600">
+                    Phase
+                </div>
+                <input
+                    name="project_titles[]"
+                    value=""
+                    class="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                    placeholder="Enter project title"
+                    autocomplete="off"
+                >
+                <button type="button"
+                        class="px-3 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50"
+                        onclick="removeProjectRow(this)">
+                    Remove
+                </button>
+            `;
+            wrap.appendChild(row);
+            renumberPhases();
+        }
+
+        function removeProjectRow(btn){
+            const row = btn.closest('.project-row');
+            if (row) row.remove();
+            renumberPhases();
+        }
+
+        document.addEventListener("DOMContentLoaded", renumberPhases);
+        document.querySelector("form")?.addEventListener("submit", renumberPhases);
+        </script>
+        {% endif %}
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    type="submit">
+                Save & Next
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

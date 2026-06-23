@@ -1,0 +1,72 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6">{% if activity %}Edit{% else %}Add{% endif %} Activity</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 space-y-4">
+        {% csrf_token %}
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Title</label>
+        <input name="title" value="{{ activity.title|default:'' }}" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Description</label>
+        <textarea name="description" class="w-full border rounded-lg p-2" rows="4" required>{{ activity.description|default:'' }}</textarea>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium">Dates (you can add multiple)</label>
+
+            <div id="datesWrap" class="space-y-2 mt-2">
+                {% if activity %}
+                {% for d in activity.dates.all %}
+                    <div class="flex gap-2">
+                    <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="flex-1 border rounded p-2" required>
+                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                    </div>
+                {% endfor %}
+                {% endif %}
+
+                {% if not activity or activity.dates.count == 0 %}
+                <div class="flex gap-2">
+                    <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
+                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                </div>
+                {% endif %}
+            </div>
+
+            <button type="button" class="mt-2 px-3 py-2 border rounded" onclick="addDate()">+ Add another date</button>
+        </div>
+
+        <script>
+            function addDate(){
+            const wrap = document.getElementById('datesWrap');
+            const row = document.createElement('div');
+            row.className = 'flex gap-2';
+            row.innerHTML = `
+                <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
+                <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+            `;
+            wrap.appendChild(row);
+            }
+        </script>
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Image</label>
+        <input type="file" name="image" class="w-full">
+        </div>
+
+        <div class="flex items-center gap-2">
+        <input type="checkbox" name="active" {% if activity and activity.active %}checked{% endif %}>
+        <label class="text-sm">Active</label>
+        </div>
+
+        <div class="flex gap-3">
+        <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
+        <a class="px-4 py-2 rounded-lg border" href="{% url 'activities_list' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

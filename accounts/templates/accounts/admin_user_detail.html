@@ -1,0 +1,79 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900">User Details</h1>
+                <p class="mt-1 text-sm text-gray-600">Account, profile, and related proposal information.</p>
+            </div>
+
+            <a href="{% url 'admin_edit_user' view_user.id %}"
+               class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary">
+                Edit User
+            </a>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Account</h2>
+                <div class="space-y-2 text-sm">
+                    <p><span class="font-medium text-gray-700">Username:</span> {{ view_user.username }}</p>
+                    <p><span class="font-medium text-gray-700">Email:</span> {{ view_user.email|default:"—" }}</p>
+                    <p><span class="font-medium text-gray-700">Active:</span> {{ view_user.is_active|yesno:"Yes,No" }}</p>
+                    <p><span class="font-medium text-gray-700">Joined:</span> {{ view_user.date_joined|date:"M d, Y h:i A" }}</p>
+                    <p><span class="font-medium text-gray-700">Last Login:</span> {{ view_user.last_login|date:"M d, Y h:i A"|default:"—" }}</p>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Profile</h2>
+                <div class="space-y-2 text-sm">
+                    <p><span class="font-medium text-gray-700">Full Name:</span> {{ view_profile.full_name|default:"—" }}</p>
+                    <p><span class="font-medium text-gray-700">Role:</span> {{ view_profile.get_role_display|default:"—" }}</p>
+                    <p><span class="font-medium text-gray-700">Campus:</span> {{ view_profile.campus|default:"—" }}</p>
+                    <p><span class="font-medium text-gray-700">College:</span> {{ view_profile.college|default:"—" }}</p>
+                    <p><span class="font-medium text-gray-700">Department:</span> {{ view_profile.department|default:"—" }}</p>
+                    <p><span class="font-medium text-gray-700">Email Verified:</span> {{ view_profile.email_verified|yesno:"Yes,No" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Related Proposals</h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Campus</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Updated</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for proposal in related_proposals %}
+                    <tr>
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ proposal.title|default:"Untitled Proposal" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ proposal.get_status_display|default:proposal.status }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ proposal.campus|default:"—" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ proposal.last_saved_at|date:"M d, Y h:i A"|default:"—" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                            No related proposals found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

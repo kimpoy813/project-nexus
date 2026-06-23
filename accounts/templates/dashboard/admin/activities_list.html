@@ -1,0 +1,48 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold">Activities</h1>
+        <a href="{% url 'activity_create' %}" class="bg-primary text-white px-4 py-2 rounded-lg">Add Activity</a>
+    </div>
+
+    <div class="bg-white border rounded-xl overflow-hidden">
+        <table class="min-w-full">
+        <thead class="bg-gray-50">
+            <tr>
+            <th class="text-left p-3">Title</th>
+            <th class="text-left p-3">Date</th>
+            <th class="text-left p-3">Active</th>
+            <th class="text-left p-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in activities %}
+            <tr class="border-t">
+            <td class="p-3">{{ a.title }}</td>
+            <td class="p-3">
+            {% if a.dates.all %}
+                <div class="flex flex-wrap gap-2">
+                {% for d in a.dates.all %}
+                    <span class="px-2 py-1 text-xs rounded bg-gray-100 border">{{ d.date }}</span>
+                {% endfor %}
+                </div>
+            {% else %}
+                <span class="text-gray-400 text-sm">No dates</span>
+            {% endif %}
+            </td>
+            <td class="p-3">{{ a.active }}</td>
+            <td class="p-3 space-x-3">
+                <a class="text-blue-600" href="{% url 'activity_edit' a.id %}">Edit</a>
+                <a class="text-red-600" href="{% url 'activity_delete' a.id %}">Delete</a>
+            </td>
+            </tr>
+            {% empty %}
+            <tr><td class="p-6 text-gray-500" colspan="4">No activities yet.</td></tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

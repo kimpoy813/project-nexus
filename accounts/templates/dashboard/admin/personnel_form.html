@@ -1,0 +1,38 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6">{% if person %}Edit{% else %}Add{% endif %} Personnel</h1>
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 space-y-4">
+        {% csrf_token %}
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Name</label>
+        <input name="name" value="{{ person.name|default:'' }}" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Position</label>
+        <input name="position" value="{{ person.position|default:'' }}" class="w-full border rounded-lg p-2" required>
+        </div>
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input name="email" value="{{ person.email|default:'' }}" class="w-full border rounded-lg p-2">
+        </div>
+
+        <div>
+        <label class="block text-sm font-medium mb-1">Photo</label>
+        <input type="file" name="photo" class="w-full">
+        {% if person and person.photo %}
+            <p class="text-xs text-gray-500 mt-2">Current: {{ person.photo.url }}</p>
+        {% endif %}
+        </div>
+
+        <div class="flex gap-3">
+        <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
+        <a class="px-4 py-2 rounded-lg border" href="{% url 'personnel_list' %}">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

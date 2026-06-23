@@ -1,0 +1,510 @@
+{% extends "accounts_base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Department Coordinator Dashboard</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                Monitor your drafts, submitted proposals, and department review queue.
+            </p>
+        </div>
+
+        <a href="{% url 'proposal_create' %}"
+           class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+            Create Proposal
+        </a>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Drafts</p>
+            <p id="draft-count" class="mt-2 text-3xl font-bold text-gray-900">{{ draft_count|default:0 }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Submitted</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ submitted_count|default:0 }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Under Review</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ under_review_count|default:0 }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Approved</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ approved_count|default:0 }}</p>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-gray-500">Review Queue</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ review_queue_count|default:0 }}</p>
+        </div>
+    </div>
+
+    <!-- Department Review Queue -->
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm mb-8">
+        <div class="border-b border-gray-100 px-6 py-4">
+            <h2 class="text-lg font-semibold text-gray-900">Department Review Queue</h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Proposals from your department waiting for review and comments.
+            </p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Proponent</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for proposal in review_queue %}
+                    <tr>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-900">
+                                {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
+                            </p>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.created_by.profile.full_name|default:proposal.created_by.username }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.get_extension_type_display|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.get_scope_type_display|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {% if proposal.submitted_at %}
+                                {{ proposal.submitted_at|date:"M d, Y h:i A" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if proposal.proposal_status == "SUBMITTED_FOR_REVIEW" %}
+                                <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "IN_REVIEW" %}
+                                <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "REVIEW_SUMMARY_ISSUED" %}
+                                <span class="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "FOR_REVISION" %}
+                                <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "APPROVED" %}
+                                <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display|default:"—" }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-2">
+                                <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
+                                   class="inline-flex rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white">
+                                    Review
+                                </a>
+                                <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                                   class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
+                                    View
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500">
+                            No proposals waiting for department review.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Drafts -->
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm mb-8">
+        <div class="border-b border-gray-100 px-6 py-4">
+            <h2 class="text-lg font-semibold text-gray-900">My Drafts</h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Continue editing proposals that are not yet submitted.
+            </p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Last Saved</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="drafts-tbody" class="divide-y divide-gray-100 bg-white">
+                    {% for proposal in drafts %}
+                    <tr id="draft-row-{{ proposal.id }}">
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-900">
+                                {{ proposal.title|default:proposal.research_title|default:"Untitled Draft" }}
+                            </p>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.get_extension_type_display|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.get_scope_type_display|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.last_saved_at|date:"M d, Y h:i A" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {% if proposal.created_by == request.user %}
+                                Creator
+                            {% else %}
+                                Collaborator / Proponent
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex justify-end gap-2">
+                                <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                                   class="inline-flex rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white">
+                                    Continue
+                                </a>
+                                {% if proposal.created_by == request.user %}
+                                <button type="button"
+                                        onclick="openDeleteModal('{{ proposal.id }}', '{% url 'faculty_delete_draft' proposal.id %}', '{{ proposal.title|default:proposal.research_title|default:"Untitled Draft"|escapejs }}')"
+                                        class="inline-flex rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-600 hover:text-white">
+                                    Delete
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr id="drafts-empty-row">
+                        <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
+                            No drafts yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Submitted -->
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div class="border-b border-gray-100 px-6 py-4">
+            <h2 class="text-lg font-semibold text-gray-900">My Submitted Proposals</h2>
+            <p class="text-sm text-gray-600 mt-1">
+                Track the current status of your submitted proposals.
+            </p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Role</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for proposal in submitted_proposals %}
+                    <tr>
+                        <td class="px-6 py-4">
+                            <p class="font-medium text-gray-900">
+                                {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
+                            </p>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.get_extension_type_display|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ proposal.get_scope_type_display|default:"—" }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {% if proposal.submitted_at %}
+                                {{ proposal.submitted_at|date:"M d, Y h:i A" }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if proposal.status == "DRAFT" and proposal.proposal_status == "DRAFTING" %}
+                                <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                    Draft
+                                </span>
+                            {% elif proposal.proposal_status == "SUBMITTED_FOR_REVIEW" %}
+                                <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "IN_REVIEW" %}
+                                <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "REVIEW_SUMMARY_ISSUED" %}
+                                <span class="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "FOR_REVISION" %}
+                                <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "READY_FOR_PRINTING" %}
+                                <span class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "FOR_SUBMISSION_AND_UPLOAD" %}
+                                <span class="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.proposal_status == "APPROVED" %}
+                                <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
+                                </span>
+                            {% elif proposal.status == "COMPLETED" %}
+                                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                    {{ proposal.current_status_label|default:"Extension Finished" }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                    {{ proposal.current_status_label|default:proposal.get_proposal_status_display|default:"—" }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {% if proposal.created_by == request.user %}
+                                Creator
+                            {% else %}
+                                Collaborator / Proponent
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                               class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-500">
+                            No submitted proposals yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Draft Modal -->
+<div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]" onclick="closeDeleteModal()"></div>
+
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-100 bg-white">
+                <div class="flex items-start gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-tertiary text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.742-2.98l5.58-9.921ZM11 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1-6a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900">Delete Draft</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            This will permanently remove the draft from your dashboard.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-5">
+                <p class="text-sm leading-7 text-gray-600">
+                    You are about to delete
+                    <span id="deleteDraftTitle" class="font-semibold text-gray-900"></span>.
+                    This action cannot be undone.
+                </p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+                <button type="button"
+                        onclick="closeDeleteModal()"
+                        class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        id="confirmDeleteDraftBtn"
+                        class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-secondary">
+                    Delete Draft
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+let deleteDraftState = {
+    proposalId: null,
+    url: null,
+    title: null
+};
+
+function openDeleteModal(proposalId, url, title) {
+    deleteDraftState = { proposalId, url, title };
+    document.getElementById('deleteDraftTitle').textContent = `"${title}"`;
+
+    const modal = document.getElementById('deleteDraftModal');
+    modal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteDraftModal');
+    modal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+
+    deleteDraftState = {
+        proposalId: null,
+        url: null,
+        title: null
+    };
+}
+
+async function deleteDraft(proposalId, url) {
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        const data = await response.json();
+
+        if (!data.ok) {
+            alert(data.message || "Failed to delete draft.");
+            return;
+        }
+
+        const row = document.getElementById(`draft-row-${proposalId}`);
+        if (row) {
+            row.remove();
+        }
+
+        const draftCountEl = document.getElementById("draft-count");
+        if (draftCountEl) {
+            if (typeof data.draft_count !== "undefined") {
+                draftCountEl.textContent = String(data.draft_count);
+            } else {
+                const currentCount = parseInt(draftCountEl.textContent.trim(), 10) || 0;
+                draftCountEl.textContent = String(Math.max(0, currentCount - 1));
+            }
+        }
+
+        const tbody = document.getElementById("drafts-tbody");
+        if (tbody) {
+            const remainingDraftRows = tbody.querySelectorAll('tr[id^="draft-row-"]');
+            const existingEmptyRow = document.getElementById("drafts-empty-row");
+
+            if (remainingDraftRows.length === 0 && !existingEmptyRow) {
+                const emptyRow = document.createElement("tr");
+                emptyRow.id = "drafts-empty-row";
+                emptyRow.innerHTML = `
+                    <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
+                        No drafts yet.
+                    </td>
+                `;
+                tbody.appendChild(emptyRow);
+            }
+        }
+
+        closeDeleteModal();
+    } catch (error) {
+        alert("Something went wrong while deleting the draft.");
+        console.error(error);
+    }
+}
+
+document.getElementById('confirmDeleteDraftBtn')?.addEventListener('click', function () {
+    if (!deleteDraftState.proposalId || !deleteDraftState.url) return;
+    deleteDraft(deleteDraftState.proposalId, deleteDraftState.url);
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        closeDeleteModal();
+    }
+});
+</script>
+<script>
+    document.addEventListener("submit", function () {
+        sessionStorage.setItem("scrollPosition", window.scrollY);
+    });
+
+    window.addEventListener("beforeunload", function () {
+        sessionStorage.setItem("scrollPosition", window.scrollY);
+    });
+
+    window.addEventListener("load", function () {
+        const scrollPosition = sessionStorage.getItem("scrollPosition");
+        if (scrollPosition !== null) {
+            window.scrollTo({
+                top: parseInt(scrollPosition, 10),
+                behavior: "auto"
+            });
+            sessionStorage.removeItem("scrollPosition");
+        }
+    });
+</script>
+{% endblock %}

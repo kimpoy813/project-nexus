@@ -1,0 +1,364 @@
+{% extends "accounts_base.html" %}
+{% load static %}
+
+{% block title %}Admin Dashboard - NExUS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Header -->
+        <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+                <p class="mt-2 text-gray-600">
+                    Manage user accounts, permissions, and website content.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <a href="{% url 'admin_create_account' %}"
+                   class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                    Create Account
+                </a>
+            </div>
+        </div>
+
+        <!-- Top Summary -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p class="text-sm font-medium text-gray-600">Total Users</p>
+                <p class="mt-2 text-3xl font-bold text-gray-900">{{ total_users|default:"0" }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p class="text-sm font-medium text-gray-600">Verified Users</p>
+                <p class="mt-2 text-3xl font-bold text-green-600">{{ verified_users|default:"0" }}</p>
+                <p class="mt-1 text-xs text-gray-500">
+                    {{ unverified_users|default:"0" }} pending verification
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p class="text-sm font-medium text-gray-600">Active Today</p>
+                <p class="mt-2 text-3xl font-bold text-purple-600">{{ active_today|default:"0" }}</p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p class="text-sm font-medium text-gray-600">Content Items</p>
+                <p class="mt-2 text-3xl font-bold text-blue-600">{{ total_content|default:"0" }}</p>
+                <p class="mt-1 text-xs text-gray-500 leading-relaxed">
+                    Personnel: {{ personnel_count|default:"0" }} •
+                    Activities: {{ activities_count|default:"0" }} •
+                    Processes: {{ processes_count|default:"0" }} •
+                    Targets: {{ targets_count|default:"0" }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Role Distribution -->
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
+            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
+                <h2 class="text-lg font-semibold text-gray-900">Role Distribution</h2>
+                <p class="mt-1 text-sm text-gray-600">
+                    Overview of user access levels across the system.
+                </p>
+            </div>
+
+            <div class="p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Faculty</p>
+                    <p class="mt-2 text-2xl font-bold text-gray-900">{{ faculty_count|default:"0" }}</p>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-green-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-green-700">Evaluators</p>
+                    <p class="mt-2 text-2xl font-bold text-green-800">{{ evaluator_count|default:"0" }}</p>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-blue-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-blue-700">Department Coord.</p>
+                    <p class="mt-2 text-2xl font-bold text-blue-800">{{ department_coordinator_count|default:"0" }}</p>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-indigo-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-indigo-700">Campus Coord.</p>
+                    <p class="mt-2 text-2xl font-bold text-indigo-800">{{ campus_coordinator_count|default:"0" }}</p>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-red-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-red-700">Director</p>
+                    <p class="mt-2 text-2xl font-bold text-red-800">{{ director_count|default:"0" }}</p>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-purple-50 p-4">
+                    <p class="text-xs font-medium uppercase tracking-wide text-purple-700">Admin</p>
+                    <p class="mt-2 text-2xl font-bold text-purple-800">
+                        {{ profiles|length|default:"0" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Management -->
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
+            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Account Management</h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Create accounts, assign roles, and review user access.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="text"
+                               id="searchInput"
+                               placeholder="Search users..."
+                               class="w-full sm:w-72 rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" id="userTable">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Campus</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-200 bg-white">
+                        {% for profile in profiles %}
+                        <tr class="transition hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                                        <span class="text-sm font-semibold text-primary">
+                                            {{ profile.full_name|default:profile.user.username|first|upper }}
+                                        </span>
+                                    </div>
+                                    <div class="ml-4 min-w-0">
+                                        <div class="truncate text-sm font-semibold text-gray-900">
+                                            {{ profile.full_name|default:profile.user.username }}
+                                        </div>
+                                        <div class="truncate text-sm text-gray-500">
+                                            @{{ profile.user.username }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ profile.user.email|default:"No email" }}
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ profile.campus|default:"Not set" }}
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <form method="POST" action="{% url 'manage_roles' %}" class="inline-block">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+
+                                    <select name="role"
+                                            onchange="this.form.submit()"
+                                            class="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary
+                                            {% if profile.role == 'ADMIN' %}bg-purple-50 text-purple-800
+                                            {% elif profile.role == 'DIRECTOR' %}bg-red-50 text-red-800
+                                            {% elif profile.role == 'DEPARTMENT_COORDINATOR' %}bg-blue-50 text-blue-800
+                                            {% elif profile.role == 'CAMPUS_COORDINATOR' %}bg-indigo-50 text-indigo-800
+                                            {% elif profile.role == 'STAFF' %}bg-yellow-50 text-yellow-800
+                                            {% elif profile.role == 'EVALUATOR' %}bg-green-50 text-green-800
+                                            {% else %}bg-gray-50 text-gray-800{% endif %}">
+                                        <option value="FACULTY" {% if profile.role == 'FACULTY' %}selected{% endif %}>Faculty</option>
+                                        <option value="STAFF" {% if profile.role == 'STAFF' %}selected{% endif %}>Staff</option>
+                                        <option value="EVALUATOR" {% if profile.role == 'EVALUATOR' %}selected{% endif %}>Evaluator</option>
+                                        <option value="DEPARTMENT_COORDINATOR" {% if profile.role == 'DEPARTMENT_COORDINATOR' %}selected{% endif %}>Department Coordinator</option>
+                                        <option value="CAMPUS_COORDINATOR" {% if profile.role == 'CAMPUS_COORDINATOR' %}selected{% endif %}>Campus Coordinator</option>
+                                        <option value="DIRECTOR" {% if profile.role == 'DIRECTOR' %}selected{% endif %}>Director</option>
+                                        <option value="ADMIN" {% if profile.role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                                    </select>
+                                </form>
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
+                                    {% if profile.email_verified %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {% if profile.email_verified %}Verified{% else %}Pending{% endif %}
+                                </span>
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex flex-wrap gap-2">
+                                    <a href="{% url 'admin_edit_user' profile.user.id %}"
+                                       class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary hover:text-white">
+                                        Edit
+                                    </a>
+
+                                    <a href="{% url 'admin_user_detail' profile.user.id %}"
+                                       class="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-gray-400 hover:bg-gray-50">
+                                        View
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                                <svg class="mx-auto mb-3 h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                                <p class="text-lg font-medium">No users found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Content Management -->
+        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
+                <h2 class="text-lg font-semibold text-gray-900">Website Content Management</h2>
+                <p class="mt-1 text-sm text-gray-600">
+                    Manage extension-related content shown across the platform.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
+                <div class="rounded-xl border border-gray-200 p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-900">Extension Personnel</h3>
+                        <span class="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
+                            {{ personnel_count|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="mb-4 text-sm text-gray-600">
+                        Manage staff and faculty members featured on the homepage.
+                    </p>
+                    <a href="{% url 'personnel_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
+                        Manage Personnel
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-900">Extension Activities</h3>
+                        <span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                            {{ activities_count|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="mb-4 text-sm text-gray-600">
+                        Manage upcoming and past extension activities.
+                    </p>
+                    <a href="{% url 'activities_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
+                        Manage Activities
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-900">Extension Processes</h3>
+                        <span class="rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
+                            {{ processes_count|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="mb-4 text-sm text-gray-600">
+                        Manage the extension workflow and process steps.
+                    </p>
+                    <a href="{% url 'processes_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
+                        Manage Processes
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-900">Extension Targets</h3>
+                        <span class="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800">
+                            {{ targets_count|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="mb-4 text-sm text-gray-600">
+                        Manage yearly targets and accomplishments by campus.
+                    </p>
+                    <a href="{% url 'targets_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
+                        Manage Targets
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 p-5">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-900">Signatories</h3>
+                        <span class="rounded-full bg-rose-100 px-2 py-1 text-xs font-medium text-rose-800">
+                            {{ signatories_count|default:"0" }}
+                        </span>
+                    </div>
+                    <p class="mb-4 text-sm text-gray-600">
+                        Manage document signatories used in printed comment summaries and letters.
+                    </p>
+                    <a href="{% url 'signatories_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
+                        Manage Signatories
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.getElementById('searchInput')?.addEventListener('keyup', function () {
+    let searchText = this.value.toLowerCase();
+    let tableRows = document.querySelectorAll('#userTable tbody tr');
+
+    tableRows.forEach(row => {
+        let text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchText) ? '' : 'none';
+    });
+});
+
+document.addEventListener("submit", function () {
+    sessionStorage.setItem("scrollPosition", window.scrollY);
+});
+
+window.addEventListener("beforeunload", function () {
+    sessionStorage.setItem("scrollPosition", window.scrollY);
+});
+
+window.addEventListener("load", function () {
+    const scrollPosition = sessionStorage.getItem("scrollPosition");
+    if (scrollPosition !== null) {
+        window.scrollTo({
+            top: parseInt(scrollPosition, 10),
+            behavior: "auto"
+        });
+        sessionStorage.removeItem("scrollPosition");
+    }
+});
+</script>
+{% endblock %}

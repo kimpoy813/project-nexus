@@ -1,0 +1,119 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl leading-6 font-semibold text-gray-900">Rationale / Background</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        Provide the background and rationale of the proposed extension.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" class="px-6 pb-6 pt-4 space-y-6">
+        {% csrf_token %}
+
+        <div>
+            <label for="rationale_background" class="block text-sm font-semibold text-gray-900 mb-2">
+                Rationale / Background
+            </label>
+            <textarea
+                id="rationale_background"
+                name="rationale_background"
+                rows="8"
+                {% if not is_edit_mode %}readonly{% endif %}
+                class="w-full min-h-[220px] rounded-2xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                placeholder="Explain the background of the proposed extension, the identified need or problem it addresses, and how it aligns with the relevant SDGs, extension thrusts, and GAD mandates.">{{ rationale_background|default:'' }}</textarea>
+        </div>
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    type="submit">
+                Save & Next
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+{% if is_edit_mode %}
+<script>
+(function () {
+    const textarea = document.getElementById("rationale_background");
+    if (!textarea) return;
+
+    function autoResize() {
+        textarea.style.height = "auto";
+        textarea.style.height = textarea.scrollHeight + "px";
+    }
+
+    textarea.addEventListener("input", autoResize);
+
+    textarea.addEventListener("keydown", function (e) {
+        if (e.key === "Tab") {
+            e.preventDefault();
+
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const indent = "    ";
+
+            textarea.value =
+                textarea.value.substring(0, start) +
+                indent +
+                textarea.value.substring(end);
+
+            textarea.selectionStart = textarea.selectionEnd = start + indent.length;
+            autoResize();
+        }
+    });
+
+    autoResize();
+})();
+</script>
+{% endif %}
+{% endblock %}

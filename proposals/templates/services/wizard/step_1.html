@@ -1,0 +1,276 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+  <h2 class="text-xl font-semibold text-gray-900">Extension Type and Scope</h2>
+  <p class="text-sm leading-5 text-gray-600 mt-1">
+    Identify the nature of the proposal and specify whether it will be implemented as a program, project, or activity.
+  </p>
+
+  {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+      <span class="text-xs text-gray-500">Editing now</span>
+
+      <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+        <span class="h-2 w-2 rounded-full bg-primary"></span>
+        You · Step {{ step }}
+      </span>
+
+      {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+          <span class="h-2 w-2 rounded-full bg-primary"></span>
+          {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+      <p class="text-sm font-medium text-amber-800">Review mode</p>
+      <p class="mt-1 text-sm text-amber-700">
+        You can view this proposal for review, but you cannot edit this section.
+      </p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+  <form method="POST" class="px-6 pb-6 pt-1 space-y-8">
+    {% csrf_token %}
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">Extension Type</label>
+
+      <input type="hidden" name="extension_type" id="extensionTypeValue" value="{{ proposal.extension_type }}">
+
+      <div class="flex flex-wrap gap-3">
+        {% for val,label in proposal.ExtensionType.choices %}
+          <div
+            class="ext-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+              {% if proposal.extension_type == val %}
+                bg-primary text-white border-primary
+              {% else %}
+                bg-white text-gray-700 border-gray-300
+              {% endif %}
+              {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+            data-value="{{ val }}"
+            data-label="{{ label }}">
+            {{ label }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <p class="text-xs text-gray-500 mt-3">
+        Choose whether the proposal is research-based or request-based.
+      </p>
+    </div>
+
+    <div id="researchTitleWrap" class="{% if proposal.extension_type != 'RESEARCH_FACULTY' and proposal.extension_type != 'RESEARCH_STUDENT' %}hidden{% endif %}">
+      <label class="block text-sm font-semibold text-gray-900">Research Title</label>
+      <input
+        name="research_title"
+        id="researchTitleInput"
+        value="{{ proposal.research_title }}"
+        {% if not is_edit_mode %}readonly{% endif %}
+        class="mt-2 w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+        placeholder="Enter the research title">
+      <p class="text-xs text-gray-500 mt-2">
+        Required when Extension Type is Research-based.
+      </p>
+    </div>
+
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">Scope</label>
+
+      <input type="hidden" name="scope_type" id="scopeTypeValue" value="{{ proposal.scope_type }}">
+
+      <div class="flex flex-wrap gap-3">
+        <div
+          class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+            {% if proposal.scope_type == 'PROGRAM' %}
+              bg-primary text-white border-primary
+            {% else %}
+              bg-white text-gray-700 border-gray-300
+            {% endif %}
+            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+          data-value="PROGRAM">
+          Program
+        </div>
+
+        <div
+          class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+            {% if proposal.scope_type == 'PROJECT' %}
+              bg-primary text-white border-primary
+            {% else %}
+              bg-white text-gray-700 border-gray-300
+            {% endif %}
+            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+          data-value="PROJECT">
+          Project
+        </div>
+
+        <div
+          class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+            {% if proposal.scope_type == 'ACTIVITY' %}
+              bg-primary text-white border-primary
+            {% else %}
+              bg-white text-gray-700 border-gray-300
+            {% endif %}
+            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+          data-value="ACTIVITY">
+          Activity
+        </div>
+      </div>
+
+      <div id="scopeHelp" class="mt-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <span class="text-primary font-semibold">i</span>
+          </div>
+          <div>
+            <p id="scopeTitle" class="text-sm font-semibold text-gray-900">Choose a scope</p>
+            <p id="scopeDesc" class="text-sm text-gray-600 mt-1">
+              Select whether your proposal is a program, project, or activity.
+            </p>
+            <p id="scopeNote" class="text-xs text-gray-500 mt-2"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if is_edit_mode %}
+      <div class="flex flex-col sm:flex-row gap-2 pt-2">
+        <button name="action" value="skip"
+                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                type="submit">
+          Skip
+        </button>
+
+        <button name="action" value="next"
+                class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                type="submit">
+          Save & Next
+        </button>
+      </div>
+    {% else %}
+      <div class="flex justify-end pt-2">
+        <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+           class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+          {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+        </a>
+      </div>
+    {% endif %}
+  </form>
+</div>
+
+{% if is_edit_mode %}
+<script id="fix-step1-sync">
+(function(){
+  const extHidden = document.getElementById("extensionTypeValue");
+  const scopeHidden = document.getElementById("scopeTypeValue");
+
+  const rWrap = document.getElementById("researchTitleWrap");
+  const rInput = document.getElementById("researchTitleInput");
+
+  function setActiveChip(chips, activeChip) {
+    chips.forEach(chip => {
+      const isActive = chip === activeChip;
+      chip.classList.toggle("bg-primary", isActive);
+      chip.classList.toggle("text-white", isActive);
+      chip.classList.toggle("border-primary", isActive);
+
+      chip.classList.toggle("bg-white", !isActive);
+      chip.classList.toggle("text-gray-700", !isActive);
+      chip.classList.toggle("border-gray-300", !isActive);
+    });
+  }
+
+  function syncResearch(extValue){
+    const isResearch = (extValue === "RESEARCH_FACULTY" || extValue === "RESEARCH_STUDENT");
+    rWrap.classList.toggle("hidden", !isResearch);
+  }
+
+  const scopeTitle = document.getElementById("scopeTitle");
+  const scopeDesc = document.getElementById("scopeDesc");
+  const scopeNote = document.getElementById("scopeNote");
+
+  const MAP = {
+    "PROGRAM": {
+      title: "Program",
+      desc: "An umbrella initiative composed of multiple related projects under one program goal.",
+      note: "Use this when you have a collection of projects with shared objectives and outputs."
+    },
+    "PROJECT": {
+      title: "Project",
+      desc: "A focused major initiative under a program, composed of related activities and outputs.",
+      note: "Use this when it’s one major implementation with multiple activities."
+    },
+    "ACTIVITY": {
+      title: "Activity",
+      desc: "A single extension event or short implementation focused on a specific output.",
+      note: "Best for one-time or short-duration engagements."
+    }
+  };
+
+  function syncScope(scopeValue){
+    if (!MAP[scopeValue]){
+      scopeTitle.textContent = "Choose a scope";
+      scopeDesc.textContent = "Select whether your proposal is a program, project, or activity.";
+      scopeNote.textContent = "";
+      return;
+    }
+    scopeTitle.textContent = MAP[scopeValue].title;
+    scopeDesc.textContent = MAP[scopeValue].desc;
+    scopeNote.textContent = MAP[scopeValue].note;
+  }
+
+  const extChips = document.querySelectorAll(".ext-chip");
+  const scopeChips = document.querySelectorAll(".scope-chip");
+
+  extChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      const prev = (extHidden.value || "").trim();
+
+      setActiveChip(extChips, chip);
+      const v = chip.getAttribute("data-value");
+      extHidden.value = v;
+
+      const prevWasResearch = (prev === "RESEARCH_FACULTY" || prev === "RESEARCH_STUDENT");
+      const nextIsResearch = (v === "RESEARCH_FACULTY" || v === "RESEARCH_STUDENT");
+      if (prevWasResearch && !nextIsResearch && rInput) rInput.value = "";
+
+      syncResearch(v);
+    });
+  });
+
+  scopeChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      setActiveChip(scopeChips, chip);
+      const v = chip.getAttribute("data-value");
+      scopeHidden.value = v;
+      syncScope(v);
+    });
+  });
+
+  (function restoreFromSaved(){
+    const extValue = (extHidden?.value || "").trim();
+    const scopeValue = (scopeHidden?.value || "").trim();
+
+    if (extValue) {
+      const activeExt = [...extChips].find(c => c.getAttribute("data-value") === extValue);
+      if (activeExt) setActiveChip(extChips, activeExt);
+      syncResearch(extValue);
+    } else {
+      syncResearch("");
+    }
+
+    if (scopeValue) {
+      const activeScope = [...scopeChips].find(c => c.getAttribute("data-value") === scopeValue);
+      if (activeScope) setActiveChip(scopeChips, activeScope);
+      syncScope(scopeValue);
+    } else {
+      syncScope("");
+    }
+  })();
+})();
+</script>
+{% endif %}
+{% endblock %}

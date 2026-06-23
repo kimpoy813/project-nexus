@@ -1,0 +1,111 @@
+{% extends "services/wizard/_wizard_shell.html" %}
+
+{% block wizard_form %}
+<div class="p-6 border-b border-gray-100">
+    <h2 class="text-xl leading-6 font-semibold text-gray-900">Certificate of Completion</h2>
+    <p class="text-sm leading-5 text-gray-600 mt-1">
+        Upload the certificate of completion for research-based proposals.
+    </p>
+
+    {% if is_edit_mode %}
+    <div class="mt-6 flex flex-wrap items-center gap-2">
+        <span class="text-xs text-gray-500">Editing now</span>
+
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            You · Step {{ step }}
+        </span>
+
+        {% for editor in active_editors %}
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+            <span class="h-2 w-2 rounded-full bg-primary"></span>
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
+        </span>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <p class="text-sm font-medium text-amber-800">Review mode</p>
+        <p class="mt-1 text-sm text-amber-700">
+            You can view this proposal for review, but you cannot edit this section.
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-4 space-y-8">
+        {% csrf_token %}
+
+        {% if requires_certificate %}
+        <div class="rounded-2xl border border-gray-200 p-5">
+            <label for="certificate_of_completion_file" class="block text-sm font-semibold text-gray-900 mb-2">
+                Certificate of Completion File
+            </label>
+            <p class="text-xs text-gray-500 mb-3">
+                This file is required for research-based proposals.
+            </p>
+
+            {% if is_edit_mode %}
+            <input
+                type="file"
+                id="certificate_of_completion_file"
+                name="certificate_of_completion_file"
+                class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+            {% endif %}
+
+            {% if proposal.certificate_of_completion_file %}
+            <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                <p class="text-xs text-gray-500">
+                    {% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
+                </p>
+                <a href="{% url 'proposal_file_preview' proposal.id 'certificate' %}" target="_blank" class="mt-1 block text-sm text-primary underline break-all">
+                    {{ proposal.certificate_of_completion_file.name|cut:"proposal_files/certificates_of_completion/" }}
+                </a>
+            </div>
+            {% elif not is_edit_mode %}
+            <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                No file uploaded.
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="rounded-2xl border border-green-200 bg-green-50 p-5">
+            <h3 class="text-sm font-semibold text-green-800">Not required</h3>
+            <p class="text-sm text-green-700 mt-1">
+                This proposal is not research-based, so a certificate of completion is not required.
+            </p>
+        </div>
+        {% endif %}
+
+        {% if is_edit_mode %}
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+            <button name="action" value="back"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Back
+            </button>
+
+            <button name="action" value="skip"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    type="submit">
+                Skip
+            </button>
+
+            <button name="action" value="next"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    type="submit">
+                Save
+            </button>
+        </div>
+        {% else %}
+        <div class="flex justify-end pt-2">
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}
