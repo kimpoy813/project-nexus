@@ -23,6 +23,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
+from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
 from details.models import ExtensionProcess, ProcessStep
 
@@ -328,6 +329,7 @@ def mark_step_completed(proposal, step_no):
     skipped.discard(step_no)
     proposal.completed_steps = sorted(completed)
     proposal.skipped_steps = sorted(skipped)
+    messages.success(request, "Step saved successfully.")
 
 
 def mark_step_skipped(proposal, step_no):

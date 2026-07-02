@@ -1,4 +1,4 @@
-{% extends "accounts_base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
   <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
@@ -20,56 +20,68 @@
       {% csrf_token %}
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="p-4 rounded-xl border border-gray-200">
-          <p class="text-sm font-semibold text-gray-900">Letter of Award</p>
-          <p class="text-xs text-gray-500 mt-1">
-            {% if letter_of_award_released_at %}
-              Released: {{ letter_of_award_released_at|date:"M d, Y h:i A" }}
-            {% else %}
-              Not yet released
-            {% endif %}
-          </p>
-          <input type="file" name="letter_of_award_file"
-                 class="mt-3 block w-full text-sm text-gray-700
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-lg file:border-0
-                        file:bg-primary file:text-white
-                        hover:file:bg-secondary" />
-        </div>
+        <label for="letter_of_award_file"
+              class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300
+                      hover:border-primary bg-white p-6 text-center transition group">
 
-        <div class="p-4 rounded-xl border border-gray-200">
-          <p class="text-sm font-semibold text-gray-900">Endorsement for Approval</p>
-          <p class="text-xs text-gray-500 mt-1">
-            {% if endorsement_released_at %}
-              Released: {{ endorsement_released_at|date:"M d, Y h:i A" }}
-            {% else %}
-              Not yet released
-            {% endif %}
-          </p>
-          <input type="file" name="endorsement_file"
-                 class="mt-3 block w-full text-sm text-gray-700
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-lg file:border-0
-                        file:bg-primary file:text-white
-                        hover:file:bg-secondary" />
-        </div>
+          <input type="file" id="letter_of_award_file"
+                name="letter_of_award_file" class="sr-only"
+                onchange="showFileName(this, 'loa-name')">
 
-        <div class="p-4 rounded-xl border border-gray-200 md:col-span-2">
-          <p class="text-sm font-semibold text-gray-900">Extension Agreement</p>
-          <p class="text-xs text-gray-500 mt-1">
-            {% if extension_agreement_released_at %}
-              Released: {{ extension_agreement_released_at|date:"M d, Y h:i A" }}
-            {% else %}
-              Not yet released
-            {% endif %}
-          </p>
-          <input type="file" name="extension_agreement_file"
-                 class="mt-3 block w-full text-sm text-gray-700
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-lg file:border-0
-                        file:bg-primary file:text-white
-                        hover:file:bg-secondary" />
-        </div>
+          <div class="flex flex-col items-center gap-2">
+            <svg class="h-8 w-8 text-gray-400 group-hover:text-primary transition"...></svg>
+            <p class="text-sm font-semibold text-gray-700">Letter of Award</p>
+            <p id="loa-name" class="text-xs text-gray-500">
+              {% if letter_of_award_released_at %}
+                Released {{ letter_of_award_released_at|date:"M d, Y" }} — re-upload to replace
+              {% else %}
+                Click to upload PDF or DOCX
+              {% endif %}
+            </p>
+          </div>
+        </label>
+
+        <label for="endorsement_letter_file"
+              class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300
+                      hover:border-primary bg-white p-6 text-center transition group">
+
+          <input type="file" id="endorsement_letter_file"
+                name="endorsement_letter_file" class="sr-only"
+                onchange="showFileName(this, 'endorsement-name')">
+
+          <div class="flex flex-col items-center gap-2">
+            <svg class="h-8 w-8 text-gray-400 group-hover:text-primary transition"...></svg>
+            <p class="text-sm font-semibold text-gray-700">Endorsement Letter</p>
+            <p id="endorsement-name" class="text-xs text-gray-500">
+              {% if endorsement_letter_released_at %}
+                Released {{ endorsement_letter_released_at|date:"M d, Y" }} — re-upload to replace
+              {% else %}
+                Click to upload PDF or DOCX
+              {% endif %}
+            </p>
+          </div>
+        </label>
+
+        <label for="extension_agreement_file"
+              class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300
+                      hover:border-primary bg-white p-6 text-center transition group">
+
+          <input type="file" id="extension_agreement_file"
+                name="extension_agreement_file" class="sr-only"
+                onchange="showFileName(this, 'extension-name')">
+
+          <div class="flex flex-col items-center gap-2">
+            <svg class="h-8 w-8 text-gray-400 group-hover:text-primary transition"...></svg>
+            <p class="text-sm font-semibold text-gray-700">Extension Agreement</p>
+            <p id="extension-name" class="text-xs text-gray-500">
+              {% if extension_agreement_released_at %}
+                Released {{ extension_agreement_released_at|date:"M d, Y" }} — re-upload to replace
+              {% else %}
+                Click to upload PDF or DOCX
+              {% endif %}
+            </p>
+          </div>
+        </label>
       </div>
 
       <div class="flex items-center gap-3">
@@ -84,4 +96,12 @@
     </form>
   </div>
 </div>
+
+<script>
+function showFileName(input, labelId) {
+  const label = document.getElementById(labelId);
+  if (input.files[0]) label.textContent = input.files[0].name;
+}
+</script>
+
 {% endblock %}

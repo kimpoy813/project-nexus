@@ -326,8 +326,9 @@
         });
     
         (function () {
-        const IDLE_LIMIT_MS = 10 * 60 * 1000; // 10 minutes
-        let idleTimer = null;
+        const IDLE_LIMIT_MS = 30 * 60 * 1000;  // 30 min
+        const WARN_BEFORE_MS = 5 * 60 * 1000;   // warn at 25 min
+        let warnTimer = null;
 
         function getCookie(name) {
             let cookieValue = null;
@@ -365,7 +366,28 @@
 
         function resetIdleTimer() {
             if (idleTimer) clearTimeout(idleTimer);
+            if (warnTimer) clearTimeout(warnTimer);
+            // Hide warning if visible
+            document.getElementById('idle-warning')?.classList.add('hidden');
+            warnTimer = setTimeout(showIdleWarning, IDLE_LIMIT_MS - WARN_BEFORE_MS);
             idleTimer = setTimeout(logoutIdle, IDLE_LIMIT_MS);
+        }
+
+        function showIdleWarning() {
+            document.getElementById('idle-warning')?.classList.remove('hidden');
+            // Optionally, you can also add a countdown or other UI elements here
+            // For example:
+            const countdown = document.getElementById('idle-countdown');
+            if (countdown) {
+                let timeLeft = WARN_BEFORE_MS / 1000;
+                const interval = setInterval(() => {
+                    timeLeft--;
+                    countdown.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                    }
+                }, 1000);
+            }
         }
 
         // Only run for authenticated users (Django template check)
@@ -386,5 +408,14 @@
 
         
     </script>
+    <div id="idle-warning"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-amber-600 text-white
+                px-6 py-4 rounded-2xl shadow-xl flex items-center gap-4 max-w-sm w-full mx-4">
+        <p class="text-sm flex-1">You'll be logged out in 5 minutes due to inactivity.</p>
+        <button onclick="resetIdleTimer()"
+                class="text-xs font-semibold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg">
+            Stay logged in
+        </button>
+    </div>
 </body>
 </html>

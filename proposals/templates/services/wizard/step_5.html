@@ -24,11 +24,44 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-        <p class="text-sm font-medium text-amber-800">Review mode</p>
-        <p class="mt-1 text-sm text-amber-700">
-            You can view this proposal for review, but you cannot edit this section.
-        </p>
+    <div class="rounded-xl border px-4 py-3 mt-4
+      {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}
+        border-blue-200 bg-blue-50
+      {% elif proposal.proposal_status == 'IN_REVIEW' %}
+        border-purple-200 bg-purple-50
+      {% elif proposal.proposal_status == 'APPROVED' %}
+        border-emerald-200 bg-emerald-50
+      {% elif proposal.proposal_status == 'FOR_REVISION' %}
+        border-amber-200 bg-amber-50
+      {% else %}border-gray-200 bg-gray-50
+      {% endif %}">
+
+      <p class="text-sm font-semibold
+        {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}text-blue-800
+        {% elif proposal.proposal_status == 'IN_REVIEW' %}text-purple-800
+        {% elif proposal.proposal_status == 'APPROVED' %}text-emerald-800
+        {% elif proposal.proposal_status == 'FOR_REVISION' %}text-amber-800
+        {% else %}text-gray-800{% endif %}">
+        {{ proposal.get_proposal_status_display }}
+      </p>
+
+      <p class="text-sm mt-0.5
+        {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}text-blue-700
+        {% elif proposal.proposal_status == 'IN_REVIEW' %}text-purple-700
+        {% elif proposal.proposal_status == 'FOR_REVISION' %}text-amber-700
+        {% else %}text-gray-600{% endif %}">
+        {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}
+          Your proposal is awaiting review. Editing is locked.
+        {% elif proposal.proposal_status == 'IN_REVIEW' %}
+          Reviewers are currently evaluating your proposal.
+        {% elif proposal.proposal_status == 'FOR_REVISION' %}
+          You have revision comments. Check the right panel and make edits.
+        {% elif proposal.proposal_status == 'APPROVED' %}
+          This proposal has been approved. Download your documents from Proposal Storage.
+        {% else %}
+          This proposal is in read-only mode.
+        {% endif %}
+      </p>
     </div>
     {% endif %}
 </div>
@@ -89,6 +122,9 @@
                 Save & Next
             </button>
         </div>
+        <p class="text-xs text-gray-400 mt-2">
+            Skipped steps are marked in the sidebar and can be completed anytime before submission.
+        </p>
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"

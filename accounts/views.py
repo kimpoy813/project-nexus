@@ -33,6 +33,8 @@ from django.utils.http import (
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods, require_POST
 
+import proposals
+
 from .campus_data import get_college_choices, get_department_choices, get_campus_choices
 from .decorators import admin_required, faculty_like_required, role_required
 from .forms import AdminCreateUserForm, ProfileUpdateForm, RegisterForm
@@ -1037,7 +1039,7 @@ def faculty_dashboard(request):
         .order_by("-last_saved_at", "-submitted_at", "-id")
     )
 
-    first_revision = revision_proposals.first()
+    revision_proposals = proposals.filter(proposal_status='FOR_REVISION')
 
     context = {
         "profile": profile,
@@ -1049,8 +1051,8 @@ def faculty_dashboard(request):
         "assigned_review_queue": assigned_review_queue,
         "assigned_review_count": assigned_review_queue.count(),
         "has_evaluator_assignments": assigned_review_queue.exists(),
-        "first_revision": first_revision,
-        "has_revision_notice": first_revision is not None,
+        "revision_proposals": revision_proposals,
+        "revision_count": revision_proposals.count(),
     }
 
     return render(request, "dashboard/faculty_dashboard.html", context)
@@ -1694,6 +1696,12 @@ def department_coordinator_dashboard(request):
 
     proposals_ctx = _get_user_proposals_context(request.user)
 
+    pending_review = Proposal.objects.filter(
+        proposal_status=Proposal.ProposalStatus.IN_REVIEW,
+        review_level=Proposal.ReviewLevel.DEPARTMENT,
+        # Only proposals the coordinator's campus/dept can see
+    ).count()
+
     context = {
         "profile": profile,
         "nav_notif_count": (proposals_ctx.get("needs_attention_count", 0) + action_queue_count),
@@ -1701,6 +1709,7 @@ def department_coordinator_dashboard(request):
         "review_queue": review_queue,
         "review_queue_count": review_queue.count(),
         "action_queue_count": action_queue_count,
+        "pending_review_count": pending_review,
     }
     return render(request, "dashboard/department_coordinator_dashboard.html", context)
 
@@ -1714,6 +1723,12 @@ def campus_coordinator_dashboard(request):
 
     proposals_ctx = _get_user_proposals_context(request.user)
 
+    pending_review = Proposal.objects.filter(
+        proposal_status=Proposal.ProposalStatus.IN_REVIEW,
+        review_level=Proposal.ReviewLevel.CAMPUS,
+        # Only proposals the coordinator's campus/dept can see
+    ).count()
+
     context = {
         "profile": profile,
         "nav_notif_count": (proposals_ctx.get("needs_attention_count", 0) + action_queue_count),
@@ -1721,6 +1736,7 @@ def campus_coordinator_dashboard(request):
         "review_queue": review_queue,
         "review_queue_count": review_queue.count(),
         "action_queue_count": action_queue_count,
+        "pending_review_count": pending_review,
     }
     return render(request, "dashboard/campus_coordinator_dashboard.html", context)
 

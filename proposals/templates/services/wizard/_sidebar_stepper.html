@@ -16,6 +16,12 @@
                style="width: {{ progress }}%;"></div>
         </div>
       </div>
+      <p class="mt-3 text-xs text-gray-400">
+        Last saved:
+        <span class="text-gray-600 font-medium">
+          {{ proposal.last_saved_at|timesince }} ago
+        </span>
+      </p>
     </div>
 
     <div id="wizard-stepper-scroll" class="p-6 max-h-[75vh] overflow-y-auto">
