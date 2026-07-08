@@ -237,10 +237,22 @@
                                         </svg>
                                     </a>
 
-                                    <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                        View
-                                    </a>
+                                    {% if item.process_label == "MOA" %}
+                                        <a href="{% url 'proposal_moa_tracker' item.proposal.id %}"
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                            View MOA
+                                        </a>
+                                    {% elif item.process_label == "Implementation" %}
+                                        <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}"
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                            View Implementation
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                            View
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                         </div>

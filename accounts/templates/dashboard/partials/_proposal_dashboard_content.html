@@ -83,6 +83,20 @@
                                         Submitted: {{ proposal.submitted_at|date:"M d, Y h:i A" }}
                                     </p>
                                 {% endif %}
+
+                                {% if proposal.requires_moa and proposal.moa_status != "NOT_STARTED" %}
+                                    <a href="{% url 'proposal_moa_tracker' proposal.id %}"
+                                       class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                                        MOA: {{ proposal.get_moa_status_display }} ({{ proposal.moa_progress }}%)
+                                    </a>
+                                    <br>
+                                {% endif %}
+                                {% if proposal.implementation_status != "NOT_STARTED" %}
+                                    <a href="{% url 'proposal_implementation_tracker' proposal.id %}"
+                                       class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                                        Implementation: {{ proposal.get_implementation_status_display }} ({{ proposal.implementation_progress }}%)
+                                    </a>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>

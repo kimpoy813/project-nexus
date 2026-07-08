@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db.models import Prefetch, Q
 from django.db import transaction
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
@@ -26,6 +27,7 @@ from openpyxl.utils import get_column_letter
 from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
 from details.models import ExtensionProcess, ProcessStep
+from .moa_docx import build_moa_document
 
 from .models import (
     ExtensionThrust,
@@ -40,6 +42,7 @@ from .models import (
     ProposalGenderIssue,
     ProposalMethodology,
     ProposalOutputOutcome,
+    ProposalPhaseLog,
     ProposalProponent,
     ProposalReviewRound,
     ProposalSDG,
@@ -264,6 +267,17 @@ def _can_review(user, proposal):
 
 def _can_view_proposal(user, proposal):
     return _can_edit(user, proposal) or _can_review(user, proposal) or _is_staff(user)
+
+
+def _can_manage_phase(user, proposal):
+    """
+    Only Staff and the Director can move a proposal through the MOA Tracker
+    or the Implementation Tracker (i.e. advance/send back a stage, or
+    upload the stage's official documents).
+    """
+    if not user.is_authenticated:
+        return False
+    return _is_staff(user) or _is_director(user)
 
 
 
@@ -3529,17 +3543,37 @@ def staff_comment_summary_docx(request, proposal_id):
     return resp
 
 
-# Paste this replacement into proposals/views.py
-# It fixes the VariableDoesNotExist error by ensuring every file row has
-# filename/file_url/label keys before the template tries to render them.
+# Fields captured by the guided MOA drafting form (services/moa/moa_draft.html).
+# Values are persisted on proposal.moa_draft_data so the form can be re-opened
+# and the .docx regenerated/edited later.
+MOA_DRAFT_TEXT_FIELDS = [
+    "partner_name", "partner_description", "partner_address", "partner_short_name",
+    "partner_rep_name", "partner_rep_title",
+    "whereas_clauses", "objectives", "obligations_ispsc", "obligations_partner",
+    "ip_ownership_text", "ip_license_years",
+    "term_years", "funding_ispsc", "funding_partner",
+    "data_privacy_text", "amendments_text", "termination_notice_days", "misc_text",
+    "partner_witness1_name", "partner_witness1_title",
+    "partner_witness2_name", "partner_witness2_title",
+]
+MOA_DRAFT_CHECKBOX_FIELDS = [
+    "ip_license_royalty_free",
+    "ip_license_exclusive",
+    "ip_license_irrevocable",
+]
 
-@login_required
+
 @login_required
 def proposal_moa_draft(request, proposal_id):
     """
-    Guided MOA draft page for proponents and staff.
-    It generates a structured draft from the proposal details and allows
-    the final signed MOA to be uploaded into the system.
+    Guided MOA drafting page for proponents and staff.
+
+    A proponent/staff member can either:
+      1. Fill out the structured form (partner institution, WHEREAS clauses,
+         objectives, obligations, IP terms, funding, term/effectivity, etc.)
+         to generate a fully formatted MOA .docx modeled on ISPSC's standard
+         MOA format, which is saved directly as the proposal's MOA document; or
+      2. Upload an already-prepared/signed MOA file instead.
     """
     proposal = get_object_or_404(Proposal, id=proposal_id)
 
@@ -3548,7 +3582,7 @@ def proposal_moa_draft(request, proposal_id):
         or proposal.proponents.filter(user=request.user).exists()
     )
     if not (is_proponent or _is_staff(request.user)):
-        messages.error(request, "You do not have permission to manage MOA for this proposal.")
+        messages.error(request, "You do not have permission to manage the MOA for this proposal.")
         return redirect("dashboard_redirect")
 
     if not getattr(proposal, "requires_moa", False):
@@ -3557,57 +3591,94 @@ def proposal_moa_draft(request, proposal_id):
 
     moa_doc = proposal.final_documents.filter(document_type=ProposalFinalDocument.DocumentType.MOA).first()
 
-    default_fields = {
-        "parties": (proposal.created_by.profile.full_name if getattr(proposal.created_by, "profile", None) else getattr(proposal.created_by, "username", "")) or "Proponent Institution",
-        "purpose": f"This MOA establishes the collaboration and implementation arrangement for the extension project titled '{proposal.title or proposal.research_title or 'Proposal'}'.",
-        "scope": "The parties shall implement the approved extension activities, deliverables, and monitoring arrangements as reflected in the approved proposal.",
-        "responsibilities": "The proponent shall coordinate implementation and reporting; the partner institution shall provide support, coordination, and oversight as needed.",
-        "timeline": "The term of this MOA shall cover the approved implementation period stated in the proposal and any approved extension thereof.",
-        "signatories": "Prepared by the proponent and approved by the authorized signatory of the partner institution.",
-    }
-
     if request.method == "POST":
-        action = (request.POST.get("action") or "draft").strip().lower()
+        action = (request.POST.get("action") or "generate").strip().lower()
 
-        if action == "generate":
-            draft_text = "\n\n".join([
-                f"MEMORANDUM OF AGREEMENT (MOA)\n",
-                f"Project: {proposal.title or proposal.research_title or 'Proposal'}\n",
-                f"Prepared for: {default_fields['parties']}\n\n",
-                "1. Parties\n" + (request.POST.get("parties") or default_fields["parties"]) + "\n\n",
-                "2. Purpose\n" + (request.POST.get("purpose") or default_fields["purpose"]) + "\n\n",
-                "3. Scope of Work\n" + (request.POST.get("scope") or default_fields["scope"]) + "\n\n",
-                "4. Responsibilities\n" + (request.POST.get("responsibilities") or default_fields["responsibilities"]) + "\n\n",
-                "5. Timeline\n" + (request.POST.get("timeline") or default_fields["timeline"]) + "\n\n",
-                "6. Signatories\n" + (request.POST.get("signatories") or default_fields["signatories"]) + "\n",
-            ])
-            response = HttpResponse(draft_text, content_type="text/plain; charset=utf-8")
-            filename = f"{(proposal.title or proposal.research_title or 'Proposal').replace('/', '-').replace('\\', '-')}_MOA_Draft.txt"
-            response["Content-Disposition"] = f'attachment; filename="{filename}"'
-            return response
+        if action == "upload":
+            moa_file = request.FILES.get("moa_file")
+            if not moa_file:
+                messages.error(request, "Please choose a file to upload.")
+                return redirect("proposal_moa_draft", proposal_id=proposal.id)
 
-        moa_file = request.FILES.get("moa_file")
-        if not moa_file:
-            messages.error(request, "Please upload the signed MOA file to save it in the system.")
-            return redirect("proposal_moa_draft", proposal_id=proposal.id)
+            ProposalFinalDocument.objects.update_or_create(
+                proposal=proposal,
+                document_type=ProposalFinalDocument.DocumentType.MOA,
+                defaults={
+                    "file": moa_file,
+                    "uploaded_by": request.user,
+                    "remarks": (request.POST.get("remarks") or "").strip(),
+                    "is_verified": False,
+                },
+            )
+            if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+                proposal.mark_moa_draft()
+
+            messages.success(request, "MOA document uploaded successfully.")
+            return redirect("proposal_moa_tracker", proposal_id=proposal.id)
+
+        # action == "generate": build the .docx from the submitted form fields.
+        form_data = {field: (request.POST.get(field) or "").strip() for field in MOA_DRAFT_TEXT_FIELDS}
+        for field in MOA_DRAFT_CHECKBOX_FIELDS:
+            form_data[field] = bool(request.POST.get(field))
+
+        # Persist so the form + generated file stay in sync on future visits.
+        proposal.moa_draft_data = form_data
+        proposal.save(update_fields=["moa_draft_data", "last_saved_at"])
+
+        buffer = build_moa_document(proposal, form_data)
+        safe_title = re.sub(
+            r"[^A-Za-z0-9_-]+", "_", (proposal.title or proposal.research_title or "Proposal")
+        ).strip("_") or "Proposal"
+        filename = f"{safe_title}_MOA_Draft.docx"
+        generated_file = ContentFile(buffer.getvalue(), name=filename)
 
         ProposalFinalDocument.objects.update_or_create(
             proposal=proposal,
             document_type=ProposalFinalDocument.DocumentType.MOA,
             defaults={
-                "file": moa_file,
+                "file": generated_file,
                 "uploaded_by": request.user,
-                "remarks": (request.POST.get("remarks") or "").strip(),
+                "remarks": "Generated via the guided MOA drafting form.",
                 "is_verified": False,
             },
         )
+        if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+            proposal.mark_moa_draft()
 
-        proposal.moa_status = Proposal.MOAStatus.DRAFT
-        proposal.last_saved_at = timezone.now()
-        proposal.save(update_fields=["moa_status", "last_saved_at"])
+        messages.success(request, "MOA draft generated. You can review it in the MOA Tracker or keep editing here.")
+        return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
-        messages.success(request, "MOA uploaded successfully. You can now review and track it in the storage area.")
-        return redirect("proposal_storage", proposal_id=proposal.id)
+    # GET: pre-fill the form with the last-saved draft data (falling back to
+    # sensible defaults derived from the proposal itself).
+    saved = proposal.moa_draft_data or {}
+    default_fields = {
+        "partner_name": saved.get("partner_name", "") or proposal.implementing_agency or "",
+        "partner_description": saved.get("partner_description", ""),
+        "partner_address": saved.get("partner_address", ""),
+        "partner_short_name": saved.get("partner_short_name", ""),
+        "partner_rep_name": saved.get("partner_rep_name", ""),
+        "partner_rep_title": saved.get("partner_rep_title", ""),
+        "whereas_clauses": saved.get("whereas_clauses", ""),
+        "objectives": saved.get("objectives", "") or (proposal.general_objective or proposal.objectives_general or ""),
+        "obligations_ispsc": saved.get("obligations_ispsc", ""),
+        "obligations_partner": saved.get("obligations_partner", ""),
+        "ip_ownership_text": saved.get("ip_ownership_text", ""),
+        "ip_license_years": saved.get("ip_license_years", "3"),
+        "ip_license_royalty_free": saved.get("ip_license_royalty_free", True),
+        "ip_license_exclusive": saved.get("ip_license_exclusive", True),
+        "ip_license_irrevocable": saved.get("ip_license_irrevocable", True),
+        "term_years": saved.get("term_years", "3"),
+        "funding_ispsc": saved.get("funding_ispsc", ""),
+        "funding_partner": saved.get("funding_partner", ""),
+        "data_privacy_text": saved.get("data_privacy_text", ""),
+        "amendments_text": saved.get("amendments_text", ""),
+        "termination_notice_days": saved.get("termination_notice_days", "30"),
+        "misc_text": saved.get("misc_text", ""),
+        "partner_witness1_name": saved.get("partner_witness1_name", ""),
+        "partner_witness1_title": saved.get("partner_witness1_title", ""),
+        "partner_witness2_name": saved.get("partner_witness2_name", ""),
+        "partner_witness2_title": saved.get("partner_witness2_title", ""),
+    }
 
     context = {
         "proposal": proposal,
@@ -3615,6 +3686,292 @@ def proposal_moa_draft(request, proposal_id):
         "default_fields": default_fields,
     }
     return render(request, "services/moa/moa_draft.html", context)
+
+
+# ==============================
+# MOA TRACKER
+# ==============================
+# MOA Process: Drafting -> Legal Review -> Under Revision -> Certification Ready
+#              -> Agenda Brief & Presentation -> MOA Completed
+
+@login_required
+def proposal_moa_tracker(request, proposal_id):
+    """
+    Stage tracker for the MOA (Memorandum of Agreement) phase of a proposal.
+
+    Proponents and staff can view the tracker. Only Staff/Director can
+    advance or send back a stage. The signed MOA file can be uploaded by
+    the proponent or staff once the MOA has been drafted.
+    """
+    proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    if not _can_view_proposal(request.user, proposal):
+        messages.error(request, "You don't have access to this proposal.")
+        return redirect("dashboard_redirect")
+
+    if not proposal.requires_moa:
+        messages.info(request, "This proposal does not require a MOA.")
+        return redirect("proposal_storage", proposal_id=proposal.id)
+
+    can_manage = _can_manage_phase(request.user, proposal)
+    is_proponent = (
+        request.user == proposal.created_by
+        or proposal.proponents.filter(user=request.user).exists()
+    )
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        remarks = (request.POST.get("remarks") or "").strip()
+
+        if action == "upload":
+            # Proponent or staff may upload/replace the MOA document at any stage.
+            if not (is_proponent or can_manage):
+                messages.error(request, "You do not have permission to upload the MOA document.")
+                return redirect("proposal_moa_tracker", proposal_id=proposal.id)
+
+            moa_file = request.FILES.get("moa_file")
+            if not moa_file:
+                messages.error(request, "Please choose a file to upload.")
+            else:
+                ProposalFinalDocument.objects.update_or_create(
+                    proposal=proposal,
+                    document_type=ProposalFinalDocument.DocumentType.MOA,
+                    defaults={
+                        "file": moa_file,
+                        "uploaded_by": request.user,
+                        "remarks": remarks,
+                        "is_verified": False,
+                    },
+                )
+                if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+                    proposal.mark_moa_draft()
+                messages.success(request, "MOA document uploaded successfully.")
+
+            return redirect("proposal_moa_tracker", proposal_id=proposal.id)
+
+        # Everything below changes the MOA stage -> Staff/Director only.
+        if not can_manage:
+            messages.error(request, "Only Staff or the Director can update the MOA stage.")
+            return redirect("proposal_moa_tracker", proposal_id=proposal.id)
+
+        previous_status = proposal.moa_status
+
+        if action == "advance":
+            if proposal.moa_status == Proposal.MOAStatus.COMPLETED:
+                messages.info(request, "The MOA is already completed.")
+            elif proposal.advance_moa():
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal,
+                    phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status,
+                    to_status=proposal.moa_status,
+                    remarks=remarks,
+                    changed_by=request.user,
+                )
+                messages.success(
+                    request,
+                    f"MOA moved to '{proposal.get_moa_status_display()}'.",
+                )
+            else:
+                messages.info(request, "The MOA is already at its final stage.")
+
+        elif action == "back":
+            if proposal.regress_moa():
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal,
+                    phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status,
+                    to_status=proposal.moa_status,
+                    remarks=remarks or "Sent back to the previous stage.",
+                    changed_by=request.user,
+                )
+                messages.success(
+                    request,
+                    f"MOA sent back to '{proposal.get_moa_status_display()}'.",
+                )
+            else:
+                messages.info(request, "The MOA is already at its first stage.")
+
+        else:
+            messages.error(request, "Unknown action.")
+
+        return redirect("proposal_moa_tracker", proposal_id=proposal.id)
+
+    moa_doc = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.MOA
+    ).first()
+
+    context = {
+        "proposal": proposal,
+        "steps": proposal.moa_step_states(),
+        "can_manage": can_manage,
+        "is_proponent": is_proponent,
+        "moa_doc": moa_doc,
+        "logs": proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.MOA),
+        "is_first_stage": proposal.moa_status in {
+            Proposal.MOAStatus.NOT_STARTED,
+            Proposal.MOAStatus.DRAFT,
+        },
+        "is_final_stage": proposal.moa_status == Proposal.MOAStatus.COMPLETED,
+    }
+    return render(request, "services/moa/moa_tracker.html", context)
+
+
+# ==============================
+# IMPLEMENTATION TRACKER
+# ==============================
+# Implementation Process: Preparation -> Implementation -> Monitoring
+#              -> Post Activity Report / Progress Report -> Terminal Report
+#              -> Revision -> Completed
+
+@login_required
+def proposal_implementation_tracker(request, proposal_id):
+    """
+    Stage tracker for the Implementation phase of a proposal.
+
+    Proponents and staff can view the tracker. Only Staff/Director can
+    advance or send back a stage. Proponents can upload the
+    post-activity/progress report, terminal report, and (once completed)
+    the certificate of completion.
+    """
+    proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    if not _can_view_proposal(request.user, proposal):
+        messages.error(request, "You don't have access to this proposal.")
+        return redirect("dashboard_redirect")
+
+    can_manage = _can_manage_phase(request.user, proposal)
+    is_proponent = (
+        request.user == proposal.created_by
+        or proposal.proponents.filter(user=request.user).exists()
+    )
+    can_upload = is_proponent or can_manage
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+        remarks = (request.POST.get("remarks") or "").strip()
+
+        if action in {"upload_progress", "upload_terminal", "upload_certificate"}:
+            if not can_upload:
+                messages.error(request, "You do not have permission to upload documents here.")
+                return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
+
+            if action == "upload_progress":
+                report_file = request.FILES.get("report_file")
+                if not report_file:
+                    messages.error(request, "Please choose a file to upload.")
+                else:
+                    ProposalFinalDocument.objects.update_or_create(
+                        proposal=proposal,
+                        document_type=ProposalFinalDocument.DocumentType.REPORT_PARTIAL,
+                        defaults={
+                            "file": report_file,
+                            "uploaded_by": request.user,
+                            "remarks": remarks,
+                            "is_verified": False,
+                        },
+                    )
+                    messages.success(request, "Post activity / progress report uploaded.")
+
+            elif action == "upload_terminal":
+                report_file = request.FILES.get("report_file")
+                if not report_file:
+                    messages.error(request, "Please choose a file to upload.")
+                else:
+                    ProposalFinalDocument.objects.update_or_create(
+                        proposal=proposal,
+                        document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL,
+                        defaults={
+                            "file": report_file,
+                            "uploaded_by": request.user,
+                            "remarks": remarks,
+                            "is_verified": False,
+                        },
+                    )
+                    messages.success(request, "Terminal report uploaded.")
+
+            elif action == "upload_certificate":
+                certificate_file = request.FILES.get("certificate_file")
+                if not certificate_file:
+                    messages.error(request, "Please choose a file to upload.")
+                else:
+                    proposal.certificate_of_completion_file = certificate_file
+                    proposal.save(update_fields=["certificate_of_completion_file", "last_saved_at"])
+                    messages.success(request, "Certificate of completion uploaded.")
+
+            return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
+
+        # Everything below changes the Implementation stage -> Staff/Director only.
+        if not can_manage:
+            messages.error(request, "Only Staff or the Director can update the implementation stage.")
+            return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
+
+        previous_status = proposal.implementation_status
+
+        if action == "advance":
+            if proposal.implementation_status == Proposal.ImplementationStatus.COMPLETED:
+                messages.info(request, "Implementation is already completed.")
+            elif proposal.advance_implementation():
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal,
+                    phase=ProposalPhaseLog.Phase.IMPLEMENTATION,
+                    from_status=previous_status,
+                    to_status=proposal.implementation_status,
+                    remarks=remarks,
+                    changed_by=request.user,
+                )
+                messages.success(
+                    request,
+                    f"Implementation moved to '{proposal.get_implementation_status_display()}'.",
+                )
+            else:
+                messages.info(request, "Implementation is already at its final stage.")
+
+        elif action == "back":
+            if proposal.regress_implementation():
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal,
+                    phase=ProposalPhaseLog.Phase.IMPLEMENTATION,
+                    from_status=previous_status,
+                    to_status=proposal.implementation_status,
+                    remarks=remarks or "Sent back to the previous stage.",
+                    changed_by=request.user,
+                )
+                messages.success(
+                    request,
+                    f"Implementation sent back to '{proposal.get_implementation_status_display()}'.",
+                )
+            else:
+                messages.info(request, "Implementation is already at its first stage.")
+
+        else:
+            messages.error(request, "Unknown action.")
+
+        return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
+
+    progress_doc = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.REPORT_PARTIAL
+    ).first()
+    terminal_doc = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL
+    ).first()
+
+    context = {
+        "proposal": proposal,
+        "steps": proposal.implementation_step_states(),
+        "can_manage": can_manage,
+        "can_upload": can_upload,
+        "is_proponent": is_proponent,
+        "progress_doc": progress_doc,
+        "terminal_doc": terminal_doc,
+        "logs": proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.IMPLEMENTATION),
+        "is_first_stage": proposal.implementation_status in {
+            Proposal.ImplementationStatus.NOT_STARTED,
+            Proposal.ImplementationStatus.PREPARATION,
+        },
+        "is_final_stage": proposal.implementation_status == Proposal.ImplementationStatus.COMPLETED,
+    }
+    return render(request, "services/implementation/implementation_tracker.html", context)
 
 
 @login_required
@@ -3800,5 +4157,3 @@ def proposal_storage(request, proposal_id):
         "can_claim": can_claim,
     }
     return render(request, "services/post_approval/proposal_storage.html", context)
-
-

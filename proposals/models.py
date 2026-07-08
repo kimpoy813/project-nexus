@@ -32,7 +32,7 @@ class Proposal(models.Model):
     class MOAStatus(models.TextChoices):
         NOT_REQUIRED = "NOT_REQUIRED", "Not Required"
         NOT_STARTED = "NOT_STARTED", "Not Started"
-        DRAFT = "DRAFT", "Draft"
+        DRAFT = "DRAFT", "Drafting"
         LEGAL_REVIEW = "LEGAL_REVIEW", "Legal Review"
         FOR_REVISION = "FOR_REVISION", "Under Revision"
         CERTIFICATION_READY = "CERTIFICATION_READY", "Certification Ready"
@@ -42,12 +42,12 @@ class Proposal(models.Model):
     class ImplementationStatus(models.TextChoices):
         NOT_STARTED = "NOT_STARTED", "Not Started"
         PREPARATION = "PREPARATION", "Preparation"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
         MONITORING = "MONITORING", "Monitoring"
         POST_ACTIVITY_REPORT = "POST_ACTIVITY_REPORT", "Post Activity Report / Progress Report"
         TERMINAL_REPORT = "TERMINAL_REPORT", "Terminal Report"
-        TERMINAL_REVIEW = "TERMINAL_REVIEW", "Review of Terminal Report"
         REVISION = "REVISION", "Revision"
-        COMPLETED = "COMPLETED", "Implementation Completed"
+        COMPLETED = "COMPLETED", "Completed"
 
     class ExtensionType(models.TextChoices):
         RESEARCH_FACULTY = "RESEARCH_FACULTY", "Research-based (Faculty)"
@@ -114,6 +114,12 @@ class Proposal(models.Model):
     highest_implementation_progress = models.PositiveSmallIntegerField(default=0)
 
     requires_moa = models.BooleanField(default=True)
+
+    # Stores the last-submitted values of the guided MOA drafting form
+    # (partner institution details, objectives, obligations, IP/funding/term
+    # terms, etc.) so the form can be re-opened and the generated .docx can
+    # be regenerated/edited later.
+    moa_draft_data = models.JSONField(default=dict, blank=True)
 
     extension_type = models.CharField(
         max_length=40,
@@ -334,14 +340,132 @@ class Proposal(models.Model):
 
     IMPLEMENTATION_PROGRESS_MAP = {
         ImplementationStatus.NOT_STARTED: 0,
-        ImplementationStatus.PREPARATION: 15,
-        ImplementationStatus.MONITORING: 35,
-        ImplementationStatus.POST_ACTIVITY_REPORT: 55,
-        ImplementationStatus.TERMINAL_REPORT: 70,
-        ImplementationStatus.TERMINAL_REVIEW: 82,
-        ImplementationStatus.REVISION: 88,
+        ImplementationStatus.PREPARATION: 12,
+        ImplementationStatus.IMPLEMENTATION: 30,
+        ImplementationStatus.MONITORING: 48,
+        ImplementationStatus.POST_ACTIVITY_REPORT: 64,
+        ImplementationStatus.TERMINAL_REPORT: 80,
+        ImplementationStatus.REVISION: 90,
         ImplementationStatus.COMPLETED: 100,
     }
+
+    # Ordered (status_code, transition_method_name, label, description) tuples that drive
+    # the MOA Tracker / Implementation Tracker stepper UIs and the advance/regress actions.
+    MOA_FLOW = [
+        (MOAStatus.DRAFT, "mark_moa_draft", "Drafting",
+         "Preparing the initial Memorandum of Agreement draft."),
+        (MOAStatus.LEGAL_REVIEW, "mark_moa_legal_review", "Legal Review",
+         "MOA draft is under review by the Legal Office."),
+        (MOAStatus.FOR_REVISION, "mark_moa_for_revision", "Under Revision",
+         "MOA returned to the proponent/legal team for revision."),
+        (MOAStatus.CERTIFICATION_READY, "mark_moa_certification_ready", "Certification Ready",
+         "MOA has been cleared and is ready for certification."),
+        (MOAStatus.AGENDA_AND_PRESENTATION, "mark_moa_agenda_and_presentation", "Agenda Brief & Presentation",
+         "MOA is included in the agenda for briefing/presentation to the approving body."),
+        (MOAStatus.COMPLETED, "mark_moa_completed", "MOA Completed",
+         "MOA has been signed by all parties and is complete."),
+    ]
+
+    IMPLEMENTATION_FLOW = [
+        (ImplementationStatus.PREPARATION, "mark_implementation_preparation", "Preparation",
+         "Preparing logistics, resources, and schedule for the extension activity."),
+        (ImplementationStatus.IMPLEMENTATION, "mark_implementation_ongoing", "Implementation",
+         "The extension program/project/activity is being carried out."),
+        (ImplementationStatus.MONITORING, "mark_implementation_monitoring", "Monitoring",
+         "Activity is being monitored for compliance, attendance, and progress."),
+        (ImplementationStatus.POST_ACTIVITY_REPORT, "mark_post_activity_report", "Post Activity Report / Progress Report",
+         "Post activity report / progress report has been submitted."),
+        (ImplementationStatus.TERMINAL_REPORT, "mark_terminal_report", "Terminal Report",
+         "Terminal report has been submitted for review."),
+        (ImplementationStatus.REVISION, "mark_implementation_revision", "Revision",
+         "Terminal report is being finalized/revised prior to completion."),
+        (ImplementationStatus.COMPLETED, "mark_implementation_completed", "Completed",
+         "Implementation phase is complete."),
+    ]
+
+    def _flow_index(self, flow, status_code):
+        order = [code for code, *_ in flow]
+        try:
+            return order.index(status_code)
+        except ValueError:
+            return -1
+
+    def _step_states(self, flow, status_code):
+        idx = self._flow_index(flow, status_code)
+        steps = []
+        for i, (code, method_name, label, desc) in enumerate(flow):
+            if idx == -1:
+                state = "upcoming"
+            elif i < idx:
+                state = "completed"
+            elif i == idx:
+                state = "current"
+            else:
+                state = "upcoming"
+            steps.append({
+                "no": i + 1,
+                "code": code,
+                "label": label,
+                "desc": desc,
+                "state": state,
+            })
+        return steps
+
+    def moa_step_states(self):
+        """Ordered MOA steps annotated with completed/current/upcoming state, for the tracker UI."""
+        return self._step_states(self.MOA_FLOW, self.moa_status)
+
+    def implementation_step_states(self):
+        """Ordered Implementation steps annotated with completed/current/upcoming state."""
+        return self._step_states(self.IMPLEMENTATION_FLOW, self.implementation_status)
+
+    def advance_moa(self):
+        """Move moa_status to the next step in MOA_FLOW. Returns True if it advanced."""
+        if self.moa_status in {self.MOAStatus.NOT_STARTED, self.MOAStatus.NOT_REQUIRED}:
+            self.mark_moa_draft()
+            return True
+
+        idx = self._flow_index(self.MOA_FLOW, self.moa_status)
+        if idx == -1 or idx + 1 >= len(self.MOA_FLOW):
+            return False
+
+        _, method_name, *_ = self.MOA_FLOW[idx + 1]
+        getattr(self, method_name)()
+        return True
+
+    def regress_moa(self):
+        """Move moa_status back to the previous step in MOA_FLOW. Returns True if it moved back."""
+        idx = self._flow_index(self.MOA_FLOW, self.moa_status)
+        if idx <= 0:
+            return False
+
+        _, method_name, *_ = self.MOA_FLOW[idx - 1]
+        getattr(self, method_name)()
+        return True
+
+    def advance_implementation(self):
+        """Move implementation_status to the next step in IMPLEMENTATION_FLOW."""
+        if self.implementation_status == self.ImplementationStatus.NOT_STARTED:
+            self.mark_implementation_preparation()
+            return True
+
+        idx = self._flow_index(self.IMPLEMENTATION_FLOW, self.implementation_status)
+        if idx == -1 or idx + 1 >= len(self.IMPLEMENTATION_FLOW):
+            return False
+
+        _, method_name, *_ = self.IMPLEMENTATION_FLOW[idx + 1]
+        getattr(self, method_name)()
+        return True
+
+    def regress_implementation(self):
+        """Move implementation_status back to the previous step in IMPLEMENTATION_FLOW."""
+        idx = self._flow_index(self.IMPLEMENTATION_FLOW, self.implementation_status)
+        if idx <= 0:
+            return False
+
+        _, method_name, *_ = self.IMPLEMENTATION_FLOW[idx - 1]
+        getattr(self, method_name)()
+        return True
 
     @property
     def proposal_progress(self):
@@ -772,6 +896,20 @@ class Proposal(models.Model):
             ]
         )
 
+    def mark_implementation_ongoing(self):
+        self.implementation_status = self.ImplementationStatus.IMPLEMENTATION
+        self.save(
+            update_fields=[
+                "implementation_status",
+                "status",
+                "closed_at",
+                "highest_proposal_progress",
+                "highest_moa_progress",
+                "highest_implementation_progress",
+                "last_saved_at",
+            ]
+        )
+
     def mark_implementation_monitoring(self):
         self.implementation_status = self.ImplementationStatus.MONITORING
         self.save(
@@ -811,20 +949,6 @@ class Proposal(models.Model):
             update_fields=[
                 "implementation_status",
                 "final_reports_submitted_at",
-                "status",
-                "closed_at",
-                "highest_proposal_progress",
-                "highest_moa_progress",
-                "highest_implementation_progress",
-                "last_saved_at",
-            ]
-        )
-
-    def mark_terminal_review(self):
-        self.implementation_status = self.ImplementationStatus.TERMINAL_REVIEW
-        self.save(
-            update_fields=[
-                "implementation_status",
                 "status",
                 "closed_at",
                 "highest_proposal_progress",
@@ -1450,6 +1574,54 @@ class ProposalFinalDocument(models.Model):
     def __str__(self):
         return f"{self.proposal} - {self.get_document_type_display()}"
     
+class ProposalPhaseLog(models.Model):
+    """
+    Audit trail entry for a MOA or Implementation stage transition.
+    Created whenever a proposal's moa_status or implementation_status changes
+    through the MOA Tracker / Implementation Tracker.
+    """
+
+    class Phase(models.TextChoices):
+        MOA = "MOA", "MOA"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
+
+    proposal = models.ForeignKey(
+        Proposal,
+        on_delete=models.CASCADE,
+        related_name="phase_logs",
+    )
+    phase = models.CharField(max_length=20, choices=Phase.choices)
+    from_status = models.CharField(max_length=40, blank=True, default="")
+    to_status = models.CharField(max_length=40)
+    remarks = models.TextField(blank=True, default="")
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="proposal_phase_logs",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.proposal} - {self.get_phase_display()} - {self.to_status}"
+
+    @property
+    def from_status_label(self):
+        if self.phase == self.Phase.MOA:
+            return dict(Proposal.MOAStatus.choices).get(self.from_status, self.from_status)
+        return dict(Proposal.ImplementationStatus.choices).get(self.from_status, self.from_status)
+
+    @property
+    def to_status_label(self):
+        if self.phase == self.Phase.MOA:
+            return dict(Proposal.MOAStatus.choices).get(self.to_status, self.to_status)
+        return dict(Proposal.ImplementationStatus.choices).get(self.to_status, self.to_status)
+
+
 @property
 def has_draft_summary(self):
     return ProposalCommentSummary.objects.filter(

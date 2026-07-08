@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div class="flex items-start gap-3">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h6.586A2 2 0 0 1 14 2.586L17.414 6A2 2 0 0 1 18 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm7 6a1 1 0 1 0-2 0v.01a1 1 0 1 0 2 0V10zm-1-4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-gray-900">MOA Tracker</h1>
+                <p class="mt-1 text-sm text-gray-600 break-words max-w-xl">
+                    {{ proposal.display_title }}
+                </p>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{% url 'proposal_storage' proposal.id %}"
+               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                Back to Storage
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+                <div class="rounded-xl border px-4 py-3 text-sm
+                    {% if message.tags == 'success' %} border-green-200 bg-green-50 text-green-800
+                    {% elif message.tags == 'error' %} border-red-200 bg-red-50 text-red-800
+                    {% else %} border-blue-200 bg-blue-50 text-blue-800 {% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+
+        <!-- Stepper -->
+        <div class="lg:col-span-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-100 px-6 py-5 flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wide text-gray-500">Current Stage</p>
+                    <p class="mt-1 text-lg font-bold text-primary">{{ proposal.get_moa_status_display }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs text-gray-500">Progress</p>
+                    <p class="text-lg font-bold text-gray-900">{{ proposal.moa_progress }}%</p>
+                </div>
+            </div>
+
+            <div class="w-full h-2 bg-gray-100">
+                <div class="h-full bg-primary transition-all duration-500" style="width: {{ proposal.moa_progress }}%;"></div>
+            </div>
+
+            <div class="p-6 space-y-0">
+                {% for s in steps %}
+                    <div class="relative flex items-start gap-4 pb-8 last:pb-0">
+                        {% if not forloop.last %}
+                            <div class="absolute top-8 left-4 -translate-x-1/2 w-[2px] h-[calc(100%-1rem)]
+                                {% if s.state == 'completed' %} bg-primary {% else %} bg-gray-200 {% endif %}">
+                            </div>
+                        {% endif %}
+
+                        <div class="relative z-10 flex items-center justify-center w-8 h-8 rounded-full shrink-0
+                            {% if s.state == 'completed' %} bg-primary text-white
+                            {% elif s.state == 'current' %} bg-white border-2 border-primary text-primary
+                            {% else %} bg-white border border-gray-200 text-gray-400 {% endif %}">
+                            {% if s.state == 'completed' %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            {% else %}
+                                <span class="text-xs font-bold">{{ s.no }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm font-semibold
+                                    {% if s.state == 'current' %} text-primary
+                                    {% elif s.state == 'completed' %} text-gray-900
+                                    {% else %} text-gray-400 {% endif %}">
+                                    {{ s.label }}
+                                </p>
+                                {% if s.state == 'current' %}
+                                    <span class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                                        In Progress
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">{{ s.desc }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Side panel: actions, upload, log -->
+        <div class="space-y-6">
+
+            {% if not proposal.requires_moa %}
+                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
+                    This proposal does not require a MOA.
+                </div>
+            {% else %}
+
+                {% if can_manage %}
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Update Stage</h2>
+                    <p class="mt-1 text-xs text-gray-500">Staff / Director only.</p>
+
+                    <form method="post" class="mt-4 space-y-3">
+                        {% csrf_token %}
+                        <textarea name="remarks" rows="3" placeholder="Optional remarks for this transition..."
+                                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary"></textarea>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button type="submit" name="action" value="advance"
+                                    {% if is_final_stage %}disabled{% endif %}
+                                    class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
+                                Advance to Next Stage
+                            </button>
+                            <button type="submit" name="action" value="back"
+                                    {% if is_first_stage %}disabled{% endif %}
+                                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                                Send Back
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Signed MOA upload -->
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">MOA Document</h2>
+
+                    <a href="{% url 'proposal_moa_draft' proposal.id %}"
+                       class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-secondary">
+                        Draft the MOA in NExUS
+                    </a>
+                    <p class="mt-2 text-xs text-gray-500">
+                        Fill out a guided form (partner institution, objectives, obligations, IP, funding, term)
+                        to generate a formatted MOA document — or upload your own file below.
+                    </p>
+
+                    {% if moa_doc %}
+                        <div class="mt-3 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
+                            <div class="min-w-0">
+                                <p class="truncate text-sm font-semibold text-gray-900">{{ moa_doc.file.name|default:"MOA Document" }}</p>
+                                <p class="text-xs text-gray-500">Uploaded {{ moa_doc.uploaded_at|date:"M d, Y" }}</p>
+                            </div>
+                            <a href="{{ moa_doc.file.url }}" target="_blank"
+                               class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-secondary">
+                                View
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="mt-2 text-xs text-gray-500">No MOA document uploaded yet.</p>
+                    {% endif %}
+
+                    {% if is_proponent or can_manage %}
+                    <form method="post" enctype="multipart/form-data" class="mt-4">
+                        {% csrf_token %}
+                        <p class="mb-2 text-xs font-semibold text-gray-500">Or upload your own file:</p>
+                        <label for="moa_file"
+                               class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 hover:border-primary bg-white p-5 text-center transition group">
+                            <input type="file" id="moa_file" name="moa_file" class="sr-only"
+                                   onchange="document.getElementById('moa-file-name').textContent = this.files[0] ? this.files[0].name : 'Click to upload PDF or DOCX';">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-6 w-6 text-gray-400 group-hover:text-primary transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+                            </svg>
+                            <p id="moa-file-name" class="mt-2 text-xs font-medium text-gray-600">
+                                Click to upload PDF or DOCX
+                            </p>
+                        </label>
+                        <button type="submit" name="action" value="upload"
+                                class="mt-3 w-full rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-secondary">
+                            Upload / Replace Document
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <!-- Timeline -->
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Stage History</h2>
+                {% if logs %}
+                    <ul class="mt-3 space-y-3">
+                        {% for log in logs %}
+                            <li class="text-xs border-l-2 border-gray-200 pl-3">
+                                <p class="font-semibold text-gray-800">
+                                    {{ log.from_status_label|default:"—" }} &rarr; {{ log.to_status_label }}
+                                </p>
+                                <p class="text-gray-500">
+                                    {{ log.created_at|date:"M d, Y h:i A" }}
+                                    {% if log.changed_by %} &middot; {{ log.changed_by.get_full_name|default:log.changed_by.username }}{% endif %}
+                                </p>
+                                {% if log.remarks %}
+                                    <p class="mt-1 text-gray-600 italic">"{{ log.remarks }}"</p>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="mt-2 text-xs text-gray-500">No stage changes recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

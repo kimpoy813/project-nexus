@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Draft the MOA</h1>
+            <p class="mt-1 text-sm text-gray-600 break-words max-w-xl">
+                {{ proposal.display_title }}
+            </p>
+        </div>
+        <a href="{% url 'proposal_moa_tracker' proposal.id %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            Back to MOA Tracker
+        </a>
+    </div>
+
+    {% if messages %}
+        <div class="mb-6 space-y-2">
+            {% for message in messages %}
+                <div class="rounded-xl border px-4 py-3 text-sm
+                    {% if message.tags == 'success' %} border-green-200 bg-green-50 text-green-800
+                    {% elif message.tags == 'error' %} border-red-200 bg-red-50 text-red-800
+                    {% else %} border-blue-200 bg-blue-50 text-blue-800 {% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if moa_doc %}
+        <div class="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="min-w-0">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Current MOA Document</p>
+                <p class="truncate text-sm font-semibold text-gray-900">{{ moa_doc.file.name|default:"MOA Document" }}</p>
+                <p class="text-xs text-gray-500">Last updated {{ moa_doc.uploaded_at|date:"M d, Y h:i A" }}</p>
+            </div>
+            <a href="{{ moa_doc.file.url }}" target="_blank"
+               class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-secondary">
+                View Current File
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- Option B: upload your own file -->
+    <div class="mb-8 rounded-2xl border border-dashed border-gray-300 bg-gray-50/60 p-5">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Already have a prepared MOA?</h2>
+        <p class="mt-1 text-xs text-gray-500">Skip the guided form and upload your own file directly.</p>
+        <form method="post" enctype="multipart/form-data" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            {% csrf_token %}
+            <input type="file" name="moa_file"
+                   class="block w-full text-xs text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-secondary">
+            <button type="submit" name="action" value="upload"
+                    class="shrink-0 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                Upload Instead
+            </button>
+        </form>
+    </div>
+
+    <div class="mb-6 flex items-center gap-3">
+        <div class="h-px flex-1 bg-gray-200"></div>
+        <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Or generate a draft in NExUS</span>
+        <div class="h-px flex-1 bg-gray-200"></div>
+    </div>
+
+    <!-- Option A: guided draft form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Partner Institution -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Partner Institution</h2>
+            <p class="mt-1 text-xs text-gray-500">ISPSC's details are filled in automatically as the first party.</p>
+
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-700">Partner institution full legal name</label>
+                    <input type="text" name="partner_name" value="{{ default_fields.partner_name }}"
+                           placeholder="e.g. THE CITY GOVERNMENT OF CANDON, ILOCOS SUR"
+                           class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-700">Short name (as used in "hereinafter referred to as...")</label>
+                    <input type="text" name="partner_short_name" value="{{ default_fields.partner_short_name }}"
+                           placeholder="e.g. CITY OF CANDON"
+                           class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-700">Institution description</label>
+                    <input type="text" name="partner_description" value="{{ default_fields.partner_description }}"
+                           placeholder="e.g. a local government unit duly organized and existing under the laws of the Republic of the Philippines"
+                           class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-gray-700">Office / business address</label>
+                    <input type="text" name="partner_address" value="{{ default_fields.partner_address }}"
+                           class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Representative's name</label>
+                    <input type="text" name="partner_rep_name" value="{{ default_fields.partner_rep_name }}"
+                           placeholder="e.g. Hon. Eric D. Singson"
+                           class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Representative's title</label>
+                    <input type="text" name="partner_rep_title" value="{{ default_fields.partner_rep_title }}"
+                           placeholder="e.g. City Mayor"
+                           class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+            </div>
+        </div>
+
+        <!-- Background -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Background (WHEREAS clauses)</h2>
+            <p class="mt-1 text-xs text-gray-500">One clause per line. Each line becomes its own "WHEREAS, ..." paragraph.</p>
+            <textarea name="whereas_clauses" rows="4" placeholder="e.g. ISPSC approved and implemented the project as detailed in the approved proposal..."
+                      class="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.whereas_clauses }}</textarea>
+        </div>
+
+        <!-- Objectives -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Objectives</h2>
+            <p class="mt-1 text-xs text-gray-500">One objective per line — these become the numbered OBJECTIVES section.</p>
+            <textarea name="objectives" rows="4"
+                      class="mt-3 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.objectives }}</textarea>
+        </div>
+
+        <!-- Obligations -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Obligations of the Parties</h2>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Obligations of ISPSC (one per line)</label>
+                    <textarea name="obligations_ispsc" rows="5"
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.obligations_ispsc }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Obligations of the partner institution (one per line)</label>
+                    <textarea name="obligations_partner" rows="5"
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.obligations_partner }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intellectual Property -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Intellectual Property</h2>
+            <div class="mt-4 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Ownership clause (leave blank to use the standard ISPSC ownership clause)</label>
+                    <textarea name="ip_ownership_text" rows="2"
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.ip_ownership_text }}</textarea>
+                </div>
+                <div class="flex flex-wrap items-end gap-6">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700">License duration (years)</label>
+                        <input type="number" min="1" name="ip_license_years" value="{{ default_fields.ip_license_years }}"
+                               class="mt-1 w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                    </div>
+                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                        <input type="checkbox" name="ip_license_royalty_free" {% if default_fields.ip_license_royalty_free %}checked{% endif %}
+                               class="rounded border-gray-300 text-primary focus:ring-primary">
+                        Royalty-free
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                        <input type="checkbox" name="ip_license_exclusive" {% if default_fields.ip_license_exclusive %}checked{% endif %}
+                               class="rounded border-gray-300 text-primary focus:ring-primary">
+                        Exclusive
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
+                        <input type="checkbox" name="ip_license_irrevocable" {% if default_fields.ip_license_irrevocable %}checked{% endif %}
+                               class="rounded border-gray-300 text-primary focus:ring-primary">
+                        Irrevocable
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Term, Funding -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Term &amp; Funding</h2>
+            <div class="mt-4 grid grid-cols-1 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Term of the MOA (years)</label>
+                    <input type="number" min="1" name="term_years" value="{{ default_fields.term_years }}"
+                           class="mt-1 w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">ISPSC funding commitment (leave blank for the standard clause)</label>
+                    <textarea name="funding_ispsc" rows="2"
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.funding_ispsc }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Partner funding commitment (leave blank for the standard clause)</label>
+                    <textarea name="funding_partner" rows="2"
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.funding_partner }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standard clauses -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Standard Clauses</h2>
+            <p class="mt-1 text-xs text-gray-500">Pre-filled with standard wording. Edit if this MOA needs different terms.</p>
+            <div class="mt-4 grid grid-cols-1 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Data privacy &amp; confidentiality</label>
+                    <textarea name="data_privacy_text" rows="2" placeholder="Standard R.A. 10173 compliance clause will be used if left blank."
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.data_privacy_text }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Amendments</label>
+                    <textarea name="amendments_text" rows="2" placeholder="Standard amendments clause will be used if left blank."
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.amendments_text }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Termination notice period (days)</label>
+                    <input type="number" min="1" name="termination_notice_days" value="{{ default_fields.termination_notice_days }}"
+                           class="mt-1 w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700">Miscellaneous</label>
+                    <textarea name="misc_text" rows="2" placeholder="Standard miscellaneous clause will be used if left blank."
+                              class="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">{{ default_fields.misc_text }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Witnesses -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Witnesses (Partner side)</h2>
+            <p class="mt-1 text-xs text-gray-500">
+                ISPSC's Director for Extension and VP for Research, Development &amp; Extension are added automatically.
+                Add up to two witnesses for the partner institution.
+            </p>
+            <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <input type="text" name="partner_witness1_name" value="{{ default_fields.partner_witness1_name }}"
+                           placeholder="Witness 1 name"
+                           class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                    <input type="text" name="partner_witness1_title" value="{{ default_fields.partner_witness1_title }}"
+                           placeholder="Witness 1 title"
+                           class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+                <div>
+                    <input type="text" name="partner_witness2_name" value="{{ default_fields.partner_witness2_name }}"
+                           placeholder="Witness 2 name"
+                           class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                    <input type="text" name="partner_witness2_title" value="{{ default_fields.partner_witness2_title }}"
+                           placeholder="Witness 2 title"
+                           class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'proposal_moa_tracker' proposal.id %}"
+               class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                Cancel
+            </a>
+            <button type="submit" name="action" value="generate"
+                    class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+                Generate MOA Draft (.docx)
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

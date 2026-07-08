@@ -162,4 +162,17 @@ urlpatterns = [
     path("proposals/<uuid:proposal_id>/moa-draft/",
         views.proposal_moa_draft,
         name="proposal_moa_draft"),
+
+    # MOA Tracker: Drafting -> Legal Review -> Under Revision -> Certification Ready
+    #              -> Agenda Brief & Presentation -> MOA Completed
+    path("proposals/<uuid:proposal_id>/moa/",
+        views.proposal_moa_tracker,
+        name="proposal_moa_tracker"),
+
+    # Implementation Tracker: Preparation -> Implementation -> Monitoring
+    #              -> Post Activity Report / Progress Report -> Terminal Report
+    #              -> Revision -> Completed
+    path("proposals/<uuid:proposal_id>/implementation/",
+        views.proposal_implementation_tracker,
+        name="proposal_implementation_tracker"),
     ]

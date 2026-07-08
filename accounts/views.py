@@ -1039,8 +1039,6 @@ def faculty_dashboard(request):
         .order_by("-last_saved_at", "-submitted_at", "-id")
     )
 
-    revision_proposals = proposals.filter(proposal_status='FOR_REVISION')
-
     context = {
         "profile": profile,
         "nav_notif_count": (proposals_ctx.get("needs_attention_count", 0) + assigned_review_queue.count() + printing_ready_count + upload_required_count),
