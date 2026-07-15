@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'accounts',
     'axes', 
     'proposals',
+    'moa',
 ]
 
 MIDDLEWARE = [

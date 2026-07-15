@@ -23,6 +23,7 @@ urlpatterns = [
     path('', include('details.urls')),  # Public landing page
     path('', include('accounts.urls')),  # Auth routes
     path('', include('proposals.urls')),  # Proposal management
+    path('', include('moa.urls')),  # Memorandum of Agreement management
     path('admin/', admin.site.urls),
 ]
 
