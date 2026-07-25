@@ -1,5 +1,6 @@
 from datetime import timedelta
 import json
+import re
 import traceback
 
 from django.conf import settings
@@ -25,6 +26,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.html import strip_tags
+from django.utils.text import slugify
 from django.utils.http import (
     url_has_allowed_host_and_scheme,
     urlsafe_base64_decode,
@@ -38,7 +40,7 @@ import proposals
 from .campus_data import get_college_choices, get_department_choices, get_campus_choices
 from .decorators import admin_required, faculty_like_required, role_required
 from .forms import AdminCreateUserForm, ProfileUpdateForm, RegisterForm
-from .models import Profile, Signatory
+from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
 from .tokens import email_verification_token
 
 from proposals.models import (
@@ -48,13 +50,20 @@ from proposals.models import (
     ProposalSectionComment,
     ProposalCommentSummary,
     ProposalFinalDocument,
+    MOASubmission,
 )
 from details.models import (
+    AccomplishmentReport,
     Activity,
     ActivityDate,
+    DocumentTemplate,
+    DynamicFormField,
+    DynamicFormTemplate,
     ExtensionProcess,
     Personnel,
     ProcessStep,
+    ProposalWizardStepConfig,
+    RoleCapability,
     Target,
 )
 
@@ -132,6 +141,8 @@ def _get_role_dashboard_name(role):
         return "campus_coordinator_dashboard"
     if role == Profile.ROLE_STAFF:
         return "staff_dashboard"
+    if role == Profile.ROLE_EVALUATOR:
+        return "evaluator_dashboard"
     return "faculty_dashboard"
 
 
@@ -610,6 +621,7 @@ def _get_assignable_evaluators_for_proposal(proposal):
             is_active=True,
             profile__role__in=[
                 Profile.ROLE_FACULTY,
+                Profile.ROLE_EVALUATOR,
                 Profile.ROLE_DEPARTMENT_COORDINATOR,
                 Profile.ROLE_CAMPUS_COORDINATOR,
             ],
@@ -718,6 +730,15 @@ def get_departments_ajax(request):
 
 @require_http_methods(["GET", "POST"])
 def register_view(request):
+    try:
+        site_config = SiteConfiguration.get_solo()
+    except Exception:
+        site_config = None
+
+    if site_config and not site_config.registration_enabled:
+        messages.warning(request, "Public registration is currently disabled by the system administrator.")
+        return redirect("login")
+
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -1054,6 +1075,24 @@ def faculty_dashboard(request):
     }
 
     return render(request, "dashboard/faculty_dashboard.html", context)
+
+
+@login_required
+@role_required(["EVALUATOR"])
+def evaluator_dashboard(request):
+    profile, _ = _get_or_create_profile(request.user)
+    assigned_review_queue = _get_evaluator_review_queue(request.user)
+    proposals_ctx = _get_user_proposals_context(request.user)
+
+    context = {
+        "profile": profile,
+        "nav_notif_count": proposals_ctx.get("needs_attention_count", 0) + assigned_review_queue.count(),
+        **proposals_ctx,
+        "assigned_review_queue": assigned_review_queue,
+        "assigned_review_count": assigned_review_queue.count(),
+        "has_evaluator_assignments": assigned_review_queue.exists(),
+    }
+    return render(request, "dashboard/evaluator_dashboard.html", context)
 
 
 @login_required
@@ -1427,6 +1466,7 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id):
 
         allowed_roles = {
             Profile.ROLE_FACULTY,
+            Profile.ROLE_EVALUATOR,
             Profile.ROLE_DEPARTMENT_COORDINATOR,
             Profile.ROLE_CAMPUS_COORDINATOR,
         }
@@ -1672,15 +1712,143 @@ def staff_dashboard(request):
 
     signed_pending_count = signed_queue.count()
 
+    # --- MOA workflow queue ---
+    # Once a proponent generates/uploads a draft MOA, it appears here so Staff can
+    # open the MOA Tracker, send it to Legal Review, return it for revision,
+    # mark Certification Ready, move it to Agenda Brief & Presentation, and
+    # finally mark it as MOA Completed.
+    active_moa_statuses = [
+        Proposal.MOAStatus.NOT_STARTED,  # legacy uploads before automatic Draft status
+        Proposal.MOAStatus.DRAFT,
+        Proposal.MOAStatus.LEGAL_REVIEW,
+        Proposal.MOAStatus.FOR_REVISION,
+        Proposal.MOAStatus.CERTIFICATION_READY,
+        Proposal.MOAStatus.AGENDA_AND_PRESENTATION,
+    ]
+
+    moa_proposals = list(
+        Proposal.objects.filter(
+            requires_moa=True,
+            moa_status__in=active_moa_statuses,
+        )
+        .filter(
+            Q(moa_submission__isnull=False)
+            | Q(final_documents__document_type=ProposalFinalDocument.DocumentType.MOA)
+            | Q(moa_draft_file__isnull=False)
+        )
+        .select_related("created_by", "created_by__profile")
+        .distinct()
+    )
+
+    moa_proposal_ids = [proposal.id for proposal in moa_proposals]
+
+    submissions_by_proposal = {
+        submission.proposal_id: submission
+        for submission in MOASubmission.objects.filter(
+            proposal_id__in=moa_proposal_ids,
+        ).select_related("submitted_by", "submitted_by__profile")
+    }
+
+    moa_docs_by_proposal = {}
+    for doc in (
+        ProposalFinalDocument.objects.filter(
+            proposal_id__in=moa_proposal_ids,
+            document_type=ProposalFinalDocument.DocumentType.MOA,
+        )
+        .select_related("uploaded_by", "uploaded_by__profile")
+        .order_by("proposal_id", "-is_current", "-version", "-uploaded_at")
+    ):
+        moa_docs_by_proposal.setdefault(doc.proposal_id, doc)
+
+    moa_status_action_labels = {
+        Proposal.MOAStatus.NOT_STARTED: "Open tracker / initialize draft",
+        Proposal.MOAStatus.DRAFT: "Prepare for Legal Review",
+        Proposal.MOAStatus.LEGAL_REVIEW: "Record Legal Review outcome",
+        Proposal.MOAStatus.FOR_REVISION: "Waiting for proponent revision",
+        Proposal.MOAStatus.CERTIFICATION_READY: "Prepare Agenda Brief",
+        Proposal.MOAStatus.AGENDA_AND_PRESENTATION: "Mark completed after signing",
+    }
+
+    def _safe_file_url(file_field):
+        if not file_field:
+            return ""
+        try:
+            return file_field.url
+        except Exception:
+            return ""
+
+    moa_queue = []
+    for proposal in moa_proposals:
+        submission = submissions_by_proposal.get(proposal.id)
+        moa_doc = moa_docs_by_proposal.get(proposal.id)
+
+        has_guided_draft_file = bool(getattr(proposal, "moa_draft_file", None))
+        if not submission and not moa_doc and not has_guided_draft_file:
+            continue
+
+        draft_data = proposal.moa_draft_data or {}
+        partner_name = (
+            getattr(submission, "partner_agency_name", "")
+            or draft_data.get("partner_name")
+            or proposal.implementing_agency
+            or "MOA draft"
+        )
+
+        uploaded_at = (
+            getattr(submission, "updated_at", None)
+            or getattr(moa_doc, "uploaded_at", None)
+            or proposal.last_saved_at
+        )
+
+        file_url = (
+            _safe_file_url(getattr(submission, "moa_file", None))
+            or _safe_file_url(getattr(moa_doc, "file", None))
+            or _safe_file_url(getattr(proposal, "moa_draft_file", None))
+        )
+
+        moa_queue.append({
+            "proposal": proposal,
+            "partner_name": partner_name,
+            "uploaded_at": uploaded_at,
+            "file_url": file_url,
+            "source_label": (
+                "Uploaded MOA form"
+                if submission
+                else "Generated/uploaded MOA document"
+                if moa_doc
+                else "Guided MOA draft upload"
+            ),
+            "next_action_label": moa_status_action_labels.get(
+                proposal.moa_status,
+                "Open MOA Tracker",
+            ),
+        })
+
+    moa_queue.sort(
+        key=lambda item: item.get("uploaded_at") or timezone.datetime.min.replace(tzinfo=timezone.get_current_timezone()),
+        reverse=True,
+    )
+
+    moa_active_count = len(moa_queue)
+    moa_draft_count = sum(
+        1 for item in moa_queue
+        if item["proposal"].moa_status in {
+            Proposal.MOAStatus.NOT_STARTED,
+            Proposal.MOAStatus.DRAFT,
+        }
+    )
 
     context = {
         "profile": profile,
-        "nav_notif_count": (pending_count + draft_count + signed_pending_count),
+        "nav_notif_count": (pending_count + draft_count + signed_pending_count + moa_active_count),
         "summary_queue": summary_queue,
         "pending_count": pending_count,
         "draft_count": draft_count,
         "signed_queue": signed_queue,
         "signed_pending_count": signed_pending_count,
+        "moa_queue": moa_queue,
+        "moa_active_count": moa_active_count,
+        "moa_draft_count": moa_draft_count,
     }
     return render(request, "dashboard/staff_dashboard.html", context)
 
@@ -1752,17 +1920,20 @@ def admin_dashboard(request):
 
     profiles = Profile.objects.select_related("user").all().order_by("-user__date_joined")
 
+    site_control = SiteConfiguration.get_solo()
+    site_logs = SiteConfigurationLog.objects.select_related("changed_by", "changed_by__profile")[:5]
+
     context = {
         "profiles": profiles,
+        "site_control": site_control,
+        "site_logs": site_logs,
         "nav_notif_count": Profile.objects.filter(email_verified=False).count(),
         "total_users": User.objects.count(),
         "verified_users": Profile.objects.filter(email_verified=True).count(),
         "unverified_users": Profile.objects.filter(email_verified=False).count(),
         "active_today": User.objects.filter(last_login__gte=today_start).count(),
         "faculty_count": Profile.objects.filter(role=Profile.ROLE_FACULTY).count(),
-        "evaluator_count": User.objects.filter(
-            proposal_evaluator_assignments__is_active=True
-        ).distinct().count(),
+        "evaluator_count": Profile.objects.filter(role=Profile.ROLE_EVALUATOR).count(),
         "department_coordinator_count": Profile.objects.filter(
             role=Profile.ROLE_DEPARTMENT_COORDINATOR
         ).count(),
@@ -1775,12 +1946,21 @@ def admin_dashboard(request):
         "processes_count": ExtensionProcess.objects.count(),
         "targets_count": Target.objects.count(),
         "signatories_count": Signatory.objects.count(),
+        "document_template_count": DocumentTemplate.objects.count(),
+        "dynamic_form_count": DynamicFormTemplate.objects.count(),
+        "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
+        "role_capability_count": RoleCapability.objects.filter(enabled=True).count(),
+        "accomplishment_report_count": AccomplishmentReport.objects.count(),
         "total_content": (
             Personnel.objects.count()
             + Activity.objects.count()
             + ExtensionProcess.objects.count()
             + Target.objects.count()
             + Signatory.objects.count()
+            + DocumentTemplate.objects.count()
+            + DynamicFormTemplate.objects.count()
+            + ProposalWizardStepConfig.objects.count()
+            + AccomplishmentReport.objects.count()
         ),
         "recent_users": Profile.objects.select_related("user").filter(
             user__date_joined__gte=week_ago
@@ -1904,6 +2084,80 @@ def admin_user_detail(request, user_id):
         },
     )
 
+
+
+def _site_configuration_snapshot(config):
+    return {
+        "site_name": config.site_name,
+        "short_name": config.short_name,
+        "tagline": config.tagline,
+        "contact_email": config.contact_email,
+        "facebook_url": config.facebook_url,
+        "primary_color": config.primary_color,
+        "secondary_color": config.secondary_color,
+        "accent_color": config.accent_color,
+        "announcement_enabled": config.announcement_enabled,
+        "announcement_title": config.announcement_title,
+        "announcement_message": config.announcement_message,
+        "announcement_tone": config.announcement_tone,
+        "registration_enabled": config.registration_enabled,
+        "maintenance_mode": config.maintenance_mode,
+        "maintenance_message": config.maintenance_message,
+    }
+
+
+@login_required
+@admin_required
+@require_POST
+def admin_site_control(request):
+    config = SiteConfiguration.get_solo()
+    before = _site_configuration_snapshot(config)
+
+    def clean_text(name, default=""):
+        return (request.POST.get(name) or default).strip()
+
+    def clean_hex(name, fallback):
+        value = clean_text(name, fallback)
+        if not re.match(r"^#[0-9A-Fa-f]{6}$", value):
+            return fallback
+        return value
+
+    config.site_name = clean_text("site_name", config.site_name) or "NExUS"
+    config.short_name = clean_text("short_name", config.short_name) or "NExUS"
+    config.tagline = clean_text("tagline", config.tagline)
+    config.contact_email = clean_text("contact_email", config.contact_email)
+    config.facebook_url = clean_text("facebook_url", config.facebook_url)
+
+    config.primary_color = clean_hex("primary_color", config.primary_color)
+    config.secondary_color = clean_hex("secondary_color", config.secondary_color)
+    config.accent_color = clean_hex("accent_color", config.accent_color)
+
+    config.announcement_enabled = request.POST.get("announcement_enabled") == "on"
+    config.announcement_title = clean_text("announcement_title")
+    config.announcement_message = clean_text("announcement_message")
+    tone = clean_text("announcement_tone", config.announcement_tone)
+    config.announcement_tone = tone if tone in dict(SiteConfiguration.AnnouncementTone.choices) else SiteConfiguration.AnnouncementTone.INFO
+
+    config.registration_enabled = request.POST.get("registration_enabled") == "on"
+    config.maintenance_mode = request.POST.get("maintenance_mode") == "on"
+    config.maintenance_message = clean_text("maintenance_message", config.maintenance_message)
+    config.updated_by = request.user
+    config.save()
+
+    after = _site_configuration_snapshot(config)
+    changed = [key for key in after if before.get(key) != after.get(key)]
+    if changed:
+        SiteConfigurationLog.objects.create(
+            changed_by=request.user,
+            summary=f"Updated site controls: {', '.join(changed[:6])}{'…' if len(changed) > 6 else ''}",
+            before=before,
+            after=after,
+        )
+        messages.success(request, "Site-wide controls updated successfully.")
+    else:
+        messages.info(request, "No site-wide control changes were detected.")
+
+    return redirect("admin_dashboard")
 
 @login_required
 @admin_required
@@ -2541,3 +2795,455 @@ def faculty_delete_draft(request, proposal_id):
 
     messages.success(request, f'"{title}" draft deleted successfully.')
     return redirect("dashboard_redirect")
+
+
+def _user_role(user):
+    profile = getattr(user, "profile", None)
+    return (getattr(profile, "role", "") or "").upper()
+
+
+def user_has_capability(user, capability):
+    if not user.is_authenticated:
+        return False
+    role = _user_role(user)
+    if role == Profile.ROLE_ADMIN or getattr(user, "is_superuser", False):
+        return True
+    return RoleCapability.objects.filter(
+        role=role,
+        capability=capability,
+        enabled=True,
+    ).exists()
+
+
+def _sync_default_wizard_step_configs():
+    # Import here to avoid circular import at module load time.
+    from proposals.views import STEP_LABELS
+
+    existing = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    to_create = []
+    for item in STEP_LABELS:
+        if item["no"] not in existing:
+            to_create.append(
+                ProposalWizardStepConfig(
+                    step_no=item["no"],
+                    title=item["title"],
+                    description=item["desc"],
+                    is_visible=True,
+                    is_required=True,
+                )
+            )
+    if to_create:
+        ProposalWizardStepConfig.objects.bulk_create(to_create)
+
+
+def _sync_default_role_capabilities():
+    default_enabled = {
+        (RoleCapability.Role.FACULTY, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.EVALUATOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.EVALUATOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.DEPARTMENT_COORDINATOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.DEPARTMENT_COORDINATOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.DEPARTMENT_COORDINATOR, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT),
+        (RoleCapability.Role.CAMPUS_COORDINATOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.CAMPUS_COORDINATOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.CAMPUS_COORDINATOR, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT),
+        (RoleCapability.Role.STAFF, RoleCapability.Capability.MANAGE_MOA),
+        (RoleCapability.Role.STAFF, RoleCapability.Capability.MANAGE_IMPLEMENTATION),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.MANAGE_MOA),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.MANAGE_IMPLEMENTATION),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.VIEW_ANALYTICS),
+    }
+    for role, _label in RoleCapability.Role.choices:
+        for capability, _cap_label in RoleCapability.Capability.choices:
+            RoleCapability.objects.get_or_create(
+                role=role,
+                capability=capability,
+                defaults={"enabled": (role, capability) in default_enabled},
+            )
+
+
+# ==============================
+# ADMIN NO-CODE BUILDER
+# ==============================
+
+@login_required
+@admin_required
+def document_templates_list(request):
+    templates_qs = DocumentTemplate.objects.all().order_by("category", "title")
+    return render(
+        request,
+        "dashboard/admin/document_templates_list.html",
+        {
+            "templates_qs": templates_qs,
+            "category_choices": DocumentTemplate.Category.choices,
+        },
+    )
+
+
+@login_required
+@admin_required
+def document_template_create(request):
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        category = (request.POST.get("category") or DocumentTemplate.Category.OTHER).strip()
+        description = (request.POST.get("description") or "").strip()
+        version_label = (request.POST.get("version_label") or "").strip()
+        is_active = request.POST.get("is_active") == "on"
+        file = request.FILES.get("file")
+
+        if not title or not file:
+            messages.error(request, "Title and template file are required.")
+        else:
+            DocumentTemplate.objects.create(
+                title=title,
+                category=category,
+                description=description,
+                version_label=version_label,
+                is_active=is_active,
+                file=file,
+            )
+            messages.success(request, f'Template "{title}" uploaded successfully.')
+            return redirect("document_templates_list")
+
+    return render(
+        request,
+        "dashboard/admin/document_template_form.html",
+        {
+            "mode": "create",
+            "category_choices": DocumentTemplate.Category.choices,
+        },
+    )
+
+
+@login_required
+@admin_required
+def document_template_edit(request, pk):
+    template = get_object_or_404(DocumentTemplate, pk=pk)
+
+    if request.method == "POST":
+        template.title = (request.POST.get("title") or template.title).strip()
+        template.category = (request.POST.get("category") or template.category).strip()
+        template.description = (request.POST.get("description") or "").strip()
+        template.version_label = (request.POST.get("version_label") or "").strip()
+        template.is_active = request.POST.get("is_active") == "on"
+        if request.FILES.get("file"):
+            template.file = request.FILES["file"]
+        template.save()
+        messages.success(request, f'Template "{template.title}" updated successfully.')
+        return redirect("document_templates_list")
+
+    return render(
+        request,
+        "dashboard/admin/document_template_form.html",
+        {
+            "mode": "edit",
+            "template_obj": template,
+            "category_choices": DocumentTemplate.Category.choices,
+        },
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def document_template_delete(request, pk):
+    template = get_object_or_404(DocumentTemplate, pk=pk)
+    title = template.title
+    template.delete()
+    messages.success(request, f'Template "{title}" deleted successfully.')
+    return redirect("document_templates_list")
+
+
+@login_required
+@admin_required
+def dynamic_forms_list(request):
+    forms_qs = DynamicFormTemplate.objects.prefetch_related("fields").order_by("applies_to", "name")
+    return render(
+        request,
+        "dashboard/admin/dynamic_forms_list.html",
+        {
+            "forms_qs": forms_qs,
+            "applies_to_choices": DynamicFormTemplate.AppliesTo.choices,
+        },
+    )
+
+
+def _unique_dynamic_form_slug(name, existing=None):
+    base = slugify(name) or "form"
+    candidate = base
+    i = 2
+    qs = DynamicFormTemplate.objects.all()
+    if existing:
+        qs = qs.exclude(pk=existing.pk)
+    while qs.filter(slug=candidate).exists():
+        candidate = f"{base}-{i}"
+        i += 1
+    return candidate
+
+
+def _save_dynamic_form_fields(form_obj, post_data):
+    field_ids = post_data.getlist("field_id[]")
+    labels = post_data.getlist("field_label[]")
+    keys = post_data.getlist("field_key[]")
+    types = post_data.getlist("field_type[]")
+    required_indexes = set(post_data.getlist("field_required[]"))
+    placeholders = post_data.getlist("field_placeholder[]")
+    help_texts = post_data.getlist("field_help_text[]")
+    choices_list = post_data.getlist("field_choices[]")
+
+    max_len = max(
+        len(field_ids), len(labels), len(keys), len(types),
+        len(placeholders), len(help_texts), len(choices_list), 0,
+    )
+
+    def at(values, index, default=""):
+        return values[index] if index < len(values) else default
+
+    kept_ids = []
+    allowed_types = {choice[0] for choice in DynamicFormField.FieldType.choices}
+
+    for idx in range(max_len):
+        label = (at(labels, idx) or "").strip()
+        if not label:
+            continue
+
+        raw_key = (at(keys, idx) or label).strip()
+        field_key = slugify(raw_key).replace("-", "_") or f"field_{idx + 1}"
+        field_type = (at(types, idx) or DynamicFormField.FieldType.TEXT).strip()
+        if field_type not in allowed_types:
+            field_type = DynamicFormField.FieldType.TEXT
+
+        field_id = (at(field_ids, idx) or "").strip()
+        obj = None
+        if field_id:
+            obj = DynamicFormField.objects.filter(form=form_obj, id=field_id).first()
+        if obj is None:
+            obj = DynamicFormField(form=form_obj)
+
+        original_key = field_key
+        suffix = 2
+        while DynamicFormField.objects.filter(form=form_obj, field_key=field_key).exclude(pk=obj.pk).exists():
+            field_key = f"{original_key}_{suffix}"
+            suffix += 1
+
+        obj.label = label
+        obj.field_key = field_key
+        obj.field_type = field_type
+        obj.required = (field_id and field_id in required_indexes) or (not field_id and f"new_{idx}" in required_indexes)
+        obj.placeholder = (at(placeholders, idx) or "").strip()
+        obj.help_text = (at(help_texts, idx) or "").strip()
+        obj.choices_text = (at(choices_list, idx) or "").strip()
+        obj.order = idx + 1
+        obj.save()
+        kept_ids.append(obj.id)
+
+    DynamicFormField.objects.filter(form=form_obj).exclude(id__in=kept_ids).delete()
+
+
+@login_required
+@admin_required
+def dynamic_form_create(request):
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, "Form name is required.")
+        else:
+            form_obj = DynamicFormTemplate.objects.create(
+                name=name,
+                slug=_unique_dynamic_form_slug(name),
+                applies_to=(request.POST.get("applies_to") or DynamicFormTemplate.AppliesTo.GENERAL).strip(),
+                proposal_wizard_step=_safe_int(request.POST.get("proposal_wizard_step"), 0) or None,
+                blocks_proposal_submission=request.POST.get("blocks_proposal_submission") == "on",
+                description=(request.POST.get("description") or "").strip(),
+                instructions=(request.POST.get("instructions") or "").strip(),
+                is_active=request.POST.get("is_active") == "on",
+            )
+            _save_dynamic_form_fields(form_obj, request.POST)
+            messages.success(request, f'Form "{name}" created successfully.')
+            return redirect("dynamic_forms_list")
+
+    return render(
+        request,
+        "dashboard/admin/dynamic_form_builder.html",
+        {
+            "mode": "create",
+            "applies_to_choices": DynamicFormTemplate.AppliesTo.choices,
+            "field_type_choices": DynamicFormField.FieldType.choices,
+        },
+    )
+
+
+@login_required
+@admin_required
+def dynamic_form_edit(request, pk):
+    form_obj = get_object_or_404(DynamicFormTemplate.objects.prefetch_related("fields"), pk=pk)
+
+    if request.method == "POST":
+        name = (request.POST.get("name") or form_obj.name).strip()
+        form_obj.name = name
+        form_obj.slug = _unique_dynamic_form_slug(name, existing=form_obj)
+        form_obj.applies_to = (request.POST.get("applies_to") or form_obj.applies_to).strip()
+        form_obj.proposal_wizard_step = _safe_int(request.POST.get("proposal_wizard_step"), 0) or None
+        form_obj.blocks_proposal_submission = request.POST.get("blocks_proposal_submission") == "on"
+        form_obj.description = (request.POST.get("description") or "").strip()
+        form_obj.instructions = (request.POST.get("instructions") or "").strip()
+        form_obj.is_active = request.POST.get("is_active") == "on"
+        form_obj.save()
+        _save_dynamic_form_fields(form_obj, request.POST)
+        messages.success(request, f'Form "{form_obj.name}" updated successfully.')
+        return redirect("dynamic_forms_list")
+
+    return render(
+        request,
+        "dashboard/admin/dynamic_form_builder.html",
+        {
+            "mode": "edit",
+            "form_obj": form_obj,
+            "applies_to_choices": DynamicFormTemplate.AppliesTo.choices,
+            "field_type_choices": DynamicFormField.FieldType.choices,
+        },
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def dynamic_form_delete(request, pk):
+    form_obj = get_object_or_404(DynamicFormTemplate, pk=pk)
+    name = form_obj.name
+    form_obj.delete()
+    messages.success(request, f'Form "{name}" deleted successfully.')
+    return redirect("dynamic_forms_list")
+
+
+@login_required
+@admin_required
+def wizard_steps_manager(request):
+    _sync_default_wizard_step_configs()
+    steps = ProposalWizardStepConfig.objects.all().order_by("step_no")
+    return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
+
+
+@login_required
+@admin_required
+def wizard_step_edit(request, step_no):
+    _sync_default_wizard_step_configs()
+    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
+
+    if request.method == "POST":
+        step_config.title = (request.POST.get("title") or step_config.title).strip()
+        step_config.description = (request.POST.get("description") or "").strip()
+        step_config.instructions = (request.POST.get("instructions") or "").strip()
+        step_config.is_visible = request.POST.get("is_visible") == "on"
+        step_config.is_required = request.POST.get("is_required") == "on"
+        step_config.save()
+        messages.success(request, f"Wizard Step {step_config.step_no} updated.")
+        return redirect("wizard_steps_manager")
+
+    return render(
+        request,
+        "dashboard/admin/wizard_step_form.html",
+        {"step_config": step_config},
+    )
+
+
+@login_required
+@admin_required
+def role_capabilities_manager(request):
+    _sync_default_role_capabilities()
+
+    if request.method == "POST":
+        enabled_ids = set(request.POST.getlist("enabled_capabilities"))
+        for item in RoleCapability.objects.all():
+            item.enabled = str(item.id) in enabled_ids
+            item.notes = (request.POST.get(f"notes_{item.id}") or "").strip()
+            item.save(update_fields=["enabled", "notes", "updated_at"])
+        messages.success(request, "Role capability matrix updated.")
+        return redirect("role_capabilities_manager")
+
+    capabilities = RoleCapability.objects.all().order_by("role", "capability")
+    grouped = []
+    by_role = OrderedDict()
+    for item in capabilities:
+        by_role.setdefault(item.role, []).append(item)
+    for role, items in by_role.items():
+        grouped.append({
+            "role": role,
+            "role_label": dict(RoleCapability.Role.choices).get(role, role),
+            "items": items,
+        })
+
+    return render(
+        request,
+        "dashboard/admin/role_capabilities_manager.html",
+        {"grouped_capabilities": grouped},
+    )
+
+
+@login_required
+def accomplishment_reports_list(request):
+    if not user_has_capability(request.user, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT):
+        messages.error(request, "You do not have permission to manage accomplishment reports.")
+        return redirect("dashboard_redirect")
+
+    profile = getattr(request.user, "profile", None)
+    role = _user_role(request.user)
+    reports = AccomplishmentReport.objects.select_related("submitted_by", "submitted_by__profile")
+
+    if role == Profile.ROLE_DEPARTMENT_COORDINATOR:
+        reports = reports.filter(department=getattr(profile, "department", ""))
+    elif role == Profile.ROLE_CAMPUS_COORDINATOR:
+        reports = reports.filter(campus=getattr(profile, "campus", ""))
+    elif role not in {Profile.ROLE_ADMIN, Profile.ROLE_DIRECTOR, Profile.ROLE_STAFF}:
+        reports = reports.filter(submitted_by=request.user)
+
+    return render(
+        request,
+        "dashboard/accomplishment_reports_list.html",
+        {"reports": reports, "can_submit_accomplishment": True},
+    )
+
+
+@login_required
+def accomplishment_report_create(request):
+    if not user_has_capability(request.user, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT):
+        messages.error(request, "You do not have permission to submit accomplishment reports.")
+        return redirect("dashboard_redirect")
+
+    profile = getattr(request.user, "profile", None)
+
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        year = _safe_int(request.POST.get("year"), timezone.now().year)
+        quarter = (request.POST.get("quarter") or "").strip()
+        if not title or quarter not in dict(AccomplishmentReport.Quarter.choices):
+            messages.error(request, "Title and quarter are required.")
+        else:
+            AccomplishmentReport.objects.create(
+                title=title,
+                year=year,
+                quarter=quarter,
+                campus=(request.POST.get("campus") or getattr(profile, "campus", "") or "").strip(),
+                college=(request.POST.get("college") or getattr(profile, "college", "") or "").strip(),
+                department=(request.POST.get("department") or getattr(profile, "department", "") or "").strip(),
+                narrative=(request.POST.get("narrative") or "").strip(),
+                activities_count=_safe_int(request.POST.get("activities_count"), 0),
+                beneficiaries_count=_safe_int(request.POST.get("beneficiaries_count"), 0),
+                partners_count=_safe_int(request.POST.get("partners_count"), 0),
+                attachment=request.FILES.get("attachment"),
+                submitted_by=request.user,
+            )
+            messages.success(request, "Quarterly accomplishment report submitted.")
+            return redirect("accomplishment_reports_list")
+
+    return render(
+        request,
+        "dashboard/accomplishment_report_form.html",
+        {
+            "quarter_choices": AccomplishmentReport.Quarter.choices,
+            "profile": profile,
+            "current_year": timezone.now().year,
+        },
+    )

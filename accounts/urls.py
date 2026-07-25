@@ -23,6 +23,7 @@ urlpatterns = [
     # Role-based dashboards
     path("dashboard/faculty/", views.faculty_dashboard, name="faculty_dashboard"),
     path("dashboard/staff/", views.staff_dashboard, name="staff_dashboard"),
+    path("dashboard/evaluator/", views.evaluator_dashboard, name="evaluator_dashboard"),
     path(
         "dashboard/department-coordinator/",
         views.department_coordinator_dashboard,
@@ -94,6 +95,7 @@ urlpatterns = [
     # Admin user and role management
     path("manage-roles/", views.manage_roles, name="manage_roles"),
     path("admin/create-account/", views.admin_create_account, name="admin_create_account"),
+    path("admin/site-control/", views.admin_site_control, name="admin_site_control"),
     path("admin/users/<int:user_id>/", views.admin_user_detail, name="admin_user_detail"),
     path("admin/users/<int:user_id>/edit/", views.admin_edit_user, name="admin_edit_user"),
 
@@ -129,6 +131,22 @@ urlpatterns = [
         views.reorder_process_steps,
         name="reorder_process_steps",
     ),
+
+    # Admin no-code builder
+    path("admin/templates/", views.document_templates_list, name="document_templates_list"),
+    path("admin/templates/create/", views.document_template_create, name="document_template_create"),
+    path("admin/templates/<int:pk>/edit/", views.document_template_edit, name="document_template_edit"),
+    path("admin/templates/<int:pk>/delete/", views.document_template_delete, name="document_template_delete"),
+    path("admin/forms/", views.dynamic_forms_list, name="dynamic_forms_list"),
+    path("admin/forms/create/", views.dynamic_form_create, name="dynamic_form_create"),
+    path("admin/forms/<int:pk>/edit/", views.dynamic_form_edit, name="dynamic_form_edit"),
+    path("admin/forms/<int:pk>/delete/", views.dynamic_form_delete, name="dynamic_form_delete"),
+
+    path("admin/wizard-steps/", views.wizard_steps_manager, name="wizard_steps_manager"),
+    path("admin/wizard-steps/<int:step_no>/edit/", views.wizard_step_edit, name="wizard_step_edit"),
+    path("admin/role-capabilities/", views.role_capabilities_manager, name="role_capabilities_manager"),
+    path("accomplishments/", views.accomplishment_reports_list, name="accomplishment_reports_list"),
+    path("accomplishments/create/", views.accomplishment_report_create, name="accomplishment_report_create"),
 
     # Targets management
     path("admin/targets/", views.targets_list, name="targets_list"),

@@ -45,3 +45,46 @@ class InactiveLogoutMiddleware:
             request.session["last_activity"] = now.isoformat()
 
         return self.get_response(request)
+
+
+class SiteControlMiddleware:
+    """Apply admin-controlled site-wide behavior such as maintenance mode."""
+
+    ALLOWED_PATH_PREFIXES = (
+        "/login/",
+        "/logout/",
+        "/logout-idle/",
+        "/password/",
+        "/static/",
+        "/media/",
+        "/admin/",
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            from django.shortcuts import render
+            from .models import SiteConfiguration
+
+            config = SiteConfiguration.get_solo()
+        except Exception:
+            return self.get_response(request)
+
+        if not getattr(config, "maintenance_mode", False):
+            return self.get_response(request)
+
+        path = request.path or "/"
+        is_allowed_path = any(path.startswith(prefix) for prefix in self.ALLOWED_PATH_PREFIXES)
+        profile = getattr(getattr(request, "user", None), "profile", None)
+        is_admin = bool(
+            getattr(getattr(request, "user", None), "is_superuser", False)
+            or getattr(profile, "role", "") == "ADMIN"
+        )
+
+        # Admins keep full access so they can turn maintenance mode off.
+        if is_admin or is_allowed_path:
+            return self.get_response(request)
+
+        return render(request, "maintenance.html", {"site_control": config}, status=503)

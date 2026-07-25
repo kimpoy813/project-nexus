@@ -26,7 +26,10 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
-from details.models import ExtensionProcess, ProcessStep
+from details.models import (
+    DocumentTemplate, DynamicFormAnswer, DynamicFormField, DynamicFormResponse,
+    DynamicFormTemplate, ExtensionProcess, ProcessStep, ProposalWizardStepConfig, RoleCapability,
+)
 from .moa_docx import build_moa_document
 from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
 
@@ -198,6 +201,32 @@ def _is_campus_coordinator(user):
     return getattr(profile, "role", "") == "CAMPUS_COORDINATOR"
 
 
+def _user_role_value(user):
+    profile = getattr(user, "profile", None)
+    return (getattr(profile, "role", "") or "").upper()
+
+
+def _role_has_capability(user, capability):
+    if not user.is_authenticated:
+        return False
+    role = _user_role_value(user)
+    if role == "ADMIN" or getattr(user, "is_superuser", False):
+        return True
+
+    existing = RoleCapability.objects.filter(role=role, capability=capability).first()
+    if existing is not None:
+        return existing.enabled
+
+    # Backward-compatible defaults before the admin capability matrix is initialized.
+    defaults = {
+        RoleCapability.Capability.CREATE_PROPOSAL: {"FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR", "DIRECTOR"},
+        RoleCapability.Capability.REVIEW_PROPOSAL: {"EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR", "DIRECTOR"},
+        RoleCapability.Capability.MANAGE_MOA: {"STAFF", "DIRECTOR"},
+        RoleCapability.Capability.MANAGE_IMPLEMENTATION: {"STAFF", "DIRECTOR"},
+    }
+    return role in defaults.get(capability, set())
+
+
 def _has_active_evaluator_assignment(user, proposal=None, review_round=None):
     qs = ProposalEvaluatorAssignment.objects.filter(
         evaluator=user,
@@ -240,6 +269,9 @@ def _can_review(user, proposal):
     profile = getattr(user, "profile", None)
     role = getattr(profile, "role", "")
 
+    if not _role_has_capability(user, RoleCapability.Capability.REVIEW_PROPOSAL):
+        return _has_active_evaluator_assignment(user, proposal=proposal)
+
     if role == "DIRECTOR":
         return True
 
@@ -281,7 +313,12 @@ def _can_manage_phase(user, proposal):
     """
     if not user.is_authenticated:
         return False
-    return _is_staff(user) or _is_director(user)
+    return (
+        _role_has_capability(user, RoleCapability.Capability.MANAGE_MOA)
+        or _role_has_capability(user, RoleCapability.Capability.MANAGE_IMPLEMENTATION)
+        or _is_staff(user)
+        or _is_director(user)
+    )
 
 
 
@@ -533,13 +570,13 @@ def proposal_moa_step(request, proposal_id, step):
                 _save_moa_step_3(proposal, form.cleaned_data)
             elif step == 4:
                 _save_moa_step_4(proposal, request)
-                _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "LEGAL_REVIEW", "LEGAL_REVIEW"))
+                _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "DRAFT", "DRAFT"))
 
             if step < 4:
                 messages.success(request, "MOA step saved. Continue to the next part.")
                 return redirect("proposal_moa_step", proposal_id=proposal.id, step=step + 1)
 
-            messages.success(request, "MOA draft completed.")
+            messages.success(request, "MOA draft completed and queued for Staff review.")
             return redirect("proposal_moa_summary", proposal_id=proposal.id)
     else:
         initial = {}
@@ -640,6 +677,67 @@ def unmark_step_completed(proposal, step_no):
     completed = set(proposal.completed_steps or [])
     completed.discard(step_no)
     proposal.completed_steps = sorted(completed)
+
+
+def _wizard_step_config_map():
+    configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    missing = []
+    for item in STEP_LABELS:
+        if item["no"] not in configs:
+            missing.append(
+                ProposalWizardStepConfig(
+                    step_no=item["no"],
+                    title=item["title"],
+                    description=item["desc"],
+                    is_visible=True,
+                    is_required=True,
+                )
+            )
+    if missing:
+        ProposalWizardStepConfig.objects.bulk_create(missing)
+        configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    return configs
+
+
+def get_visible_wizard_step_numbers():
+    configs = _wizard_step_config_map()
+    visible = [item["no"] for item in STEP_LABELS if configs.get(item["no"]).is_visible]
+    return visible or [item["no"] for item in STEP_LABELS]
+
+
+def get_required_wizard_step_numbers():
+    configs = _wizard_step_config_map()
+    return [
+        item["no"]
+        for item in STEP_LABELS
+        if configs.get(item["no"]).is_visible and configs.get(item["no"]).is_required
+    ]
+
+
+def normalize_wizard_step(step):
+    visible = get_visible_wizard_step_numbers()
+    if step in visible:
+        return step
+    for no in visible:
+        if no > step:
+            return no
+    return visible[-1]
+
+
+def next_visible_wizard_step(step):
+    visible = get_visible_wizard_step_numbers()
+    for no in visible:
+        if no > step:
+            return no
+    return None
+
+
+def previous_visible_wizard_step(step):
+    visible = list(reversed(get_visible_wizard_step_numbers()))
+    for no in visible:
+        if no < step:
+            return no
+    return None
 
 
 def is_step_complete(proposal, step):
@@ -746,10 +844,15 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
+    configs = _wizard_step_config_map()
 
     steps = []
     for item in STEP_LABELS:
         no = item["no"]
+        config = configs.get(no)
+        if config and not config.is_visible:
+            continue
+
         if no == current_step:
             state = "current"
         elif no in completed:
@@ -760,7 +863,15 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
             state = "upcoming"
 
         ccount = int(comment_counts.get(no, 0) or 0)
-        steps.append({**item, "state": state, "comment_count": ccount, "has_comment": ccount > 0})
+        steps.append({
+            **item,
+            "title": config.title if config else item["title"],
+            "desc": config.description if config else item["desc"],
+            "is_required": config.is_required if config else True,
+            "state": state,
+            "comment_count": ccount,
+            "has_comment": ccount > 0,
+        })
     return steps
 
 
@@ -780,8 +891,11 @@ def _update_creator_role(proposal):
 
 
 def _build_wizard_context(proposal, step, request_user, comment_counts=None):
-    completed_count = len(proposal.completed_steps or [])
-    progress = int((completed_count / TOTAL_STEPS) * 100) if TOTAL_STEPS else 0
+    required_steps = set(get_required_wizard_step_numbers())
+    completed_required = required_steps.intersection(set(proposal.completed_steps or []))
+    progress = int((len(completed_required) / len(required_steps)) * 100) if required_steps else 100
+    configs = _wizard_step_config_map()
+    step_config = configs.get(step)
 
     ctx = {
         "proposal": proposal,
@@ -789,6 +903,7 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
         "total_steps": TOTAL_STEPS,
         "progress": progress,
         "wizard_steps": build_wizard_steps(proposal, step, comment_counts=comment_counts),
+        "wizard_step_config": step_config,
     }
 
     active_cutoff = timezone.now() - timedelta(seconds=45)
@@ -825,6 +940,8 @@ def services_home(request):
         )
         .order_by("order", "id")
     )
+    office_templates = DocumentTemplate.objects.filter(is_active=True).order_by("category", "title")
+    dynamic_form_templates = DynamicFormTemplate.objects.filter(is_active=True).prefetch_related("fields").order_by("applies_to", "name")
 
     workflow_phases = [
         {
@@ -866,13 +983,146 @@ def services_home(request):
         "workflow_phases": workflow_phases,
         "wizard_steps": STEP_LABELS,
         "total_wizard_steps": TOTAL_STEPS,
+        "office_templates": office_templates,
+        "dynamic_form_templates": dynamic_form_templates,
     }
     return render(request, "services/services_home.html", context)
+
+
+def _dynamic_forms_for_proposal_step(step):
+    return (
+        DynamicFormTemplate.objects.filter(
+            is_active=True,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            proposal_wizard_step=step,
+        )
+        .prefetch_related("fields")
+        .order_by("name")
+    )
+
+
+def _attach_dynamic_forms_to_context(ctx, proposal, step):
+    forms = list(_dynamic_forms_for_proposal_step(step))
+    if not forms:
+        ctx["dynamic_forms"] = []
+        return []
+
+    responses = {
+        response.form_id: response
+        for response in DynamicFormResponse.objects.filter(
+            proposal=proposal,
+            form__in=forms,
+        ).prefetch_related("answers", "answers__field")
+    }
+
+    for form in forms:
+        response = responses.get(form.id)
+        answer_by_field = {}
+        if response:
+            answer_by_field = {answer.field_id: answer for answer in response.answers.all()}
+        form.response = response
+        for field in form.fields.all():
+            answer = answer_by_field.get(field.id)
+            field.answer = answer
+            field.answer_value = getattr(answer, "value", "") if answer else ""
+            field.answer_file = getattr(answer, "file", None) if answer else None
+
+    ctx["dynamic_forms"] = forms
+    return forms
+
+
+def _save_dynamic_form_answers(proposal, step, user, request):
+    """Save admin-built dynamic fields attached to the current wizard step.
+
+    Returns a list of missing required field labels. Values are saved even when
+    some required fields are still empty so proponents can draft gradually.
+    """
+    forms = list(_dynamic_forms_for_proposal_step(step))
+    missing = []
+
+    for form in forms:
+        response, _ = DynamicFormResponse.objects.get_or_create(
+            form=form,
+            proposal=proposal,
+            defaults={"submitted_by": user},
+        )
+        if response.submitted_by_id is None and user.is_authenticated:
+            response.submitted_by = user
+            response.save(update_fields=["submitted_by", "updated_at"])
+
+        for field in form.fields.all():
+            input_name = f"dynamic_field_{field.id}"
+            answer, _ = DynamicFormAnswer.objects.get_or_create(
+                response=response,
+                field=field,
+            )
+
+            if field.field_type == DynamicFormField.FieldType.FILE:
+                uploaded = request.FILES.get(input_name)
+                if uploaded:
+                    answer.file = uploaded
+                # Keep existing file when no new file is uploaded.
+                answer.value = ""
+            elif field.field_type == DynamicFormField.FieldType.CHECKBOX:
+                answer.value = "Yes" if request.POST.get(input_name) == "on" else ""
+            else:
+                answer.value = (request.POST.get(input_name) or "").strip()
+
+            answer.save()
+
+            if form.blocks_proposal_submission and field.required and not answer.has_value:
+                missing.append(f"{form.name}: {field.label}")
+
+    return missing
+
+
+def _proposal_dynamic_requirements_missing(proposal):
+    """Return missing required admin-built proposal fields across all wizard steps."""
+    forms = list(
+        DynamicFormTemplate.objects.filter(
+            is_active=True,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            blocks_proposal_submission=True,
+        )
+        .exclude(proposal_wizard_step__isnull=True)
+        .prefetch_related("fields")
+    )
+    if not forms:
+        return []
+
+    responses = {
+        response.form_id: response
+        for response in DynamicFormResponse.objects.filter(
+            proposal=proposal,
+            form__in=forms,
+        ).prefetch_related("answers")
+    }
+
+    missing = []
+    for form in forms:
+        response = responses.get(form.id)
+        answer_map = {}
+        if response:
+            answer_map = {answer.field_id: answer for answer in response.answers.all()}
+
+        for field in form.fields.all():
+            if not field.required:
+                continue
+            answer = answer_map.get(field.id)
+            if not answer or not answer.has_value:
+                step_label = f"Step {form.proposal_wizard_step}" if form.proposal_wizard_step else "Proposal wizard"
+                missing.append(f"{step_label} — {form.name}: {field.label}")
+
+    return missing
 
 
 @login_required
 @faculty_like_required
 def proposal_create(request):
+    if not _role_has_capability(request.user, RoleCapability.Capability.CREATE_PROPOSAL):
+        messages.error(request, "Your role is not currently allowed to create proposals. Please contact the administrator.")
+        return redirect("dashboard_redirect")
+
     profile = getattr(request.user, "profile", None)
 
     proposal = Proposal.objects.create(
@@ -906,7 +1156,7 @@ def proposal_wizard(request, proposal_id, step):
         messages.error(request, "You don't have access to this proposal.")
         return redirect("dashboard_redirect")
 
-    step = max(1, min(step, TOTAL_STEPS))
+    step = normalize_wizard_step(max(1, min(step, TOTAL_STEPS)))
     can_edit = _can_edit(request.user, proposal)
     can_review = _can_review(request.user, proposal)
 
@@ -1012,6 +1262,7 @@ def proposal_wizard(request, proposal_id, step):
     ctx["can_comment"] = can_comment
     ctx["reviewer_role"] = reviewer_role
     ctx["can_edit_proposal"] = can_edit
+    _attach_dynamic_forms_to_context(ctx, proposal, step)
 
     if ctx["can_comment"]:
         ctx["existing_step_comment"] = ProposalSectionComment.objects.filter(
@@ -1492,14 +1743,24 @@ def proposal_wizard(request, proposal_id, step):
             proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
             proposal.save(update_fields=["certificate_of_completion_file"])
 
+    dynamic_missing = _save_dynamic_form_answers(proposal, step, request.user, request)
+    if action == "next" and dynamic_missing:
+        unmark_step_completed(proposal, step)
+        proposal.save(update_fields=["completed_steps", "skipped_steps"])
+        messages.error(
+            request,
+            "Please complete the required admin-managed field(s): " + "; ".join(dynamic_missing[:5]),
+        )
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
+
     if action == "back":
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=max(1, step - 1))
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=previous_visible_wizard_step(step) or step)
 
     if action == "skip":
         mark_step_skipped(proposal, step)
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
         messages.info(request, "Skipped.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=min(TOTAL_STEPS, step + 1))
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step) or step)
 
     if is_step_complete(proposal, step):
         mark_step_completed(proposal, step)
@@ -1508,12 +1769,13 @@ def proposal_wizard(request, proposal_id, step):
 
     proposal.save(update_fields=["completed_steps", "skipped_steps"])
 
-    if step >= TOTAL_STEPS:
-        messages.success(request, "All steps completed.")
+    next_step = next_visible_wizard_step(step)
+    if not next_step:
+        messages.success(request, "All visible required steps completed.")
         return redirect("proposal_submit", proposal_id=proposal.id)
 
     messages.success(request, "Draft saved.")
-    return redirect("proposal_wizard", proposal_id=proposal.id, step=step + 1)
+    return redirect("proposal_wizard", proposal_id=proposal.id, step=next_step)
 
 
 @login_required
@@ -1533,12 +1795,26 @@ def proposal_submit(request, proposal_id):
         messages.warning(request, "This proposal has already been submitted or is not editable.")
         return redirect("services_home")
 
-    all_required_steps = set(range(1, TOTAL_STEPS + 1))
+    all_required_steps = set(get_required_wizard_step_numbers())
     completed_steps = set(proposal.completed_steps or [])
 
     if not all_required_steps.issubset(completed_steps):
         messages.error(request, "Please complete all required steps before submitting.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=proposal.current_step)
+
+    dynamic_missing = _proposal_dynamic_requirements_missing(proposal)
+    if dynamic_missing:
+        messages.error(
+            request,
+            "Please complete the admin-managed requirement(s): " + "; ".join(dynamic_missing[:5]),
+        )
+        first_missing_step = None
+        for item in dynamic_missing:
+            match = re.search(r"Step (\d+)", item)
+            if match:
+                first_missing_step = int(match.group(1))
+                break
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=first_missing_step or proposal.current_step)
 
     if request.method == "POST":
         if proposal.proposal_status == Proposal.ProposalStatus.FOR_REVISION:
@@ -1818,7 +2094,7 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id=None):
         return redirect("dashboard_redirect")
 
     evaluator_profile = getattr(evaluator, "profile", None)
-    allowed_roles = {"FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
+    allowed_roles = {"FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
 
     if not evaluator_profile or evaluator_profile.role not in allowed_roles:
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -1857,7 +2133,7 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id=None):
     proposal.mark_in_review(review_level=Proposal.ReviewLevel.DIRECTOR)
 
     assigned_qs = ProposalEvaluatorAssignment.objects.filter(proposal=proposal, review_round=current_round, is_active=True).select_related("evaluator", "evaluator__profile")
-    available_qs = User.objects.filter(profile__role__in=["FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
+    available_qs = User.objects.filter(profile__role__in=["FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
 
     response = {
         "ok": True,
@@ -1904,7 +2180,7 @@ def proposal_remove_evaluator(request, proposal_id, evaluator_id):
     current_round.save(update_fields=["evaluator_review_required", "evaluator_review_done", "ready_for_staff_summary"])
 
     assigned_qs = ProposalEvaluatorAssignment.objects.filter(proposal=proposal, review_round=current_round, is_active=True).select_related("evaluator", "evaluator__profile")
-    available_qs = User.objects.filter(profile__role__in=["FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
+    available_qs = User.objects.filter(profile__role__in=["FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
 
     return JsonResponse({
         "ok": True,
@@ -3884,10 +4160,28 @@ def proposal_moa_draft(request, proposal_id):
                 remarks=(request.POST.get("remarks") or "").strip(),
                 is_verified=False,
             )
-            if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+            previous_status = proposal.moa_status
+            if proposal.moa_status in {
+                Proposal.MOAStatus.NOT_STARTED,
+                Proposal.MOAStatus.FOR_REVISION,
+            }:
+                proposal.mark_moa_draft()
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal,
+                    phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status,
+                    to_status=proposal.moa_status,
+                    remarks=(
+                        "Revised MOA document uploaded and queued for Staff review."
+                        if previous_status == Proposal.MOAStatus.FOR_REVISION
+                        else "MOA document uploaded and queued for Staff review."
+                    ),
+                    changed_by=request.user,
+                )
+            elif proposal.moa_status == Proposal.MOAStatus.DRAFT:
                 proposal.mark_moa_draft()
 
-            messages.success(request, "MOA document uploaded successfully.")
+            messages.success(request, "MOA document uploaded successfully and queued for Staff review.")
             return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
         # action == "generate": build the .docx from the submitted form fields.
@@ -3915,10 +4209,28 @@ def proposal_moa_draft(request, proposal_id):
             remarks=version_note or "Generated via the guided MOA drafting form.",
             is_verified=False,
         )
-        if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+        previous_status = proposal.moa_status
+        if proposal.moa_status in {
+            Proposal.MOAStatus.NOT_STARTED,
+            Proposal.MOAStatus.FOR_REVISION,
+        }:
+            proposal.mark_moa_draft()
+            ProposalPhaseLog.objects.create(
+                proposal=proposal,
+                phase=ProposalPhaseLog.Phase.MOA,
+                from_status=previous_status,
+                to_status=proposal.moa_status,
+                remarks=(
+                    "Revised MOA draft generated and queued for Staff review."
+                    if previous_status == Proposal.MOAStatus.FOR_REVISION
+                    else "MOA draft generated and queued for Staff review."
+                ),
+                changed_by=request.user,
+            )
+        elif proposal.moa_status == Proposal.MOAStatus.DRAFT:
             proposal.mark_moa_draft()
 
-        messages.success(request, "MOA draft generated. You can review it in the MOA Tracker or keep editing here.")
+        messages.success(request, "MOA draft generated and queued for Staff review. You can review it in the MOA Tracker or keep editing here.")
         return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
     # GET: pre-fill the form with the last-saved draft data (falling back to
@@ -3977,8 +4289,9 @@ def _notify_proponent(proposal, sent_by, notification_type, message):
     recipients = set()
     if proposal.created_by_id:
         recipients.add(proposal.created_by_id)
-    for proponent in proposal.proponents.select_related("user"):
-        recipients.add(proponent.user_id)
+    for proponent in proposal.proponents.exclude(user__isnull=True).select_related("user"):
+        if proponent.user_id:
+            recipients.add(proponent.user_id)
 
     for uid in recipients:
         MOANotification.objects.create(
@@ -4005,6 +4318,31 @@ def proposal_moa_tracker(request, proposal_id):
     if not proposal.requires_moa:
         messages.info(request, "This proposal does not require a MOA.")
         return redirect("proposal_storage", proposal_id=proposal.id)
+
+    # Legacy safety: if a draft file already exists but the proposal was never
+    # moved out of NOT_STARTED, surface it as Draft so Staff/Director can send
+    # it to Legal Review from this tracker. New uploads do this in moa_upload().
+    if (
+        proposal.moa_status == Proposal.MOAStatus.NOT_STARTED
+        and (
+            MOASubmission.objects.filter(proposal=proposal).exists()
+            or ProposalFinalDocument.objects.filter(
+                proposal=proposal,
+                document_type=ProposalFinalDocument.DocumentType.MOA,
+            ).exists()
+            or bool(getattr(proposal, "moa_draft_file", None))
+        )
+    ):
+        previous_status = proposal.moa_status
+        proposal.mark_moa_draft()
+        ProposalPhaseLog.objects.create(
+            proposal=proposal,
+            phase=ProposalPhaseLog.Phase.MOA,
+            from_status=previous_status,
+            to_status=proposal.moa_status,
+            remarks="MOA draft upload detected; moved to Draft status.",
+            changed_by=None,
+        )
 
     can_manage   = _can_manage_phase(request.user, proposal)
     is_proponent = (
@@ -4104,7 +4442,7 @@ def proposal_moa_tracker(request, proposal_id):
                 )
                 messages.success(request, "MOA is now in Agenda Brief & Presentation.")
 
-        # Agenda Brief → MOA Completed (notify proponent)
+        # Agenda Brief → MOA Completed, then move into Implementation
         elif action == "complete":
             if proposal.moa_status != S.AGENDA_AND_PRESENTATION:
                 messages.error(request, "The MOA must be in Agenda Brief & Presentation to mark it Completed.")
@@ -4115,15 +4453,36 @@ def proposal_moa_tracker(request, proposal_id):
                     from_status=previous_status, to_status=proposal.moa_status,
                     remarks=remarks or "MOA signed and completed.", changed_by=request.user,
                 )
+
+                implementation_previous_status = proposal.implementation_status
+                if proposal.implementation_status in {
+                    Proposal.ImplementationStatus.NOT_STARTED,
+                    Proposal.ImplementationStatus.PREPARATION,
+                }:
+                    proposal.mark_implementation_ongoing()
+                    ProposalPhaseLog.objects.create(
+                        proposal=proposal,
+                        phase=ProposalPhaseLog.Phase.IMPLEMENTATION,
+                        from_status=implementation_previous_status,
+                        to_status=proposal.implementation_status,
+                        remarks="MOA completed; moved to Implementation of Extension Activity.",
+                        changed_by=request.user,
+                    )
+
                 _notify_proponent(
                     proposal=proposal, sent_by=request.user,
                     notification_type=MOANotification.NotificationType.COMPLETED,
                     message=(
                         f"The MOA for \"{proposal.display_title}\" has been completed and signed "
-                        f"by all parties. Congratulations!"
+                        f"by all parties. The project is now in the Implementation of Extension "
+                        f"Activity stage."
                     ),
                 )
-                messages.success(request, "MOA marked as Completed. The proponent has been notified.")
+                messages.success(
+                    request,
+                    "MOA marked as Completed. The proponent has been notified and the project was moved to Implementation.",
+                )
+                return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
 
         # Fallback: keep generic advance/back
         elif action == "advance":
@@ -4189,9 +4548,10 @@ def proposal_moa_tracker(request, proposal_id):
 # ==============================
 # IMPLEMENTATION TRACKER
 # ==============================
-# Implementation Process: Preparation -> Implementation -> Monitoring
-#              -> Post Activity Report / Progress Report -> Terminal Report
-#              -> Revision -> Completed
+# Implementation Process (after MOA completion):
+# 7. Implementation of Extension Activity -> 8. Post-Extension Activity Report
+# Submission -> 9. Extension Progress Report -> 10. Monitoring and Evaluation
+# -> 11. Summary of Comments and Actions Taken -> 12. Final Evaluation and Documentation
 
 @login_required
 def proposal_implementation_tracker(request, proposal_id):
@@ -4200,14 +4560,35 @@ def proposal_implementation_tracker(request, proposal_id):
 
     Proponents and staff can view the tracker. Only Staff/Director can
     advance or send back a stage. Proponents can upload the
-    post-activity/progress report, terminal report, and (once completed)
-    the certificate of completion.
+    post-extension/progress report, final evaluation documentation, and
+    (once completed) the certificate of completion.
     """
     proposal = get_object_or_404(Proposal, id=proposal_id)
 
     if not _can_view_proposal(request.user, proposal):
         messages.error(request, "You don't have access to this proposal.")
         return redirect("dashboard_redirect")
+
+    # If a previously completed MOA has not yet initialized implementation,
+    # start it here so the user lands directly in process step 7.
+    if (
+        proposal.requires_moa
+        and proposal.moa_status == Proposal.MOAStatus.COMPLETED
+        and proposal.implementation_status in {
+            Proposal.ImplementationStatus.NOT_STARTED,
+            Proposal.ImplementationStatus.PREPARATION,
+        }
+    ):
+        previous_status = proposal.implementation_status
+        proposal.mark_implementation_ongoing()
+        ProposalPhaseLog.objects.create(
+            proposal=proposal,
+            phase=ProposalPhaseLog.Phase.IMPLEMENTATION,
+            from_status=previous_status,
+            to_status=proposal.implementation_status,
+            remarks="MOA completed; implementation tracker initialized at step 7.",
+            changed_by=request.user if request.user.is_authenticated else None,
+        )
 
     can_manage = _can_manage_phase(request.user, proposal)
     is_proponent = (
@@ -4338,6 +4719,7 @@ def proposal_implementation_tracker(request, proposal_id):
         "is_first_stage": proposal.implementation_status in {
             Proposal.ImplementationStatus.NOT_STARTED,
             Proposal.ImplementationStatus.PREPARATION,
+            Proposal.ImplementationStatus.IMPLEMENTATION,
         },
         "is_final_stage": proposal.implementation_status == Proposal.ImplementationStatus.COMPLETED,
     }
@@ -4547,6 +4929,13 @@ def proposal_storage(request, proposal_id):
 @login_required
 def moa_upload(request, proposal_id):
     proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    can_manage = _can_manage_phase(request.user, proposal)
+    can_upload = can_manage or _can_edit(request.user, proposal)
+    if not can_upload:
+        messages.error(request, "You do not have permission to upload a MOA draft for this proposal.")
+        return redirect("dashboard_redirect")
+
     existing = MOASubmission.objects.filter(proposal=proposal).first()
 
     if request.method == "POST":
@@ -4563,13 +4952,44 @@ def moa_upload(request, proposal_id):
             obj.year                = form.cleaned_data["year"]
             obj.duration            = form.cleaned_data["duration"]
 
-            if form.cleaned_data.get("moa_file"):
+            uploaded_file = form.cleaned_data.get("moa_file")
+            file_was_uploaded = bool(uploaded_file)
+
+            if uploaded_file:
                 if existing and existing.moa_file:
                     existing.moa_file.delete(save=False)
-                obj.moa_file = form.cleaned_data["moa_file"]
+                obj.moa_file = uploaded_file
 
             obj.save()
-            messages.success(request, "MOA draft uploaded successfully.")
+
+            # A submitted or re-submitted draft should immediately become
+            # visible to Staff/Director as Draft, ready to prepare for Legal
+            # Review. If Legal Review already started, do not move it backward.
+            draft_upload_statuses = {
+                Proposal.MOAStatus.NOT_STARTED,
+                Proposal.MOAStatus.DRAFT,
+                Proposal.MOAStatus.FOR_REVISION,
+            }
+            if proposal.moa_status in draft_upload_statuses and (file_was_uploaded or not existing):
+                previous_status = proposal.moa_status
+                if proposal.moa_status != Proposal.MOAStatus.DRAFT:
+                    proposal.mark_moa_draft()
+                    ProposalPhaseLog.objects.create(
+                        proposal=proposal,
+                        phase=ProposalPhaseLog.Phase.MOA,
+                        from_status=previous_status,
+                        to_status=proposal.moa_status,
+                        remarks=(
+                            "Revised MOA draft uploaded by proponent."
+                            if previous_status == Proposal.MOAStatus.FOR_REVISION
+                            else "MOA draft uploaded and queued for Staff review."
+                        ),
+                        changed_by=request.user,
+                    )
+                else:
+                    proposal.mark_moa_draft()
+
+            messages.success(request, "MOA draft uploaded successfully and queued for Staff review.")
             return redirect("proposal_moa_tracker", proposal_id=proposal_id)
     else:
         initial = {}

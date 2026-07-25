@@ -1,7 +1,8 @@
 <aside class="lg:col-span-3 xl:col-span-3 self-start">
-  <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden sticky top-6">
+  <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden sticky top-28">
     <div class="p-6 border-b border-gray-100">
-      <h1 class="text-xl font-semibold text-gray-900">Create Proposal</h1>
+      <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Proposal Wizard</p>
+      <h1 class="mt-1 text-xl font-black tracking-tight text-gray-900">Create Proposal</h1>
       <p class="text-sm leading-5 text-gray-600 mt-1">
         Complete each section to prepare your proposal draft.
       </p>
@@ -24,7 +25,7 @@
       </p>
     </div>
 
-    <div id="wizard-stepper-scroll" class="p-6 max-h-[75vh] overflow-y-auto">
+    <div id="wizard-stepper-scroll" class="p-4 sm:p-6 max-h-[72vh] overflow-y-auto">
       <div class="space-y-0">
         {% for s in wizard_steps %}
           {# Keep ?readonly=1 through every stepper link so the param is never lost #}
@@ -91,6 +92,10 @@
                   {% endif %}">
                   {{ s.title }}
                 </p>
+
+                {% if not s.is_required %}
+                  <span class="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">Optional</span>
+                {% endif %}
 
                 {# Comment marker (shows when this step has reviewer comments) #}
                 {% if proposal.proposal_status == "FOR_REVISION" and s.comment_count %}

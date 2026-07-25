@@ -116,3 +116,253 @@ class Target(models.Model):
 
     def __str__(self):
         return f"{self.year} • {self.campus} • {self.get_metric_display()}"
+
+# ==============================
+# ADMIN NO-CODE BUILDER MODELS
+# ==============================
+
+class DocumentTemplate(models.Model):
+    """Admin-managed downloadable files used by the Extension Office."""
+
+    class Category(models.TextChoices):
+        PROPOSAL = "PROPOSAL", "Proposal"
+        MOA = "MOA", "MOA"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
+        REPORT = "REPORT", "Report"
+        CERTIFICATE = "CERTIFICATE", "Certificate"
+        OTHER = "OTHER", "Other"
+
+    title = models.CharField(max_length=180)
+    category = models.CharField(max_length=30, choices=Category.choices, default=Category.PROPOSAL)
+    description = models.TextField(blank=True, default="")
+    file = models.FileField(upload_to="office_templates/")
+    version_label = models.CharField(max_length=40, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category", "title", "-updated_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class DynamicFormTemplate(models.Model):
+    """Admin-defined form blueprint for office checklists/intake forms."""
+
+    class AppliesTo(models.TextChoices):
+        PROPOSAL = "PROPOSAL", "Proposal"
+        MOA = "MOA", "MOA"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
+        EVALUATION = "EVALUATION", "Evaluation"
+        GENERAL = "GENERAL", "General"
+
+    name = models.CharField(max_length=180)
+    slug = models.SlugField(max_length=200, unique=True)
+    applies_to = models.CharField(max_length=30, choices=AppliesTo.choices, default=AppliesTo.GENERAL)
+    proposal_wizard_step = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional: show this form inside proposal wizard step 1-19 when Applies To is Proposal.",
+    )
+    blocks_proposal_submission = models.BooleanField(
+        default=True,
+        help_text="If enabled, required fields in this form must be completed before proposal submission.",
+    )
+    description = models.TextField(blank=True, default="")
+    instructions = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["applies_to", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class DynamicFormField(models.Model):
+    """Field definitions belonging to a DynamicFormTemplate."""
+
+    class FieldType(models.TextChoices):
+        TEXT = "TEXT", "Short Text"
+        TEXTAREA = "TEXTAREA", "Long Text"
+        NUMBER = "NUMBER", "Number"
+        DATE = "DATE", "Date"
+        EMAIL = "EMAIL", "Email"
+        SELECT = "SELECT", "Dropdown"
+        CHECKBOX = "CHECKBOX", "Checkbox"
+        FILE = "FILE", "File Upload"
+
+    form = models.ForeignKey(DynamicFormTemplate, related_name="fields", on_delete=models.CASCADE)
+    label = models.CharField(max_length=180)
+    field_key = models.SlugField(max_length=120)
+    field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.TEXT)
+    required = models.BooleanField(default=False)
+    placeholder = models.CharField(max_length=180, blank=True, default="")
+    help_text = models.CharField(max_length=255, blank=True, default="")
+    choices_text = models.TextField(blank=True, default="", help_text="One dropdown choice per line.")
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["form", "field_key"], name="unique_dynamic_form_field_key"),
+        ]
+
+    def __str__(self):
+        return f"{self.form.name}: {self.label}"
+
+    @property
+    def choices_list(self):
+        return [line.strip() for line in self.choices_text.splitlines() if line.strip()]
+
+
+class DynamicFormResponse(models.Model):
+    """A filled instance of an admin-built form, optionally attached to a proposal."""
+
+    form = models.ForeignKey(DynamicFormTemplate, related_name="responses", on_delete=models.CASCADE)
+    proposal = models.ForeignKey(
+        "proposals.Proposal",
+        related_name="dynamic_form_responses",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    submitted_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dynamic_form_responses",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["form", "proposal"],
+                condition=models.Q(proposal__isnull=False),
+                name="unique_dynamic_form_response_per_proposal",
+            ),
+        ]
+
+    def __str__(self):
+        target = self.proposal.display_title if self.proposal_id else "General"
+        return f"{self.form.name} - {target}"
+
+
+class DynamicFormAnswer(models.Model):
+    response = models.ForeignKey(DynamicFormResponse, related_name="answers", on_delete=models.CASCADE)
+    field = models.ForeignKey(DynamicFormField, related_name="answers", on_delete=models.CASCADE)
+    value = models.TextField(blank=True, default="")
+    file = models.FileField(upload_to="dynamic_form_answers/", blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["field__order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["response", "field"], name="unique_answer_per_dynamic_field"),
+        ]
+
+    def __str__(self):
+        return f"{self.response} - {self.field.label}"
+
+    @property
+    def has_value(self):
+        return bool((self.value or "").strip() or self.file)
+
+
+class ProposalWizardStepConfig(models.Model):
+    """Admin overrides for the built-in 19 proposal wizard steps."""
+
+    step_no = models.PositiveSmallIntegerField(unique=True)
+    title = models.CharField(max_length=160)
+    description = models.CharField(max_length=255, blank=True, default="")
+    instructions = models.TextField(blank=True, default="")
+    is_visible = models.BooleanField(default=True)
+    is_required = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["step_no"]
+
+    def __str__(self):
+        return f"Step {self.step_no}: {self.title}"
+
+
+class RoleCapability(models.Model):
+    """Admin-managed feature switches for each account role."""
+
+    class Role(models.TextChoices):
+        FACULTY = "FACULTY", "Faculty"
+        STAFF = "STAFF", "Staff"
+        EVALUATOR = "EVALUATOR", "Evaluator"
+        DEPARTMENT_COORDINATOR = "DEPARTMENT_COORDINATOR", "Department Coordinator"
+        CAMPUS_COORDINATOR = "CAMPUS_COORDINATOR", "Campus Coordinator"
+        DIRECTOR = "DIRECTOR", "Director"
+        ADMIN = "ADMIN", "Admin"
+
+    class Capability(models.TextChoices):
+        CREATE_PROPOSAL = "CREATE_PROPOSAL", "Create proposals"
+        REVIEW_PROPOSAL = "REVIEW_PROPOSAL", "Review/comment on proposals"
+        MANAGE_MOA = "MANAGE_MOA", "Manage MOA workflow"
+        MANAGE_IMPLEMENTATION = "MANAGE_IMPLEMENTATION", "Manage implementation workflow"
+        SUBMIT_QUARTERLY_ACCOMPLISHMENT = "SUBMIT_QUARTERLY_ACCOMPLISHMENT", "Submit quarterly accomplishment reports"
+        VIEW_ANALYTICS = "VIEW_ANALYTICS", "View analytics dashboards"
+
+    role = models.CharField(max_length=50, choices=Role.choices)
+    capability = models.CharField(max_length=80, choices=Capability.choices)
+    enabled = models.BooleanField(default=False)
+    notes = models.CharField(max_length=255, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["role", "capability"]
+        constraints = [
+            models.UniqueConstraint(fields=["role", "capability"], name="unique_role_capability"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_role_display()} - {self.get_capability_display()}"
+
+
+class AccomplishmentReport(models.Model):
+    """Quarterly accomplishment report submitted by roles with the capability."""
+
+    class Quarter(models.TextChoices):
+        Q1 = "Q1", "1st Quarter"
+        Q2 = "Q2", "2nd Quarter"
+        Q3 = "Q3", "3rd Quarter"
+        Q4 = "Q4", "4th Quarter"
+
+    title = models.CharField(max_length=220)
+    year = models.PositiveIntegerField(default=2026)
+    quarter = models.CharField(max_length=2, choices=Quarter.choices)
+    campus = models.CharField(max_length=150, blank=True, default="")
+    college = models.CharField(max_length=255, blank=True, default="")
+    department = models.CharField(max_length=255, blank=True, default="")
+    narrative = models.TextField(blank=True, default="")
+    activities_count = models.PositiveIntegerField(default=0)
+    beneficiaries_count = models.PositiveIntegerField(default=0)
+    partners_count = models.PositiveIntegerField(default=0)
+    attachment = models.FileField(upload_to="accomplishment_reports/", blank=True, null=True)
+    submitted_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="accomplishment_reports",
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-year", "quarter", "campus", "department"]
+
+    def __str__(self):
+        return f"{self.title} ({self.year} {self.quarter})"

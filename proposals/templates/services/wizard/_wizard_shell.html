@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-6 py-8">
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<div class="nexus-page max-w-7xl mx-auto px-4 sm:px-6 py-8">
+  <div class="nexus-wizard-layout grid grid-cols-1 lg:grid-cols-12 gap-6">
 
     <!-- SIDEBAR (3 cols) -->
     {% include "services/wizard/_sidebar_stepper.html" %}
 
     <!-- MAIN CONTENT (6 cols) -->
     <section class="lg:col-span-6 xl:col-span-6 space-y-6">
+      {% if wizard_step_config and wizard_step_config.instructions %}
+        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900 shadow-sm">
+          <p class="mb-1 text-xs font-black uppercase tracking-[0.18em] text-blue-700">Office Instructions</p>
+          <div class="whitespace-pre-line">{{ wizard_step_config.instructions }}</div>
+        </div>
+      {% endif %}
       <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
         {% block wizard_form %}{% endblock %}
       </div>

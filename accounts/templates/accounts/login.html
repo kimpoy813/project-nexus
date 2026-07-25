@@ -53,12 +53,18 @@
                     </button>
                 </form>
 
+                {% if not site_control or site_control.registration_enabled %}
                 <p class="text-center mt-6 text-sm text-gray-600">
                     Don’t have an account?
                     <a href="{% url 'register' %}" class="text-primary font-semibold hover:text-secondary transition">
                         Register
                     </a>
                 </p>
+                {% else %}
+                <p class="text-center mt-6 text-sm text-amber-700 rounded-xl bg-amber-50 px-4 py-3 border border-amber-200">
+                    Public registration is currently closed by the system administrator.
+                </p>
+                {% endif %}
 
             </div>
         </div>

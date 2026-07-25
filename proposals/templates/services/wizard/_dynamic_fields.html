@@ -1,0 +1,76 @@
+{% if dynamic_forms %}
+<div class="rounded-2xl border border-primary/15 bg-primary/5 p-5 space-y-5">
+  <div>
+    <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Admin-managed requirements</p>
+    <h3 class="mt-1 text-base font-black text-gray-900">Additional Extension Office fields for this step</h3>
+    <p class="mt-1 text-xs leading-5 text-gray-600">
+      These fields are controlled by the Admin/Form Builder. Required fields must be completed before submission.
+    </p>
+  </div>
+
+  {% for dyn_form in dynamic_forms %}
+    <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div class="mb-4">
+        <h4 class="text-sm font-black text-gray-900">{{ dyn_form.name }}</h4>
+        {% if dyn_form.description %}<p class="mt-1 text-xs leading-5 text-gray-600">{{ dyn_form.description }}</p>{% endif %}
+        {% if dyn_form.instructions %}<p class="mt-2 rounded-xl bg-gray-50 p-3 text-xs leading-5 text-gray-600">{{ dyn_form.instructions }}</p>{% endif %}
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {% for field in dyn_form.fields.all %}
+          <div class="{% if field.field_type == 'TEXTAREA' or field.field_type == 'FILE' %}md:col-span-2{% endif %}">
+            <label class="block text-xs font-black text-gray-700">
+              {{ field.label }}{% if field.required %} <span class="text-red-600">*</span>{% endif %}
+            </label>
+
+            {% if field.field_type == 'TEXTAREA' %}
+              <textarea name="dynamic_field_{{ field.id }}" rows="3" {% if not is_edit_mode %}readonly{% endif %}
+                        placeholder="{{ field.placeholder }}"
+                        class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm {% if not is_edit_mode %}bg-gray-50{% endif %}">{{ field.answer_value }}</textarea>
+            {% elif field.field_type == 'NUMBER' %}
+              <input type="number" name="dynamic_field_{{ field.id }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
+                     placeholder="{{ field.placeholder }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm {% if not is_edit_mode %}bg-gray-50{% endif %}">
+            {% elif field.field_type == 'DATE' %}
+              <input type="date" name="dynamic_field_{{ field.id }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
+                     class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm {% if not is_edit_mode %}bg-gray-50{% endif %}">
+            {% elif field.field_type == 'EMAIL' %}
+              <input type="email" name="dynamic_field_{{ field.id }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
+                     placeholder="{{ field.placeholder }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm {% if not is_edit_mode %}bg-gray-50{% endif %}">
+            {% elif field.field_type == 'SELECT' %}
+              <select name="dynamic_field_{{ field.id }}" {% if not is_edit_mode %}disabled{% endif %}
+                      class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm {% if not is_edit_mode %}bg-gray-50{% endif %}">
+                <option value="">Select...</option>
+                {% for choice in field.choices_list %}
+                  <option value="{{ choice }}" {% if field.answer_value == choice %}selected{% endif %}>{{ choice }}</option>
+                {% endfor %}
+              </select>
+              {% if not is_edit_mode %}<input type="hidden" name="dynamic_field_{{ field.id }}" value="{{ field.answer_value }}">{% endif %}
+            {% elif field.field_type == 'CHECKBOX' %}
+              <label class="mt-2 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <input type="checkbox" name="dynamic_field_{{ field.id }}" {% if field.answer_value %}checked{% endif %} {% if not is_edit_mode %}disabled{% endif %}
+                       class="rounded border-gray-300 text-primary focus:ring-primary">
+                Yes / Applicable
+              </label>
+              {% if not is_edit_mode and field.answer_value %}<input type="hidden" name="dynamic_field_{{ field.id }}" value="on">{% endif %}
+            {% elif field.field_type == 'FILE' %}
+              {% if field.answer_file %}
+                <p class="mt-1 text-xs text-gray-500">Current file:
+                  <a href="{{ field.answer_file.url }}" target="_blank" class="font-bold text-primary hover:underline">{{ field.answer_file.name }}</a>
+                </p>
+              {% endif %}
+              {% if is_edit_mode %}
+                <input type="file" name="dynamic_field_{{ field.id }}" class="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+              {% endif %}
+            {% else %}
+              <input type="text" name="dynamic_field_{{ field.id }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
+                     placeholder="{{ field.placeholder }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm {% if not is_edit_mode %}bg-gray-50{% endif %}">
+            {% endif %}
+
+            {% if field.help_text %}<p class="mt-1 text-xs leading-5 text-gray-500">{{ field.help_text }}</p>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+</div>
+{% endif %}
