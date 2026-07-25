@@ -26,7 +26,10 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
-from details.models import DocumentTemplate, DynamicFormTemplate, ExtensionProcess, ProcessStep
+from details.models import (
+    DocumentTemplate, DynamicFormAnswer, DynamicFormField, DynamicFormResponse,
+    DynamicFormTemplate, ExtensionProcess, ProcessStep,
+)
 from .moa_docx import build_moa_document
 from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
 
@@ -874,6 +877,133 @@ def services_home(request):
     return render(request, "services/services_home.html", context)
 
 
+def _dynamic_forms_for_proposal_step(step):
+    return (
+        DynamicFormTemplate.objects.filter(
+            is_active=True,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            proposal_wizard_step=step,
+        )
+        .prefetch_related("fields")
+        .order_by("name")
+    )
+
+
+def _attach_dynamic_forms_to_context(ctx, proposal, step):
+    forms = list(_dynamic_forms_for_proposal_step(step))
+    if not forms:
+        ctx["dynamic_forms"] = []
+        return []
+
+    responses = {
+        response.form_id: response
+        for response in DynamicFormResponse.objects.filter(
+            proposal=proposal,
+            form__in=forms,
+        ).prefetch_related("answers", "answers__field")
+    }
+
+    for form in forms:
+        response = responses.get(form.id)
+        answer_by_field = {}
+        if response:
+            answer_by_field = {answer.field_id: answer for answer in response.answers.all()}
+        form.response = response
+        for field in form.fields.all():
+            answer = answer_by_field.get(field.id)
+            field.answer = answer
+            field.answer_value = getattr(answer, "value", "") if answer else ""
+            field.answer_file = getattr(answer, "file", None) if answer else None
+
+    ctx["dynamic_forms"] = forms
+    return forms
+
+
+def _save_dynamic_form_answers(proposal, step, user, request):
+    """Save admin-built dynamic fields attached to the current wizard step.
+
+    Returns a list of missing required field labels. Values are saved even when
+    some required fields are still empty so proponents can draft gradually.
+    """
+    forms = list(_dynamic_forms_for_proposal_step(step))
+    missing = []
+
+    for form in forms:
+        response, _ = DynamicFormResponse.objects.get_or_create(
+            form=form,
+            proposal=proposal,
+            defaults={"submitted_by": user},
+        )
+        if response.submitted_by_id is None and user.is_authenticated:
+            response.submitted_by = user
+            response.save(update_fields=["submitted_by", "updated_at"])
+
+        for field in form.fields.all():
+            input_name = f"dynamic_field_{field.id}"
+            answer, _ = DynamicFormAnswer.objects.get_or_create(
+                response=response,
+                field=field,
+            )
+
+            if field.field_type == DynamicFormField.FieldType.FILE:
+                uploaded = request.FILES.get(input_name)
+                if uploaded:
+                    answer.file = uploaded
+                # Keep existing file when no new file is uploaded.
+                answer.value = ""
+            elif field.field_type == DynamicFormField.FieldType.CHECKBOX:
+                answer.value = "Yes" if request.POST.get(input_name) == "on" else ""
+            else:
+                answer.value = (request.POST.get(input_name) or "").strip()
+
+            answer.save()
+
+            if form.blocks_proposal_submission and field.required and not answer.has_value:
+                missing.append(f"{form.name}: {field.label}")
+
+    return missing
+
+
+def _proposal_dynamic_requirements_missing(proposal):
+    """Return missing required admin-built proposal fields across all wizard steps."""
+    forms = list(
+        DynamicFormTemplate.objects.filter(
+            is_active=True,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            blocks_proposal_submission=True,
+        )
+        .exclude(proposal_wizard_step__isnull=True)
+        .prefetch_related("fields")
+    )
+    if not forms:
+        return []
+
+    responses = {
+        response.form_id: response
+        for response in DynamicFormResponse.objects.filter(
+            proposal=proposal,
+            form__in=forms,
+        ).prefetch_related("answers")
+    }
+
+    missing = []
+    for form in forms:
+        response = responses.get(form.id)
+        answer_map = {}
+        if response:
+            answer_map = {answer.field_id: answer for answer in response.answers.all()}
+
+        for field in form.fields.all():
+            if not field.required:
+                continue
+            answer = answer_map.get(field.id)
+            if not answer or not answer.has_value:
+                step_label = f"Step {form.proposal_wizard_step}" if form.proposal_wizard_step else "Proposal wizard"
+                missing.append(f"{step_label} — {form.name}: {field.label}")
+
+    return missing
+
+
 @login_required
 @faculty_like_required
 def proposal_create(request):
@@ -1016,6 +1146,7 @@ def proposal_wizard(request, proposal_id, step):
     ctx["can_comment"] = can_comment
     ctx["reviewer_role"] = reviewer_role
     ctx["can_edit_proposal"] = can_edit
+    _attach_dynamic_forms_to_context(ctx, proposal, step)
 
     if ctx["can_comment"]:
         ctx["existing_step_comment"] = ProposalSectionComment.objects.filter(
@@ -1496,6 +1627,16 @@ def proposal_wizard(request, proposal_id, step):
             proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
             proposal.save(update_fields=["certificate_of_completion_file"])
 
+    dynamic_missing = _save_dynamic_form_answers(proposal, step, request.user, request)
+    if action == "next" and dynamic_missing:
+        unmark_step_completed(proposal, step)
+        proposal.save(update_fields=["completed_steps", "skipped_steps"])
+        messages.error(
+            request,
+            "Please complete the required admin-managed field(s): " + "; ".join(dynamic_missing[:5]),
+        )
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
+
     if action == "back":
         return redirect("proposal_wizard", proposal_id=proposal.id, step=max(1, step - 1))
 
@@ -1543,6 +1684,20 @@ def proposal_submit(request, proposal_id):
     if not all_required_steps.issubset(completed_steps):
         messages.error(request, "Please complete all required steps before submitting.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=proposal.current_step)
+
+    dynamic_missing = _proposal_dynamic_requirements_missing(proposal)
+    if dynamic_missing:
+        messages.error(
+            request,
+            "Please complete the admin-managed requirement(s): " + "; ".join(dynamic_missing[:5]),
+        )
+        first_missing_step = None
+        for item in dynamic_missing:
+            match = re.search(r"Step (\d+)", item)
+            if match:
+                first_missing_step = int(match.group(1))
+                break
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=first_missing_step or proposal.current_step)
 
     if request.method == "POST":
         if proposal.proposal_status == Proposal.ProposalStatus.FOR_REVISION:

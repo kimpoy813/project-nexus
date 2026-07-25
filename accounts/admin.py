@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
-from details.models import DocumentTemplate, DynamicFormTemplate, DynamicFormField
+from details.models import DocumentTemplate, DynamicFormTemplate, DynamicFormField, DynamicFormResponse, DynamicFormAnswer
 
 
 @admin.register(Profile)
@@ -62,3 +62,18 @@ class DocumentTemplateAdmin(admin.ModelAdmin):
     list_display = ("title", "category", "version_label", "is_active", "updated_at")
     list_filter = ("category", "is_active")
     search_fields = ("title", "description", "version_label")
+
+
+class DynamicFormAnswerInline(admin.TabularInline):
+    model = DynamicFormAnswer
+    extra = 0
+    readonly_fields = ("field", "value", "file", "updated_at")
+    can_delete = False
+
+
+@admin.register(DynamicFormResponse)
+class DynamicFormResponseAdmin(admin.ModelAdmin):
+    list_display = ("form", "proposal", "submitted_by", "updated_at")
+    list_filter = ("form__applies_to", "form")
+    search_fields = ("form__name", "proposal__title", "proposal__research_title", "submitted_by__username")
+    inlines = [DynamicFormAnswerInline]

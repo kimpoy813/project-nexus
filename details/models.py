@@ -161,6 +161,15 @@ class DynamicFormTemplate(models.Model):
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=200, unique=True)
     applies_to = models.CharField(max_length=30, choices=AppliesTo.choices, default=AppliesTo.GENERAL)
+    proposal_wizard_step = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional: show this form inside proposal wizard step 1-19 when Applies To is Proposal.",
+    )
+    blocks_proposal_submission = models.BooleanField(
+        default=True,
+        help_text="If enabled, required fields in this form must be completed before proposal submission.",
+    )
     description = models.TextField(blank=True, default="")
     instructions = models.TextField(blank=True, default="")
     is_active = models.BooleanField(default=True)
@@ -209,3 +218,60 @@ class DynamicFormField(models.Model):
     @property
     def choices_list(self):
         return [line.strip() for line in self.choices_text.splitlines() if line.strip()]
+
+
+class DynamicFormResponse(models.Model):
+    """A filled instance of an admin-built form, optionally attached to a proposal."""
+
+    form = models.ForeignKey(DynamicFormTemplate, related_name="responses", on_delete=models.CASCADE)
+    proposal = models.ForeignKey(
+        "proposals.Proposal",
+        related_name="dynamic_form_responses",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    submitted_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="dynamic_form_responses",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["form", "proposal"],
+                condition=models.Q(proposal__isnull=False),
+                name="unique_dynamic_form_response_per_proposal",
+            ),
+        ]
+
+    def __str__(self):
+        target = self.proposal.display_title if self.proposal_id else "General"
+        return f"{self.form.name} - {target}"
+
+
+class DynamicFormAnswer(models.Model):
+    response = models.ForeignKey(DynamicFormResponse, related_name="answers", on_delete=models.CASCADE)
+    field = models.ForeignKey(DynamicFormField, related_name="answers", on_delete=models.CASCADE)
+    value = models.TextField(blank=True, default="")
+    file = models.FileField(upload_to="dynamic_form_answers/", blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["field__order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["response", "field"], name="unique_answer_per_dynamic_field"),
+        ]
+
+    def __str__(self):
+        return f"{self.response} - {self.field.label}"
+
+    @property
+    def has_value(self):
+        return bool((self.value or "").strip() or self.file)

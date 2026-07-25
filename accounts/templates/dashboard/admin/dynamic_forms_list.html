@@ -19,7 +19,7 @@
         <article class="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <p class="text-xs font-black uppercase tracking-wide text-primary/70">{{ form.get_applies_to_display }}</p>
+                    <p class="text-xs font-black uppercase tracking-wide text-primary/70">{{ form.get_applies_to_display }}{% if form.proposal_wizard_step %} · Wizard Step {{ form.proposal_wizard_step }}{% endif %}</p>
                     <h2 class="mt-1 text-lg font-black text-gray-900">{{ form.name }}</h2>
                 </div>
                 {% if form.is_active %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}

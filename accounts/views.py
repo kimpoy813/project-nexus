@@ -2959,6 +2959,8 @@ def dynamic_form_create(request):
                 name=name,
                 slug=_unique_dynamic_form_slug(name),
                 applies_to=(request.POST.get("applies_to") or DynamicFormTemplate.AppliesTo.GENERAL).strip(),
+                proposal_wizard_step=_safe_int(request.POST.get("proposal_wizard_step"), 0) or None,
+                blocks_proposal_submission=request.POST.get("blocks_proposal_submission") == "on",
                 description=(request.POST.get("description") or "").strip(),
                 instructions=(request.POST.get("instructions") or "").strip(),
                 is_active=request.POST.get("is_active") == "on",
@@ -2988,6 +2990,8 @@ def dynamic_form_edit(request, pk):
         form_obj.name = name
         form_obj.slug = _unique_dynamic_form_slug(name, existing=form_obj)
         form_obj.applies_to = (request.POST.get("applies_to") or form_obj.applies_to).strip()
+        form_obj.proposal_wizard_step = _safe_int(request.POST.get("proposal_wizard_step"), 0) or None
+        form_obj.blocks_proposal_submission = request.POST.get("blocks_proposal_submission") == "on"
         form_obj.description = (request.POST.get("description") or "").strip()
         form_obj.instructions = (request.POST.get("instructions") or "").strip()
         form_obj.is_active = request.POST.get("is_active") == "on"
