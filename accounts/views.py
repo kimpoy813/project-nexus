@@ -53,6 +53,7 @@ from proposals.models import (
     MOASubmission,
 )
 from details.models import (
+    AccomplishmentReport,
     Activity,
     ActivityDate,
     DocumentTemplate,
@@ -61,6 +62,8 @@ from details.models import (
     ExtensionProcess,
     Personnel,
     ProcessStep,
+    ProposalWizardStepConfig,
+    RoleCapability,
     Target,
 )
 
@@ -1945,6 +1948,9 @@ def admin_dashboard(request):
         "signatories_count": Signatory.objects.count(),
         "document_template_count": DocumentTemplate.objects.count(),
         "dynamic_form_count": DynamicFormTemplate.objects.count(),
+        "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
+        "role_capability_count": RoleCapability.objects.filter(enabled=True).count(),
+        "accomplishment_report_count": AccomplishmentReport.objects.count(),
         "total_content": (
             Personnel.objects.count()
             + Activity.objects.count()
@@ -1953,6 +1959,8 @@ def admin_dashboard(request):
             + Signatory.objects.count()
             + DocumentTemplate.objects.count()
             + DynamicFormTemplate.objects.count()
+            + ProposalWizardStepConfig.objects.count()
+            + AccomplishmentReport.objects.count()
         ),
         "recent_users": Profile.objects.select_related("user").filter(
             user__date_joined__gte=week_ago
@@ -2789,6 +2797,73 @@ def faculty_delete_draft(request, proposal_id):
     return redirect("dashboard_redirect")
 
 
+def _user_role(user):
+    profile = getattr(user, "profile", None)
+    return (getattr(profile, "role", "") or "").upper()
+
+
+def user_has_capability(user, capability):
+    if not user.is_authenticated:
+        return False
+    role = _user_role(user)
+    if role == Profile.ROLE_ADMIN or getattr(user, "is_superuser", False):
+        return True
+    return RoleCapability.objects.filter(
+        role=role,
+        capability=capability,
+        enabled=True,
+    ).exists()
+
+
+def _sync_default_wizard_step_configs():
+    # Import here to avoid circular import at module load time.
+    from proposals.views import STEP_LABELS
+
+    existing = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    to_create = []
+    for item in STEP_LABELS:
+        if item["no"] not in existing:
+            to_create.append(
+                ProposalWizardStepConfig(
+                    step_no=item["no"],
+                    title=item["title"],
+                    description=item["desc"],
+                    is_visible=True,
+                    is_required=True,
+                )
+            )
+    if to_create:
+        ProposalWizardStepConfig.objects.bulk_create(to_create)
+
+
+def _sync_default_role_capabilities():
+    default_enabled = {
+        (RoleCapability.Role.FACULTY, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.EVALUATOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.EVALUATOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.DEPARTMENT_COORDINATOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.DEPARTMENT_COORDINATOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.DEPARTMENT_COORDINATOR, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT),
+        (RoleCapability.Role.CAMPUS_COORDINATOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.CAMPUS_COORDINATOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.CAMPUS_COORDINATOR, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT),
+        (RoleCapability.Role.STAFF, RoleCapability.Capability.MANAGE_MOA),
+        (RoleCapability.Role.STAFF, RoleCapability.Capability.MANAGE_IMPLEMENTATION),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.CREATE_PROPOSAL),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.REVIEW_PROPOSAL),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.MANAGE_MOA),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.MANAGE_IMPLEMENTATION),
+        (RoleCapability.Role.DIRECTOR, RoleCapability.Capability.VIEW_ANALYTICS),
+    }
+    for role, _label in RoleCapability.Role.choices:
+        for capability, _cap_label in RoleCapability.Capability.choices:
+            RoleCapability.objects.get_or_create(
+                role=role,
+                capability=capability,
+                defaults={"enabled": (role, capability) in default_enabled},
+            )
+
+
 # ==============================
 # ADMIN NO-CODE BUILDER
 # ==============================
@@ -3041,3 +3116,134 @@ def dynamic_form_delete(request, pk):
     form_obj.delete()
     messages.success(request, f'Form "{name}" deleted successfully.')
     return redirect("dynamic_forms_list")
+
+
+@login_required
+@admin_required
+def wizard_steps_manager(request):
+    _sync_default_wizard_step_configs()
+    steps = ProposalWizardStepConfig.objects.all().order_by("step_no")
+    return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
+
+
+@login_required
+@admin_required
+def wizard_step_edit(request, step_no):
+    _sync_default_wizard_step_configs()
+    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
+
+    if request.method == "POST":
+        step_config.title = (request.POST.get("title") or step_config.title).strip()
+        step_config.description = (request.POST.get("description") or "").strip()
+        step_config.instructions = (request.POST.get("instructions") or "").strip()
+        step_config.is_visible = request.POST.get("is_visible") == "on"
+        step_config.is_required = request.POST.get("is_required") == "on"
+        step_config.save()
+        messages.success(request, f"Wizard Step {step_config.step_no} updated.")
+        return redirect("wizard_steps_manager")
+
+    return render(
+        request,
+        "dashboard/admin/wizard_step_form.html",
+        {"step_config": step_config},
+    )
+
+
+@login_required
+@admin_required
+def role_capabilities_manager(request):
+    _sync_default_role_capabilities()
+
+    if request.method == "POST":
+        enabled_ids = set(request.POST.getlist("enabled_capabilities"))
+        for item in RoleCapability.objects.all():
+            item.enabled = str(item.id) in enabled_ids
+            item.notes = (request.POST.get(f"notes_{item.id}") or "").strip()
+            item.save(update_fields=["enabled", "notes", "updated_at"])
+        messages.success(request, "Role capability matrix updated.")
+        return redirect("role_capabilities_manager")
+
+    capabilities = RoleCapability.objects.all().order_by("role", "capability")
+    grouped = []
+    by_role = OrderedDict()
+    for item in capabilities:
+        by_role.setdefault(item.role, []).append(item)
+    for role, items in by_role.items():
+        grouped.append({
+            "role": role,
+            "role_label": dict(RoleCapability.Role.choices).get(role, role),
+            "items": items,
+        })
+
+    return render(
+        request,
+        "dashboard/admin/role_capabilities_manager.html",
+        {"grouped_capabilities": grouped},
+    )
+
+
+@login_required
+def accomplishment_reports_list(request):
+    if not user_has_capability(request.user, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT):
+        messages.error(request, "You do not have permission to manage accomplishment reports.")
+        return redirect("dashboard_redirect")
+
+    profile = getattr(request.user, "profile", None)
+    role = _user_role(request.user)
+    reports = AccomplishmentReport.objects.select_related("submitted_by", "submitted_by__profile")
+
+    if role == Profile.ROLE_DEPARTMENT_COORDINATOR:
+        reports = reports.filter(department=getattr(profile, "department", ""))
+    elif role == Profile.ROLE_CAMPUS_COORDINATOR:
+        reports = reports.filter(campus=getattr(profile, "campus", ""))
+    elif role not in {Profile.ROLE_ADMIN, Profile.ROLE_DIRECTOR, Profile.ROLE_STAFF}:
+        reports = reports.filter(submitted_by=request.user)
+
+    return render(
+        request,
+        "dashboard/accomplishment_reports_list.html",
+        {"reports": reports, "can_submit_accomplishment": True},
+    )
+
+
+@login_required
+def accomplishment_report_create(request):
+    if not user_has_capability(request.user, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT):
+        messages.error(request, "You do not have permission to submit accomplishment reports.")
+        return redirect("dashboard_redirect")
+
+    profile = getattr(request.user, "profile", None)
+
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        year = _safe_int(request.POST.get("year"), timezone.now().year)
+        quarter = (request.POST.get("quarter") or "").strip()
+        if not title or quarter not in dict(AccomplishmentReport.Quarter.choices):
+            messages.error(request, "Title and quarter are required.")
+        else:
+            AccomplishmentReport.objects.create(
+                title=title,
+                year=year,
+                quarter=quarter,
+                campus=(request.POST.get("campus") or getattr(profile, "campus", "") or "").strip(),
+                college=(request.POST.get("college") or getattr(profile, "college", "") or "").strip(),
+                department=(request.POST.get("department") or getattr(profile, "department", "") or "").strip(),
+                narrative=(request.POST.get("narrative") or "").strip(),
+                activities_count=_safe_int(request.POST.get("activities_count"), 0),
+                beneficiaries_count=_safe_int(request.POST.get("beneficiaries_count"), 0),
+                partners_count=_safe_int(request.POST.get("partners_count"), 0),
+                attachment=request.FILES.get("attachment"),
+                submitted_by=request.user,
+            )
+            messages.success(request, "Quarterly accomplishment report submitted.")
+            return redirect("accomplishment_reports_list")
+
+    return render(
+        request,
+        "dashboard/accomplishment_report_form.html",
+        {
+            "quarter_choices": AccomplishmentReport.Quarter.choices,
+            "profile": profile,
+            "current_year": timezone.now().year,
+        },
+    )

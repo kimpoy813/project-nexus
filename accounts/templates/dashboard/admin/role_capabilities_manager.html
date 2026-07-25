@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Role Capability Matrix - NExUS{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div>
+      <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Admin Role Builder</p>
+      <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Role Capability Matrix</h1>
+      <p class="mt-2 text-sm text-gray-600">Turn capabilities on/off per role. This lets the office add functions like quarterly accomplishment reports to coordinators.</p>
+    </div>
+    <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
+  </div>
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+    {% for group in grouped_capabilities %}
+    <section class="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-black text-gray-900">{{ group.role_label }}</h2>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {% for item in group.items %}
+        <label class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div class="flex items-start gap-3">
+            <input type="checkbox" name="enabled_capabilities" value="{{ item.id }}" {% if item.enabled %}checked{% endif %} class="mt-1 rounded border-gray-300 text-primary focus:ring-primary">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-black text-gray-900">{{ item.get_capability_display }}</p>
+              <input type="text" name="notes_{{ item.id }}" value="{{ item.notes }}" placeholder="Optional note" class="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-xs">
+            </div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+    <div class="sticky bottom-4 flex justify-end">
+      <button type="submit" class="rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-xl hover:bg-secondary">Save Capability Matrix</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -93,6 +93,10 @@
                   {{ s.title }}
                 </p>
 
+                {% if not s.is_required %}
+                  <span class="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">Optional</span>
+                {% endif %}
+
                 {# Comment marker (shows when this step has reviewer comments) #}
                 {% if proposal.proposal_status == "FOR_REVISION" and s.comment_count %}
                   <span class="shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-secondary text-white text-[10px] font-bold leading-[18px] text-center"

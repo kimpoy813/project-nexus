@@ -63,11 +63,16 @@
                 <h2 class="mt-1 text-xl font-black tracking-tight text-gray-900">Update processes, forms, and templates without coding</h2>
                 <p class="mt-1 text-sm text-gray-600">When the Extension Office changes requirements, use these builders instead of editing source files.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 p-6">
                 <a href="{% url 'processes_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
                     <p class="text-sm font-black text-gray-900">Process Builder</p>
                     <p class="mt-2 text-3xl font-black text-primary">{{ processes_count|default:0 }}</p>
                     <p class="mt-1 text-xs leading-5 text-gray-500">Edit public process flows and step-by-step office procedures.</p>
+                </a>
+                <a href="{% url 'wizard_steps_manager' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
+                    <p class="text-sm font-black text-gray-900">Wizard Step Manager</p>
+                    <p class="mt-2 text-3xl font-black text-primary">{{ wizard_step_config_count|default:0 }}</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Rename, hide, or make built-in proposal wizard steps optional.</p>
                 </a>
                 <a href="{% url 'dynamic_forms_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
                     <p class="text-sm font-black text-gray-900">Form Builder</p>
@@ -78,6 +83,11 @@
                     <p class="text-sm font-black text-gray-900">Template Library</p>
                     <p class="mt-2 text-3xl font-black text-primary">{{ document_template_count|default:0 }}</p>
                     <p class="mt-1 text-xs leading-5 text-gray-500">Upload official DOCX/XLSX/PDF templates used by proponents and office staff.</p>
+                </a>
+                <a href="{% url 'role_capabilities_manager' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
+                    <p class="text-sm font-black text-gray-900">Role Capability Matrix</p>
+                    <p class="mt-2 text-3xl font-black text-primary">{{ role_capability_count|default:0 }}</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Turn role functions on/off, like coordinator quarterly reports.</p>
                 </a>
             </div>
         </div>

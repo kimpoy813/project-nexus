@@ -1,7 +1,10 @@
 from django.contrib import admin
 
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
-from details.models import DocumentTemplate, DynamicFormTemplate, DynamicFormField, DynamicFormResponse, DynamicFormAnswer
+from details.models import (
+    AccomplishmentReport, DocumentTemplate, DynamicFormTemplate, DynamicFormField,
+    DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig, RoleCapability,
+)
 
 
 @admin.register(Profile)
@@ -77,3 +80,24 @@ class DynamicFormResponseAdmin(admin.ModelAdmin):
     list_filter = ("form__applies_to", "form")
     search_fields = ("form__name", "proposal__title", "proposal__research_title", "submitted_by__username")
     inlines = [DynamicFormAnswerInline]
+
+
+@admin.register(ProposalWizardStepConfig)
+class ProposalWizardStepConfigAdmin(admin.ModelAdmin):
+    list_display = ("step_no", "title", "is_visible", "is_required", "updated_at")
+    list_filter = ("is_visible", "is_required")
+    search_fields = ("title", "description", "instructions")
+
+
+@admin.register(RoleCapability)
+class RoleCapabilityAdmin(admin.ModelAdmin):
+    list_display = ("role", "capability", "enabled", "updated_at")
+    list_filter = ("role", "capability", "enabled")
+    search_fields = ("notes",)
+
+
+@admin.register(AccomplishmentReport)
+class AccomplishmentReportAdmin(admin.ModelAdmin):
+    list_display = ("title", "year", "quarter", "campus", "department", "submitted_by", "submitted_at")
+    list_filter = ("year", "quarter", "campus")
+    search_fields = ("title", "narrative", "submitted_by__username", "submitted_by__profile__full_name")

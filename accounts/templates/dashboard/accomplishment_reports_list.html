@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Quarterly Accomplishment Reports - NExUS{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div>
+      <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Role-enabled function</p>
+      <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Quarterly Accomplishment Reports</h1>
+      <p class="mt-2 text-sm text-gray-600">Submit and review quarterly accomplishment reports based on the role capability matrix.</p>
+    </div>
+    <div class="flex gap-2">
+      <a href="{% url 'dashboard_redirect' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Dashboard</a>
+      <a href="{% url 'accomplishment_report_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Submit Report</a>
+    </div>
+  </div>
+  <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100">
+        <thead><tr>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Report</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Period</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Scope</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Metrics</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">File</th>
+        </tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for report in reports %}
+          <tr>
+            <td class="px-6 py-4"><p class="font-bold text-gray-900">{{ report.title }}</p><p class="text-xs text-gray-500">{{ report.submitted_by.profile.full_name|default:report.submitted_by.username }} · {{ report.submitted_at|date:"M d, Y" }}</p></td>
+            <td class="px-6 py-4 text-sm text-gray-700">{{ report.year }} {{ report.get_quarter_display }}</td>
+            <td class="px-6 py-4 text-sm text-gray-700">{{ report.campus|default:"—" }}{% if report.department %} · {{ report.department }}{% endif %}</td>
+            <td class="px-6 py-4 text-xs text-gray-600">Activities: {{ report.activities_count }}<br>Beneficiaries: {{ report.beneficiaries_count }}<br>Partners: {{ report.partners_count }}</td>
+            <td class="px-6 py-4">{% if report.attachment %}<a href="{{ report.attachment.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">View</a>{% else %}<span class="text-xs text-gray-400">None</span>{% endif %}</td>
+          </tr>
+          {% empty %}<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No accomplishment reports yet.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

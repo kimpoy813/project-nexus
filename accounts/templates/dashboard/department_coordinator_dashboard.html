@@ -45,6 +45,19 @@
         </div>
     </div>
 
+
+    {% if can_submit_accomplishment %}
+    <div class="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm font-bold text-green-900">Quarterly accomplishment reporting is enabled for your role</p>
+            <p class="text-sm text-green-700">Submit or review accomplishment reports for your assigned scope.</p>
+        </div>
+        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-green-700 bg-white border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50">
+            Open Reports
+        </a>
+    </div>
+    {% endif %}
+
     {% if pending_review_count %}
     <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 flex items-center justify-between">
         <div>

@@ -275,3 +275,94 @@ class DynamicFormAnswer(models.Model):
     @property
     def has_value(self):
         return bool((self.value or "").strip() or self.file)
+
+
+class ProposalWizardStepConfig(models.Model):
+    """Admin overrides for the built-in 19 proposal wizard steps."""
+
+    step_no = models.PositiveSmallIntegerField(unique=True)
+    title = models.CharField(max_length=160)
+    description = models.CharField(max_length=255, blank=True, default="")
+    instructions = models.TextField(blank=True, default="")
+    is_visible = models.BooleanField(default=True)
+    is_required = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["step_no"]
+
+    def __str__(self):
+        return f"Step {self.step_no}: {self.title}"
+
+
+class RoleCapability(models.Model):
+    """Admin-managed feature switches for each account role."""
+
+    class Role(models.TextChoices):
+        FACULTY = "FACULTY", "Faculty"
+        STAFF = "STAFF", "Staff"
+        EVALUATOR = "EVALUATOR", "Evaluator"
+        DEPARTMENT_COORDINATOR = "DEPARTMENT_COORDINATOR", "Department Coordinator"
+        CAMPUS_COORDINATOR = "CAMPUS_COORDINATOR", "Campus Coordinator"
+        DIRECTOR = "DIRECTOR", "Director"
+        ADMIN = "ADMIN", "Admin"
+
+    class Capability(models.TextChoices):
+        CREATE_PROPOSAL = "CREATE_PROPOSAL", "Create proposals"
+        REVIEW_PROPOSAL = "REVIEW_PROPOSAL", "Review/comment on proposals"
+        MANAGE_MOA = "MANAGE_MOA", "Manage MOA workflow"
+        MANAGE_IMPLEMENTATION = "MANAGE_IMPLEMENTATION", "Manage implementation workflow"
+        SUBMIT_QUARTERLY_ACCOMPLISHMENT = "SUBMIT_QUARTERLY_ACCOMPLISHMENT", "Submit quarterly accomplishment reports"
+        VIEW_ANALYTICS = "VIEW_ANALYTICS", "View analytics dashboards"
+
+    role = models.CharField(max_length=50, choices=Role.choices)
+    capability = models.CharField(max_length=80, choices=Capability.choices)
+    enabled = models.BooleanField(default=False)
+    notes = models.CharField(max_length=255, blank=True, default="")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["role", "capability"]
+        constraints = [
+            models.UniqueConstraint(fields=["role", "capability"], name="unique_role_capability"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_role_display()} - {self.get_capability_display()}"
+
+
+class AccomplishmentReport(models.Model):
+    """Quarterly accomplishment report submitted by roles with the capability."""
+
+    class Quarter(models.TextChoices):
+        Q1 = "Q1", "1st Quarter"
+        Q2 = "Q2", "2nd Quarter"
+        Q3 = "Q3", "3rd Quarter"
+        Q4 = "Q4", "4th Quarter"
+
+    title = models.CharField(max_length=220)
+    year = models.PositiveIntegerField(default=2026)
+    quarter = models.CharField(max_length=2, choices=Quarter.choices)
+    campus = models.CharField(max_length=150, blank=True, default="")
+    college = models.CharField(max_length=255, blank=True, default="")
+    department = models.CharField(max_length=255, blank=True, default="")
+    narrative = models.TextField(blank=True, default="")
+    activities_count = models.PositiveIntegerField(default=0)
+    beneficiaries_count = models.PositiveIntegerField(default=0)
+    partners_count = models.PositiveIntegerField(default=0)
+    attachment = models.FileField(upload_to="accomplishment_reports/", blank=True, null=True)
+    submitted_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="accomplishment_reports",
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-year", "quarter", "campus", "department"]
+
+    def __str__(self):
+        return f"{self.title} ({self.year} {self.quarter})"

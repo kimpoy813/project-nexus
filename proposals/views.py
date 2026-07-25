@@ -28,7 +28,7 @@ from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
 from details.models import (
     DocumentTemplate, DynamicFormAnswer, DynamicFormField, DynamicFormResponse,
-    DynamicFormTemplate, ExtensionProcess, ProcessStep,
+    DynamicFormTemplate, ExtensionProcess, ProcessStep, ProposalWizardStepConfig, RoleCapability,
 )
 from .moa_docx import build_moa_document
 from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
@@ -201,6 +201,32 @@ def _is_campus_coordinator(user):
     return getattr(profile, "role", "") == "CAMPUS_COORDINATOR"
 
 
+def _user_role_value(user):
+    profile = getattr(user, "profile", None)
+    return (getattr(profile, "role", "") or "").upper()
+
+
+def _role_has_capability(user, capability):
+    if not user.is_authenticated:
+        return False
+    role = _user_role_value(user)
+    if role == "ADMIN" or getattr(user, "is_superuser", False):
+        return True
+
+    existing = RoleCapability.objects.filter(role=role, capability=capability).first()
+    if existing is not None:
+        return existing.enabled
+
+    # Backward-compatible defaults before the admin capability matrix is initialized.
+    defaults = {
+        RoleCapability.Capability.CREATE_PROPOSAL: {"FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR", "DIRECTOR"},
+        RoleCapability.Capability.REVIEW_PROPOSAL: {"EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR", "DIRECTOR"},
+        RoleCapability.Capability.MANAGE_MOA: {"STAFF", "DIRECTOR"},
+        RoleCapability.Capability.MANAGE_IMPLEMENTATION: {"STAFF", "DIRECTOR"},
+    }
+    return role in defaults.get(capability, set())
+
+
 def _has_active_evaluator_assignment(user, proposal=None, review_round=None):
     qs = ProposalEvaluatorAssignment.objects.filter(
         evaluator=user,
@@ -243,6 +269,9 @@ def _can_review(user, proposal):
     profile = getattr(user, "profile", None)
     role = getattr(profile, "role", "")
 
+    if not _role_has_capability(user, RoleCapability.Capability.REVIEW_PROPOSAL):
+        return _has_active_evaluator_assignment(user, proposal=proposal)
+
     if role == "DIRECTOR":
         return True
 
@@ -284,7 +313,12 @@ def _can_manage_phase(user, proposal):
     """
     if not user.is_authenticated:
         return False
-    return _is_staff(user) or _is_director(user)
+    return (
+        _role_has_capability(user, RoleCapability.Capability.MANAGE_MOA)
+        or _role_has_capability(user, RoleCapability.Capability.MANAGE_IMPLEMENTATION)
+        or _is_staff(user)
+        or _is_director(user)
+    )
 
 
 
@@ -645,6 +679,67 @@ def unmark_step_completed(proposal, step_no):
     proposal.completed_steps = sorted(completed)
 
 
+def _wizard_step_config_map():
+    configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    missing = []
+    for item in STEP_LABELS:
+        if item["no"] not in configs:
+            missing.append(
+                ProposalWizardStepConfig(
+                    step_no=item["no"],
+                    title=item["title"],
+                    description=item["desc"],
+                    is_visible=True,
+                    is_required=True,
+                )
+            )
+    if missing:
+        ProposalWizardStepConfig.objects.bulk_create(missing)
+        configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    return configs
+
+
+def get_visible_wizard_step_numbers():
+    configs = _wizard_step_config_map()
+    visible = [item["no"] for item in STEP_LABELS if configs.get(item["no"]).is_visible]
+    return visible or [item["no"] for item in STEP_LABELS]
+
+
+def get_required_wizard_step_numbers():
+    configs = _wizard_step_config_map()
+    return [
+        item["no"]
+        for item in STEP_LABELS
+        if configs.get(item["no"]).is_visible and configs.get(item["no"]).is_required
+    ]
+
+
+def normalize_wizard_step(step):
+    visible = get_visible_wizard_step_numbers()
+    if step in visible:
+        return step
+    for no in visible:
+        if no > step:
+            return no
+    return visible[-1]
+
+
+def next_visible_wizard_step(step):
+    visible = get_visible_wizard_step_numbers()
+    for no in visible:
+        if no > step:
+            return no
+    return None
+
+
+def previous_visible_wizard_step(step):
+    visible = list(reversed(get_visible_wizard_step_numbers()))
+    for no in visible:
+        if no < step:
+            return no
+    return None
+
+
 def is_step_complete(proposal, step):
     if step == 1:
         if not proposal.extension_type or not proposal.scope_type:
@@ -749,10 +844,15 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
+    configs = _wizard_step_config_map()
 
     steps = []
     for item in STEP_LABELS:
         no = item["no"]
+        config = configs.get(no)
+        if config and not config.is_visible:
+            continue
+
         if no == current_step:
             state = "current"
         elif no in completed:
@@ -763,7 +863,15 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
             state = "upcoming"
 
         ccount = int(comment_counts.get(no, 0) or 0)
-        steps.append({**item, "state": state, "comment_count": ccount, "has_comment": ccount > 0})
+        steps.append({
+            **item,
+            "title": config.title if config else item["title"],
+            "desc": config.description if config else item["desc"],
+            "is_required": config.is_required if config else True,
+            "state": state,
+            "comment_count": ccount,
+            "has_comment": ccount > 0,
+        })
     return steps
 
 
@@ -783,8 +891,11 @@ def _update_creator_role(proposal):
 
 
 def _build_wizard_context(proposal, step, request_user, comment_counts=None):
-    completed_count = len(proposal.completed_steps or [])
-    progress = int((completed_count / TOTAL_STEPS) * 100) if TOTAL_STEPS else 0
+    required_steps = set(get_required_wizard_step_numbers())
+    completed_required = required_steps.intersection(set(proposal.completed_steps or []))
+    progress = int((len(completed_required) / len(required_steps)) * 100) if required_steps else 100
+    configs = _wizard_step_config_map()
+    step_config = configs.get(step)
 
     ctx = {
         "proposal": proposal,
@@ -792,6 +903,7 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
         "total_steps": TOTAL_STEPS,
         "progress": progress,
         "wizard_steps": build_wizard_steps(proposal, step, comment_counts=comment_counts),
+        "wizard_step_config": step_config,
     }
 
     active_cutoff = timezone.now() - timedelta(seconds=45)
@@ -1007,6 +1119,10 @@ def _proposal_dynamic_requirements_missing(proposal):
 @login_required
 @faculty_like_required
 def proposal_create(request):
+    if not _role_has_capability(request.user, RoleCapability.Capability.CREATE_PROPOSAL):
+        messages.error(request, "Your role is not currently allowed to create proposals. Please contact the administrator.")
+        return redirect("dashboard_redirect")
+
     profile = getattr(request.user, "profile", None)
 
     proposal = Proposal.objects.create(
@@ -1040,7 +1156,7 @@ def proposal_wizard(request, proposal_id, step):
         messages.error(request, "You don't have access to this proposal.")
         return redirect("dashboard_redirect")
 
-    step = max(1, min(step, TOTAL_STEPS))
+    step = normalize_wizard_step(max(1, min(step, TOTAL_STEPS)))
     can_edit = _can_edit(request.user, proposal)
     can_review = _can_review(request.user, proposal)
 
@@ -1638,13 +1754,13 @@ def proposal_wizard(request, proposal_id, step):
         return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
 
     if action == "back":
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=max(1, step - 1))
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=previous_visible_wizard_step(step) or step)
 
     if action == "skip":
         mark_step_skipped(proposal, step)
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
         messages.info(request, "Skipped.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=min(TOTAL_STEPS, step + 1))
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step) or step)
 
     if is_step_complete(proposal, step):
         mark_step_completed(proposal, step)
@@ -1653,12 +1769,13 @@ def proposal_wizard(request, proposal_id, step):
 
     proposal.save(update_fields=["completed_steps", "skipped_steps"])
 
-    if step >= TOTAL_STEPS:
-        messages.success(request, "All steps completed.")
+    next_step = next_visible_wizard_step(step)
+    if not next_step:
+        messages.success(request, "All visible required steps completed.")
         return redirect("proposal_submit", proposal_id=proposal.id)
 
     messages.success(request, "Draft saved.")
-    return redirect("proposal_wizard", proposal_id=proposal.id, step=step + 1)
+    return redirect("proposal_wizard", proposal_id=proposal.id, step=next_step)
 
 
 @login_required
@@ -1678,7 +1795,7 @@ def proposal_submit(request, proposal_id):
         messages.warning(request, "This proposal has already been submitted or is not editable.")
         return redirect("services_home")
 
-    all_required_steps = set(range(1, TOTAL_STEPS + 1))
+    all_required_steps = set(get_required_wizard_step_numbers())
     completed_steps = set(proposal.completed_steps or [])
 
     if not all_required_steps.issubset(completed_steps):
