@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.shortcuts import render
 from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
@@ -21,6 +22,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', include('details.urls')),  # Public landing page
+    path('reports/', lambda r: render(r, 'reports.html'), name='reports'),
+    path('achievements/', lambda r: render(r, 'achievements.html'), name='achievements'),
     path('', include('accounts.urls')),  # Auth routes
     path('', include('proposals.urls')),  # Proposal management
     path('admin/', admin.site.urls),
