@@ -8,6 +8,7 @@ from .models import Profile
 
 FACULTY_LIKE_ROLES = [
     "FACULTY",
+    "EVALUATOR",
     "DEPARTMENT_COORDINATOR",
     "CAMPUS_COORDINATOR",
     "DIRECTOR",

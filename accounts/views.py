@@ -138,6 +138,8 @@ def _get_role_dashboard_name(role):
         return "campus_coordinator_dashboard"
     if role == Profile.ROLE_STAFF:
         return "staff_dashboard"
+    if role == Profile.ROLE_EVALUATOR:
+        return "evaluator_dashboard"
     return "faculty_dashboard"
 
 
@@ -616,6 +618,7 @@ def _get_assignable_evaluators_for_proposal(proposal):
             is_active=True,
             profile__role__in=[
                 Profile.ROLE_FACULTY,
+                Profile.ROLE_EVALUATOR,
                 Profile.ROLE_DEPARTMENT_COORDINATOR,
                 Profile.ROLE_CAMPUS_COORDINATOR,
             ],
@@ -1072,6 +1075,24 @@ def faculty_dashboard(request):
 
 
 @login_required
+@role_required(["EVALUATOR"])
+def evaluator_dashboard(request):
+    profile, _ = _get_or_create_profile(request.user)
+    assigned_review_queue = _get_evaluator_review_queue(request.user)
+    proposals_ctx = _get_user_proposals_context(request.user)
+
+    context = {
+        "profile": profile,
+        "nav_notif_count": proposals_ctx.get("needs_attention_count", 0) + assigned_review_queue.count(),
+        **proposals_ctx,
+        "assigned_review_queue": assigned_review_queue,
+        "assigned_review_count": assigned_review_queue.count(),
+        "has_evaluator_assignments": assigned_review_queue.exists(),
+    }
+    return render(request, "dashboard/evaluator_dashboard.html", context)
+
+
+@login_required
 @role_required(["DIRECTOR"])
 def director_dashboard(request):
     profile, _ = _get_or_create_profile(request.user)
@@ -1442,6 +1463,7 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id):
 
         allowed_roles = {
             Profile.ROLE_FACULTY,
+            Profile.ROLE_EVALUATOR,
             Profile.ROLE_DEPARTMENT_COORDINATOR,
             Profile.ROLE_CAMPUS_COORDINATOR,
         }
@@ -1908,9 +1930,7 @@ def admin_dashboard(request):
         "unverified_users": Profile.objects.filter(email_verified=False).count(),
         "active_today": User.objects.filter(last_login__gte=today_start).count(),
         "faculty_count": Profile.objects.filter(role=Profile.ROLE_FACULTY).count(),
-        "evaluator_count": User.objects.filter(
-            proposal_evaluator_assignments__is_active=True
-        ).distinct().count(),
+        "evaluator_count": Profile.objects.filter(role=Profile.ROLE_EVALUATOR).count(),
         "department_coordinator_count": Profile.objects.filter(
             role=Profile.ROLE_DEPARTMENT_COORDINATOR
         ).count(),

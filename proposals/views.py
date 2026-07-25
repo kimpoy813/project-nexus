@@ -1977,7 +1977,7 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id=None):
         return redirect("dashboard_redirect")
 
     evaluator_profile = getattr(evaluator, "profile", None)
-    allowed_roles = {"FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
+    allowed_roles = {"FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
 
     if not evaluator_profile or evaluator_profile.role not in allowed_roles:
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
@@ -2016,7 +2016,7 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id=None):
     proposal.mark_in_review(review_level=Proposal.ReviewLevel.DIRECTOR)
 
     assigned_qs = ProposalEvaluatorAssignment.objects.filter(proposal=proposal, review_round=current_round, is_active=True).select_related("evaluator", "evaluator__profile")
-    available_qs = User.objects.filter(profile__role__in=["FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
+    available_qs = User.objects.filter(profile__role__in=["FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
 
     response = {
         "ok": True,
@@ -2063,7 +2063,7 @@ def proposal_remove_evaluator(request, proposal_id, evaluator_id):
     current_round.save(update_fields=["evaluator_review_required", "evaluator_review_done", "ready_for_staff_summary"])
 
     assigned_qs = ProposalEvaluatorAssignment.objects.filter(proposal=proposal, review_round=current_round, is_active=True).select_related("evaluator", "evaluator__profile")
-    available_qs = User.objects.filter(profile__role__in=["FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
+    available_qs = User.objects.filter(profile__role__in=["FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"]).exclude(id__in=assigned_qs.values_list("evaluator_id", flat=True)).exclude(id__in=proposal.proponents.values_list("user_id", flat=True)).select_related("profile").order_by("profile__full_name", "username")
 
     return JsonResponse({
         "ok": True,

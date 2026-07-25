@@ -46,6 +46,10 @@ class Profile(models.Model):
         return self.role == self.ROLE_STAFF
 
     @property
+    def is_evaluator(self):
+        return self.role == self.ROLE_EVALUATOR
+
+    @property
     def is_director(self):
         return self.role == self.ROLE_DIRECTOR
 
@@ -91,12 +95,14 @@ class Profile(models.Model):
     ROLE_DEPARTMENT_COORDINATOR = "DEPARTMENT_COORDINATOR"
     ROLE_CAMPUS_COORDINATOR = "CAMPUS_COORDINATOR"
     ROLE_STAFF = "STAFF"
+    ROLE_EVALUATOR = "EVALUATOR"
     ROLE_DIRECTOR = "DIRECTOR"
     ROLE_ADMIN = "ADMIN"
 
     ROLE_CHOICES = [
         (ROLE_FACULTY, "Faculty"),
         (ROLE_STAFF, "Staff"),
+        (ROLE_EVALUATOR, "Evaluator"),
         (ROLE_DEPARTMENT_COORDINATOR, "Department Coordinator"),
         (ROLE_CAMPUS_COORDINATOR, "Campus Coordinator"),
         (ROLE_DIRECTOR, "Director"),

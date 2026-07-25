@@ -23,6 +23,7 @@ urlpatterns = [
     # Role-based dashboards
     path("dashboard/faculty/", views.faculty_dashboard, name="faculty_dashboard"),
     path("dashboard/staff/", views.staff_dashboard, name="staff_dashboard"),
+    path("dashboard/evaluator/", views.evaluator_dashboard, name="evaluator_dashboard"),
     path(
         "dashboard/department-coordinator/",
         views.department_coordinator_dashboard,

@@ -1596,7 +1596,7 @@ class ProposalEvaluatorAssignment(models.Model):
             raise ValidationError("Only a Director can assign evaluators.")
 
         evaluator_profile = getattr(self.evaluator, "profile", None)
-        allowed_roles = {"FACULTY", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
+        allowed_roles = {"FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
         if not evaluator_profile or evaluator_profile.role not in allowed_roles:
             raise ValidationError("Selected user is not eligible to be assigned as evaluator.")
 
