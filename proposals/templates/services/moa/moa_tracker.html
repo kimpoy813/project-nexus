@@ -2,37 +2,33 @@
 {% block content %}
 <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
 
-    <!-- Header -->
+    {# ── Header ── #}
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="flex items-start gap-3">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h6.586A2 2 0 0 1 14 2.586L17.414 6A2 2 0 0 1 18 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm7 6a1 1 0 1 0-2 0v.01a1 1 0 1 0 2 0V10zm-1-4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1z" clip-rule="evenodd" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 0 1 2-2h6.586A2 2 0 0 1 14 2.586L17.414 6A2 2 0 0 1 18 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm7 6a1 1 0 1 0-2 0v.01a1 1 0 1 0 2 0V10zm-1-4a1 1 0 0 1 1 1v1a1 1 0 1 1-2 0V7a1 1 0 0 1 1-1z" clip-rule="evenodd"/>
                 </svg>
             </div>
             <div>
                 <h1 class="text-2xl font-bold tracking-tight text-gray-900">MOA Tracker</h1>
-                <p class="mt-1 text-sm text-gray-600 break-words max-w-xl">
-                    {{ proposal.display_title }}
-                </p>
+                <p class="mt-1 text-sm text-gray-600 break-words max-w-xl">{{ proposal.display_title }}</p>
             </div>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2">
-            <a href="{% url 'proposal_storage' proposal.id %}"
-               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-                Back to Storage
-            </a>
-        </div>
+        <a href="{% url 'proposal_storage' proposal.id %}"
+           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+            Back to Storage
+        </a>
     </div>
 
+    {# ── Flash messages ── #}
     {% if messages %}
         <div class="mb-6 space-y-2">
             {% for message in messages %}
                 <div class="rounded-xl border px-4 py-3 text-sm
-                    {% if message.tags == 'success' %} border-green-200 bg-green-50 text-green-800
-                    {% elif message.tags == 'error' %} border-red-200 bg-red-50 text-red-800
-                    {% else %} border-blue-200 bg-blue-50 text-blue-800 {% endif %}">
+                    {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800
+                    {% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800
+                    {% else %}border-blue-200 bg-blue-50 text-blue-800{% endif %}">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -41,7 +37,7 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-        <!-- Stepper -->
+        {# ── LEFT — Stepper ── #}
         <div class="lg:col-span-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div class="border-b border-gray-100 px-6 py-5 flex items-center justify-between">
                 <div>
@@ -63,29 +59,27 @@
                     <div class="relative flex items-start gap-4 pb-8 last:pb-0">
                         {% if not forloop.last %}
                             <div class="absolute top-8 left-4 -translate-x-1/2 w-[2px] h-[calc(100%-1rem)]
-                                {% if s.state == 'completed' %} bg-primary {% else %} bg-gray-200 {% endif %}">
+                                {% if s.state == 'completed' %}bg-primary{% else %}bg-gray-200{% endif %}">
                             </div>
                         {% endif %}
-
                         <div class="relative z-10 flex items-center justify-center w-8 h-8 rounded-full shrink-0
-                            {% if s.state == 'completed' %} bg-primary text-white
-                            {% elif s.state == 'current' %} bg-white border-2 border-primary text-primary
-                            {% else %} bg-white border border-gray-200 text-gray-400 {% endif %}">
+                            {% if s.state == 'completed' %}bg-primary text-white
+                            {% elif s.state == 'current' %}bg-white border-2 border-primary text-primary
+                            {% else %}bg-white border border-gray-200 text-gray-400{% endif %}">
                             {% if s.state == 'completed' %}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
                                 </svg>
                             {% else %}
                                 <span class="text-xs font-bold">{{ s.no }}</span>
                             {% endif %}
                         </div>
-
-                        <div class="min-w-0 flex-1">
+                        <div class="min-w-0 flex-1 pt-0.5">
                             <div class="flex items-center gap-2">
                                 <p class="text-sm font-semibold
-                                    {% if s.state == 'current' %} text-primary
-                                    {% elif s.state == 'completed' %} text-gray-900
-                                    {% else %} text-gray-400 {% endif %}">
+                                    {% if s.state == 'current' %}text-primary
+                                    {% elif s.state == 'completed' %}text-gray-900
+                                    {% else %}text-gray-400{% endif %}">
                                     {{ s.label }}
                                 </p>
                                 {% if s.state == 'current' %}
@@ -101,8 +95,8 @@
             </div>
         </div>
 
-        <!-- Side panel: actions, upload, log -->
-        <div class="space-y-6">
+        {# ── RIGHT — Side panel ── #}
+        <div class="space-y-5">
 
             {% if not proposal.requires_moa %}
                 <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600">
@@ -110,108 +104,267 @@
                 </div>
             {% else %}
 
-                {% if can_manage %}
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Update Stage</h2>
-                    <p class="mt-1 text-xs text-gray-500">Staff / Director only.</p>
-
-                    <form method="post" class="mt-4 space-y-3">
-                        {% csrf_token %}
-                        <textarea name="remarks" rows="3" placeholder="Optional remarks for this transition..."
-                                  class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary"></textarea>
-
-                        <div class="flex flex-wrap gap-2">
-                            <button type="submit" name="action" value="advance"
-                                    {% if is_final_stage %}disabled{% endif %}
-                                    class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
-                                Advance to Next Stage
-                            </button>
-                            <button type="submit" name="action" value="back"
-                                    {% if is_first_stage %}disabled{% endif %}
-                                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                                Send Back
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                {% endif %}
-
-                <!-- Signed MOA upload -->
-                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">MOA Document</h2>
-
-                    <a href="{% url 'proposal_moa_draft' proposal.id %}"
-                       class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-secondary">
-                        Draft the MOA in NExUS
-                    </a>
-                    <p class="mt-2 text-xs text-gray-500">
-                        Fill out a guided form (partner institution, objectives, obligations, IP, funding, term)
-                        to generate a formatted MOA document — or upload your own file below.
-                    </p>
-
-                    {% if moa_doc %}
-                        <div class="mt-3 flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3">
-                            <div class="min-w-0">
-                                <p class="truncate text-sm font-semibold text-gray-900">{{ moa_doc.file.name|default:"MOA Document" }}</p>
-                                <p class="text-xs text-gray-500">Uploaded {{ moa_doc.uploaded_at|date:"M d, Y" }}</p>
-                            </div>
-                            <a href="{{ moa_doc.file.url }}" target="_blank"
-                               class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-secondary">
-                                View
-                            </a>
-                        </div>
-                    {% else %}
-                        <p class="mt-2 text-xs text-gray-500">No MOA document uploaded yet.</p>
-                    {% endif %}
-
-                    {% if is_proponent or can_manage %}
-                    <form method="post" enctype="multipart/form-data" class="mt-4">
-                        {% csrf_token %}
-                        <p class="mb-2 text-xs font-semibold text-gray-500">Or upload your own file:</p>
-                        <label for="moa_file"
-                               class="block cursor-pointer rounded-xl border-2 border-dashed border-gray-300 hover:border-primary bg-white p-5 text-center transition group">
-                            <input type="file" id="moa_file" name="moa_file" class="sr-only"
-                                   onchange="document.getElementById('moa-file-name').textContent = this.files[0] ? this.files[0].name : 'Click to upload PDF or DOCX';">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-6 w-6 text-gray-400 group-hover:text-primary transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
-                            </svg>
-                            <p id="moa-file-name" class="mt-2 text-xs font-medium text-gray-600">
-                                Click to upload PDF or DOCX
-                            </p>
-                        </label>
-                        <button type="submit" name="action" value="upload"
-                                class="mt-3 w-full rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-secondary">
-                            Upload / Replace Document
-                        </button>
-                    </form>
-                    {% endif %}
-                </div>
-            {% endif %}
-
-            <!-- Timeline -->
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Stage History</h2>
-                {% if logs %}
-                    <ul class="mt-3 space-y-3">
-                        {% for log in logs %}
-                            <li class="text-xs border-l-2 border-gray-200 pl-3">
-                                <p class="font-semibold text-gray-800">
-                                    {{ log.from_status_label|default:"—" }} &rarr; {{ log.to_status_label }}
-                                </p>
-                                <p class="text-gray-500">
-                                    {{ log.created_at|date:"M d, Y h:i A" }}
-                                    {% if log.changed_by %} &middot; {{ log.changed_by.get_full_name|default:log.changed_by.username }}{% endif %}
-                                </p>
-                                {% if log.remarks %}
-                                    <p class="mt-1 text-gray-600 italic">"{{ log.remarks }}"</p>
-                                {% endif %}
+                {# ── NOTIFICATIONS ── #}
+                {% if notifications %}
+                <div class="rounded-2xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-blue-900 uppercase tracking-wide">Notifications</h2>
+                        {% if unread_count %}
+                            <span class="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                                {{ unread_count }} new
+                            </span>
+                        {% endif %}
+                    </div>
+                    <ul class="space-y-3">
+                        {% for notif in notifications %}
+                            <li class="rounded-xl p-3 text-xs
+                                {% if not notif.is_read %}bg-white border border-blue-200{% else %}bg-blue-50/60{% endif %}">
+                                <div class="flex items-start justify-between gap-2">
+                                    <p class="text-gray-800 leading-relaxed whitespace-pre-line">{{ notif.message }}</p>
+                                    {% if not notif.is_read %}
+                                        <form method="post" class="shrink-0">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="mark_read">
+                                            <input type="hidden" name="notification_id" value="{{ notif.id }}">
+                                            <button type="submit"
+                                                    class="text-blue-400 hover:text-blue-600 transition text-[10px] font-semibold whitespace-nowrap">
+                                                Mark read
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                                <p class="mt-1 text-gray-400">{{ notif.created_at|date:"M d, Y · h:i A" }}</p>
                             </li>
                         {% endfor %}
                     </ul>
-                {% else %}
-                    <p class="mt-2 text-xs text-gray-500">No stage changes recorded yet.</p>
+                </div>
                 {% endif %}
-            </div>
+
+                {# ── MOA DOCUMENT ── #}
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">MOA Document</h2>
+
+                    {% with sub=proposal.moa_submission %}
+                        {% if sub %}
+                            <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 space-y-1">
+                                <p class="text-sm font-semibold text-gray-900 truncate">{{ sub.partner_agency_name }}</p>
+                                <p class="text-xs text-gray-500">{{ sub.partner_address }}</p>
+                                <p class="text-xs text-gray-400">
+                                    Year: <span class="text-gray-600 font-medium">{{ sub.year }}</span>
+                                    &nbsp;·&nbsp;
+                                    Duration: <span class="text-gray-600 font-medium">{{ sub.duration }} year{{ sub.duration|pluralize }}</span>
+                                </p>
+                                <p class="text-xs text-gray-400">Uploaded {{ sub.submitted_at|date:"M d, Y" }}</p>
+                            </div>
+                            <a href="{{ sub.moa_file.url }}" target="_blank"
+                               class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                                <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                                </svg>
+                                View MOA File
+                            </a>
+                        {% else %}
+                            <p class="mt-2 text-xs text-gray-500">No MOA document uploaded yet.</p>
+                        {% endif %}
+                    {% endwith %}
+
+                    {% if not status_completed %}
+                        {% if is_proponent or can_manage %}
+                            <a href="{% url 'moa_upload' proposal_id=proposal.id %}"
+                               class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-secondary">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                </svg>
+                                {% if proposal.moa_submission %}Update MOA Draft{% else %}Upload MOA Draft{% endif %}
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                {# ── WORKFLOW ACTIONS (Staff / Director only) ── #}
+                {% if can_manage %}
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 mb-1">MOA Review Actions</h2>
+                    <p class="text-xs text-gray-500 mb-4">Staff &amp; Director only.</p>
+
+                    {# DRAFT → Legal Review #}
+                    {% if status_draft %}
+                        <p class="text-xs text-gray-500 mb-3">The draft has been uploaded. Review the document then send it for Legal Review when ready.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="legal_review">
+                            <textarea name="remarks" rows="2" placeholder="Optional remarks…"
+                                      class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary mb-3 resize-none"></textarea>
+                            <button type="submit"
+                                    class="w-full rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-white hover:bg-secondary transition shadow-sm flex items-center justify-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+                                </svg>
+                                Send to Legal Review
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# LEGAL REVIEW → Revision or Certification Ready #}
+                    {% if status_legal_review %}
+                        <p class="text-xs text-gray-500 mb-4">Choose the outcome of the Legal Review:</p>
+
+                        <div class="rounded-xl border border-orange-200 bg-orange-50 p-4 mb-3">
+                            <p class="text-xs font-semibold text-orange-800 mb-2">⚠ Has comments — Send for Revision</p>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="for_revision">
+                                <textarea name="remarks" rows="3" required
+                                          placeholder="Revision comments — required. The proponent will see this."
+                                          class="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-xs focus:border-orange-400 mb-2 resize-none"></textarea>
+                                <button type="submit"
+                                        class="w-full rounded-lg bg-orange-500 px-4 py-2 text-xs font-semibold text-white hover:bg-orange-600 transition shadow-sm flex items-center justify-center gap-2">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                                    </svg>
+                                    Send for Revision &amp; Notify Proponent
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="rounded-xl border border-green-200 bg-green-50 p-4">
+                            <p class="text-xs font-semibold text-green-800 mb-2">✓ No comments — Mark Certification Ready</p>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="certification_ready">
+                                <textarea name="remarks" rows="2" placeholder="Optional remarks…"
+                                          class="w-full rounded-lg border border-green-200 bg-white px-3 py-2 text-xs focus:border-green-400 mb-2 resize-none"></textarea>
+                                <button type="submit"
+                                        class="w-full rounded-lg bg-green-600 px-4 py-2 text-xs font-semibold text-white hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    Certification Ready &amp; Notify Proponent
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    {# FOR REVISION — waiting for proponent #}
+                    {% if status_for_revision %}
+                        <div class="rounded-xl bg-orange-50 border border-orange-200 p-4 text-xs text-orange-800">
+                            <p class="font-semibold mb-1">⏳ Awaiting Proponent Revision</p>
+                            <p>The proponent has been notified. Once they re-upload the revised draft, you can send it back to Legal Review.</p>
+                        </div>
+                    {% endif %}
+
+                    {# CERTIFICATION READY → Agenda Brief #}
+                    {% if status_cert_ready %}
+                        <p class="text-xs text-gray-500 mb-3">The MOA has cleared Legal Review. Prepare the certification then schedule the Agenda Brief.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="agenda">
+                            <textarea name="remarks" rows="2" placeholder="Optional remarks…"
+                                      class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary mb-3 resize-none"></textarea>
+                            <button type="submit"
+                                    class="w-full rounded-lg bg-primary px-4 py-2.5 text-xs font-semibold text-white hover:bg-secondary transition shadow-sm flex items-center justify-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
+                                </svg>
+                                Prepare Agenda Brief &amp; Presentation
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# AGENDA → Complete #}
+                    {% if status_agenda %}
+                        <p class="text-xs text-gray-500 mb-3">The MOA has been presented. Mark as Completed once all parties have signed.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="complete">
+                            <textarea name="remarks" rows="2" placeholder="Optional remarks…"
+                                      class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary mb-3 resize-none"></textarea>
+                            <button type="submit"
+                                    class="w-full rounded-lg bg-green-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Mark MOA as Completed
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    {# COMPLETED #}
+                    {% if status_completed %}
+                        <div class="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 px-4 py-3">
+                            <svg class="h-5 w-5 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <p class="text-xs font-semibold text-green-800">MOA is fully completed.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {# ── PROPONENT STATUS MESSAGE ── #}
+                {% if is_proponent and not can_manage %}
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 mb-3">Your MOA Status</h2>
+                    {% if status_draft %}
+                        <div class="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                            <p class="font-semibold mb-1">📄 Draft Uploaded</p>
+                            <p>Your MOA draft has been received. Staff will review it and send it for Legal Review.</p>
+                        </div>
+                    {% elif status_legal_review %}
+                        <div class="rounded-xl bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
+                            <p class="font-semibold mb-1">⚖ Under Legal Review</p>
+                            <p>Your MOA draft is currently under review by the Legal Office. You will be notified once complete.</p>
+                        </div>
+                    {% elif status_for_revision %}
+                        <div class="rounded-xl bg-orange-50 border border-orange-200 p-3 text-xs text-orange-800">
+                            <p class="font-semibold mb-1">⚠ Action Required — Revision Needed</p>
+                            <p>The Legal Office returned your draft for revision. Check your notification above for comments, then upload the revised file.</p>
+                        </div>
+                    {% elif status_cert_ready %}
+                        <div class="rounded-xl bg-green-50 border border-green-200 p-3 text-xs text-green-800">
+                            <p class="font-semibold mb-1">✓ Certification in Progress</p>
+                            <p>Your MOA passed legal review. The Certification is being prepared by Staff. No action needed from you.</p>
+                        </div>
+                    {% elif status_agenda %}
+                        <div class="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+                            <p class="font-semibold mb-1">📋 Agenda Brief &amp; Presentation</p>
+                            <p>Your MOA has been scheduled for presentation to the approving body.</p>
+                        </div>
+                    {% elif status_completed %}
+                        <div class="rounded-xl bg-green-50 border border-green-200 p-3 text-xs text-green-800">
+                            <p class="font-semibold mb-1">🎉 MOA Completed!</p>
+                            <p>Congratulations! Your MOA has been signed by all parties.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {# ── STAGE HISTORY ── #}
+                <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900">Stage History</h2>
+                    {% if logs %}
+                        <ul class="mt-3 space-y-3">
+                            {% for log in logs %}
+                                <li class="text-xs border-l-2 border-gray-200 pl-3">
+                                    <p class="font-semibold text-gray-800">
+                                        {{ log.from_status_label|default:"—" }} &rarr; {{ log.to_status_label }}
+                                    </p>
+                                    <p class="text-gray-500">
+                                        {{ log.created_at|date:"M d, Y h:i A" }}
+                                        {% if log.changed_by %}&middot; {{ log.changed_by.get_full_name|default:log.changed_by.username }}{% endif %}
+                                    </p>
+                                    {% if log.remarks %}
+                                        <p class="mt-1 text-gray-600 italic">"{{ log.remarks }}"</p>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="mt-2 text-xs text-gray-500">No stage changes recorded yet.</p>
+                    {% endif %}
+                </div>
+
+            {% endif %}
         </div>
     </div>
 </div>

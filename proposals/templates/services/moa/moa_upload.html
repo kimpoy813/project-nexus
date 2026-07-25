@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-gray-50 flex flex-col">
+
+  {# ── Top bar ── #}
+  <header class="bg-white border-b border-gray-200 px-10 h-14 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3">
+      <a href="{% url 'proposal_moa_tracker' proposal.id %}"
+         class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Back to MOA Tracker
+      </a>
+      <span class="text-gray-300">|</span>
+      <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider">MOA Upload</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="inline-block h-2 w-2 rounded-full bg-amber-400"></span>
+      <span class="text-xs text-gray-500 font-medium">{{ proposal.display_title }}</span>
+    </div>
+  </header>
+
+  {# ── Flash messages ── #}
+  {% if messages %}
+    <div class="px-10 pt-5 space-y-2">
+      {% for message in messages %}
+        <div class="rounded-xl border px-4 py-3 text-sm
+          {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800
+          {% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800
+          {% else %}border-blue-200 bg-blue-50 text-blue-800{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# ── Main two-column layout ── #}
+  <form method="post"
+        action="{% url 'moa_upload' proposal_id=proposal.id %}"
+        enctype="multipart/form-data"
+        class="flex flex-1 overflow-hidden">
+    {% csrf_token %}
+
+    {# ── LEFT — Form fields ── #}
+    <aside class="w-96 shrink-0 bg-white border-r border-gray-200 flex flex-col">
+
+      <div class="px-8 pt-8 pb-5 border-b border-gray-100">
+        <h1 class="text-xl font-bold text-gray-900">
+          {% if existing %}Update MOA Draft{% else %}Upload MOA Draft{% endif %}
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">Fill in the partner agency details for this agreement.</p>
+      </div>
+
+      <div class="flex-1 overflow-y-auto px-8 py-6 space-y-5">
+
+        {# Partner Agency Name #}
+        <div>
+          <label for="{{ form.partner_agency_name.id_for_label }}"
+                 class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            {{ form.partner_agency_name.label }}
+            <span class="text-red-400 normal-case font-normal">*</span>
+          </label>
+          {{ form.partner_agency_name }}
+          {% for error in form.partner_agency_name.errors %}
+            <p class="mt-1 text-xs text-red-500 flex items-center gap-1">
+              <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+        {# Address #}
+        <div>
+          <label for="{{ form.partner_address.id_for_label }}"
+                 class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            {{ form.partner_address.label }}
+            <span class="text-red-400 normal-case font-normal">*</span>
+          </label>
+          {{ form.partner_address }}
+          {% for error in form.partner_address.errors %}
+            <p class="mt-1 text-xs text-red-500 flex items-center gap-1">
+              <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+        {# Year #}
+        <div>
+          <label for="{{ form.year.id_for_label }}"
+                 class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            {{ form.year.label }}
+            <span class="text-red-400 normal-case font-normal">*</span>
+          </label>
+          {{ form.year }}
+          {% for error in form.year.errors %}
+            <p class="mt-1 text-xs text-red-500 flex items-center gap-1">
+              <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+        {# Duration #}
+        <div>
+          <label for="{{ form.duration.id_for_label }}"
+                 class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            {{ form.duration.label }}
+            <span class="text-red-400 normal-case font-normal">*</span>
+          </label>
+          {{ form.duration }}
+          {% for error in form.duration.errors %}
+            <p class="mt-1 text-xs text-red-500 flex items-center gap-1">
+              <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              {{ error }}
+            </p>
+          {% endfor %}
+        </div>
+
+        {# Existing file info — only shown when editing #}
+        {% if existing and existing.moa_file %}
+          <div class="rounded-xl bg-primary/5 border border-primary/20 p-3.5">
+            <p class="text-xs font-semibold text-primary mb-1.5">File currently on record</p>
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="w-4 h-4 text-primary/70 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+              </svg>
+              <span class="text-xs font-medium text-primary truncate">
+                {{ existing.moa_file.name|slice:"4:" }}
+              </span>
+            </div>
+            <div class="flex items-center justify-between">
+              <p class="text-xs text-primary/60">Uploaded {{ existing.submitted_at|date:"M d, Y" }}</p>
+              <a href="{{ existing.moa_file.url }}" target="_blank"
+                 class="text-xs font-semibold text-primary hover:underline">View →</a>
+            </div>
+            <p class="mt-2 text-xs text-primary/50">Upload a new file on the right to replace it.</p>
+          </div>
+        {% endif %}
+
+      </div>
+
+      {# Sidebar footer actions #}
+      <div class="px-8 py-5 border-t border-gray-100 flex gap-3">
+        <a href="{% url 'proposal_moa_tracker' proposal.id %}"
+           class="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition text-center">
+          Cancel
+        </a>
+        <button type="submit"
+                class="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-secondary transition shadow-sm flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+          </svg>
+          {% if existing %}Update{% else %}Submit{% endif %}
+        </button>
+      </div>
+    </aside>
+
+    {# ── RIGHT — Upload zone ── #}
+    <main class="flex-1 flex items-center justify-center p-16 bg-gray-50">
+      <div class="w-full max-w-2xl">
+
+        <div class="mb-8">
+          <h2 class="text-lg font-bold text-gray-900">
+            {% if existing %}Replace MOA Document{% else %}Attach MOA Document{% endif %}
+          </h2>
+          <p class="mt-1 text-sm text-gray-500">
+            Accepted formats: PDF, DOC, DOCX &mdash; maximum file size 20 MB
+            {% if existing %}&mdash; leave empty to keep the current file{% endif %}
+          </p>
+        </div>
+
+        {# Drop zone #}
+        <label id="drop-zone"
+               for="{{ form.moa_file.id_for_label }}"
+               class="flex flex-col items-center justify-center w-full rounded-2xl border-2 border-dashed border-gray-300 bg-white hover:border-primary hover:bg-primary/5 transition cursor-pointer group py-20 px-8 text-center">
+
+          <div class="mb-5 w-16 h-16 rounded-2xl bg-gray-100 group-hover:bg-primary/10 flex items-center justify-center transition">
+            <svg class="w-8 h-8 text-gray-400 group-hover:text-primary transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+            </svg>
+          </div>
+
+          <p class="text-base font-semibold text-gray-700 group-hover:text-primary transition">
+            Drop your file here
+          </p>
+          <p class="text-sm text-gray-400 mt-1">or</p>
+          <span class="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white group-hover:bg-secondary transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+            </svg>
+            Browse files
+          </span>
+
+          <input id="{{ form.moa_file.id_for_label }}"
+                 name="{{ form.moa_file.html_name }}"
+                 type="file"
+                 accept=".pdf,.doc,.docx"
+                 class="sr-only">
+        </label>
+
+        {# File type chips #}
+        <div class="mt-4 flex items-center gap-2">
+          <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">.pdf</span>
+          <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">.doc</span>
+          <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">.docx</span>
+          <span class="ml-auto text-xs text-gray-400">Max 20 MB</span>
+        </div>
+
+        {# Form errors for the file field #}
+        {% for error in form.moa_file.errors %}
+          <p class="mt-2 text-xs text-red-500 flex items-center gap-1">
+            <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            {{ error }}
+          </p>
+        {% endfor %}
+
+        {# Selected file feedback — shown by JS after pick #}
+        <div id="file-selected-card"
+             class="mt-6 hidden rounded-xl border border-green-200 bg-green-50 p-4 flex items-center gap-4">
+          <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p id="file-selected-name" class="text-sm font-semibold text-green-800 truncate"></p>
+            <p id="file-selected-size" class="text-xs text-green-600 mt-0.5"></p>
+          </div>
+          <button type="button" id="file-clear-btn"
+                  class="shrink-0 text-green-500 hover:text-green-700 transition">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+    </main>
+  </form>
+
+</div>
+
+{# ── Script: drag-and-drop + file feedback ── #}
+<script>
+(function () {
+  var input    = document.getElementById("{{ form.moa_file.id_for_label }}");
+  var zone     = document.getElementById("drop-zone");
+  var card     = document.getElementById("file-selected-card");
+  var nameEl   = document.getElementById("file-selected-name");
+  var sizeEl   = document.getElementById("file-selected-size");
+  var clearBtn = document.getElementById("file-clear-btn");
+
+  if (!input || !zone || !card) return;
+
+  function showFile(file) {
+    var mb = (file.size / 1024 / 1024).toFixed(2);
+    nameEl.textContent = file.name;
+    sizeEl.textContent = mb + " MB ready to upload";
+    card.classList.remove("hidden");
+    card.classList.add("flex");
+    zone.classList.add("border-primary", "bg-primary/5");
+  }
+
+  function clearFile() {
+    input.value = "";
+    card.classList.add("hidden");
+    card.classList.remove("flex");
+    zone.classList.remove("border-primary", "bg-primary/5");
+  }
+
+  input.addEventListener("change", function () {
+    if (this.files[0]) showFile(this.files[0]);
+  });
+
+  clearBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    clearFile();
+  });
+
+  zone.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    zone.classList.add("border-primary", "bg-primary/5");
+  });
+  zone.addEventListener("dragleave", function () {
+    if (!input.files[0]) zone.classList.remove("border-primary", "bg-primary/5");
+  });
+  zone.addEventListener("drop", function (e) {
+    e.preventDefault();
+    var file = e.dataTransfer.files[0];
+    if (file) {
+      var dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      showFile(file);
+    }
+  });
+})();
+</script>
+
+{% endblock %}

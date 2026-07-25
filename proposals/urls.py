@@ -175,4 +175,10 @@ urlpatterns = [
     path("proposals/<uuid:proposal_id>/implementation/",
         views.proposal_implementation_tracker,
         name="proposal_implementation_tracker"),
-    ]
+
+    path("proposals/<uuid:proposal_id>/moa-draft/", views.proposal_moa_draft, name="proposal_moa_draft"),
+    path("proposals/<uuid:proposal_id>/moa/<int:step>/", views.proposal_moa_step, name="proposal_moa_step"),
+    path("proposals/<uuid:proposal_id>/moa/summary/", views.proposal_moa_summary, name="proposal_moa_summary"),
+
+    path("proposals/<uuid:proposal_id>/moa/upload/", views.moa_upload, name="moa_upload"),
+]

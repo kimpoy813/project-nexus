@@ -5,7 +5,7 @@ from django.apps import apps
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -120,6 +120,33 @@ class Proposal(models.Model):
     # terms, etc.) so the form can be re-opened and the generated .docx can
     # be regenerated/edited later.
     moa_draft_data = models.JSONField(default=dict, blank=True)
+    moa_draft_file = models.FileField(
+        upload_to="proposal_files/moa_drafts/",
+        blank=True,
+        null=True,
+    )
+
+    # --- MOA draft fields (guided wizard storage) ---
+    moa_title = models.CharField(max_length=255, blank=True, default="")
+    moa_reference_no = models.CharField(max_length=100, blank=True, default="")
+
+    moa_start_date = models.DateField(null=True, blank=True)
+    moa_end_date = models.DateField(null=True, blank=True)
+
+    moa_purpose = models.TextField(blank=True, default="")
+    moa_background = models.TextField(blank=True, default="")
+
+    moa_party_one_name = models.CharField(max_length=255, blank=True, default="")
+    moa_party_one_representative = models.CharField(max_length=255, blank=True, default="")
+
+    moa_party_two_name = models.CharField(max_length=255, blank=True, default="")
+    moa_party_two_representative = models.CharField(max_length=255, blank=True, default="")
+
+    moa_signatories_notes = models.TextField(blank=True, default="")
+
+    moa_obligations = models.TextField(blank=True, default="")
+    moa_deliverables = models.TextField(blank=True, default="")
+    moa_confidentiality = models.TextField(blank=True, default="")
 
     extension_type = models.CharField(
         max_length=40,
@@ -1015,6 +1042,75 @@ class Proposal(models.Model):
             ]
         )
 
+import os
+
+def moa_upload_path(instance, filename):
+    return os.path.join("moa", str(instance.proposal.id), filename)
+
+
+class MOASubmission(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    proposal = models.OneToOneField(
+        "Proposal",
+        on_delete=models.CASCADE,
+        related_name="moa_submission",
+    )
+    partner_agency_name = models.CharField(max_length=255, verbose_name="Name of Partner Agency")
+    partner_address = models.TextField(verbose_name="Address of Partner Agency")
+    year = models.PositiveSmallIntegerField(verbose_name="Year")
+    duration = models.PositiveSmallIntegerField(verbose_name="Duration (years)", default=3)
+    moa_file = models.FileField(upload_to=moa_upload_path, verbose_name="MOA Draft File")
+
+    submitted_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="moa_submissions",
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "MOA Submission"
+
+    def __str__(self):
+        return f"MOA — {self.partner_agency_name} ({self.year})"
+
+class MOANotification(models.Model):
+
+    class NotificationType(models.TextChoices):
+        REVISION     = "revision",            "Sent for Revision"
+        CERT_READY   = "certification_ready", "Certification Ready"
+        LEGAL_REVIEW = "legal_review",        "In Legal Review"
+        AGENDA       = "agenda",              "Agenda Brief & Presentation"
+        COMPLETED    = "completed",           "MOA Completed"
+        GENERAL      = "general",             "General"
+
+    proposal  = models.ForeignKey(
+        "Proposal", on_delete=models.CASCADE, related_name="moa_notifications",
+    )
+    recipient = models.ForeignKey(
+        "auth.User", on_delete=models.CASCADE, related_name="moa_inbox",
+    )
+    sent_by   = models.ForeignKey(
+        "auth.User", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="moa_sent_notifications",
+    )
+    notification_type = models.CharField(
+        max_length=30, choices=NotificationType.choices,
+        default=NotificationType.GENERAL,
+    )
+    message    = models.TextField()
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "MOA Notification"
+
+    def __str__(self):
+        return f"[{self.notification_type}] → {self.recipient} | {self.proposal}"
 
 class ProposalCollaborator(models.Model):
     proposal = models.ForeignKey(
@@ -1562,17 +1658,55 @@ class ProposalFinalDocument(models.Model):
     remarks = models.TextField(blank=True, default="")
     is_verified = models.BooleanField(default=False)
 
+    # Versioning: every upload/generation creates a NEW row instead of
+    # overwriting the previous one, so the full history is preserved.
+    # Exactly one row per (proposal, document_type) has is_current=True —
+    # that's the version shown everywhere the "current" document is needed
+    # (trackers, storage, downloads). Older rows stay around for the
+    # version history.
+    version = models.PositiveIntegerField(default=1)
+    is_current = models.BooleanField(default=True)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=["proposal", "document_type"],
-                name="unique_final_document_type_per_proposal",
+                condition=Q(is_current=True),
+                name="unique_current_final_document_per_type",
             )
         ]
-        ordering = ["-uploaded_at"]
+        ordering = ["-version", "-uploaded_at"]
 
     def __str__(self):
-        return f"{self.proposal} - {self.get_document_type_display()}"
+        return f"{self.proposal} - {self.get_document_type_display()} (v{self.version})"
+
+    @classmethod
+    def add_version(cls, *, proposal, document_type, file, uploaded_by=None, remarks="", is_verified=False):
+        """
+        Create a new version of a proposal's document of the given type.
+        Marks any previous version(s) as no longer current and assigns the
+        next version number, so the document's full history is kept
+        instead of being overwritten in place.
+        """
+        with transaction.atomic():
+            existing = cls.objects.select_for_update().filter(
+                proposal=proposal,
+                document_type=document_type,
+            )
+            last = existing.order_by("-version").first()
+            next_version = (last.version + 1) if last else 1
+            existing.filter(is_current=True).update(is_current=False)
+
+            return cls.objects.create(
+                proposal=proposal,
+                document_type=document_type,
+                file=file,
+                uploaded_by=uploaded_by,
+                remarks=remarks,
+                is_verified=is_verified,
+                version=next_version,
+                is_current=True,
+            )
     
 class ProposalPhaseLog(models.Model):
     """

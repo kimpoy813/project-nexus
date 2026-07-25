@@ -28,6 +28,7 @@ from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
 from details.models import ExtensionProcess, ProcessStep
 from .moa_docx import build_moa_document
+from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
 
 from .models import (
     ExtensionThrust,
@@ -50,6 +51,8 @@ from .models import (
     ProposalSpecificObjective,
     ProposalThrust,
     SDG,
+    MOASubmission,
+    MOANotification,
 )
 
 from xhtml2pdf import pisa
@@ -57,6 +60,7 @@ from django.template.loader import render_to_string
 from docx.shared import Mm, Pt
 
 from .docx_forms import build_extension_form_docx
+from .moa_forms import MOASubmissionForm
 
 User = get_user_model()
 
@@ -334,6 +338,283 @@ def _get_reviewer_role(user, proposal, review_round):
 
     return ""
 
+MOA_STEP_LABELS = [
+    {"no": 1, "title": "Agreement Basics", "desc": "Title, reference, dates, and purpose"},
+    {"no": 2, "title": "Parties and Signatories", "desc": "Names, representatives, and signers"},
+    {"no": 3, "title": "Scope and Terms", "desc": "Responsibilities, deliverables, and rules"},
+    {"no": 4, "title": "Attachments and Review", "desc": "Upload files and finalize the draft"},
+]
+
+
+def build_moa_wizard_steps(current_step):
+    steps = []
+    for item in MOA_STEP_LABELS:
+        no = item["no"]
+        if no == current_step:
+            state = "current"
+        elif no < current_step:
+            state = "completed"
+        else:
+            state = "upcoming"
+        steps.append({**item, "state": state})
+    return steps
+
+
+def _build_moa_wizard_context(proposal, step):
+    total_steps = len(MOA_STEP_LABELS)
+    progress = int(((step - 1) / total_steps) * 100) if total_steps else 0
+    return {
+        "proposal": proposal,
+        "step": step,
+        "total_steps": total_steps,
+        "progress": progress,
+        "wizard_steps": build_moa_wizard_steps(step),
+    }
+
+
+def _set_moa_status_if_possible(proposal, status_value):
+    """
+    Safe setter for MOA status so the view won't crash if the model field/value
+    names differ slightly in your current branch.
+    """
+    if hasattr(proposal, "moa_status"):
+        proposal.moa_status = status_value
+        proposal.save(update_fields=["moa_status"])
+
+
+def _save_moa_step_1(proposal, cleaned):
+    changed_fields = []
+
+    for field_name, value in [
+        ("moa_title", cleaned.get("moa_title")),
+        ("moa_reference_no", cleaned.get("moa_reference_no")),
+        ("moa_start_date", cleaned.get("moa_start_date")),
+        ("moa_end_date", cleaned.get("moa_end_date")),
+        ("moa_purpose", cleaned.get("purpose")),
+        ("moa_background", cleaned.get("background")),
+    ]:
+        if hasattr(proposal, field_name):
+            setattr(proposal, field_name, value)
+            changed_fields.append(field_name)
+
+    if changed_fields:
+        proposal.save(update_fields=changed_fields)
+
+
+def _save_moa_step_2(proposal, cleaned):
+    changed_fields = []
+
+    for field_name, value in [
+        ("moa_party_one_name", cleaned.get("party_one_name")),
+        ("moa_party_one_representative", cleaned.get("party_one_representative")),
+        ("moa_party_two_name", cleaned.get("party_two_name")),
+        ("moa_party_two_representative", cleaned.get("party_two_representative")),
+        ("moa_signatories_notes", cleaned.get("signatories_notes")),
+    ]:
+        if hasattr(proposal, field_name):
+            setattr(proposal, field_name, value)
+            changed_fields.append(field_name)
+
+    if changed_fields:
+        proposal.save(update_fields=changed_fields)
+
+
+def _save_moa_step_3(proposal, cleaned):
+    changed_fields = []
+
+    for field_name, value in [
+        ("moa_obligations", cleaned.get("obligations")),
+        ("moa_deliverables", cleaned.get("deliverables")),
+        ("moa_confidentiality", cleaned.get("confidentiality")),
+    ]:
+        if hasattr(proposal, field_name):
+            setattr(proposal, field_name, value)
+            changed_fields.append(field_name)
+
+    if changed_fields:
+        proposal.save(update_fields=changed_fields)
+
+
+def _save_moa_step_4(proposal, request):
+    changed_fields = []
+
+    moa_file = request.FILES.get("moa_file")
+    if moa_file and hasattr(proposal, "moa_draft_file"):
+        proposal.moa_draft_file = moa_file
+        changed_fields.append("moa_draft_file")
+
+    if changed_fields:
+        proposal.save(update_fields=changed_fields)
+
+    if hasattr(ProposalAttachment, "Category"):
+        moa_category = getattr(ProposalAttachment.Category, "MOA", None)
+        other_category = getattr(ProposalAttachment.Category, "OTHER", None)
+    else:
+        moa_category = None
+        other_category = None
+
+    for uploaded in request.FILES.getlist("supporting_docs"):
+        kwargs = {
+            "proposal": proposal,
+            "file": uploaded,
+        }
+        if moa_category is not None:
+            kwargs["category"] = moa_category
+        elif other_category is not None:
+            kwargs["category"] = other_category
+
+        ProposalAttachment.objects.create(**kwargs)
+
+
+@login_required
+@faculty_like_required
+def proposal_moa_draft(request, proposal_id):
+    proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    if request.method == "POST":
+        form = MOADraftForm(request.POST)
+        if form.is_valid():
+            _save_moa_step_1(proposal, form.cleaned_data)
+            _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "DRAFT", "DRAFT"))
+            messages.success(request, "MOA draft basics saved.")
+            return redirect("proposal_moa_step", proposal_id=proposal.id, step=2)
+    else:
+        initial = {}
+        for form_field, model_field in [
+            ("moa_title", "moa_title"),
+            ("moa_reference_no", "moa_reference_no"),
+            ("moa_start_date", "moa_start_date"),
+            ("moa_end_date", "moa_end_date"),
+            ("purpose", "moa_purpose"),
+            ("background", "moa_background"),
+        ]:
+            if hasattr(proposal, model_field):
+                initial[form_field] = getattr(proposal, model_field, None)
+
+        form = MOADraftForm(initial=initial)
+
+    ctx = _build_moa_wizard_context(proposal, 1)
+    ctx["form"] = form
+    ctx["step_help"] = [
+        "Use the official document title.",
+        "Enter dates only if they are already agreed upon.",
+        "Keep the purpose short, formal, and specific.",
+    ]
+    return render(request, "services/moa/step_1.html", ctx)
+
+
+@login_required
+@faculty_like_required
+def proposal_moa_step(request, proposal_id, step):
+    proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    step = int(step)
+    if step < 1:
+        step = 1
+    if step > 4:
+        step = 4
+
+    form_map = {
+        1: MOADraftForm,
+        2: MOAPartiesForm,
+        3: MOATermsForm,
+        4: MOAAttachmentsForm,
+    }
+    form_class = form_map[step]
+
+    if request.method == "POST":
+        form = form_class(request.POST, request.FILES if step == 4 else None)
+        if form.is_valid():
+            if step == 1:
+                _save_moa_step_1(proposal, form.cleaned_data)
+            elif step == 2:
+                _save_moa_step_2(proposal, form.cleaned_data)
+            elif step == 3:
+                _save_moa_step_3(proposal, form.cleaned_data)
+            elif step == 4:
+                _save_moa_step_4(proposal, request)
+                _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "LEGAL_REVIEW", "LEGAL_REVIEW"))
+
+            if step < 4:
+                messages.success(request, "MOA step saved. Continue to the next part.")
+                return redirect("proposal_moa_step", proposal_id=proposal.id, step=step + 1)
+
+            messages.success(request, "MOA draft completed.")
+            return redirect("proposal_moa_summary", proposal_id=proposal.id)
+    else:
+        initial = {}
+
+        if step == 1:
+            for form_field, model_field in [
+                ("moa_title", "moa_title"),
+                ("moa_reference_no", "moa_reference_no"),
+                ("moa_start_date", "moa_start_date"),
+                ("moa_end_date", "moa_end_date"),
+                ("purpose", "moa_purpose"),
+                ("background", "moa_background"),
+            ]:
+                if hasattr(proposal, model_field):
+                    initial[form_field] = getattr(proposal, model_field, None)
+
+        elif step == 2:
+            for form_field, model_field in [
+                ("party_one_name", "moa_party_one_name"),
+                ("party_one_representative", "moa_party_one_representative"),
+                ("party_two_name", "moa_party_two_name"),
+                ("party_two_representative", "moa_party_two_representative"),
+                ("signatories_notes", "moa_signatories_notes"),
+            ]:
+                if hasattr(proposal, model_field):
+                    initial[form_field] = getattr(proposal, model_field, None)
+
+        elif step == 3:
+            for form_field, model_field in [
+                ("obligations", "moa_obligations"),
+                ("deliverables", "moa_deliverables"),
+                ("confidentiality", "moa_confidentiality"),
+            ]:
+                if hasattr(proposal, model_field):
+                    initial[form_field] = getattr(proposal, model_field, None)
+
+        form = form_class(initial=initial)
+
+    ctx = _build_moa_wizard_context(proposal, step)
+    ctx["form"] = form
+    ctx["step_help"] = {
+        1: [
+            "Write the formal title exactly as it should appear in the document.",
+            "Fill in only the dates and reference number you already know.",
+            "Use a clear, concise purpose statement.",
+        ],
+        2: [
+            "Enter the official names of both parties.",
+            "Add representatives if the signatory names are already assigned.",
+            "Use the notes box for signers, witnesses, and titles.",
+        ],
+        3: [
+            "Describe each party’s responsibilities using bullets if possible.",
+            "Include deliverables such as reports, outputs, or endorsements.",
+            "Add confidentiality or data-sharing rules if relevant.",
+        ],
+        4: [
+            "Upload the draft MOA if you already have the file.",
+            "Attach any endorsements, letters, or annexes.",
+            "This is the final review step before moving forward.",
+        ],
+    }.get(step, [])
+
+    template_name = f"services/moa/step_{step}.html"
+    return render(request, template_name, ctx)
+
+
+@login_required
+@faculty_like_required
+def proposal_moa_summary(request, proposal_id):
+    proposal = get_object_or_404(Proposal, id=proposal_id)
+    ctx = {
+        "proposal": proposal,
+    }
+    return render(request, "services/moa/summary.html", ctx)
 
 
 def mark_step_completed(proposal, step_no):
@@ -2336,16 +2617,14 @@ def proposal_upload_signed_proposal(request, proposal_id):
             messages.error(request, "Please choose a signed proposal file to upload.")
             return redirect("proposal_upload_signed_proposal", proposal_id=proposal.id)
 
-        # Keep a single final document record per proposal+type (no duplicates).
-        ProposalFinalDocument.objects.update_or_create(
+        # Each upload becomes a new version; the previous one is kept for history.
+        ProposalFinalDocument.add_version(
             proposal=proposal,
             document_type=ProposalFinalDocument.DocumentType.SIGNED_PROPOSAL,
-            defaults={
-                "file": signed_file,
-                "uploaded_by": request.user,
-                "remarks": "",
-                "is_verified": False,  # STAFF will verify
-            },
+            file=signed_file,
+            uploaded_by=request.user,
+            remarks="",
+            is_verified=False,  # STAFF will verify
         )
 
         # Optional: keep a single attachment link for easy download.
@@ -2446,15 +2725,13 @@ def staff_release_approval_documents(request, proposal_id):
             return redirect("staff_release_approval_documents", proposal_id=proposal.id)
 
         if loa_file:
-            ProposalFinalDocument.objects.update_or_create(
+            ProposalFinalDocument.add_version(
                 proposal=proposal,
                 document_type=ProposalFinalDocument.DocumentType.LETTER_OF_AWARD,
-                defaults={
-                    "file": loa_file,
-                    "uploaded_by": request.user,
-                    "remarks": "",
-                    "is_verified": True,
-                },
+                file=loa_file,
+                uploaded_by=request.user,
+                remarks="",
+                is_verified=True,
             )
             ProposalAttachment.objects.filter(
                 proposal=proposal,
@@ -2471,15 +2748,13 @@ def staff_release_approval_documents(request, proposal_id):
                 proposal.letter_of_award_released_at = now
 
         if endorsement_file:
-            ProposalFinalDocument.objects.update_or_create(
+            ProposalFinalDocument.add_version(
                 proposal=proposal,
                 document_type=ProposalFinalDocument.DocumentType.ENDORSEMENT_FOR_APPROVAL,
-                defaults={
-                    "file": endorsement_file,
-                    "uploaded_by": request.user,
-                    "remarks": "",
-                    "is_verified": True,
-                },
+                file=endorsement_file,
+                uploaded_by=request.user,
+                remarks="",
+                is_verified=True,
             )
             ProposalAttachment.objects.filter(
                 proposal=proposal,
@@ -2496,15 +2771,13 @@ def staff_release_approval_documents(request, proposal_id):
                 proposal.endorsement_released_at = now
 
         if agreement_file:
-            ProposalFinalDocument.objects.update_or_create(
+            ProposalFinalDocument.add_version(
                 proposal=proposal,
                 document_type=ProposalFinalDocument.DocumentType.EXTENSION_AGREEMENT,
-                defaults={
-                    "file": agreement_file,
-                    "uploaded_by": request.user,
-                    "remarks": "",
-                    "is_verified": True,
-                },
+                file=agreement_file,
+                uploaded_by=request.user,
+                remarks="",
+                is_verified=True,
             )
             ProposalAttachment.objects.filter(
                 proposal=proposal,
@@ -3589,7 +3862,10 @@ def proposal_moa_draft(request, proposal_id):
         messages.info(request, "This proposal does not require a MOA.")
         return redirect("proposal_storage", proposal_id=proposal.id)
 
-    moa_doc = proposal.final_documents.filter(document_type=ProposalFinalDocument.DocumentType.MOA).first()
+    moa_versions = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.MOA
+    ).select_related("uploaded_by").order_by("-version")
+    moa_doc = moa_versions.filter(is_current=True).first() or moa_versions.first()
 
     if request.method == "POST":
         action = (request.POST.get("action") or "generate").strip().lower()
@@ -3600,15 +3876,13 @@ def proposal_moa_draft(request, proposal_id):
                 messages.error(request, "Please choose a file to upload.")
                 return redirect("proposal_moa_draft", proposal_id=proposal.id)
 
-            ProposalFinalDocument.objects.update_or_create(
+            ProposalFinalDocument.add_version(
                 proposal=proposal,
                 document_type=ProposalFinalDocument.DocumentType.MOA,
-                defaults={
-                    "file": moa_file,
-                    "uploaded_by": request.user,
-                    "remarks": (request.POST.get("remarks") or "").strip(),
-                    "is_verified": False,
-                },
+                file=moa_file,
+                uploaded_by=request.user,
+                remarks=(request.POST.get("remarks") or "").strip(),
+                is_verified=False,
             )
             if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
                 proposal.mark_moa_draft()
@@ -3632,15 +3906,14 @@ def proposal_moa_draft(request, proposal_id):
         filename = f"{safe_title}_MOA_Draft.docx"
         generated_file = ContentFile(buffer.getvalue(), name=filename)
 
-        ProposalFinalDocument.objects.update_or_create(
+        version_note = (request.POST.get("version_note") or "").strip()
+        ProposalFinalDocument.add_version(
             proposal=proposal,
             document_type=ProposalFinalDocument.DocumentType.MOA,
-            defaults={
-                "file": generated_file,
-                "uploaded_by": request.user,
-                "remarks": "Generated via the guided MOA drafting form.",
-                "is_verified": False,
-            },
+            file=generated_file,
+            uploaded_by=request.user,
+            remarks=version_note or "Generated via the guided MOA drafting form.",
+            is_verified=False,
         )
         if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
             proposal.mark_moa_draft()
@@ -3683,6 +3956,7 @@ def proposal_moa_draft(request, proposal_id):
     context = {
         "proposal": proposal,
         "moa_doc": moa_doc,
+        "moa_versions": moa_versions,
         "default_fields": default_fields,
     }
     return render(request, "services/moa/moa_draft.html", context)
@@ -3694,15 +3968,34 @@ def proposal_moa_draft(request, proposal_id):
 # MOA Process: Drafting -> Legal Review -> Under Revision -> Certification Ready
 #              -> Agenda Brief & Presentation -> MOA Completed
 
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPER
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _notify_proponent(proposal, sent_by, notification_type, message):
+    """Send an in-app MOA notification to every proponent on the proposal."""
+    recipients = set()
+    if proposal.created_by_id:
+        recipients.add(proposal.created_by_id)
+    for proponent in proposal.proponents.select_related("user"):
+        recipients.add(proponent.user_id)
+
+    for uid in recipients:
+        MOANotification.objects.create(
+            proposal=proposal,
+            recipient_id=uid,
+            sent_by=sent_by,
+            notification_type=notification_type,
+            message=message,
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VIEW
+# ─────────────────────────────────────────────────────────────────────────────
+
 @login_required
 def proposal_moa_tracker(request, proposal_id):
-    """
-    Stage tracker for the MOA (Memorandum of Agreement) phase of a proposal.
-
-    Proponents and staff can view the tracker. Only Staff/Director can
-    advance or send back a stage. The signed MOA file can be uploaded by
-    the proponent or staff once the MOA has been drafted.
-    """
     proposal = get_object_or_404(Proposal, id=proposal_id)
 
     if not _can_view_proposal(request.user, proposal):
@@ -3713,82 +4006,145 @@ def proposal_moa_tracker(request, proposal_id):
         messages.info(request, "This proposal does not require a MOA.")
         return redirect("proposal_storage", proposal_id=proposal.id)
 
-    can_manage = _can_manage_phase(request.user, proposal)
+    can_manage   = _can_manage_phase(request.user, proposal)
     is_proponent = (
         request.user == proposal.created_by
         or proposal.proponents.filter(user=request.user).exists()
     )
 
+    # ── POST ──────────────────────────────────────────────────────────────────
     if request.method == "POST":
-        action = (request.POST.get("action") or "").strip()
+        action  = (request.POST.get("action") or "").strip()
         remarks = (request.POST.get("remarks") or "").strip()
 
-        if action == "upload":
-            # Proponent or staff may upload/replace the MOA document at any stage.
-            if not (is_proponent or can_manage):
-                messages.error(request, "You do not have permission to upload the MOA document.")
-                return redirect("proposal_moa_tracker", proposal_id=proposal.id)
-
-            moa_file = request.FILES.get("moa_file")
-            if not moa_file:
-                messages.error(request, "Please choose a file to upload.")
-            else:
-                ProposalFinalDocument.objects.update_or_create(
-                    proposal=proposal,
-                    document_type=ProposalFinalDocument.DocumentType.MOA,
-                    defaults={
-                        "file": moa_file,
-                        "uploaded_by": request.user,
-                        "remarks": remarks,
-                        "is_verified": False,
-                    },
-                )
-                if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
-                    proposal.mark_moa_draft()
-                messages.success(request, "MOA document uploaded successfully.")
-
+        # Mark notification read
+        if action == "mark_read":
+            MOANotification.objects.filter(
+                id=request.POST.get("notification_id"), recipient=request.user
+            ).update(is_read=True)
             return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
-        # Everything below changes the MOA stage -> Staff/Director only.
         if not can_manage:
             messages.error(request, "Only Staff or the Director can update the MOA stage.")
             return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
         previous_status = proposal.moa_status
+        S = Proposal.MOAStatus
 
-        if action == "advance":
-            if proposal.moa_status == Proposal.MOAStatus.COMPLETED:
-                messages.info(request, "The MOA is already completed.")
-            elif proposal.advance_moa():
+        # Draft → Legal Review
+        if action == "legal_review":
+            if proposal.moa_status != S.DRAFT:
+                messages.error(request, "The MOA must be in Draft status to send it for Legal Review.")
+            else:
+                proposal.mark_moa_legal_review()
                 ProposalPhaseLog.objects.create(
-                    proposal=proposal,
-                    phase=ProposalPhaseLog.Phase.MOA,
-                    from_status=previous_status,
-                    to_status=proposal.moa_status,
-                    remarks=remarks,
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks or "Draft sent to Legal Review.", changed_by=request.user,
+                )
+                messages.success(request, "MOA is now In Legal Review.")
+
+        # Legal Review → For Revision (remarks required, notify proponent)
+        elif action == "for_revision":
+            if proposal.moa_status != S.LEGAL_REVIEW:
+                messages.error(request, "The MOA must be In Legal Review to send it for Revision.")
+            elif not remarks:
+                messages.error(request, "Please provide revision remarks so the proponent knows what to fix.")
+            else:
+                proposal.mark_moa_for_revision()
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks, changed_by=request.user,
+                )
+                _notify_proponent(
+                    proposal=proposal, sent_by=request.user,
+                    notification_type=MOANotification.NotificationType.REVISION,
+                    message=(
+                        f"Your MOA draft for \"{proposal.display_title}\" has been returned "
+                        f"for revision.\n\nRemarks: {remarks}"
+                    ),
+                )
+                messages.success(request, "MOA sent for Revision. The proponent has been notified.")
+
+        # Legal Review → Certification Ready (notify proponent)
+        elif action == "certification_ready":
+            if proposal.moa_status != S.LEGAL_REVIEW:
+                messages.error(request, "The MOA must be In Legal Review to mark it as Certification Ready.")
+            else:
+                proposal.mark_moa_certification_ready()
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks or "Legal review cleared. MOA is Certification Ready.",
                     changed_by=request.user,
                 )
-                messages.success(
-                    request,
-                    f"MOA moved to '{proposal.get_moa_status_display()}'.",
+                _notify_proponent(
+                    proposal=proposal, sent_by=request.user,
+                    notification_type=MOANotification.NotificationType.CERT_READY,
+                    message=(
+                        f"Great news! The MOA for \"{proposal.display_title}\" has passed legal "
+                        f"review and the Certification is now being prepared. No further action "
+                        f"is needed from your end at this time."
+                    ),
                 )
+                messages.success(request, "MOA marked as Certification Ready. The proponent has been notified.")
+
+        # Certification Ready → Agenda Brief & Presentation
+        elif action == "agenda":
+            if proposal.moa_status != S.CERTIFICATION_READY:
+                messages.error(request, "The MOA must be Certification Ready to prepare the Agenda Brief.")
+            else:
+                proposal.mark_moa_agenda_and_presentation()
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks or "MOA prepared for Agenda Brief & Presentation.",
+                    changed_by=request.user,
+                )
+                messages.success(request, "MOA is now in Agenda Brief & Presentation.")
+
+        # Agenda Brief → MOA Completed (notify proponent)
+        elif action == "complete":
+            if proposal.moa_status != S.AGENDA_AND_PRESENTATION:
+                messages.error(request, "The MOA must be in Agenda Brief & Presentation to mark it Completed.")
+            else:
+                proposal.mark_moa_completed()
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks or "MOA signed and completed.", changed_by=request.user,
+                )
+                _notify_proponent(
+                    proposal=proposal, sent_by=request.user,
+                    notification_type=MOANotification.NotificationType.COMPLETED,
+                    message=(
+                        f"The MOA for \"{proposal.display_title}\" has been completed and signed "
+                        f"by all parties. Congratulations!"
+                    ),
+                )
+                messages.success(request, "MOA marked as Completed. The proponent has been notified.")
+
+        # Fallback: keep generic advance/back
+        elif action == "advance":
+            if proposal.advance_moa():
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks, changed_by=request.user,
+                )
+                messages.success(request, f"MOA advanced to '{proposal.get_moa_status_display()}'.")
             else:
                 messages.info(request, "The MOA is already at its final stage.")
 
         elif action == "back":
             if proposal.regress_moa():
                 ProposalPhaseLog.objects.create(
-                    proposal=proposal,
-                    phase=ProposalPhaseLog.Phase.MOA,
-                    from_status=previous_status,
-                    to_status=proposal.moa_status,
-                    remarks=remarks or "Sent back to the previous stage.",
-                    changed_by=request.user,
+                    proposal=proposal, phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status, to_status=proposal.moa_status,
+                    remarks=remarks or "Sent back to the previous stage.", changed_by=request.user,
                 )
-                messages.success(
-                    request,
-                    f"MOA sent back to '{proposal.get_moa_status_display()}'.",
-                )
+                messages.success(request, f"MOA sent back to '{proposal.get_moa_status_display()}'.")
             else:
                 messages.info(request, "The MOA is already at its first stage.")
 
@@ -3797,26 +4153,39 @@ def proposal_moa_tracker(request, proposal_id):
 
         return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
+    # ── GET ───────────────────────────────────────────────────────────────────
     moa_doc = proposal.final_documents.filter(
         document_type=ProposalFinalDocument.DocumentType.MOA
     ).first()
 
+    notifications = MOANotification.objects.filter(
+        proposal=proposal, recipient=request.user,
+    ).order_by("-created_at")[:10]
+
+    unread_count = MOANotification.objects.filter(
+        proposal=proposal, recipient=request.user, is_read=False,
+    ).count()
+
+    S = Proposal.MOAStatus
     context = {
-        "proposal": proposal,
-        "steps": proposal.moa_step_states(),
-        "can_manage": can_manage,
-        "is_proponent": is_proponent,
-        "moa_doc": moa_doc,
-        "logs": proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.MOA),
-        "is_first_stage": proposal.moa_status in {
-            Proposal.MOAStatus.NOT_STARTED,
-            Proposal.MOAStatus.DRAFT,
-        },
-        "is_final_stage": proposal.moa_status == Proposal.MOAStatus.COMPLETED,
+        "proposal":       proposal,
+        "steps":          proposal.moa_step_states(),
+        "can_manage":     can_manage,
+        "is_proponent":   is_proponent,
+        "moa_doc":        moa_doc,
+        "logs":           proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.MOA).order_by("-created_at"),
+        "is_first_stage": proposal.moa_status in {S.NOT_STARTED, S.DRAFT},
+        "is_final_stage": proposal.moa_status == S.COMPLETED,
+        "notifications":  notifications,
+        "unread_count":   unread_count,
+        "status_draft":         proposal.moa_status == S.DRAFT,
+        "status_legal_review":  proposal.moa_status == S.LEGAL_REVIEW,
+        "status_for_revision":  proposal.moa_status == S.FOR_REVISION,
+        "status_cert_ready":    proposal.moa_status == S.CERTIFICATION_READY,
+        "status_agenda":        proposal.moa_status == S.AGENDA_AND_PRESENTATION,
+        "status_completed":     proposal.moa_status == S.COMPLETED,
     }
     return render(request, "services/moa/moa_tracker.html", context)
-
-
 # ==============================
 # IMPLEMENTATION TRACKER
 # ==============================
@@ -3861,15 +4230,13 @@ def proposal_implementation_tracker(request, proposal_id):
                 if not report_file:
                     messages.error(request, "Please choose a file to upload.")
                 else:
-                    ProposalFinalDocument.objects.update_or_create(
+                    ProposalFinalDocument.add_version(
                         proposal=proposal,
                         document_type=ProposalFinalDocument.DocumentType.REPORT_PARTIAL,
-                        defaults={
-                            "file": report_file,
-                            "uploaded_by": request.user,
-                            "remarks": remarks,
-                            "is_verified": False,
-                        },
+                        file=report_file,
+                        uploaded_by=request.user,
+                        remarks=remarks,
+                        is_verified=False,
                     )
                     messages.success(request, "Post activity / progress report uploaded.")
 
@@ -3878,15 +4245,13 @@ def proposal_implementation_tracker(request, proposal_id):
                 if not report_file:
                     messages.error(request, "Please choose a file to upload.")
                 else:
-                    ProposalFinalDocument.objects.update_or_create(
+                    ProposalFinalDocument.add_version(
                         proposal=proposal,
                         document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL,
-                        defaults={
-                            "file": report_file,
-                            "uploaded_by": request.user,
-                            "remarks": remarks,
-                            "is_verified": False,
-                        },
+                        file=report_file,
+                        uploaded_by=request.user,
+                        remarks=remarks,
+                        is_verified=False,
                     )
                     messages.success(request, "Terminal report uploaded.")
 
@@ -3949,12 +4314,15 @@ def proposal_implementation_tracker(request, proposal_id):
 
         return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
 
-    progress_doc = proposal.final_documents.filter(
+    progress_versions = proposal.final_documents.filter(
         document_type=ProposalFinalDocument.DocumentType.REPORT_PARTIAL
-    ).first()
-    terminal_doc = proposal.final_documents.filter(
+    ).select_related("uploaded_by").order_by("-version")
+    progress_doc = progress_versions.filter(is_current=True).first() or progress_versions.first()
+
+    terminal_versions = proposal.final_documents.filter(
         document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL
-    ).first()
+    ).select_related("uploaded_by").order_by("-version")
+    terminal_doc = terminal_versions.filter(is_current=True).first() or terminal_versions.first()
 
     context = {
         "proposal": proposal,
@@ -3963,7 +4331,9 @@ def proposal_implementation_tracker(request, proposal_id):
         "can_upload": can_upload,
         "is_proponent": is_proponent,
         "progress_doc": progress_doc,
+        "progress_versions": progress_versions,
         "terminal_doc": terminal_doc,
+        "terminal_versions": terminal_versions,
         "logs": proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.IMPLEMENTATION),
         "is_first_stage": proposal.implementation_status in {
             Proposal.ImplementationStatus.NOT_STARTED,
@@ -4145,10 +4515,26 @@ def proposal_storage(request, proposal_id):
         and is_proponent
     )
 
+    moa_versions = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.MOA
+    ).select_related("uploaded_by").order_by("-version")
+    moa_doc = moa_versions.filter(is_current=True).first() or moa_versions.first()
+
+    progress_versions = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.REPORT_PARTIAL
+    ).select_related("uploaded_by").order_by("-version")
+
+    terminal_versions = proposal.final_documents.filter(
+        document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL
+    ).select_related("uploaded_by").order_by("-version")
+
     context = {
         "proposal": proposal,
         "signed_doc": signed_doc,
-        "moa_doc": proposal.final_documents.filter(document_type=ProposalFinalDocument.DocumentType.MOA).first(),
+        "moa_doc": moa_doc,
+        "moa_versions": moa_versions,
+        "progress_versions": progress_versions,
+        "terminal_versions": terminal_versions,
         "approval_rows": approval_rows,
         "attachment_rows": attachment_rows,
         "other_files": other_files,
@@ -4157,3 +4543,49 @@ def proposal_storage(request, proposal_id):
         "can_claim": can_claim,
     }
     return render(request, "services/post_approval/proposal_storage.html", context)
+
+@login_required
+def moa_upload(request, proposal_id):
+    proposal = get_object_or_404(Proposal, id=proposal_id)
+    existing = MOASubmission.objects.filter(proposal=proposal).first()
+
+    if request.method == "POST":
+        form = MOASubmissionForm(request.POST, request.FILES)
+
+        if existing and not request.FILES.get("moa_file"):
+            form.fields["moa_file"].required = False
+
+        if form.is_valid():
+            obj = existing if existing else MOASubmission(proposal=proposal, submitted_by=request.user)
+
+            obj.partner_agency_name = form.cleaned_data["partner_agency_name"]
+            obj.partner_address     = form.cleaned_data["partner_address"]
+            obj.year                = form.cleaned_data["year"]
+            obj.duration            = form.cleaned_data["duration"]
+
+            if form.cleaned_data.get("moa_file"):
+                if existing and existing.moa_file:
+                    existing.moa_file.delete(save=False)
+                obj.moa_file = form.cleaned_data["moa_file"]
+
+            obj.save()
+            messages.success(request, "MOA draft uploaded successfully.")
+            return redirect("proposal_moa_tracker", proposal_id=proposal_id)
+    else:
+        initial = {}
+        if existing:
+            initial = {
+                "partner_agency_name": existing.partner_agency_name,
+                "partner_address":     existing.partner_address,
+                "year":                existing.year,
+                "duration":            existing.duration,
+            }
+        form = MOASubmissionForm(initial=initial)
+        if existing:
+            form.fields["moa_file"].required = False
+
+    return render(request, "services/moa/moa_upload.html", {
+        "proposal": proposal,
+        "form":     form,
+        "existing": existing,
+    })
