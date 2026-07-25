@@ -56,6 +56,147 @@
             </div>
         </div>
 
+        <!-- Website Command Center -->
+        <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
+            <div class="border-b border-gray-200 bg-gradient-to-br from-primary/10 via-white to-accent/30 px-6 py-5">
+                <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Admin Power</p>
+                        <h2 class="mt-1 text-xl font-black tracking-tight text-gray-900">Website Command Center</h2>
+                        <p class="mt-1 text-sm text-gray-600">Control branding, site-wide announcements, public registration, and maintenance mode for the whole website.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        {% if site_control.maintenance_mode %}
+                            <span class="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700 ring-1 ring-red-200">Maintenance ON</span>
+                        {% else %}
+                            <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700 ring-1 ring-green-200">Site Online</span>
+                        {% endif %}
+                        {% if site_control.announcement_enabled %}
+                            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700 ring-1 ring-blue-200">Announcement Live</span>
+                        {% endif %}
+                        {% if not site_control.registration_enabled %}
+                            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-200">Registration Closed</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'admin_site_control' %}" class="p-6">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div class="xl:col-span-2 space-y-6">
+                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
+                            <h3 class="text-sm font-black uppercase tracking-wide text-gray-900">Branding</h3>
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Site Name</label>
+                                    <input type="text" name="site_name" value="{{ site_control.site_name }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Short Name</label>
+                                    <input type="text" name="short_name" value="{{ site_control.short_name }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Tagline</label>
+                                    <input type="text" name="tagline" value="{{ site_control.tagline }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Contact Email</label>
+                                    <input type="email" name="contact_email" value="{{ site_control.contact_email }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Facebook URL</label>
+                                    <input type="url" name="facebook_url" value="{{ site_control.facebook_url }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Primary Color</label>
+                                    <input type="color" name="primary_color" value="{{ site_control.primary_color }}" class="h-11 w-full rounded-xl border border-gray-300 p-1">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Secondary Color</label>
+                                    <input type="color" name="secondary_color" value="{{ site_control.secondary_color }}" class="h-11 w-full rounded-xl border border-gray-300 p-1">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Accent Color</label>
+                                    <input type="color" name="accent_color" value="{{ site_control.accent_color }}" class="h-11 w-full rounded-xl border border-gray-300 p-1">
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
+                            <div class="flex items-center justify-between gap-3">
+                                <h3 class="text-sm font-black uppercase tracking-wide text-gray-900">Global Announcement</h3>
+                                <label class="inline-flex items-center gap-2 text-xs font-bold text-gray-700">
+                                    <input type="checkbox" name="announcement_enabled" {% if site_control.announcement_enabled %}checked{% endif %} class="rounded border-gray-300 text-primary focus:ring-primary">
+                                    Publish banner
+                                </label>
+                            </div>
+                            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="md:col-span-2">
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Announcement Title</label>
+                                    <input type="text" name="announcement_title" value="{{ site_control.announcement_title }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Tone</label>
+                                    <select name="announcement_tone" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                        <option value="INFO" {% if site_control.announcement_tone == 'INFO' %}selected{% endif %}>Info</option>
+                                        <option value="SUCCESS" {% if site_control.announcement_tone == 'SUCCESS' %}selected{% endif %}>Success</option>
+                                        <option value="WARNING" {% if site_control.announcement_tone == 'WARNING' %}selected{% endif %}>Warning</option>
+                                        <option value="DANGER" {% if site_control.announcement_tone == 'DANGER' %}selected{% endif %}>Critical</option>
+                                    </select>
+                                </div>
+                                <div class="md:col-span-3">
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">Message</label>
+                                    <textarea name="announcement_message" rows="3" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ site_control.announcement_message }}</textarea>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="space-y-6">
+                        <section class="rounded-2xl border border-red-200 bg-red-50 p-5">
+                            <h3 class="text-sm font-black uppercase tracking-wide text-red-900">System Access</h3>
+                            <div class="mt-4 space-y-4">
+                                <label class="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-red-900 ring-1 ring-red-100">
+                                    <input type="checkbox" name="maintenance_mode" {% if site_control.maintenance_mode %}checked{% endif %} class="mt-0.5 rounded border-red-300 text-red-700 focus:ring-red-600">
+                                    <span><strong>Maintenance mode</strong><br><span class="text-xs text-red-700">Locks the site for non-admin users.</span></span>
+                                </label>
+                                <label class="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-gray-800 ring-1 ring-gray-100">
+                                    <input type="checkbox" name="registration_enabled" {% if site_control.registration_enabled %}checked{% endif %} class="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary">
+                                    <span><strong>Allow public registration</strong><br><span class="text-xs text-gray-500">Turn off to stop new sign-ups.</span></span>
+                                </label>
+                                <div>
+                                    <label class="block text-xs font-bold text-red-800 mb-1">Maintenance Message</label>
+                                    <textarea name="maintenance_message" rows="4" class="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm">{{ site_control.maintenance_message }}</textarea>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
+                            <h3 class="text-sm font-black uppercase tracking-wide text-gray-900">Recent Global Changes</h3>
+                            <div class="mt-4 space-y-3">
+                                {% for log in site_logs %}
+                                    <div class="rounded-xl border border-gray-200 bg-white p-3">
+                                        <p class="text-xs font-bold text-gray-900">{{ log.summary }}</p>
+                                        <p class="mt-1 text-[11px] text-gray-500">{{ log.created_at|date:"M d, Y h:i A" }}{% if log.changed_by %} · {{ log.changed_by.profile.full_name|default:log.changed_by.username }}{% endif %}</p>
+                                    </div>
+                                {% empty %}
+                                    <p class="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-center text-xs text-gray-500">No global changes logged yet.</p>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-xs text-gray-500">Changes here affect the whole website immediately.</p>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-secondary">
+                        Save Website Controls
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <!-- Role Distribution -->
         <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
             <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">

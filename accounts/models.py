@@ -218,6 +218,104 @@ def create_or_update_profile(sender, instance, created, **kwargs):
 
 
 # ==============================
+# SITE-WIDE ADMIN CONTROLS
+# ==============================
+
+class SiteConfiguration(models.Model):
+    """
+    Singleton settings controlled from the Admin Dashboard. These values affect
+    the whole public site: branding, system banners, registration access, and
+    maintenance mode.
+    """
+
+    class AnnouncementTone(models.TextChoices):
+        INFO = "INFO", "Info"
+        SUCCESS = "SUCCESS", "Success"
+        WARNING = "WARNING", "Warning"
+        DANGER = "DANGER", "Critical"
+
+    site_name = models.CharField(max_length=120, default="NExUS")
+    short_name = models.CharField(max_length=40, default="NExUS")
+    tagline = models.CharField(
+        max_length=220,
+        default="Networked Extension Unified System",
+    )
+    contact_email = models.EmailField(blank=True, default="ispsc.nexus@gmail.com")
+    facebook_url = models.URLField(blank=True, default="https://facebook.com")
+
+    primary_color = models.CharField(max_length=7, default="#103b07")
+    secondary_color = models.CharField(max_length=7, default="#5a1113")
+    accent_color = models.CharField(max_length=7, default="#f5e587")
+
+    announcement_enabled = models.BooleanField(default=False)
+    announcement_title = models.CharField(max_length=120, blank=True, default="")
+    announcement_message = models.TextField(blank=True, default="")
+    announcement_tone = models.CharField(
+        max_length=20,
+        choices=AnnouncementTone.choices,
+        default=AnnouncementTone.INFO,
+    )
+
+    registration_enabled = models.BooleanField(default=True)
+    maintenance_mode = models.BooleanField(default=False)
+    maintenance_message = models.TextField(
+        blank=True,
+        default="NExUS is temporarily under maintenance. Please check back soon.",
+    )
+
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="site_configuration_updates",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site Configuration"
+
+    def __str__(self):
+        return self.site_name
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @property
+    def announcement_is_visible(self):
+        return self.announcement_enabled and bool(self.announcement_message.strip())
+
+
+class SiteConfigurationLog(models.Model):
+    """Audit trail for admin-level global configuration changes."""
+
+    changed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="site_configuration_logs",
+    )
+    summary = models.CharField(max_length=255)
+    before = models.JSONField(default=dict, blank=True)
+    after = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Site Configuration Log"
+
+    def __str__(self):
+        return self.summary
+
+
+# ==============================
 # SIGNATORIES (ADMIN MANAGED)
 # ==============================
 

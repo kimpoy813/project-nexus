@@ -94,6 +94,7 @@ urlpatterns = [
     # Admin user and role management
     path("manage-roles/", views.manage_roles, name="manage_roles"),
     path("admin/create-account/", views.admin_create_account, name="admin_create_account"),
+    path("admin/site-control/", views.admin_site_control, name="admin_site_control"),
     path("admin/users/<int:user_id>/", views.admin_user_detail, name="admin_user_detail"),
     path("admin/users/<int:user_id>/edit/", views.admin_edit_user, name="admin_edit_user"),
 

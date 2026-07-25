@@ -1,5 +1,6 @@
 from datetime import timedelta
 import json
+import re
 import traceback
 
 from django.conf import settings
@@ -38,7 +39,7 @@ import proposals
 from .campus_data import get_college_choices, get_department_choices, get_campus_choices
 from .decorators import admin_required, faculty_like_required, role_required
 from .forms import AdminCreateUserForm, ProfileUpdateForm, RegisterForm
-from .models import Profile, Signatory
+from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
 from .tokens import email_verification_token
 
 from proposals.models import (
@@ -48,6 +49,7 @@ from proposals.models import (
     ProposalSectionComment,
     ProposalCommentSummary,
     ProposalFinalDocument,
+    MOASubmission,
 )
 from details.models import (
     Activity,
@@ -718,6 +720,15 @@ def get_departments_ajax(request):
 
 @require_http_methods(["GET", "POST"])
 def register_view(request):
+    try:
+        site_config = SiteConfiguration.get_solo()
+    except Exception:
+        site_config = None
+
+    if site_config and not site_config.registration_enabled:
+        messages.warning(request, "Public registration is currently disabled by the system administrator.")
+        return redirect("login")
+
     if request.method == "POST":
         form = RegisterForm(request.POST)
         if form.is_valid():
@@ -1672,15 +1683,143 @@ def staff_dashboard(request):
 
     signed_pending_count = signed_queue.count()
 
+    # --- MOA workflow queue ---
+    # Once a proponent generates/uploads a draft MOA, it appears here so Staff can
+    # open the MOA Tracker, send it to Legal Review, return it for revision,
+    # mark Certification Ready, move it to Agenda Brief & Presentation, and
+    # finally mark it as MOA Completed.
+    active_moa_statuses = [
+        Proposal.MOAStatus.NOT_STARTED,  # legacy uploads before automatic Draft status
+        Proposal.MOAStatus.DRAFT,
+        Proposal.MOAStatus.LEGAL_REVIEW,
+        Proposal.MOAStatus.FOR_REVISION,
+        Proposal.MOAStatus.CERTIFICATION_READY,
+        Proposal.MOAStatus.AGENDA_AND_PRESENTATION,
+    ]
+
+    moa_proposals = list(
+        Proposal.objects.filter(
+            requires_moa=True,
+            moa_status__in=active_moa_statuses,
+        )
+        .filter(
+            Q(moa_submission__isnull=False)
+            | Q(final_documents__document_type=ProposalFinalDocument.DocumentType.MOA)
+            | Q(moa_draft_file__isnull=False)
+        )
+        .select_related("created_by", "created_by__profile")
+        .distinct()
+    )
+
+    moa_proposal_ids = [proposal.id for proposal in moa_proposals]
+
+    submissions_by_proposal = {
+        submission.proposal_id: submission
+        for submission in MOASubmission.objects.filter(
+            proposal_id__in=moa_proposal_ids,
+        ).select_related("submitted_by", "submitted_by__profile")
+    }
+
+    moa_docs_by_proposal = {}
+    for doc in (
+        ProposalFinalDocument.objects.filter(
+            proposal_id__in=moa_proposal_ids,
+            document_type=ProposalFinalDocument.DocumentType.MOA,
+        )
+        .select_related("uploaded_by", "uploaded_by__profile")
+        .order_by("proposal_id", "-is_current", "-version", "-uploaded_at")
+    ):
+        moa_docs_by_proposal.setdefault(doc.proposal_id, doc)
+
+    moa_status_action_labels = {
+        Proposal.MOAStatus.NOT_STARTED: "Open tracker / initialize draft",
+        Proposal.MOAStatus.DRAFT: "Prepare for Legal Review",
+        Proposal.MOAStatus.LEGAL_REVIEW: "Record Legal Review outcome",
+        Proposal.MOAStatus.FOR_REVISION: "Waiting for proponent revision",
+        Proposal.MOAStatus.CERTIFICATION_READY: "Prepare Agenda Brief",
+        Proposal.MOAStatus.AGENDA_AND_PRESENTATION: "Mark completed after signing",
+    }
+
+    def _safe_file_url(file_field):
+        if not file_field:
+            return ""
+        try:
+            return file_field.url
+        except Exception:
+            return ""
+
+    moa_queue = []
+    for proposal in moa_proposals:
+        submission = submissions_by_proposal.get(proposal.id)
+        moa_doc = moa_docs_by_proposal.get(proposal.id)
+
+        has_guided_draft_file = bool(getattr(proposal, "moa_draft_file", None))
+        if not submission and not moa_doc and not has_guided_draft_file:
+            continue
+
+        draft_data = proposal.moa_draft_data or {}
+        partner_name = (
+            getattr(submission, "partner_agency_name", "")
+            or draft_data.get("partner_name")
+            or proposal.implementing_agency
+            or "MOA draft"
+        )
+
+        uploaded_at = (
+            getattr(submission, "updated_at", None)
+            or getattr(moa_doc, "uploaded_at", None)
+            or proposal.last_saved_at
+        )
+
+        file_url = (
+            _safe_file_url(getattr(submission, "moa_file", None))
+            or _safe_file_url(getattr(moa_doc, "file", None))
+            or _safe_file_url(getattr(proposal, "moa_draft_file", None))
+        )
+
+        moa_queue.append({
+            "proposal": proposal,
+            "partner_name": partner_name,
+            "uploaded_at": uploaded_at,
+            "file_url": file_url,
+            "source_label": (
+                "Uploaded MOA form"
+                if submission
+                else "Generated/uploaded MOA document"
+                if moa_doc
+                else "Guided MOA draft upload"
+            ),
+            "next_action_label": moa_status_action_labels.get(
+                proposal.moa_status,
+                "Open MOA Tracker",
+            ),
+        })
+
+    moa_queue.sort(
+        key=lambda item: item.get("uploaded_at") or timezone.datetime.min.replace(tzinfo=timezone.get_current_timezone()),
+        reverse=True,
+    )
+
+    moa_active_count = len(moa_queue)
+    moa_draft_count = sum(
+        1 for item in moa_queue
+        if item["proposal"].moa_status in {
+            Proposal.MOAStatus.NOT_STARTED,
+            Proposal.MOAStatus.DRAFT,
+        }
+    )
 
     context = {
         "profile": profile,
-        "nav_notif_count": (pending_count + draft_count + signed_pending_count),
+        "nav_notif_count": (pending_count + draft_count + signed_pending_count + moa_active_count),
         "summary_queue": summary_queue,
         "pending_count": pending_count,
         "draft_count": draft_count,
         "signed_queue": signed_queue,
         "signed_pending_count": signed_pending_count,
+        "moa_queue": moa_queue,
+        "moa_active_count": moa_active_count,
+        "moa_draft_count": moa_draft_count,
     }
     return render(request, "dashboard/staff_dashboard.html", context)
 
@@ -1752,8 +1891,13 @@ def admin_dashboard(request):
 
     profiles = Profile.objects.select_related("user").all().order_by("-user__date_joined")
 
+    site_control = SiteConfiguration.get_solo()
+    site_logs = SiteConfigurationLog.objects.select_related("changed_by", "changed_by__profile")[:5]
+
     context = {
         "profiles": profiles,
+        "site_control": site_control,
+        "site_logs": site_logs,
         "nav_notif_count": Profile.objects.filter(email_verified=False).count(),
         "total_users": User.objects.count(),
         "verified_users": Profile.objects.filter(email_verified=True).count(),
@@ -1904,6 +2048,80 @@ def admin_user_detail(request, user_id):
         },
     )
 
+
+
+def _site_configuration_snapshot(config):
+    return {
+        "site_name": config.site_name,
+        "short_name": config.short_name,
+        "tagline": config.tagline,
+        "contact_email": config.contact_email,
+        "facebook_url": config.facebook_url,
+        "primary_color": config.primary_color,
+        "secondary_color": config.secondary_color,
+        "accent_color": config.accent_color,
+        "announcement_enabled": config.announcement_enabled,
+        "announcement_title": config.announcement_title,
+        "announcement_message": config.announcement_message,
+        "announcement_tone": config.announcement_tone,
+        "registration_enabled": config.registration_enabled,
+        "maintenance_mode": config.maintenance_mode,
+        "maintenance_message": config.maintenance_message,
+    }
+
+
+@login_required
+@admin_required
+@require_POST
+def admin_site_control(request):
+    config = SiteConfiguration.get_solo()
+    before = _site_configuration_snapshot(config)
+
+    def clean_text(name, default=""):
+        return (request.POST.get(name) or default).strip()
+
+    def clean_hex(name, fallback):
+        value = clean_text(name, fallback)
+        if not re.match(r"^#[0-9A-Fa-f]{6}$", value):
+            return fallback
+        return value
+
+    config.site_name = clean_text("site_name", config.site_name) or "NExUS"
+    config.short_name = clean_text("short_name", config.short_name) or "NExUS"
+    config.tagline = clean_text("tagline", config.tagline)
+    config.contact_email = clean_text("contact_email", config.contact_email)
+    config.facebook_url = clean_text("facebook_url", config.facebook_url)
+
+    config.primary_color = clean_hex("primary_color", config.primary_color)
+    config.secondary_color = clean_hex("secondary_color", config.secondary_color)
+    config.accent_color = clean_hex("accent_color", config.accent_color)
+
+    config.announcement_enabled = request.POST.get("announcement_enabled") == "on"
+    config.announcement_title = clean_text("announcement_title")
+    config.announcement_message = clean_text("announcement_message")
+    tone = clean_text("announcement_tone", config.announcement_tone)
+    config.announcement_tone = tone if tone in dict(SiteConfiguration.AnnouncementTone.choices) else SiteConfiguration.AnnouncementTone.INFO
+
+    config.registration_enabled = request.POST.get("registration_enabled") == "on"
+    config.maintenance_mode = request.POST.get("maintenance_mode") == "on"
+    config.maintenance_message = clean_text("maintenance_message", config.maintenance_message)
+    config.updated_by = request.user
+    config.save()
+
+    after = _site_configuration_snapshot(config)
+    changed = [key for key in after if before.get(key) != after.get(key)]
+    if changed:
+        SiteConfigurationLog.objects.create(
+            changed_by=request.user,
+            summary=f"Updated site controls: {', '.join(changed[:6])}{'…' if len(changed) > 6 else ''}",
+            before=before,
+            after=after,
+        )
+        messages.success(request, "Site-wide controls updated successfully.")
+    else:
+        messages.info(request, "No site-wide control changes were detected.")
+
+    return redirect("admin_dashboard")
 
 @login_required
 @admin_required

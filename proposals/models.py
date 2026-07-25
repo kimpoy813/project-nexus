@@ -41,13 +41,15 @@ class Proposal(models.Model):
 
     class ImplementationStatus(models.TextChoices):
         NOT_STARTED = "NOT_STARTED", "Not Started"
+        # Kept for older records; the active tracker now starts at the
+        # approved activity implementation stage after MOA completion.
         PREPARATION = "PREPARATION", "Preparation"
-        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
-        MONITORING = "MONITORING", "Monitoring"
-        POST_ACTIVITY_REPORT = "POST_ACTIVITY_REPORT", "Post Activity Report / Progress Report"
-        TERMINAL_REPORT = "TERMINAL_REPORT", "Terminal Report"
-        REVISION = "REVISION", "Revision"
-        COMPLETED = "COMPLETED", "Completed"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation of Extension Activity"
+        POST_ACTIVITY_REPORT = "POST_ACTIVITY_REPORT", "Post-Extension Activity Report Submission"
+        TERMINAL_REPORT = "TERMINAL_REPORT", "Extension Progress Report"
+        MONITORING = "MONITORING", "Monitoring and Evaluation"
+        REVISION = "REVISION", "Summary of Comments and Actions Taken"
+        COMPLETED = "COMPLETED", "Final Evaluation and Documentation"
 
     class ExtensionType(models.TextChoices):
         RESEARCH_FACULTY = "RESEARCH_FACULTY", "Research-based (Faculty)"
@@ -367,12 +369,12 @@ class Proposal(models.Model):
 
     IMPLEMENTATION_PROGRESS_MAP = {
         ImplementationStatus.NOT_STARTED: 0,
-        ImplementationStatus.PREPARATION: 12,
-        ImplementationStatus.IMPLEMENTATION: 30,
-        ImplementationStatus.MONITORING: 48,
-        ImplementationStatus.POST_ACTIVITY_REPORT: 64,
-        ImplementationStatus.TERMINAL_REPORT: 80,
-        ImplementationStatus.REVISION: 90,
+        ImplementationStatus.PREPARATION: 0,  # legacy status, no longer shown in active flow
+        ImplementationStatus.IMPLEMENTATION: 16,
+        ImplementationStatus.POST_ACTIVITY_REPORT: 33,
+        ImplementationStatus.TERMINAL_REPORT: 50,
+        ImplementationStatus.MONITORING: 66,
+        ImplementationStatus.REVISION: 83,
         ImplementationStatus.COMPLETED: 100,
     }
 
@@ -394,20 +396,24 @@ class Proposal(models.Model):
     ]
 
     IMPLEMENTATION_FLOW = [
-        (ImplementationStatus.PREPARATION, "mark_implementation_preparation", "Preparation",
-         "Preparing logistics, resources, and schedule for the extension activity."),
-        (ImplementationStatus.IMPLEMENTATION, "mark_implementation_ongoing", "Implementation",
-         "The extension program/project/activity is being carried out."),
-        (ImplementationStatus.MONITORING, "mark_implementation_monitoring", "Monitoring",
-         "Activity is being monitored for compliance, attendance, and progress."),
-        (ImplementationStatus.POST_ACTIVITY_REPORT, "mark_post_activity_report", "Post Activity Report / Progress Report",
-         "Post activity report / progress report has been submitted."),
-        (ImplementationStatus.TERMINAL_REPORT, "mark_terminal_report", "Terminal Report",
-         "Terminal report has been submitted for review."),
-        (ImplementationStatus.REVISION, "mark_implementation_revision", "Revision",
-         "Terminal report is being finalized/revised prior to completion."),
-        (ImplementationStatus.COMPLETED, "mark_implementation_completed", "Completed",
-         "Implementation phase is complete."),
+        (ImplementationStatus.IMPLEMENTATION, "mark_implementation_ongoing",
+         "Implementation of Extension Activity",
+         "Proponent/s conduct the approved extension activities."),
+        (ImplementationStatus.POST_ACTIVITY_REPORT, "mark_post_activity_report",
+         "Post-Extension Activity Report Submission",
+         "Proponent/s submit the post-activity report with documentation to the Extension Office."),
+        (ImplementationStatus.TERMINAL_REPORT, "mark_terminal_report",
+         "Extension Progress Report",
+         "Proponent/s submit periodic progress reports for ongoing extension projects to the Extension Office."),
+        (ImplementationStatus.MONITORING, "mark_implementation_monitoring",
+         "Monitoring and Evaluation",
+         "Proponent/s and the Extension Office conduct monitoring visits for implementation status and field validation."),
+        (ImplementationStatus.REVISION, "mark_implementation_revision",
+         "Summary of Comments and Actions Taken",
+         "Proponent/s address evaluation findings and prepare the Summary of Comments and Actions Taken."),
+        (ImplementationStatus.COMPLETED, "mark_implementation_completed",
+         "Final Evaluation and Documentation",
+         "Proponent/s and the Extension Office submit the terminal report and final documentation."),
     ]
 
     def _flow_index(self, flow, status_code):
@@ -443,8 +449,15 @@ class Proposal(models.Model):
         return self._step_states(self.MOA_FLOW, self.moa_status)
 
     def implementation_step_states(self):
-        """Ordered Implementation steps annotated with completed/current/upcoming state."""
-        return self._step_states(self.IMPLEMENTATION_FLOW, self.implementation_status)
+        """Ordered Implementation steps annotated with completed/current/upcoming state.
+
+        The approved institutional process labels these as steps 7 through 12
+        because Proposal and MOA processing happen before implementation.
+        """
+        steps = self._step_states(self.IMPLEMENTATION_FLOW, self.implementation_status)
+        for idx, step in enumerate(steps, start=7):
+            step["no"] = idx
+        return steps
 
     def advance_moa(self):
         """Move moa_status to the next step in MOA_FLOW. Returns True if it advanced."""
@@ -472,8 +485,11 @@ class Proposal(models.Model):
 
     def advance_implementation(self):
         """Move implementation_status to the next step in IMPLEMENTATION_FLOW."""
-        if self.implementation_status == self.ImplementationStatus.NOT_STARTED:
-            self.mark_implementation_preparation()
+        if self.implementation_status in {
+            self.ImplementationStatus.NOT_STARTED,
+            self.ImplementationStatus.PREPARATION,  # legacy records
+        }:
+            self.mark_implementation_ongoing()
             return True
 
         idx = self._flow_index(self.IMPLEMENTATION_FLOW, self.implementation_status)

@@ -533,13 +533,13 @@ def proposal_moa_step(request, proposal_id, step):
                 _save_moa_step_3(proposal, form.cleaned_data)
             elif step == 4:
                 _save_moa_step_4(proposal, request)
-                _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "LEGAL_REVIEW", "LEGAL_REVIEW"))
+                _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "DRAFT", "DRAFT"))
 
             if step < 4:
                 messages.success(request, "MOA step saved. Continue to the next part.")
                 return redirect("proposal_moa_step", proposal_id=proposal.id, step=step + 1)
 
-            messages.success(request, "MOA draft completed.")
+            messages.success(request, "MOA draft completed and queued for Staff review.")
             return redirect("proposal_moa_summary", proposal_id=proposal.id)
     else:
         initial = {}
@@ -3884,10 +3884,28 @@ def proposal_moa_draft(request, proposal_id):
                 remarks=(request.POST.get("remarks") or "").strip(),
                 is_verified=False,
             )
-            if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+            previous_status = proposal.moa_status
+            if proposal.moa_status in {
+                Proposal.MOAStatus.NOT_STARTED,
+                Proposal.MOAStatus.FOR_REVISION,
+            }:
+                proposal.mark_moa_draft()
+                ProposalPhaseLog.objects.create(
+                    proposal=proposal,
+                    phase=ProposalPhaseLog.Phase.MOA,
+                    from_status=previous_status,
+                    to_status=proposal.moa_status,
+                    remarks=(
+                        "Revised MOA document uploaded and queued for Staff review."
+                        if previous_status == Proposal.MOAStatus.FOR_REVISION
+                        else "MOA document uploaded and queued for Staff review."
+                    ),
+                    changed_by=request.user,
+                )
+            elif proposal.moa_status == Proposal.MOAStatus.DRAFT:
                 proposal.mark_moa_draft()
 
-            messages.success(request, "MOA document uploaded successfully.")
+            messages.success(request, "MOA document uploaded successfully and queued for Staff review.")
             return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
         # action == "generate": build the .docx from the submitted form fields.
@@ -3915,10 +3933,28 @@ def proposal_moa_draft(request, proposal_id):
             remarks=version_note or "Generated via the guided MOA drafting form.",
             is_verified=False,
         )
-        if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+        previous_status = proposal.moa_status
+        if proposal.moa_status in {
+            Proposal.MOAStatus.NOT_STARTED,
+            Proposal.MOAStatus.FOR_REVISION,
+        }:
+            proposal.mark_moa_draft()
+            ProposalPhaseLog.objects.create(
+                proposal=proposal,
+                phase=ProposalPhaseLog.Phase.MOA,
+                from_status=previous_status,
+                to_status=proposal.moa_status,
+                remarks=(
+                    "Revised MOA draft generated and queued for Staff review."
+                    if previous_status == Proposal.MOAStatus.FOR_REVISION
+                    else "MOA draft generated and queued for Staff review."
+                ),
+                changed_by=request.user,
+            )
+        elif proposal.moa_status == Proposal.MOAStatus.DRAFT:
             proposal.mark_moa_draft()
 
-        messages.success(request, "MOA draft generated. You can review it in the MOA Tracker or keep editing here.")
+        messages.success(request, "MOA draft generated and queued for Staff review. You can review it in the MOA Tracker or keep editing here.")
         return redirect("proposal_moa_tracker", proposal_id=proposal.id)
 
     # GET: pre-fill the form with the last-saved draft data (falling back to
@@ -3977,8 +4013,9 @@ def _notify_proponent(proposal, sent_by, notification_type, message):
     recipients = set()
     if proposal.created_by_id:
         recipients.add(proposal.created_by_id)
-    for proponent in proposal.proponents.select_related("user"):
-        recipients.add(proponent.user_id)
+    for proponent in proposal.proponents.exclude(user__isnull=True).select_related("user"):
+        if proponent.user_id:
+            recipients.add(proponent.user_id)
 
     for uid in recipients:
         MOANotification.objects.create(
@@ -4005,6 +4042,31 @@ def proposal_moa_tracker(request, proposal_id):
     if not proposal.requires_moa:
         messages.info(request, "This proposal does not require a MOA.")
         return redirect("proposal_storage", proposal_id=proposal.id)
+
+    # Legacy safety: if a draft file already exists but the proposal was never
+    # moved out of NOT_STARTED, surface it as Draft so Staff/Director can send
+    # it to Legal Review from this tracker. New uploads do this in moa_upload().
+    if (
+        proposal.moa_status == Proposal.MOAStatus.NOT_STARTED
+        and (
+            MOASubmission.objects.filter(proposal=proposal).exists()
+            or ProposalFinalDocument.objects.filter(
+                proposal=proposal,
+                document_type=ProposalFinalDocument.DocumentType.MOA,
+            ).exists()
+            or bool(getattr(proposal, "moa_draft_file", None))
+        )
+    ):
+        previous_status = proposal.moa_status
+        proposal.mark_moa_draft()
+        ProposalPhaseLog.objects.create(
+            proposal=proposal,
+            phase=ProposalPhaseLog.Phase.MOA,
+            from_status=previous_status,
+            to_status=proposal.moa_status,
+            remarks="MOA draft upload detected; moved to Draft status.",
+            changed_by=None,
+        )
 
     can_manage   = _can_manage_phase(request.user, proposal)
     is_proponent = (
@@ -4104,7 +4166,7 @@ def proposal_moa_tracker(request, proposal_id):
                 )
                 messages.success(request, "MOA is now in Agenda Brief & Presentation.")
 
-        # Agenda Brief → MOA Completed (notify proponent)
+        # Agenda Brief → MOA Completed, then move into Implementation
         elif action == "complete":
             if proposal.moa_status != S.AGENDA_AND_PRESENTATION:
                 messages.error(request, "The MOA must be in Agenda Brief & Presentation to mark it Completed.")
@@ -4115,15 +4177,36 @@ def proposal_moa_tracker(request, proposal_id):
                     from_status=previous_status, to_status=proposal.moa_status,
                     remarks=remarks or "MOA signed and completed.", changed_by=request.user,
                 )
+
+                implementation_previous_status = proposal.implementation_status
+                if proposal.implementation_status in {
+                    Proposal.ImplementationStatus.NOT_STARTED,
+                    Proposal.ImplementationStatus.PREPARATION,
+                }:
+                    proposal.mark_implementation_ongoing()
+                    ProposalPhaseLog.objects.create(
+                        proposal=proposal,
+                        phase=ProposalPhaseLog.Phase.IMPLEMENTATION,
+                        from_status=implementation_previous_status,
+                        to_status=proposal.implementation_status,
+                        remarks="MOA completed; moved to Implementation of Extension Activity.",
+                        changed_by=request.user,
+                    )
+
                 _notify_proponent(
                     proposal=proposal, sent_by=request.user,
                     notification_type=MOANotification.NotificationType.COMPLETED,
                     message=(
                         f"The MOA for \"{proposal.display_title}\" has been completed and signed "
-                        f"by all parties. Congratulations!"
+                        f"by all parties. The project is now in the Implementation of Extension "
+                        f"Activity stage."
                     ),
                 )
-                messages.success(request, "MOA marked as Completed. The proponent has been notified.")
+                messages.success(
+                    request,
+                    "MOA marked as Completed. The proponent has been notified and the project was moved to Implementation.",
+                )
+                return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
 
         # Fallback: keep generic advance/back
         elif action == "advance":
@@ -4189,9 +4272,10 @@ def proposal_moa_tracker(request, proposal_id):
 # ==============================
 # IMPLEMENTATION TRACKER
 # ==============================
-# Implementation Process: Preparation -> Implementation -> Monitoring
-#              -> Post Activity Report / Progress Report -> Terminal Report
-#              -> Revision -> Completed
+# Implementation Process (after MOA completion):
+# 7. Implementation of Extension Activity -> 8. Post-Extension Activity Report
+# Submission -> 9. Extension Progress Report -> 10. Monitoring and Evaluation
+# -> 11. Summary of Comments and Actions Taken -> 12. Final Evaluation and Documentation
 
 @login_required
 def proposal_implementation_tracker(request, proposal_id):
@@ -4200,14 +4284,35 @@ def proposal_implementation_tracker(request, proposal_id):
 
     Proponents and staff can view the tracker. Only Staff/Director can
     advance or send back a stage. Proponents can upload the
-    post-activity/progress report, terminal report, and (once completed)
-    the certificate of completion.
+    post-extension/progress report, final evaluation documentation, and
+    (once completed) the certificate of completion.
     """
     proposal = get_object_or_404(Proposal, id=proposal_id)
 
     if not _can_view_proposal(request.user, proposal):
         messages.error(request, "You don't have access to this proposal.")
         return redirect("dashboard_redirect")
+
+    # If a previously completed MOA has not yet initialized implementation,
+    # start it here so the user lands directly in process step 7.
+    if (
+        proposal.requires_moa
+        and proposal.moa_status == Proposal.MOAStatus.COMPLETED
+        and proposal.implementation_status in {
+            Proposal.ImplementationStatus.NOT_STARTED,
+            Proposal.ImplementationStatus.PREPARATION,
+        }
+    ):
+        previous_status = proposal.implementation_status
+        proposal.mark_implementation_ongoing()
+        ProposalPhaseLog.objects.create(
+            proposal=proposal,
+            phase=ProposalPhaseLog.Phase.IMPLEMENTATION,
+            from_status=previous_status,
+            to_status=proposal.implementation_status,
+            remarks="MOA completed; implementation tracker initialized at step 7.",
+            changed_by=request.user if request.user.is_authenticated else None,
+        )
 
     can_manage = _can_manage_phase(request.user, proposal)
     is_proponent = (
@@ -4338,6 +4443,7 @@ def proposal_implementation_tracker(request, proposal_id):
         "is_first_stage": proposal.implementation_status in {
             Proposal.ImplementationStatus.NOT_STARTED,
             Proposal.ImplementationStatus.PREPARATION,
+            Proposal.ImplementationStatus.IMPLEMENTATION,
         },
         "is_final_stage": proposal.implementation_status == Proposal.ImplementationStatus.COMPLETED,
     }
@@ -4547,6 +4653,13 @@ def proposal_storage(request, proposal_id):
 @login_required
 def moa_upload(request, proposal_id):
     proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    can_manage = _can_manage_phase(request.user, proposal)
+    can_upload = can_manage or _can_edit(request.user, proposal)
+    if not can_upload:
+        messages.error(request, "You do not have permission to upload a MOA draft for this proposal.")
+        return redirect("dashboard_redirect")
+
     existing = MOASubmission.objects.filter(proposal=proposal).first()
 
     if request.method == "POST":
@@ -4563,13 +4676,44 @@ def moa_upload(request, proposal_id):
             obj.year                = form.cleaned_data["year"]
             obj.duration            = form.cleaned_data["duration"]
 
-            if form.cleaned_data.get("moa_file"):
+            uploaded_file = form.cleaned_data.get("moa_file")
+            file_was_uploaded = bool(uploaded_file)
+
+            if uploaded_file:
                 if existing and existing.moa_file:
                     existing.moa_file.delete(save=False)
-                obj.moa_file = form.cleaned_data["moa_file"]
+                obj.moa_file = uploaded_file
 
             obj.save()
-            messages.success(request, "MOA draft uploaded successfully.")
+
+            # A submitted or re-submitted draft should immediately become
+            # visible to Staff/Director as Draft, ready to prepare for Legal
+            # Review. If Legal Review already started, do not move it backward.
+            draft_upload_statuses = {
+                Proposal.MOAStatus.NOT_STARTED,
+                Proposal.MOAStatus.DRAFT,
+                Proposal.MOAStatus.FOR_REVISION,
+            }
+            if proposal.moa_status in draft_upload_statuses and (file_was_uploaded or not existing):
+                previous_status = proposal.moa_status
+                if proposal.moa_status != Proposal.MOAStatus.DRAFT:
+                    proposal.mark_moa_draft()
+                    ProposalPhaseLog.objects.create(
+                        proposal=proposal,
+                        phase=ProposalPhaseLog.Phase.MOA,
+                        from_status=previous_status,
+                        to_status=proposal.moa_status,
+                        remarks=(
+                            "Revised MOA draft uploaded by proponent."
+                            if previous_status == Proposal.MOAStatus.FOR_REVISION
+                            else "MOA draft uploaded and queued for Staff review."
+                        ),
+                        changed_by=request.user,
+                    )
+                else:
+                    proposal.mark_moa_draft()
+
+            messages.success(request, "MOA draft uploaded successfully and queued for Staff review.")
             return redirect("proposal_moa_tracker", proposal_id=proposal_id)
     else:
         initial = {}
