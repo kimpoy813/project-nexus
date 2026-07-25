@@ -26,7 +26,7 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
-from details.models import ExtensionProcess, ProcessStep
+from details.models import DocumentTemplate, DynamicFormTemplate, ExtensionProcess, ProcessStep
 from .moa_docx import build_moa_document
 from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
 
@@ -825,6 +825,8 @@ def services_home(request):
         )
         .order_by("order", "id")
     )
+    office_templates = DocumentTemplate.objects.filter(is_active=True).order_by("category", "title")
+    dynamic_form_templates = DynamicFormTemplate.objects.filter(is_active=True).prefetch_related("fields").order_by("applies_to", "name")
 
     workflow_phases = [
         {
@@ -866,6 +868,8 @@ def services_home(request):
         "workflow_phases": workflow_phases,
         "wizard_steps": STEP_LABELS,
         "total_wizard_steps": TOTAL_STEPS,
+        "office_templates": office_templates,
+        "dynamic_form_templates": dynamic_form_templates,
     }
     return render(request, "services/services_home.html", context)
 

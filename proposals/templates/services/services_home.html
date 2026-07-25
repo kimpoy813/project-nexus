@@ -54,7 +54,7 @@
 
 <section class="border-y border-gray-200 bg-gray-50">
     <div class="mx-auto max-w-7xl px-6 py-10">
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 md:grid-cols-5">
             <a href="#maintained-process"
                class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
                 <p class="text-sm font-semibold text-primary">Maintained Process</p>
@@ -69,6 +69,16 @@
                class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
                 <p class="text-sm font-semibold text-primary">Status Lifecycle</p>
                 <p class="mt-2 text-sm leading-6 text-gray-600">Proposal, MOA, and implementation statuses from the Proposal model.</p>
+            </a>
+            <a href="#template-library"
+               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
+                <p class="text-sm font-semibold text-primary">Template Library</p>
+                <p class="mt-2 text-sm leading-6 text-gray-600">Latest office-uploaded templates and forms.</p>
+            </a>
+            <a href="#office-forms"
+               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
+                <p class="text-sm font-semibold text-primary">Office Forms</p>
+                <p class="mt-2 text-sm leading-6 text-gray-600">Admin-managed form/checklist requirements.</p>
             </a>
         </div>
     </div>
@@ -125,6 +135,74 @@
                 <div class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
                     <p class="text-sm font-semibold text-gray-900">No maintained process records yet.</p>
                     <p class="mt-2 text-sm text-gray-600">The status lifecycle below still reflects the Proposal model.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+
+<section id="template-library" class="bg-white py-16 scroll-mt-28">
+    <div class="mx-auto max-w-7xl px-6">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Admin Template Library</p>
+                <h2 class="mt-3 text-3xl font-bold text-gray-950">Official forms and document templates</h2>
+            </div>
+            <p class="max-w-2xl text-sm leading-6 text-gray-600">These files are uploaded by the Admin account, so the Extension Office can replace templates without developer changes.</p>
+        </div>
+        <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {% for item in office_templates %}
+                <article class="rounded-lg border border-gray-200 bg-white p-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ item.get_category_display }}</p>
+                    <h3 class="mt-2 text-lg font-bold text-gray-950">{{ item.title }}</h3>
+                    <p class="mt-2 text-sm leading-6 text-gray-600">{{ item.description|default:"Official office template." }}</p>
+                    <div class="mt-4 flex items-center justify-between gap-3">
+                        <span class="text-xs text-gray-500">{{ item.version_label|default:"Current" }}</span>
+                        {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-secondary">Download</a>{% endif %}
+                    </div>
+                </article>
+            {% empty %}
+                <div class="md:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
+                    <p class="text-sm font-semibold text-gray-900">No office templates are published yet.</p>
+                    <p class="mt-2 text-sm text-gray-600">Admins can upload them from the Template Library builder.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section id="office-forms" class="bg-gray-50 py-16 scroll-mt-28">
+    <div class="mx-auto max-w-7xl px-6">
+        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Admin Form Builder</p>
+                <h2 class="mt-3 text-3xl font-bold text-gray-950">Current form and checklist requirements</h2>
+            </div>
+            <p class="max-w-2xl text-sm leading-6 text-gray-600">These configurable forms show the office's current requirements. Admins can add, remove, or revise fields without coding.</p>
+        </div>
+        <div class="mt-8 grid gap-4 lg:grid-cols-2">
+            {% for form in dynamic_form_templates %}
+                <article class="rounded-lg border border-gray-200 bg-white p-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ form.get_applies_to_display }}</p>
+                    <h3 class="mt-2 text-lg font-bold text-gray-950">{{ form.name }}</h3>
+                    <p class="mt-2 text-sm leading-6 text-gray-600">{{ form.description|default:"Office-managed form." }}</p>
+                    {% if form.instructions %}<p class="mt-3 rounded-lg bg-primary/5 p-3 text-xs leading-5 text-primary">{{ form.instructions }}</p>{% endif %}
+                    <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                        {% for field in form.fields.all %}
+                            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                                <p class="text-sm font-semibold text-gray-800">{{ field.label }}{% if field.required %} <span class="text-red-600">*</span>{% endif %}</p>
+                                <p class="mt-1 text-xs text-gray-500">{{ field.get_field_type_display }}{% if field.help_text %} · {{ field.help_text }}{% endif %}</p>
+                            </div>
+                        {% empty %}
+                            <p class="text-sm text-gray-500">No fields configured yet.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+            {% empty %}
+                <div class="lg:col-span-2 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
+                    <p class="text-sm font-semibold text-gray-900">No admin-managed forms are published yet.</p>
+                    <p class="mt-2 text-sm text-gray-600">Admins can create them from the Form Builder.</p>
                 </div>
             {% endfor %}
         </div>

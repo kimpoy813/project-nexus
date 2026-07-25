@@ -56,6 +56,32 @@
             </div>
         </div>
 
+        <!-- No-Code Operations Builder -->
+        <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
+            <div class="border-b border-gray-200 bg-gradient-to-br from-primary/10 via-white to-accent/30 px-6 py-5">
+                <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Operations Builder</p>
+                <h2 class="mt-1 text-xl font-black tracking-tight text-gray-900">Update processes, forms, and templates without coding</h2>
+                <p class="mt-1 text-sm text-gray-600">When the Extension Office changes requirements, use these builders instead of editing source files.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6">
+                <a href="{% url 'processes_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
+                    <p class="text-sm font-black text-gray-900">Process Builder</p>
+                    <p class="mt-2 text-3xl font-black text-primary">{{ processes_count|default:0 }}</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Edit public process flows and step-by-step office procedures.</p>
+                </a>
+                <a href="{% url 'dynamic_forms_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
+                    <p class="text-sm font-black text-gray-900">Form Builder</p>
+                    <p class="mt-2 text-3xl font-black text-primary">{{ dynamic_form_count|default:0 }}</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Create configurable forms/checklists for Proposal, MOA, Implementation, and Evaluation.</p>
+                </a>
+                <a href="{% url 'document_templates_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
+                    <p class="text-sm font-black text-gray-900">Template Library</p>
+                    <p class="mt-2 text-3xl font-black text-primary">{{ document_template_count|default:0 }}</p>
+                    <p class="mt-1 text-xs leading-5 text-gray-500">Upload official DOCX/XLSX/PDF templates used by proponents and office staff.</p>
+                </a>
+            </div>
+        </div>
+
         <!-- Website Command Center -->
         <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
             <div class="border-b border-gray-200 bg-gradient-to-br from-primary/10 via-white to-accent/30 px-6 py-5">

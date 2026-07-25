@@ -131,6 +131,16 @@ urlpatterns = [
         name="reorder_process_steps",
     ),
 
+    # Admin no-code builder
+    path("admin/templates/", views.document_templates_list, name="document_templates_list"),
+    path("admin/templates/create/", views.document_template_create, name="document_template_create"),
+    path("admin/templates/<int:pk>/edit/", views.document_template_edit, name="document_template_edit"),
+    path("admin/templates/<int:pk>/delete/", views.document_template_delete, name="document_template_delete"),
+    path("admin/forms/", views.dynamic_forms_list, name="dynamic_forms_list"),
+    path("admin/forms/create/", views.dynamic_form_create, name="dynamic_form_create"),
+    path("admin/forms/<int:pk>/edit/", views.dynamic_form_edit, name="dynamic_form_edit"),
+    path("admin/forms/<int:pk>/delete/", views.dynamic_form_delete, name="dynamic_form_delete"),
+
     # Targets management
     path("admin/targets/", views.targets_list, name="targets_list"),
     path("admin/targets/create/", views.target_create, name="target_create"),

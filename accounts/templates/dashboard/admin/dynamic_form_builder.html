@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit{% else %}Create{% endif %} Dynamic Form - NExUS{% endblock %}
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Form Builder</p>
+            <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">{% if mode == 'edit' %}Edit Form{% else %}Create Form{% endif %}</h1>
+            <p class="mt-2 text-sm text-gray-600">Add fields, mark requirements, and reorder the office checklist/form.</p>
+        </div>
+        <a href="{% url 'dynamic_forms_list' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Forms</a>
+    </div>
+
+    <form method="post" class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+        {% csrf_token %}
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Form Name</label>
+                <input type="text" name="name" value="{{ form_obj.name|default:'' }}" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-1">Applies To</label>
+                <select name="applies_to" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                    {% for value,label in applies_to_choices %}<option value="{{ value }}" {% if form_obj.applies_to == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="lg:col-span-3">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Description</label>
+                <textarea name="description" rows="2" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ form_obj.description|default:'' }}</textarea>
+            </div>
+            <div class="lg:col-span-3">
+                <label class="block text-sm font-bold text-gray-700 mb-1">Instructions</label>
+                <textarea name="instructions" rows="3" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ form_obj.instructions|default:'' }}</textarea>
+            </div>
+            <label class="lg:col-span-3 inline-flex items-center gap-2 text-sm font-bold text-gray-700">
+                <input type="checkbox" name="is_active" {% if mode == 'create' or form_obj.is_active %}checked{% endif %} class="rounded border-gray-300 text-primary focus:ring-primary">
+                Active / visible as an office-managed form
+            </label>
+        </section>
+
+        <section class="border-t border-gray-100 pt-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-lg font-black text-gray-900">Fields</h2>
+                    <p class="text-sm text-gray-500">Use dropdown choices as one option per line.</p>
+                </div>
+                <button type="button" onclick="addFieldRow()" class="rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white">+ Add Field</button>
+            </div>
+            <div id="fieldRows" class="space-y-4">
+                {% if form_obj %}
+                    {% for field in form_obj.fields.all %}
+                        <div class="field-row rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
+                            <input type="hidden" name="field_id[]" value="{{ field.id }}">
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+                                <div class="md:col-span-3"><label class="text-xs font-bold text-gray-600">Label</label><input name="field_label[]" value="{{ field.label }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Key</label><input name="field_key[]" value="{{ field.field_key }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Type</label><select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">{% for value,label in field_type_choices %}<option value="{{ value }}" {% if field.field_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+                                <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Placeholder</label><input name="field_placeholder[]" value="{{ field.placeholder }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Help Text</label><input name="field_help_text[]" value="{{ field.help_text }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-1 flex items-end justify-between gap-2"><label class="inline-flex items-center gap-1 text-xs font-bold text-gray-700 mb-2"><input type="checkbox" name="field_required[]" value="{{ field.id }}" {% if field.required %}checked{% endif %}> Req.</label><button type="button" onclick="this.closest('.field-row').remove()" class="mb-1 text-xs font-bold text-red-600">Remove</button></div>
+                                <div class="md:col-span-12"><label class="text-xs font-bold text-gray-600">Choices for dropdown fields</label><textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">{{ field.choices_text }}</textarea></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </section>
+
+        <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
+            <a href="{% url 'dynamic_forms_list' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
+            <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Save Form</button>
+        </div>
+    </form>
+</div>
+
+<script>
+const fieldTypes = `{% for value,label in field_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
+function addFieldRow() {
+    const wrap = document.getElementById('fieldRows');
+    const idx = wrap.querySelectorAll('.field-row').length;
+    const div = document.createElement('div');
+    div.className = 'field-row rounded-2xl border border-gray-200 bg-gray-50/60 p-4';
+    div.innerHTML = `
+        <input type="hidden" name="field_id[]" value="">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div class="md:col-span-3"><label class="text-xs font-bold text-gray-600">Label</label><input name="field_label[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Field label"></div>
+            <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Key</label><input name="field_key[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="auto if blank"></div>
+            <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Type</label><select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">${fieldTypes}</select></div>
+            <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Placeholder</label><input name="field_placeholder[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+            <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Help Text</label><input name="field_help_text[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+            <div class="md:col-span-1 flex items-end justify-between gap-2"><label class="inline-flex items-center gap-1 text-xs font-bold text-gray-700 mb-2"><input type="checkbox" name="field_required[]" value="new_${idx}"> Req.</label><button type="button" onclick="this.closest('.field-row').remove()" class="mb-1 text-xs font-bold text-red-600">Remove</button></div>
+            <div class="md:col-span-12"><label class="text-xs font-bold text-gray-600">Choices for dropdown fields</label><textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea></div>
+        </div>`;
+    wrap.appendChild(div);
+}
+{% if not form_obj %}addFieldRow();{% endif %}
+</script>
+{% endblock %}

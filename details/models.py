@@ -116,3 +116,96 @@ class Target(models.Model):
 
     def __str__(self):
         return f"{self.year} • {self.campus} • {self.get_metric_display()}"
+
+# ==============================
+# ADMIN NO-CODE BUILDER MODELS
+# ==============================
+
+class DocumentTemplate(models.Model):
+    """Admin-managed downloadable files used by the Extension Office."""
+
+    class Category(models.TextChoices):
+        PROPOSAL = "PROPOSAL", "Proposal"
+        MOA = "MOA", "MOA"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
+        REPORT = "REPORT", "Report"
+        CERTIFICATE = "CERTIFICATE", "Certificate"
+        OTHER = "OTHER", "Other"
+
+    title = models.CharField(max_length=180)
+    category = models.CharField(max_length=30, choices=Category.choices, default=Category.PROPOSAL)
+    description = models.TextField(blank=True, default="")
+    file = models.FileField(upload_to="office_templates/")
+    version_label = models.CharField(max_length=40, blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["category", "title", "-updated_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class DynamicFormTemplate(models.Model):
+    """Admin-defined form blueprint for office checklists/intake forms."""
+
+    class AppliesTo(models.TextChoices):
+        PROPOSAL = "PROPOSAL", "Proposal"
+        MOA = "MOA", "MOA"
+        IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
+        EVALUATION = "EVALUATION", "Evaluation"
+        GENERAL = "GENERAL", "General"
+
+    name = models.CharField(max_length=180)
+    slug = models.SlugField(max_length=200, unique=True)
+    applies_to = models.CharField(max_length=30, choices=AppliesTo.choices, default=AppliesTo.GENERAL)
+    description = models.TextField(blank=True, default="")
+    instructions = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["applies_to", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class DynamicFormField(models.Model):
+    """Field definitions belonging to a DynamicFormTemplate."""
+
+    class FieldType(models.TextChoices):
+        TEXT = "TEXT", "Short Text"
+        TEXTAREA = "TEXTAREA", "Long Text"
+        NUMBER = "NUMBER", "Number"
+        DATE = "DATE", "Date"
+        EMAIL = "EMAIL", "Email"
+        SELECT = "SELECT", "Dropdown"
+        CHECKBOX = "CHECKBOX", "Checkbox"
+        FILE = "FILE", "File Upload"
+
+    form = models.ForeignKey(DynamicFormTemplate, related_name="fields", on_delete=models.CASCADE)
+    label = models.CharField(max_length=180)
+    field_key = models.SlugField(max_length=120)
+    field_type = models.CharField(max_length=20, choices=FieldType.choices, default=FieldType.TEXT)
+    required = models.BooleanField(default=False)
+    placeholder = models.CharField(max_length=180, blank=True, default="")
+    help_text = models.CharField(max_length=255, blank=True, default="")
+    choices_text = models.TextField(blank=True, default="", help_text="One dropdown choice per line.")
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["order", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["form", "field_key"], name="unique_dynamic_form_field_key"),
+        ]
+
+    def __str__(self):
+        return f"{self.form.name}: {self.label}"
+
+    @property
+    def choices_list(self):
+        return [line.strip() for line in self.choices_text.splitlines() if line.strip()]

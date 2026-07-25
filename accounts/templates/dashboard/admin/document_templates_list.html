@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Template Library Builder - NExUS{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Builder</p>
+            <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Office Template Library</h1>
+            <p class="mt-2 text-sm text-gray-600">Upload and replace the official forms/templates used by the Extension Office without changing code.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
+            <a href="{% url 'document_template_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Upload Template</a>
+        </div>
+    </div>
+
+    <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Template</th>
+                        <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Category</th>
+                        <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Version</th>
+                        <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for item in templates_qs %}
+                    <tr>
+                        <td class="px-6 py-4">
+                            <p class="font-bold text-gray-900">{{ item.title }}</p>
+                            <p class="text-xs text-gray-500 max-w-lg line-clamp-2">{{ item.description|default:"No description" }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ item.get_category_display }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ item.version_label|default:"—" }}</td>
+                        <td class="px-6 py-4">
+                            {% if item.is_active %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex flex-wrap gap-2">
+                                {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>{% endif %}
+                                <a href="{% url 'document_template_edit' item.id %}" class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white">Edit</a>
+                                <form method="post" action="{% url 'document_template_delete' item.id %}" onsubmit="return confirm('Delete this template?');">{% csrf_token %}<button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50">Delete</button></form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No templates uploaded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

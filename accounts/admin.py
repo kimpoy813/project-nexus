@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
+from details.models import DocumentTemplate, DynamicFormTemplate, DynamicFormField
 
 
 @admin.register(Profile)
@@ -40,3 +41,24 @@ class SiteConfigurationLogAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+class DynamicFormFieldInline(admin.TabularInline):
+    model = DynamicFormField
+    extra = 1
+
+
+@admin.register(DynamicFormTemplate)
+class DynamicFormTemplateAdmin(admin.ModelAdmin):
+    list_display = ("name", "applies_to", "is_active", "updated_at")
+    list_filter = ("applies_to", "is_active")
+    search_fields = ("name", "description", "instructions")
+    prepopulated_fields = {"slug": ("name",)}
+    inlines = [DynamicFormFieldInline]
+
+
+@admin.register(DocumentTemplate)
+class DocumentTemplateAdmin(admin.ModelAdmin):
+    list_display = ("title", "category", "version_label", "is_active", "updated_at")
+    list_filter = ("category", "is_active")
+    search_fields = ("title", "description", "version_label")
