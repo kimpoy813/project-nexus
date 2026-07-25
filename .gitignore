@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Django local runtime
+staticfiles/
+db.sqlite3
+*.sqlite3
+
+# Uploaded media should use Supabase Storage in production.
+# Existing tracked media files are not removed by this ignore rule.
+media/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.npm/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
