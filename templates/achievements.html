@@ -1,87 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Achievements — NExUS</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="/static/css/nexus-ui.css">
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+{% extends 'base.html' %}
+{% load static %}
 
-<header class="border-b border-gray-200 bg-white">
-  <div class="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-    <a href="/" class="text-2xl font-black text-primary tracking-tight">NExUS</a>
-    <nav class="hidden md:flex gap-6 text-sm font-semibold text-gray-600">
-      <a href="/" class="hover:text-primary">Home</a>
-      <a href="/proposals/" class="hover:text-primary">Services</a>
-      <a href="/reports/" class="hover:text-primary">Reports</a>
-      <a href="/achievements/" class="text-primary">Achievements</a>
-    </nav>
-  </div>
-</header>
+{% block title %}Achievements — {{ site_control.short_name|default:"NExUS" }}{% endblock %}
 
-<main class="max-w-6xl mx-auto px-6 py-12">
-  <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Institutional Achievements</h1>
-  <p class="text-gray-600 mb-10 max-w-3xl leading-relaxed">Achievements reflect institutional milestones across extension thrusts, campus targets, and sustainable development outcomes. These records highlight completed phases, approved proposals, and closed implementation cycles.</p>
+{% block content %}
 
-  <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-wide text-emerald-600">Completed Proposals</p>
-      <p class="mt-2 text-3xl font-black text-emerald-700">142</p>
-      <p class="text-xs text-gray-400 mt-1">Closed proposal phases</p>
+<section class="relative bg-gradient-to-br from-secondary to-primary text-white py-24 overflow-hidden">
+    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 28px 28px;"></div>
+    <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+        <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-6">Institutional Achievements</h1>
+        <p class="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
+            Milestones across extension thrusts, campus targets, and sustainable development outcomes — completed phases, approved proposals, and closed implementation cycles.
+        </p>
     </div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-wide text-blue-600">Active Implementations</p>
-      <p class="mt-2 text-3xl font-black text-blue-700">38</p>
-      <p class="text-xs text-gray-400 mt-1">Ongoing field work</p>
-    </div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-wide text-amber-600">MOAs Processed</p>
-      <p class="mt-2 text-3xl font-black text-amber-700">67</p>
-      <p class="text-xs text-gray-400 mt-1">Agreements finalized</p>
-    </div>
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-      <p class="text-xs font-bold uppercase tracking-wide text-purple-600">Campus Targets Met</p>
-      <p class="mt-2 text-3xl font-black text-purple-700">89%</p>
-      <p class="text-xs text-gray-400 mt-1">Annual goal progress</p>
-    </div>
-  </div>
+</section>
 
-  <section class="bg-white rounded-3xl border border-gray-200 shadow-sm p-8">
-    <h2 class="text-xl font-black text-gray-900 mb-6">Recent Milestones</h2>
-    <ul class="divide-y divide-gray-100">
-      <li class="py-5 flex items-start gap-4">
-        <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">COMPLETED</span>
-        <div>
-          <h3 class="font-bold text-gray-900">Campus A — Community-Based Extension Program</h3>
-          <p class="text-sm text-gray-500">Approved Mar 2026 · Implementation phase completed · All deliverables submitted</p>
+<main class="max-w-6xl mx-auto px-6 -mt-10 relative z-10">
+    <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-14">
+        <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl shadow-black/5 hover:-translate-y-1 transition">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600 mb-3">Completed Proposals</p>
+            <p class="text-4xl font-black text-emerald-700 tracking-tight">142</p>
+            <p class="text-xs text-gray-400 mt-2">Closed proposal phases</p>
         </div>
-      </li>
-      <li class="py-5 flex items-start gap-4">
-        <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">IMPLEMENTATION</span>
-        <div>
-          <h3 class="font-bold text-gray-900">Campus B — Technology Transfer Initiative</h3>
-          <p class="text-sm text-gray-500">In progress · Monitoring reports submitted · Quarter 2 milestones met</p>
+        <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl shadow-black/5 hover:-translate-y-1 transition">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-blue-600 mb-3">Active Implementations</p>
+            <p class="text-4xl font-black text-blue-700 tracking-tight">38</p>
+            <p class="text-xs text-gray-400 mt-2">Ongoing field work</p>
         </div>
-      </li>
-      <li class="py-5 flex items-start gap-4">
-        <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">MOA</span>
-        <div>
-          <h3 class="font-bold text-gray-900">Campus C — Collaborative Research Agreement</h3>
-          <p class="text-sm text-gray-500">MOA finalized · Certification ready · Awaiting agenda brief</p>
+        <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl shadow-black/5 hover:-translate-y-1 transition">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-amber-600 mb-3">MOAs Processed</p>
+            <p class="text-4xl font-black text-amber-700 tracking-tight">67</p>
+            <p class="text-xs text-gray-400 mt-2">Agreements finalized</p>
         </div>
-      </li>
-    </ul>
-  </section>
+        <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl shadow-black/5 hover:-translate-y-1 transition">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-purple-600 mb-3">Campus Targets Met</p>
+            <p class="text-4xl font-black text-purple-700 tracking-tight">89%</p>
+            <p class="text-xs text-gray-400 mt-2">Annual goal progress</p>
+        </div>
+    </div>
+
+    <section class="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-black/5 overflow-hidden mb-16">
+        <div class="px-8 py-7 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="text-xl font-black text-gray-900 tracking-tight">Recent Milestones</h2>
+            <span class="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Updated: Jul 25, 2026</span>
+        </div>
+        <div class="divide-y divide-gray-100">
+            <div class="px-8 py-6 flex items-start gap-5 hover:bg-gray-50 transition-colors">
+                <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700 uppercase tracking-wide shrink-0">Completed</span>
+                <div>
+                    <h3 class="font-bold text-gray-900 text-base leading-snug">Campus A — Community-Based Extension Program</h3>
+                    <p class="text-sm text-gray-500 mt-1 leading-relaxed">Approved Mar 2026 · Implementation phase completed · All deliverables submitted and verified.</p>
+                </div>
+            </div>
+            <div class="px-8 py-6 flex items-start gap-5 hover:bg-gray-50 transition-colors">
+                <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-[10px] font-black text-blue-700 uppercase tracking-wide shrink-0">Implementation</span>
+                <div>
+                    <h3 class="font-bold text-gray-900 text-base leading-snug">Campus B — Technology Transfer Initiative</h3>
+                    <p class="text-sm text-gray-500 mt-1 leading-relaxed">In progress · Monitoring reports submitted · Quarter 2 milestones met ahead of schedule.</p>
+                </div>
+            </div>
+            <div class="px-8 py-6 flex items-start gap-5 hover:bg-gray-50 transition-colors">
+                <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black text-amber-700 uppercase tracking-wide shrink-0">MOA</span>
+                <div>
+                    <h3 class="font-bold text-gray-900 text-base leading-snug">Campus C — Collaborative Research Agreement</h3>
+                    <p class="text-sm text-gray-500 mt-1 leading-relaxed">MOA finalized · Certification ready · Awaiting agenda brief presentation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 </main>
 
-<footer class="border-t border-gray-200 bg-white mt-12">
-  <div class="max-w-6xl mx-auto px-6 py-8 flex items-center justify-between text-sm text-gray-500">
-    <span>© 2026 NExUS — Networked Extension Unified System</span>
-    <a href="/" class="font-semibold text-primary hover:underline">Back to Home</a>
-  </div>
-</footer>
-
-</body>
-</html>
+{% endblock %}

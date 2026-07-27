@@ -1,91 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reports — NExUS</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="/static/css/nexus-ui.css">
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans">
+{% extends 'base.html' %}
+{% load static %}
 
-<header class="border-b border-gray-200 bg-white">
-  <div class="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-    <a href="/" class="text-2xl font-black text-primary tracking-tight">NExUS</a>
-    <nav class="hidden md:flex gap-6 text-sm font-semibold text-gray-600">
-      <a href="/" class="hover:text-primary">Home</a>
-      <a href="/proposals/" class="hover:text-primary">Services</a>
-      <a href="/reports/" class="text-primary">Reports</a>
-      <a href="/achievements/" class="hover:text-primary">Achievements</a>
-    </nav>
-  </div>
-</header>
+{% block title %}Reports — {{ site_control.short_name|default:"NExUS" }}{% endblock %}
 
-<main class="max-w-6xl mx-auto px-6 py-12">
-  <h1 class="text-4xl font-extrabold text-gray-900 mb-4">Institutional Reports</h1>
-  <p class="text-gray-600 mb-10 max-w-3xl leading-relaxed">Quarterly accomplishment reports, extension performance metrics, and institutional outputs are aggregated here for public transparency and stakeholder review.</p>
+{% block content %}
 
-  <section class="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-100">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Report</th>
-            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Period</th>
-            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Scope</th>
-            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">Metrics</th>
-            <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-wide text-gray-500">File</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr>
-            <td class="px-6 py-5">
-              <p class="font-bold text-gray-900">Q1 Extension Performance</p>
-              <p class="text-xs text-gray-500 mt-1">Institutional Office · Mar 15, 2026</p>
-            </td>
-            <td class="px-6 py-5 text-sm text-gray-700">2026 Q1</td>
-            <td class="px-6 py-5 text-sm text-gray-700">Institution</td>
-            <td class="px-6 py-5 text-xs text-gray-600">Activities: 42<br>Beneficiaries: 3,210<br>Partners: 18</td>
-            <td class="px-6 py-5">
-              <a href="#" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition">View PDF</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="px-6 py-5">
-              <p class="font-bold text-gray-900">Campus-Level Achievement Summary</p>
-              <p class="text-xs text-gray-500 mt-1">Campus Coordinator · Feb 28, 2026</p>
-            </td>
-            <td class="px-6 py-5 text-sm text-gray-700">2026 Q4</td>
-            <td class="px-6 py-5 text-sm text-gray-700">Campus A · Campus B</td>
-            <td class="px-6 py-5 text-xs text-gray-600">Activities: 128<br>Beneficiaries: 8,940<br>Partners: 32</td>
-            <td class="px-6 py-5">
-              <a href="#" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition">View PDF</a>
-            </td>
-          </tr>
-          <tr>
-            <td class="px-6 py-5">
-              <p class="font-bold text-gray-900">SDG-Aligned Extension Outcomes</p>
-              <p class="text-xs text-gray-500 mt-1">Director · Jan 10, 2026</p>
-            </td>
-            <td class="px-6 py-5 text-sm text-gray-700">Annual 2025</td>
-            <td class="px-6 py-5 text-sm text-gray-700">All Campuses</td>
-            <td class="px-6 py-5 text-xs text-gray-600">Activities: 310<br>Beneficiaries: 21,400<br>Partners: 67</td>
-            <td class="px-6 py-5">
-              <a href="#" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 transition">View PDF</a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+<section class="relative bg-gradient-to-br from-primary to-secondary text-white py-20 overflow-hidden">
+    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 28px 28px;"></div>
+    <div class="max-w-5xl mx-auto px-6 text-center relative z-10">
+        <h1 class="text-4xl md:text-6xl font-black tracking-tight mb-4">Institutional Reports</h1>
+        <p class="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">Quarterly accomplishment reports, extension performance metrics, and institutional outputs aggregated for public transparency.</p>
     </div>
-  </section>
+</section>
+
+<main class="max-w-6xl mx-auto px-6 -mt-10 relative z-10 mb-16">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        <div class="rounded-3xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white p-6 shadow-lg shadow-emerald-900/20">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-200 mb-1">Total Reports</p>
+            <p class="text-3xl font-black tracking-tight">3</p>
+            <p class="text-xs text-emerald-100/80 mt-1">Institutional publications</p>
+        </div>
+        <div class="rounded-3xl bg-gradient-to-br from-blue-600 to-blue-800 text-white p-6 shadow-lg shadow-blue-900/20">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-blue-200 mb-1">Activities Tracked</p>
+            <p class="text-3xl font-black tracking-tight">480</p>
+            <p class="text-xs text-blue-100/80 mt-1">Extension initiatives</p>
+        </div>
+        <div class="rounded-3xl bg-gradient-to-br from-amber-600 to-amber-800 text-white p-6 shadow-lg shadow-amber-900/20">
+            <p class="text-[10px] font-black uppercase tracking-[0.15em] text-amber-200 mb-1">Partners Engaged</p>
+            <p class="text-3xl font-black tracking-tight">117</p>
+            <p class="text-xs text-amber-100/80 mt-1">Collaborative agreements</p>
+        </div>
+    </div>
+
+    <section class="bg-white rounded-3xl border border-gray-200 shadow-xl shadow-black/5 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Report</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Period</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Scope</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">Metrics</th>
+                        <th class="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-gray-500">File</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-6">
+                            <p class="font-bold text-gray-900 text-base">Q1 Extension Performance</p>
+                            <p class="text-xs text-gray-400 mt-1">Institutional Office · Mar 15, 2026</p>
+                        </td>
+                        <td class="px-6 py-6 text-sm text-gray-700 font-medium">2026 Q1</td>
+                        <td class="px-6 py-6 text-sm text-gray-600">Institution</td>
+                        <td class="px-6 py-6 text-xs text-gray-600 leading-relaxed">
+                            <span class="block">Activities: 42</span>
+                            <span class="block">Beneficiaries: 3,210</span>
+                            <span class="block">Partners: 18</span>
+                        </td>
+                        <td class="px-6 py-6">
+                            <a href="#" class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-xs font-black text-white hover:bg-secondary transition shadow-md shadow-primary/20">View PDF</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-6">
+                            <p class="font-bold text-gray-900 text-base">Campus-Level Achievement Summary</p>
+                            <p class="text-xs text-gray-400 mt-1">Campus Coordinator · Feb 28, 2026</p>
+                        </td>
+                        <td class="px-6 py-6 text-sm text-gray-700 font-medium">2026 Q4</td>
+                        <td class="px-6 py-6 text-sm text-gray-600">Campus A · Campus B</td>
+                        <td class="px-6 py-6 text-xs text-gray-600 leading-relaxed">
+                            <span class="block">Activities: 128</span>
+                            <span class="block">Beneficiaries: 8,940</span>
+                            <span class="block">Partners: 32</span>
+                        </td>
+                        <td class="px-6 py-6">
+                            <a href="#" class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-xs font-black text-white hover:bg-secondary transition shadow-md shadow-primary/20">View PDF</a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-6">
+                            <p class="font-bold text-gray-900 text-base">SDG-Aligned Extension Outcomes</p>
+                            <p class="text-xs text-gray-400 mt-1">Director · Jan 10, 2026</p>
+                        </td>
+                        <td class="px-6 py-6 text-sm text-gray-700 font-medium">Annual 2025</td>
+                        <td class="px-6 py-6 text-sm text-gray-600">All Campuses</td>
+                        <td class="px-6 py-6 text-xs text-gray-600 leading-relaxed">
+                            <span class="block">Activities: 310</span>
+                            <span class="block">Beneficiaries: 21,400</span>
+                            <span class="block">Partners: 67</span>
+                        </td>
+                        <td class="px-6 py-6">
+                            <a href="#" class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-xs font-black text-white hover:bg-secondary transition shadow-md shadow-primary/20">View PDF</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </main>
 
-<footer class="border-t border-gray-200 bg-white mt-12">
-  <div class="max-w-6xl mx-auto px-6 py-8 flex items-center justify-between text-sm text-gray-500">
-    <span>© 2026 NExUS — Networked Extension Unified System</span>
-    <a href="/" class="font-semibold text-primary hover:underline">Back to Home</a>
-  </div>
-</footer>
-
-</body>
-</html>
+{% endblock %}
