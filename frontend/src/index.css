@@ -1,68 +1,173 @@
+/* Neomorphism core variables */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --neo-bg: #e8ecec;
+  --neo-bg-deep: #dde2e3;
+  --neo-shadow-light: rgba(255, 255, 255, 0.65);
+  --neo-shadow-dark: rgba(0, 0, 0, 0.08);
+  --neo-shadow-pressed: inset 1px 2px 4px rgba(0,0,0,0.04), inset -1px -2px 4px rgba(255,255,255,0.8);
+  --neo-text: #2d3748;
+  --neo-muted: #718096;
+  --neo-accent: #103b07;
+  --neo-secondary: #5a1113;
+  --neo-card-radius: 1.25rem;
+  --neo-card-padding: 1.5rem;
+}
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* Apply a soft neomorphic background globally */
+html, body {
+  background: linear-gradient(135deg, #e8ecec 0%, #dde2e3 100%);
+  font-family: 'Segoe UI', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: var(--neo-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
+/* Base reset for dark mode compatibility */
+* { box-sizing: border-box; }
 
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+/* Neomorphic buttons */
+.neo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: linear-gradient(135deg, #103b07, #1a5e14);
+  border: none;
+  box-shadow:
+    4px 4px 10px rgba(0,0,0,0.10),
+    -4px -4px 10px rgba(255,255,255,0.7);
+  transition: all 0.2s ease;
+  text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.neo-btn:hover {
+  box-shadow:
+    6px 6px 14px rgba(0,0,0,0.12),
+    -6px -6px 14px rgba(255,255,255,0.8);
+  transform: translateY(-1px);
+}
+
+.neo-btn-secondary {
+  background: linear-gradient(135deg, #e8ecec, #dde2e3);
+  color: var(--neo-text);
+  box-shadow:
+    4px 4px 10px rgba(0,0,0,0.08),
+    -4px -4px 10px rgba(255,255,255,0.7);
+}
+
+.neo-btn-secondary:hover {
+  box-shadow:
+    6px 6px 14px rgba(0,0,0,0.10),
+    -6px -6px 14px rgba(255,255,255,0.8);
+  color: var(--neo-text);
+}
+
+/* Neomorphic cards */
+.neo-card {
+  background: linear-gradient(145deg, #e8ecec, #dde2e3);
+  border-radius: var(--neo-card-radius);
+  padding: var(--neo-card-padding);
+  box-shadow:
+    8px 8px 18px rgba(0,0,0,0.08),
+    -8px -8px 18px rgba(255,255,255,0.8);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.neo-card:hover {
+  box-shadow:
+    12px 12px 24px rgba(0,0,0,0.10),
+    -12px -12px 24px rgba(255,255,255,0.85);
+  transform: translateY(-2px);
+}
+
+/* Neomorphic inputs */
+.neo-input {
+  background: linear-gradient(145deg, #dde2e3, #e8ecec);
+  border: none;
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--neo-text);
+  box-shadow:
+    inset 2px 2px 5px rgba(0,0,0,0.05),
+    inset -2px -2px 5px rgba(255,255,255,0.7);
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.neo-input:focus {
+  box-shadow:
+    inset 3px 3px 6px rgba(0,0,0,0.06),
+    inset -3px -3px 6px rgba(255,255,255,0.7),
+    0 0 0 3px rgba(16,59,7,0.12);
+}
+
+/* Neomorphic table */
+.neo-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.neo-table thead th {
+  background: linear-gradient(145deg, #dde2e3, #e8ecec);
+  color: var(--neo-muted);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow:
+    4px 4px 8px rgba(0,0,0,0.05),
+    -4px -4px 8px rgba(255,255,255,0.7);
+}
+
+.neo-table tbody td {
+  background: linear-gradient(145deg, #f4f6f8, #e8ecec);
+  padding: 1rem;
+  color: var(--neo-text);
+  border-radius: 0.5rem;
+  box-shadow:
+    2px 2px 5px rgba(0,0,0,0.04),
+    -2px -2px 5px rgba(255,255,255,0.6);
+  vertical-align: middle;
+}
+
+/* Toggle pill */
+.neo-toggle-group {
+  display: inline-flex;
+  gap: 0.25rem;
+  background: linear-gradient(145deg, #dde2e3, #e8ecec);
+  padding: 0.25rem;
+  border-radius: 2rem;
+  box-shadow:
+    3px 3px 6px rgba(0,0,0,0.06),
+    -3px -3px 6px rgba(255,255,255,0.7);
+}
+
+.neo-toggle-group button {
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.9rem;
+  border-radius: 1.5rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--neo-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.neo-toggle-group button.active,
+.neo-toggle-group button:hover {
+  background: linear-gradient(135deg, #103b07, #1a5e14);
+  color: #fff;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.12);
 }

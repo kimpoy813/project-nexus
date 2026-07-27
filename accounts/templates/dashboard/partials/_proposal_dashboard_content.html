@@ -1,109 +1,302 @@
-<div class="space-y-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900">My Proposals</h2>
-            <p class="text-sm text-gray-500">Manage your drafts and submitted extension proposals.</p>
+<!-- Neomorphism proposal cards + table toggle -->
+<style>
+/* Neomorphic base for this component */
+.neo-shell {
+  background: linear-gradient(135deg, #e8ecec 0%, #dde2e3 100%);
+  padding: 0.25rem;
+}
+
+.neo-card-proposal {
+  background: linear-gradient(145deg, #f4f6f8, #dde2e3);
+  border-radius: 1.1rem;
+  padding: 1.25rem 1.25rem 1rem;
+  box-shadow:
+    6px 6px 16px rgba(0,0,0,0.08),
+    -6px -6px 16px rgba(255,255,255,0.85);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.neo-card-proposal:hover {
+  box-shadow:
+    10px 10px 22px rgba(0,0,0,0.10),
+    -10px -10px 22px rgba(255,255,255,0.9);
+  transform: translateY(-3px);
+}
+
+.neo-table-proposal {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.4rem;
+}
+
+.neo-table-proposal thead th {
+  background: linear-gradient(145deg, #dde2e3, #e8ecec);
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.7rem 1rem;
+  border-radius: 0.6rem;
+  box-shadow:
+    3px 3px 7px rgba(0,0,0,0.06),
+    -3px -3px 7px rgba(255,255,255,0.75);
+}
+
+.neo-table-proposal tbody td {
+  background: linear-gradient(145deg, #f4f6f8, #dde2e3);
+  padding: 0.85rem 1rem;
+  color: #1e293b;
+  border-radius: 0.6rem;
+  box-shadow:
+    2px 2px 5px rgba(0,0,0,0.04),
+    -2px -2px 5px rgba(255,255,255,0.7);
+  vertical-align: middle;
+  font-size: 0.85rem;
+}
+
+/* Toggle pill */
+.neo-toggle-group {
+  display: inline-flex;
+  gap: 0.2rem;
+  background: linear-gradient(145deg, #dde2e3, #e8ecec);
+  padding: 0.25rem;
+  border-radius: 2rem;
+  box-shadow:
+    3px 3px 6px rgba(0,0,0,0.06),
+    -3px -3px 6px rgba(255,255,255,0.7);
+}
+
+.neo-toggle-group button {
+  border: none;
+  background: transparent;
+  padding: 0.45rem 1rem;
+  border-radius: 1.5rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.neo-toggle-group button.active,
+.neo-toggle-group button:hover {
+  background: linear-gradient(135deg, #103b07, #1a5e14);
+  color: #fff;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.12);
+}
+
+/* Neomorphic progress ring */
+.neo-progress-ring {
+  width: 48px;
+  height: 48px;
+  position: relative;
+}
+
+.neo-progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+/* Small status badges in neomorphism */
+.neo-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow:
+    2px 2px 4px rgba(0,0,0,0.06),
+    -2px -2px 4px rgba(255,255,255,0.7);
+}
+
+.neo-badge-green { background: #ecfdf5; color: #047857; }
+.neo-badge-amber { background: #fffbeb; color: #b45309; }
+.neo-badge-blue { background: #eff6ff; color: #1d4ed8; }
+.neo-badge-rose { background: #fff1f2; color: #9f1239; }
+.neo-badge-violet { background: #f5f3ff; color: #7c3aed; }
+</style>
+
+<div class="neo-shell rounded-3xl p-6 md:p-8">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h2 class="text-2xl font-black tracking-tight text-slate-800">My Proposals</h2>
+      <p class="text-sm text-slate-500 mt-1">Manage drafts and submitted extension proposals with cards or table view.</p>
+    </div>
+    <a href="{% url 'proposal_create' %}" class="neo-btn text-sm px-5 py-2.5">+ New Proposal</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="neo-card-proposal">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Drafts</p>
+      <h3 class="text-3xl font-black text-slate-800">{{ draft_count }}</h3>
+    </div>
+    <div class="neo-card-proposal">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Submitted</p>
+      <h3 class="text-3xl font-black text-slate-800">{{ submitted_count }}</h3>
+    </div>
+    <div class="neo-card-proposal">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Under Review</p>
+      <h3 class="text-3xl font-black text-amber-600">{{ under_review_count }}</h3>
+    </div>
+    <div class="neo-card-proposal">
+      <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">Approved</p>
+      <h3 class="text-3xl font-black text-emerald-600">{{ approved_count }}</h3>
+    </div>
+  </div>
+
+  <!-- Toggle Filter -->
+  <div class="flex items-center justify-between mb-5">
+    <div class="neo-toggle-group" role="group" aria-label="Proposal view toggle">
+      <button id="btn-cards" onclick="setProposalView('cards')" class="active" aria-pressed="true">Cards</button>
+      <button id="btn-table" onclick="setProposalView('table')" aria-pressed="false">Table</button>
+    </div>
+    <span id="proposal-view-label" class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cards View</span>
+  </div>
+
+  <!-- Draft Proposals -->
+  <section aria-label="Draft Proposals" class="mb-8">
+    <h3 class="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+      <span class="w-1.5 h-5 rounded-full bg-amber-400"></span>
+      Draft Proposals
+    </h3>
+
+    <div id="draft-cards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {% if drafts %}
+        {% for proposal in drafts %}
+          <article class="neo-card-proposal" aria-label="Draft proposal: {{ proposal.title|default:'Untitled Draft' }}">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <h4 class="text-base font-extrabold text-slate-800 leading-snug line-clamp-2">{{ proposal.title|default:"Untitled Draft" }}</h4>
+              <span class="neo-badge neo-badge-amber shrink-0">Draft</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">Last saved: {{ proposal.last_saved_at|date:"M d, Y h:i A" }}</p>
+            <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}" class="neo-btn w-full text-center text-sm">Continue Draft</a>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="neo-card-proposal col-span-full text-center py-8" aria-label="No drafts">
+          <p class="text-sm text-slate-500">No draft proposals yet.</p>
         </div>
-        <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800">
-            + New Proposal
-        </a>
+      {% endif %}
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div class="rounded-xl bg-white shadow p-5 border">
-            <p class="text-sm text-gray-500">Drafts</p>
-            <h3 class="text-3xl font-bold text-gray-900">{{ draft_count }}</h3>
-        </div>
+    <div id="draft-table" class="hidden" aria-label="Draft proposals table">
+      {% if drafts %}
+        <table class="neo-table-proposal" aria-label="Draft proposals">
+          <thead>
+            <tr><th>Title</th><th>Last Saved</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            {% for proposal in drafts %}
+              <tr>
+                <td>
+                  <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}" class="font-extrabold text-emerald-700 hover:underline">{{ proposal.title|default:"Untitled Draft" }}</a>
+                </td>
+                <td><span class="text-xs text-slate-500">{{ proposal.last_saved_at|date:"M d, Y h:i A" }}</span></td>
+                <td><a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}" class="text-xs font-black text-emerald-700 hover:underline">Continue →</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="neo-card-proposal text-center py-8">No draft proposals yet.</div>
+      {% endif %}
+    </div>
+  </section>
 
-        <div class="rounded-xl bg-white shadow p-5 border">
-            <p class="text-sm text-gray-500">Submitted</p>
-            <h3 class="text-3xl font-bold text-gray-900">{{ submitted_count }}</h3>
-        </div>
+  <!-- Submitted Proposals -->
+  <section aria-label="Submitted Proposals">
+    <h3 class="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+      <span class="w-1.5 h-5 rounded-full bg-emerald-500"></span>
+      Submitted Proposals
+    </h3>
 
-        <div class="rounded-xl bg-white shadow p-5 border">
-            <p class="text-sm text-gray-500">Under Review</p>
-            <h3 class="text-3xl font-bold text-yellow-600">{{ under_review_count }}</h3>
-        </div>
+    <div id="submitted-cards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      {% if submitted_proposals %}
+        {% for proposal in submitted_proposals %}
+          <article class="neo-card-proposal" aria-label="Submitted proposal: {{ proposal.title|default:'Untitled Proposal' }}">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <h4 class="text-base font-extrabold text-slate-800 leading-snug line-clamp-2">{{ proposal.title|default:"Untitled Proposal" }}</h4>
+              <span class="neo-badge neo-badge-blue shrink-0">{{ proposal.get_status_display|default:proposal.status }}</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-2">Status: {{ proposal.get_status_display|default:proposal.status }}</p>
+            {% if proposal.submitted_at %}
+              <p class="text-xs text-slate-500 mb-4">Submitted: {{ proposal.submitted_at|date:"M d, Y h:i A" }}</p>
+            {% endif %}
 
-        <div class="rounded-xl bg-white shadow p-5 border">
-            <p class="text-sm text-gray-500">Approved</p>
-            <h3 class="text-3xl font-bold text-green-600">{{ approved_count }}</h3>
+            {% if proposal.requires_moa and proposal.moa_status != "NOT_STARTED" %}
+              <a href="{% url 'proposal_moa_tracker' proposal.id %}" class="text-[11px] font-extrabold text-rose-700 hover:underline block mb-2">
+                MOA: {{ proposal.get_moa_status_display }} ({{ proposal.moa_progress }}%)
+              </a>
+            {% endif %}
+            {% if proposal.implementation_status != "NOT_STARTED" %}
+              <a href="{% url 'proposal_implementation_tracker' proposal.id %}" class="text-[11px] font-extrabold text-blue-700 hover:underline block mb-3">
+                Implementation: {{ proposal.get_implementation_status_display }} ({{ proposal.implementation_progress }}%)
+              </a>
+            {% endif %}
+
+            <a href="{% url 'proposal_storage' proposal.id %}" class="neo-btn-secondary w-full text-center text-sm">View Storage</a>
+          </article>
+        {% endfor %}
+      {% else %}
+        <div class="neo-card-proposal col-span-full text-center py-8">
+          <p class="text-sm text-slate-500">No submitted proposals yet.</p>
         </div>
+      {% endif %}
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="rounded-xl bg-white shadow border">
-            <div class="px-5 py-4 border-b">
-                <h3 class="text-lg font-semibold text-gray-900">Draft Proposals</h3>
-            </div>
-            <div class="p-5">
-                {% if drafts %}
-                    <div class="space-y-3">
-                        {% for proposal in drafts %}
-                            <div class="border rounded-lg p-4 flex items-center justify-between">
-                                <div>
-                                    <p class="font-semibold text-gray-900">
-                                        {{ proposal.title|default:"Untitled Draft" }}
-                                    </p>
-                                    <p class="text-sm text-gray-500">
-                                        Last saved: {{ proposal.last_saved_at|date:"M d, Y h:i A" }}
-                                    </p>
-                                </div>
-                                <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-                                   class="text-green-700 font-medium hover:underline">
-                                    Continue
-                                </a>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-sm text-gray-500">No draft proposals yet.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="rounded-xl bg-white shadow border">
-            <div class="px-5 py-4 border-b">
-                <h3 class="text-lg font-semibold text-gray-900">Submitted Proposals</h3>
-            </div>
-            <div class="p-5">
-                {% if submitted_proposals %}
-                    <div class="space-y-3">
-                        {% for proposal in submitted_proposals %}
-                            <div class="border rounded-lg p-4">
-                                <p class="font-semibold text-gray-900">
-                                    {{ proposal.title|default:"Untitled Proposal" }}
-                                </p>
-                                <p class="text-sm text-gray-500">
-                                    Status: {{ proposal.get_status_display|default:proposal.status }}
-                                </p>
-                                {% if proposal.submitted_at %}
-                                    <p class="text-sm text-gray-500">
-                                        Submitted: {{ proposal.submitted_at|date:"M d, Y h:i A" }}
-                                    </p>
-                                {% endif %}
-
-                                {% if proposal.requires_moa and proposal.moa_status != "NOT_STARTED" %}
-                                    <a href="{% url 'proposal_moa_tracker' proposal.id %}"
-                                       class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                                        MOA: {{ proposal.get_moa_status_display }} ({{ proposal.moa_progress }}%)
-                                    </a>
-                                    <br>
-                                {% endif %}
-                                {% if proposal.implementation_status != "NOT_STARTED" %}
-                                    <a href="{% url 'proposal_implementation_tracker' proposal.id %}"
-                                       class="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-                                        Implementation: {{ proposal.get_implementation_status_display }} ({{ proposal.implementation_progress }}%)
-                                    </a>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-sm text-gray-500">No submitted proposals yet.</p>
-                {% endif %}
-            </div>
-        </div>
+    <div id="submitted-table" class="hidden" aria-label="Submitted proposals table">
+      {% if submitted_proposals %}
+        <table class="neo-table-proposal" aria-label="Submitted proposals">
+          <thead>
+            <tr><th>Title</th><th>Status</th><th>Submitted</th><th>MOA / Implementation</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            {% for proposal in submitted_proposals %}
+              <tr>
+                <td>
+                  <a href="{% url 'proposal_storage' proposal.id %}" class="font-extrabold text-emerald-700 hover:underline">{{ proposal.title|default:"Untitled Proposal" }}</a>
+                </td>
+                <td><span class="text-[11px] font-extrabold">{{ proposal.get_status_display|default:proposal.status }}</span></td>
+                <td><span class="text-xs text-slate-500">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</span></td>
+                <td>
+                  {% if proposal.requires_moa and proposal.moa_status != "NOT_STARTED" %}
+                    <a href="{% url 'proposal_moa_tracker' proposal.id %}" class="text-[11px] font-extrabold text-rose-700 hover:underline">MOA</a>
+                  {% endif %}
+                  {% if proposal.implementation_status != "NOT_STARTED" %}
+                    <a href="{% url 'proposal_implementation_tracker' proposal.id %}" class="text-[11px] font-extrabold text-blue-700 hover:underline block mt-0.5">Impl.</a>
+                  {% endif %}
+                </td>
+                <td><a href="{% url 'proposal_storage' proposal.id %}" class="text-xs font-black text-emerald-700 hover:underline">Storage →</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="neo-card-proposal text-center py-8">No submitted proposals yet.</div>
+      {% endif %}
     </div>
+  </section>
+
 </div>
+
+<script>
+  function setProposalView(mode) {
+    document.getElementById('btn-cards').classList.toggle('active', mode === 'cards');
+    document.getElementById('btn-cards').setAttribute('aria-pressed', mode === 'cards');
+    document.getElementById('btn-table').classList.toggle('active', mode === 'table');
+    document.getElementById('btn-table').setAttribute('aria-pressed', mode === 'table');
+
+    document.getElementById('draft-cards').classList.toggle('hidden', mode !== 'cards');
+    document.getElementById('draft-table').classList.toggle('hidden', mode !== 'table');
+    document.getElementById('submitted-cards').classList.toggle('hidden', mode !== 'cards');
+    document.getElementById('submitted-table').classList.toggle('hidden', mode !== 'table');
+
+    document.getElementById('proposal-view-label').textContent = mode === 'cards' ? 'Cards View' : 'Table View';
+  }
+</script>

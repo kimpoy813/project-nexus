@@ -374,6 +374,121 @@ tbody tr:hover {
 }
 
 /* Mobile refinements */
+/* Neomorphism refresh layer for cards, inputs, and buttons */
+.neo-card,
+.rounded-2xl.border.bg-white,
+.rounded-xl.bg-white,
+.bg-white.border,
+.dir-card,
+.mine-card,
+.ext-card,
+.rq-card,
+.section-block,
+.rounded-3xl {
+  background: linear-gradient(145deg, #f4f6f8, #dde2e3) !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
+  box-shadow:
+    8px 8px 16px rgba(0, 0, 0, 0.07),
+    -8px -8px 16px rgba(255, 255, 255, 0.75) !important;
+  border-radius: 1.2rem !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease !important;
+}
+
+.neo-card:hover,
+.dir-card:hover,
+.mine-card:hover,
+.ext-card:hover,
+.rq-card:hover,
+.section-block:hover,
+.rounded-3xl:hover {
+  box-shadow:
+    12px 12px 24px rgba(0, 0, 0, 0.09),
+    -12px -12px 24px rgba(255, 255, 255, 0.8) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Neomorphic buttons */
+.neo-btn,
+.dir-btn-primary,
+button[type="submit"],
+.dir-btn.filled,
+.nexus-btn-primary,
+.quick-tab-btn,
+.dir-btn,
+.dashboard-nav-btn {
+  background: linear-gradient(135deg, #103b07, #1a5e14) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 0.75rem !important;
+  padding: 0.6rem 1.2rem !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+  box-shadow:
+    4px 4px 8px rgba(0, 0, 0, 0.10),
+    -4px -4px 8px rgba(255, 255, 255, 0.7) !important;
+  transition: all 0.15s ease !important;
+}
+
+.neo-btn:hover,
+.dir-btn-primary:hover,
+button[type="submit"]:hover,
+.dir-btn.filled:hover,
+.quick-tab-btn:hover,
+.dir-btn:hover,
+.dashboard-nav-btn:hover,
+.dashboard-nav-btn.active,
+.nexus-btn-primary:hover {
+  box-shadow:
+    6px 6px 12px rgba(0, 0, 0, 0.14),
+    -6px -6px 12px rgba(255, 255, 255, 0.8) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Neomorphic inputs */
+.dir-input,
+input[type="text"],
+input[type="email"],
+input[type="search"],
+select {
+  background: linear-gradient(145deg, #dde2e3, #e8ecec) !important;
+  border: none !important;
+  border-radius: 0.6rem !important;
+  padding: 0.55rem 0.85rem !important;
+  color: #1e293b !important;
+  box-shadow:
+    inset 2px 2px 5px rgba(0, 0, 0, 0.06),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.7) !important;
+  transition: box-shadow 0.15s ease !important;
+  font-size: 0.85rem !important;
+  outline: none !important;
+}
+
+.dir-input:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="search"]:focus,
+select:focus {
+  box-shadow:
+    inset 3px 3px 6px rgba(0, 0, 0, 0.08),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.75),
+    0 0 0 3px rgba(16, 59, 7, 0.12) !important;
+}
+
+/* Neomorphic table headers */
+thead th {
+  background: linear-gradient(145deg, #dde2e3, #e8ecec) !important;
+  box-shadow:
+    3px 3px 7px rgba(0, 0, 0, 0.05),
+    -3px -3px 7px rgba(255, 255, 255, 0.7) !important;
+  border-radius: 0.5rem !important;
+}
+
+/* Neomorphic footer */
+.nexus-footer {
+  background: linear-gradient(135deg, #0b2b04, #103b07) !important;
+  box-shadow: 0 -8px 24px rgba(16, 59, 7, 0.2) !important;
+}
+
 @media (max-width: 768px) {
   .nexus-navbar { height: 4.5rem; }
   .nexus-shell { padding-top: 4.5rem !important; }
@@ -382,6 +497,7 @@ tbody tr:hover {
   .dir-card,
   .ext-card,
   .mine-card,
+  .neo-card,
   .rounded-2xl { border-radius: 1rem !important; }
   table { font-size: .875rem; }
 }
