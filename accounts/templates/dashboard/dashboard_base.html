@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="min-h-screen" style="background:#f6f7f5;">
+<div class="min-h-screen" style="background:#ffffff;">
     <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         <!-- TOP BAR -->
@@ -115,19 +115,19 @@
 <style>
 :root {
     --green:  #103b07;
-    --green-l:#eaf3de;
+    --green-l:rgba(16, 59, 7, 0.12);
     --red:    #5a1113;
-    --red-l:  #fcebeb;
-    --amber:  #854F0B;
-    --amber-l:#faeeda;
-    --blue:   #0c447c;
-    --blue-l: #e6f1fb;
-    --purple: #3C3489;
-    --purple-l:#eeedfe;
+    --red-l:  rgba(90, 17, 19, 0.10);
+    --amber:  #000000;
+    --amber-l:rgba(0, 0, 0, 0.08);
+    --blue:   #000000;
+    --blue-l: rgba(0, 0, 0, 0.08);
+    --purple: #000000;
+    --purple-l:rgba(0, 0, 0, 0.06);
     --border: rgba(0,0,0,.07);
-    --text:   #0f172a;
-    --muted:  #64748b;
-    --subtle: #94a3b8;
+    --text:   #000000;
+    --muted:  rgba(0, 0, 0, 0.50);
+    --subtle: rgba(0, 0, 0, 0.38);
 }
 
 /* Layout */
@@ -212,7 +212,7 @@ select.dir-input {
 .badge-amber  { background:var(--amber-l);color:var(--amber); }
 .badge-blue   { background:var(--blue-l);color:var(--blue); }
 .badge-purple { background:var(--purple-l);color:var(--purple); }
-.badge-gray   { background:#f1f5f9;color:#475569; }
+.badge-gray   { background:rgba(0, 0, 0, 0.05);color:#000000; }
 
 /* Section label */
 .section-label {
@@ -820,7 +820,7 @@ select.dir-input {
                                 <span>MOA</span>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
+                                <span class="h-2 w-2 rounded-full bg-tertiary border border-tertiary/50"></span>
                                 <span>Implementation</span>
                             </div>
                         </div>
@@ -875,7 +875,7 @@ select.dir-input {
 <div class="flex flex-col gap-5">
 
     <div class="grid grid-cols-2 xl:grid-cols-5 gap-3">
-        <div class="kpi-card" style="border-top-color:#94a3b8;">
+        <div class="kpi-card" style="border-top-color:#000000;">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Drafts</p>
             <p id="draft-count" class="text-4xl font-bold tracking-tight text-slate-500">{{ draft_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">In progress</p>
@@ -953,7 +953,7 @@ select.dir-input {
                                 </div>
 
                                 <div class="flex items-center gap-1.5">
-                                    <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
+                                    <span class="h-2 w-2 rounded-full bg-tertiary border border-tertiary/50"></span>
                                     <span>Implementation</span>
                                 </div>
 
@@ -1055,7 +1055,7 @@ function createDoughnutGauge(canvas,pct){
     const pE=sA+tA*(Math.max(0,Math.min(pct,100))/100);
     ctx.lineCap='butt';
     // three color zones
-    for(const[s,e,c] of [[sA,z1,'#103b07'],[z1,z2,'#5a1113'],[z2,eA,'#facc15']]){
+    for(const[s,e,c] of [[sA,z1,'#103b07'],[z1,z2,'#5a1113'],[z2,eA,'#f5e587']]){
         ctx.beginPath();ctx.strokeStyle=c;ctx.lineWidth=lw;
         ctx.arc(cx,cy,r,s,e,false);ctx.stroke();
     }
@@ -1092,8 +1092,8 @@ function bindYearReload(selectEl,tabName){if(!selectEl)return;selectEl.addEventL
 
 /* ── DOMContentLoaded ── */
 document.addEventListener('DOMContentLoaded',function(){
-    const G='#103b07',R='#5a1113',A='#854F0B',B='#0c447c',P='#3C3489';
-    const tick='#94a3b8',grid='rgba(0,0,0,.05)';
+    const G='#103b07',R='#5a1113',A='#000000',B='#000000',P='#000000';
+    const tick='#666666',grid='rgba(0,0,0,.05)';
 
     // tab init
     const urlParams=new URLSearchParams(window.location.search);
