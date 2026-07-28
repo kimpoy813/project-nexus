@@ -17,7 +17,7 @@
                     colors: {
                         primary: '#103b07',
                         secondary: '#5a1113',
-                        accent: '#f5e587',
+                        accent: '#111827',
                     },
                     boxShadow: {
                         nexus: '0 16px 40px rgba(15, 23, 42, 0.08)',
@@ -35,10 +35,10 @@
     {% if site_control %}
     <style>
         :root {
-            --nexus-primary: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-primary-2: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-secondary: {{ site_control.secondary_color|default:'#5a1113' }};
-            --nexus-accent: {{ site_control.accent_color|default:'#f5e587' }};
+            --nexus-primary: #103b07;
+            --nexus-primary-2: #103b07;
+            --nexus-secondary: #5a1113;
+            --nexus-accent: #111827;
         }
     </style>
     {% endif %}
@@ -65,14 +65,7 @@
             <!-- Logo + NEXUS Name -->
             <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home">
                 <span class="nexus-logo-mark grid h-10 w-10 place-items-center rounded-xl bg-primary text-white ring-1 ring-primary/10" aria-hidden="true">
-                    <svg class="h-7 w-7" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 31.5C18.8 19.2 28.2 14.2 37 13C36.2 22.4 30.5 32.1 18.2 35.2C16.2 35.7 14.3 34.1 13 31.5Z" fill="var(--nexus-accent)"/>
-                        <path d="M16 31C21.4 27 27 22.6 34 17" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
-                        <path d="M13.5 16.5L24 24L34.5 16.5M24 24V34" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="13.5" cy="16.5" r="3.2" fill="white"/>
-                        <circle cx="34.5" cy="16.5" r="3.2" fill="white"/>
-                        <circle cx="24" cy="34" r="3.2" fill="white"/>
-                    </svg>
+                    <span class="text-2xl font-black leading-none tracking-[-0.08em]">N</span>
                 </span>
                 <span class="text-xl font-bold tracking-tight text-primary">
                     {{ site_control.short_name|default:"NExUS" }}

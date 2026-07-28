@@ -123,7 +123,7 @@
     --red:    #5a1113;
     --red-l:  #fcebeb;
     --amber:  #6f5f06;
-    --amber-l:rgba(245,229,135,.35);
+    --amber-l:rgba(17,24,39,.08);
     --blue:   #1f5b12;
     --blue-l: rgba(16,59,7,.08);
     --purple: #5a1113;
@@ -1170,7 +1170,7 @@ function createDoughnutGauge(canvas,pct){
     const pE=sA+tA*(Math.max(0,Math.min(pct,100))/100);
     ctx.lineCap='butt';
     // three color zones
-    for(const[s,e,c] of [[sA,z1,'#103b07'],[z1,z2,'#5a1113'],[z2,eA,'#f5e587']]){
+    for(const[s,e,c] of [[sA,z1,'#103b07'],[z1,z2,'#5a1113'],[z2,eA,'#111827']]){
         ctx.beginPath();ctx.strokeStyle=c;ctx.lineWidth=lw;
         ctx.arc(cx,cy,r,s,e,false);ctx.stroke();
     }
@@ -1207,7 +1207,7 @@ function bindYearReload(selectEl,tabName){if(!selectEl)return;selectEl.addEventL
 
 /* ── DOMContentLoaded ── */
 document.addEventListener('DOMContentLoaded',function(){
-    const G='#103b07',R='#5a1113',A='#6f5f06',B='#1f5b12',P='#f5e587';
+    const G='#103b07',R='#5a1113',A='#6f5f06',B='#1f5b12',P='#111827';
     const tick='#94a3b8',grid='rgba(0,0,0,.05)';
 
     // tab init
