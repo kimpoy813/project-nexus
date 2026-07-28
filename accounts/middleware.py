@@ -1,10 +1,15 @@
 # accounts/middleware.py
 
+import logging
 from datetime import timedelta
+
+from django.db import DatabaseError
 from django.utils import timezone
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.contrib.auth import logout
+
+logger = logging.getLogger(__name__)
 
 
 class InactiveLogoutMiddleware:
@@ -29,7 +34,9 @@ class InactiveLogoutMiddleware:
                     last_activity = timezone.datetime.fromisoformat(last_activity_str)
                     if timezone.is_naive(last_activity):
                         last_activity = timezone.make_aware(last_activity, timezone.get_current_timezone())
-                except Exception:
+                except (ValueError, TypeError):
+                    # Corrupt or legacy session value; treat as no recorded activity.
+                    logger.debug("Unparseable last_activity in session: %r", last_activity_str)
                     last_activity = None
             else:
                 last_activity = None
@@ -64,12 +71,23 @@ class SiteControlMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        try:
-            from django.shortcuts import render
-            from .models import SiteConfiguration
+        from django.shortcuts import render
 
+        from .models import SiteConfiguration
+
+        try:
             config = SiteConfiguration.get_solo()
+        except DatabaseError:
+            # Fail open: if the settings row cannot be read we let the request
+            # through rather than locking everyone out. Logged because a
+            # silent failure here would also silently disable maintenance mode.
+            logger.warning(
+                "Could not load SiteConfiguration; skipping maintenance check.",
+                exc_info=True,
+            )
+            return self.get_response(request)
         except Exception:
+            logger.exception("Unexpected error loading SiteConfiguration in middleware.")
             return self.get_response(request)
 
         if not getattr(config, "maintenance_mode", False):

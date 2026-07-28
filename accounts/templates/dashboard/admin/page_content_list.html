@@ -1,0 +1,66 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Page Content - NExUS{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto p-6">
+
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-xl font-semibold text-primary">Page Content</h1>
+            <p class="mt-0.5 text-sm text-slate-500">
+                Edit the text and sections shown on each public page.
+            </p>
+        </div>
+        <a href="{% url 'admin_dashboard' %}?tab=content" class="pc-btn">← Back to dashboard</a>
+    </div>
+
+    <div class="space-y-3">
+        {% for item in pages %}
+        <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <h2 class="text-base font-semibold text-slate-900">{{ item.page.title }}</h2>
+                    {% if item.page.is_published %}
+                        <span class="pc-pill pc-pill--ok">Published</span>
+                    {% else %}
+                        <span class="pc-pill pc-pill--warn">Draft</span>
+                    {% endif %}
+                </div>
+                <p class="mt-1 truncate text-sm text-slate-500">
+                    {{ item.page.hero_heading|default:"No hero heading set" }}
+                </p>
+                <p class="mt-1 text-xs text-slate-400">
+                    {{ item.visible_count }} visible section{{ item.visible_count|pluralize }}
+                    {% if item.section_count != item.visible_count %}
+                        · {{ item.section_count|add:"-"|add:item.visible_count }} hidden
+                    {% endif %}
+                    {% if item.page.updated_at %}· updated {{ item.page.updated_at|date:"M d, Y" }}{% endif %}
+                </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+                {% if item.public_url_name %}
+                    <a href="{% url item.public_url_name %}" target="_blank" rel="noopener" class="pc-btn">View</a>
+                {% endif %}
+                <a href="{% url 'page_content_edit' item.page.slug %}" class="pc-btn pc-btn--primary">Edit</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<style>
+.pc-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
+    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s;
+}
+.pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
+.pc-btn--primary:hover { opacity:.85; background:#103b07; }
+.pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
+.pc-pill--ok { background:#dcfce7; color:#166534; }
+.pc-pill--warn { background:#fef3c7; color:#92400e; }
+</style>
+{% endblock %}

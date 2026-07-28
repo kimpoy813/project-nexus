@@ -366,3 +366,294 @@ class AccomplishmentReport(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.year} {self.quarter})"
+
+
+# ==============================
+# EDITABLE PAGE CONTENT (ADMIN MANAGED CMS)
+# ==============================
+
+class SitePage(models.Model):
+    """
+    An admin-editable public page (Home, Services, Reports, Achievements).
+
+    Rows are seeded by migration for the four known pages and are looked up by
+    ``slug``. Each page owns an ordered set of :class:`PageSection` records that
+    hold the actual rich-text content.
+    """
+
+    class Slug(models.TextChoices):
+        HOME = "home", "Home"
+        SERVICES = "services", "Services"
+        REPORTS = "reports", "Reports"
+        ACHIEVEMENTS = "achievements", "Achievements"
+
+    slug = models.SlugField(max_length=40, unique=True, choices=Slug.choices)
+    title = models.CharField(max_length=150)
+
+    # Hero / masthead
+    hero_eyebrow = models.CharField(max_length=120, blank=True, default="")
+    hero_heading = models.CharField(max_length=220, blank=True, default="")
+    hero_subheading = models.TextField(blank=True, default="")
+
+    # Browser <title> / SEO
+    meta_title = models.CharField(max_length=180, blank=True, default="")
+    meta_description = models.TextField(blank=True, default="")
+
+    is_published = models.BooleanField(
+        default=True,
+        help_text="Unpublish to hide this page from visitors (admins can still preview it).",
+    )
+
+    updated_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="site_page_updates",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["slug"]
+        verbose_name = "Site Page"
+
+    def __str__(self):
+        return self.title or self.get_slug_display()
+
+    @classmethod
+    def get_for(cls, slug):
+        """Fetch a page by slug, creating a sensible default row if missing."""
+        defaults = {"title": dict(cls.Slug.choices).get(slug, slug.title())}
+        obj, _ = cls.objects.get_or_create(slug=slug, defaults=defaults)
+        return obj
+
+    @property
+    def visible_sections(self):
+        return self.sections.filter(is_visible=True)
+
+
+class PageSection(models.Model):
+    """An ordered, rich-text content block belonging to a :class:`SitePage`."""
+
+    class Layout(models.TextChoices):
+        RICH_TEXT = "RICH_TEXT", "Rich text"
+        CARD = "CARD", "Card"
+        CALLOUT = "CALLOUT", "Callout / highlight"
+
+    page = models.ForeignKey(SitePage, related_name="sections", on_delete=models.CASCADE)
+    heading = models.CharField(max_length=220, blank=True, default="")
+    subheading = models.CharField(max_length=300, blank=True, default="")
+    body = CKEditor5Field(blank=True, default="", config_name="default")
+    layout = models.CharField(max_length=20, choices=Layout.choices, default=Layout.RICH_TEXT)
+
+    anchor = models.SlugField(
+        max_length=60,
+        blank=True,
+        default="",
+        help_text="Optional #anchor so the section can be linked to directly.",
+    )
+    image = models.ImageField(upload_to="page_sections/", blank=True, null=True)
+
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Page Section"
+
+    def __str__(self):
+        return f"{self.page.slug} · {self.heading or 'Untitled section'}"
+
+    def save(self, *args, **kwargs):
+        if self.order is None or self.order == 0:
+            last = PageSection.objects.filter(page=self.page).aggregate(Max("order"))["order__max"]
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+
+# ==============================
+# HOME PAGE BUILT-IN SECTIONS (ADMIN MANAGED)
+# ==============================
+
+class HomeSectionHeading(models.Model):
+    """
+    Editable headings for the Home page's built-in sections.
+
+    The sections themselves (Thrust, Processes, Targets, Personnel, SDGs,
+    Activities) are rendered from their own data, but their titles and
+    subtitles used to be hardcoded. One row per section, seeded by migration.
+    """
+
+    class Section(models.TextChoices):
+        THRUST = "thrust", "Extension Thrust"
+        PROCESS = "process", "Extension Processes"
+        TARGETS = "targets", "Extension Targets"
+        PERSONNEL = "personnel", "Extension Personnel"
+        SDG = "sdg", "Sustainable Development Goals"
+        ACTIVITIES = "activities", "Extension Activities"
+
+    section = models.SlugField(max_length=40, unique=True, choices=Section.choices)
+    heading = models.CharField(max_length=200, blank=True, default="")
+    subtitle = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text='Emphasised line under the heading, e.g. "Isem Ni Aran".',
+    )
+    caption = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text='Smaller line under the subtitle, e.g. "Approved BR No. 95-1517, S. 2022".',
+    )
+    nav_label = models.CharField(
+        max_length=60,
+        blank=True,
+        default="",
+        help_text="Label used in the sticky section navigation.",
+    )
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Uncheck to hide this whole section from the Home page.",
+    )
+    order = models.PositiveIntegerField(default=1)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Home Section Heading"
+
+    def __str__(self):
+        return self.heading or self.get_section_display()
+
+    @classmethod
+    def get_for(cls, section):
+        obj, _ = cls.objects.get_or_create(
+            section=section,
+            defaults={"heading": dict(cls.Section.choices).get(section, section.title())},
+        )
+        return obj
+
+    @classmethod
+    def as_map(cls):
+        """All headings keyed by section, for cheap template lookup."""
+        return {row.section: row for row in cls.objects.all()}
+
+
+class HomeThrust(models.Model):
+    """
+    A single Extension Thrust card on the Home page.
+
+    Replaces the 14 hardcoded cards so the Extension Office can add, edit,
+    reorder, or remove thrusts without a developer.
+    """
+
+    # Tailwind text colour classes offered in the admin picker. Kept as an
+    # explicit allow-list so admin input can never inject arbitrary classes.
+    COLOR_CHOICES = [
+        ("text-green-600", "Green"),
+        ("text-blue-600", "Blue"),
+        ("text-yellow-500", "Yellow"),
+        ("text-purple-600", "Purple"),
+        ("text-red-600", "Red"),
+        ("text-indigo-600", "Indigo"),
+        ("text-pink-500", "Pink"),
+        ("text-teal-600", "Teal"),
+        ("text-orange-500", "Orange"),
+        ("text-lime-600", "Lime"),
+        ("text-rose-500", "Rose"),
+        ("text-amber-500", "Amber"),
+        ("text-cyan-600", "Cyan"),
+        ("text-violet-600", "Violet"),
+        ("text-gray-700", "Gray"),
+    ]
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, default="")
+    color_class = models.CharField(
+        max_length=40,
+        choices=COLOR_CHOICES,
+        default="text-green-600",
+        help_text="Accent colour for the card title.",
+    )
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Home Extension Thrust"
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if self.order is None or self.order == 0:
+            last = HomeThrust.objects.aggregate(Max("order"))["order__max"]
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+
+# ==============================
+# WORKFLOW PHASES (ADMIN MANAGED)
+# ==============================
+
+class WorkflowPhase(models.Model):
+    """
+    The Proposal / MOA / Implementation phase cards on the Services page.
+
+    The underlying status codes and progress maps still live in the Proposal
+    model (they drive real permissions and must stay in code), but the public
+    presentation - label, summary, and progress weight - is admin-editable.
+    """
+
+    class Key(models.TextChoices):
+        PROPOSAL = "proposal", "Proposal"
+        MOA = "moa", "MOA"
+        IMPLEMENTATION = "implementation", "Implementation"
+
+    key = models.SlugField(
+        max_length=30,
+        unique=True,
+        choices=Key.choices,
+        help_text="Identifies which set of model statuses this phase displays.",
+    )
+    label = models.CharField(max_length=80)
+    summary = models.TextField(blank=True, default="")
+    weight_percent = models.PositiveSmallIntegerField(
+        default=40,
+        help_text="Share of overall progress, 0-100. Also sets the bar width.",
+    )
+    weight_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text='Caption beside the bar, e.g. "40% of overall progress when MOA is required".',
+    )
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Workflow Phase"
+
+    def __str__(self):
+        return self.label or self.get_key_display()
+
+    def save(self, *args, **kwargs):
+        if self.weight_percent is None:
+            self.weight_percent = 0
+        self.weight_percent = max(0, min(100, int(self.weight_percent)))
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def ordered_visible(cls):
+        return cls.objects.filter(is_visible=True)

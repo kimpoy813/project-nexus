@@ -7,8 +7,8 @@
         <!-- TOP BAR -->
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
             <div>
-                <h1 class="text-xl font-semibold" style="color:#103b07;letter-spacing:-.02em;">Director Dashboard</h1>
-                <p class="mt-0.5 text-sm text-slate-400">Monitor proposals, reviews, campus activity, and completion.</p>
+                <h1 class="nx-dash__title">Director Dashboard</h1>
+                <p class="nx-dash__subtitle">Monitor proposals, reviews, campus activity, and completion.</p>
             </div>
             <a href="{% url 'proposal_create' %}" class="dir-btn-primary">Create Proposal</a>
         </div>
@@ -28,6 +28,9 @@
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="campuses">Campuses</button>
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="extensions">All Extensions</button>
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="mine">My Proposals</button>
+                        {% if can_view_accomplishment %}
+                            <a href="{% url 'accomplishment_reports_list' %}" class="dashboard-nav-btn w-full">Accomplishment Reports</a>
+                        {% endif %}
                     </div>
 
                     <!-- REVIEW QUEUE FILTER PANEL -->
@@ -114,8 +117,10 @@
 ================================================================ -->
 <style>
 :root {
-    --green:  #103b07;
-    --green-l:#eaf3de;
+    /* Aliases onto the shared design tokens in css/dashboard-views.css so this
+       dashboard stays visually in step with the others. */
+    --green:  var(--nx-green, #103b07);
+    --green-l:var(--nx-green-soft, #eaf3de);
     --red:    #5a1113;
     --red-l:  #fcebeb;
     --amber:  #854F0B;
@@ -132,13 +137,13 @@
 
 /* Layout */
 .dir-card {
-    background:#fff;
-    border:1px solid var(--border);
-    border-radius:16px;
+    background:var(--nx-surface, #fff);
+    border:1px solid var(--nx-border, #e2e8f0);
+    border-radius:var(--nx-radius, 14px);
 }
 .dir-card-accent {
     height:3px;
-    border-radius:16px 16px 0 0;
+    border-radius:var(--nx-radius, 14px) var(--nx-radius, 14px) 0 0;
 }
 
 /* Buttons */

@@ -17,6 +17,7 @@ This file expects the DOCX templates to exist in:
 """
 from __future__ import annotations
 
+import logging
 import re
 from copy import deepcopy
 from io import BytesIO
@@ -30,10 +31,14 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.shared import Pt, Inches
 from docx.text.paragraph import Paragraph
 
+from django.db import DatabaseError
+
+logger = logging.getLogger(__name__)
+
 # --- Optional imports (kept defensive) ---
 try:
     from accounts.models import Signatory  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Signatory = None  # type: ignore
 
 # SDG code->title (stable list)
@@ -165,10 +170,28 @@ def _find_row_index_by_keyword(table, keyword: str) -> Optional[int]:
     return None
 
 
+# NOTE ON EXCEPTION HANDLING IN THIS MODULE
+# Many helpers here read arbitrary, frequently-absent fields off proposal
+# records to fill a document template. A missing or malformed value must
+# degrade to a blank cell rather than abort the whole download, so a broad
+# handler is often the correct behaviour. All of them are read-only: none
+# swallow a save, write, or delete.
+#
+# Handlers with a predictable failure mode have been narrowed to the specific
+# exception (TypeError for sorts, AttributeError for optional python-docx
+# attributes, DatabaseError for Signatory lookups, and so on). The remainder
+# wrap third-party parsing of user-uploaded .xlsx/.pdf files, where the
+# library can raise almost anything and the only sane response is to skip
+# that section. Those are kept broad on purpose.
+#
+# See proposals/tests_documents.py for the coverage that makes changes here
+# safe to verify.
+
+
 def _safe_int(v: object, default: int = 0) -> int:
     try:
         return int(v)  # type: ignore[arg-type]
-    except Exception:
+    except (TypeError, ValueError):
         return default
 
 
@@ -218,10 +241,11 @@ def _get_related_list(obj, attr: str) -> List:
         return []
     try:
         return list(rel.all())
-    except Exception:
+    except AttributeError:
+        # Not a manager (e.g. a plain list); fall back to direct iteration.
         try:
             return list(rel)
-        except Exception:
+        except TypeError:
             return []
 
 
@@ -229,7 +253,8 @@ def _get_proponents(proposal) -> List:
     props = _get_related_list(proposal, "proponents")
     try:
         props.sort(key=lambda x: getattr(x, "id", 0))
-    except Exception:
+    except TypeError:
+        # Incomparable ids; keep the queryset's own ordering.
         pass
     return props
 
@@ -238,7 +263,8 @@ def _get_program_projects(proposal) -> List:
     prjs = _get_related_list(proposal, "program_projects")
     try:
         prjs.sort(key=lambda x: (_safe_int(getattr(x, "order", 0)), _safe_int(getattr(x, "id", 0))))
-    except Exception:
+    except TypeError:
+        # Incomparable sort keys; keep the queryset's own ordering.
         pass
     return prjs
 
@@ -485,7 +511,7 @@ def _extract_xlsx_lines(path: str) -> List[str]:
     finally:
         try:
             wb.close()
-        except Exception:
+        except (AttributeError, OSError):
             pass
 
     return _normalize_extracted_lines(lines)
@@ -569,7 +595,7 @@ def _extract_xlsx_tables(
     finally:
         try:
             wb.close()
-        except Exception:
+        except (AttributeError, OSError):
             pass
 
     return tables
@@ -747,7 +773,8 @@ def _fill_cell_single_paragraph_strict(cell, text: str, *, keep_trailing_blank_l
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
-    except Exception:
+    except (AttributeError, ValueError):
+        # Style does not support these attributes; formatting only.
         pass
 
     run = p.add_run("")
@@ -760,7 +787,8 @@ def _fill_cell_single_paragraph_strict(cell, text: str, *, keep_trailing_blank_l
     # Cell vertical alignment top (prevents extra vertical centering)
     try:
         cell.vertical_alignment = WD_ALIGN_VERTICAL.TOP
-    except Exception:
+    except (AttributeError, ValueError):
+        # Cell does not support vertical alignment; formatting only.
         pass
 
 def _fill_cell_paragraphs(cell, items: Sequence[str]) -> None:
@@ -949,7 +977,8 @@ def _apply_table_column_widths(
     """
     try:
         table.autofit = False
-    except Exception:
+    except (AttributeError, ValueError):
+        # Table style does not expose autofit; layout only.
         pass
 
     # 1) Explicit ratio (preferred for strict template alignment)
@@ -963,7 +992,7 @@ def _apply_table_column_widths(
                     break
                 try:
                     table.columns[ci].width = w
-                except Exception:
+                except (AttributeError, IndexError, ValueError):
                     pass
                 try:
                     for c in table.columns[ci].cells:
@@ -985,7 +1014,7 @@ def _apply_table_column_widths(
             break
         try:
             table.columns[ci].width = w
-        except Exception:
+        except (AttributeError, IndexError, ValueError):
             pass
         try:
             for c in table.columns[ci].cells:
@@ -1503,7 +1532,8 @@ def _signatory_lookup(position_title: str, *, campus: str = "", college: str = "
     # Final fallback: position only
     try:
         return Signatory.objects.filter(position_title=pt).first()
-    except Exception:
+    except DatabaseError:
+        logger.warning("Signatory lookup failed for %r.", pt, exc_info=True)
         return None
 
 

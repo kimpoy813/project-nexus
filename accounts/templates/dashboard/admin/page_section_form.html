@@ -1,0 +1,138 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}{% if is_create %}Add Section{% else %}Edit Section{% endif %} - {{ page.title }}{% endblock %}
+
+{% block extra_head %}
+    {{ form.media }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+
+    <div class="mb-6">
+        <a href="{% url 'page_content_edit' page.slug %}" class="text-xs font-medium text-slate-500 hover:text-primary">
+            ← Back to {{ page.title }} page
+        </a>
+        <h1 class="mt-1 text-xl font-semibold text-primary">
+            {% if is_create %}Add Section{% else %}Edit Section{% endif %}
+        </h1>
+        <p class="mt-0.5 text-sm text-slate-500">
+            Content blocks appear on the public page in the order listed.
+        </p>
+    </div>
+
+    {% if form.non_field_errors %}
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="ps-card">
+        {% csrf_token %}
+
+        <div class="space-y-5 p-5">
+
+            <div>
+                <label for="{{ form.heading.id_for_label }}" class="ps-label">Heading</label>
+                <input type="text" name="heading" id="{{ form.heading.id_for_label }}"
+                       value="{{ form.heading.value|default:'' }}" class="ps-input"
+                       placeholder="e.g. Our Impact in 2026">
+                {% if form.heading.errors %}<p class="ps-error">{{ form.heading.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.subheading.id_for_label }}" class="ps-label">Subheading <span class="text-slate-400">(optional)</span></label>
+                <input type="text" name="subheading" id="{{ form.subheading.id_for_label }}"
+                       value="{{ form.subheading.value|default:'' }}" class="ps-input">
+                {% if form.subheading.errors %}<p class="ps-error">{{ form.subheading.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div>
+                <label class="ps-label">Content</label>
+                <p class="mb-2 text-xs text-slate-400">
+                    Use the toolbar for headings, lists, links, tables, and images.
+                </p>
+                {{ form.body }}
+                {% if form.body.errors %}<p class="ps-error">{{ form.body.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <label for="{{ form.layout.id_for_label }}" class="ps-label">Layout</label>
+                    <select name="layout" id="{{ form.layout.id_for_label }}" class="ps-input">
+                        {% for value, label in form.fields.layout.choices %}
+                            <option value="{{ value }}" {% if form.layout.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="{{ form.anchor.id_for_label }}" class="ps-label">Anchor <span class="text-slate-400">(optional)</span></label>
+                    <input type="text" name="anchor" id="{{ form.anchor.id_for_label }}"
+                           value="{{ form.anchor.value|default:'' }}" class="ps-input" placeholder="e.g. impact">
+                    <p class="mt-1 text-xs text-slate-400">Adds a #link target and a nav entry.</p>
+                    {% if form.anchor.errors %}<p class="ps-error">{{ form.anchor.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label class="ps-label">Image <span class="text-slate-400">(optional)</span></label>
+                {% if section and section.image %}
+                    <div class="mb-3 flex items-center gap-4 rounded-lg border border-slate-200 p-3">
+                        <img src="{{ section.image.url }}" alt="" class="h-16 w-24 rounded object-cover">
+                        <label class="flex items-center gap-2 text-sm text-slate-600">
+                            <input type="checkbox" name="remove_image"> Remove this image
+                        </label>
+                    </div>
+                {% endif %}
+                <input type="file" name="image" accept="image/*" class="ps-input">
+                {% if form.image.errors %}<p class="ps-error">{{ form.image.errors.0 }}</p>{% endif %}
+            </div>
+
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 p-4">
+                <input type="checkbox" name="is_visible"
+                       {% if is_create %}checked{% elif form.is_visible.value %}checked{% endif %}
+                       class="mt-0.5">
+                <span>
+                    <span class="block text-sm font-medium text-slate-800">Visible on the page</span>
+                    <span class="block text-xs text-slate-500">Uncheck to keep this section as a draft.</span>
+                </span>
+            </label>
+
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
+            <a href="{% url 'page_content_edit' page.slug %}" class="ps-btn">Cancel</a>
+            <button type="submit" class="ps-btn ps-btn--primary">
+                {% if is_create %}Add Section{% else %}Save Changes{% endif %}
+            </button>
+        </div>
+    </form>
+
+</div>
+
+<style>
+.ps-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+.ps-label { display:block; margin-bottom:.3rem; font-size:.75rem; font-weight:500; color:#64748b; }
+.ps-input {
+    display:block; width:100%; padding:.55rem .75rem; border-radius:8px;
+    font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
+    outline:none; transition:border-color .15s;
+}
+.ps-input:focus { border-color:#103b07; }
+.ps-error { margin-top:.3rem; font-size:.75rem; color:#b91c1c; }
+.ps-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.5rem 1rem; border-radius:8px; font-size:.8rem; font-weight:500;
+    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
+}
+.ps-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+.ps-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
+.ps-btn--primary:hover { opacity:.85; background:#103b07; }
+
+/* Keep the editor from collapsing and match form field radius */
+.django_ckeditor_5 + .ck-editor .ck-editor__editable,
+.ck-editor__editable_inline { min-height:320px; }
+.ck.ck-editor__main > .ck-editor__editable { border-radius:0 0 8px 8px; }
+.ck.ck-editor__top .ck-sticky-panel .ck-toolbar { border-radius:8px 8px 0 0; }
+</style>
+{% endblock %}

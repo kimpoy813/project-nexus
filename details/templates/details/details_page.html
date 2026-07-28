@@ -2,151 +2,106 @@
 {% load static %}
 {% block content %}
 
-<!-- HERO SECTION with Fixed Logo Background -->
+<!-- HERO SECTION (admin-editable via Page Content) -->
 <section class="relative bg-primary text-white py-36 overflow-hidden">
     <div class="max-w-5xl mx-auto px-6 text-center">
+        {% if page.hero_eyebrow %}
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
+                {{ page.hero_eyebrow }}
+            </p>
+        {% endif %}
+
         <h1 class="text-4xl md:text-5xl font-semibold leading-tight mb-6 tracking-wide">
-            Networked Extension Unified System
+            {{ page.hero_heading|default:"Networked Extension Unified System" }}
         </h1>
 
         <p class="text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
-            A digital platform for managing, monitoring, and advancing institutional
-            extension initiatives aligned with sustainable development goals.
+            {{ page.hero_subheading|default:"A digital platform for managing, monitoring, and advancing institutional extension initiatives aligned with sustainable development goals." }}
         </p>
     </div>
 </section>
+
+{% comment %}Admin-authored content blocks appear above the built-in sections.{% endcomment %}
+{% for section in page.visible_sections %}
+    <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
+             class="scroll-mt-32 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
+        <div class="max-w-5xl mx-auto px-6">
+            {% if section.heading %}
+                <h2 class="text-3xl font-bold text-center text-gray-900">{{ section.heading }}</h2>
+            {% endif %}
+            {% if section.subheading %}
+                <p class="mt-3 text-center text-gray-600 max-w-3xl mx-auto">{{ section.subheading }}</p>
+            {% endif %}
+            {% if section.image %}
+                <img src="{{ section.image.url }}" alt="{{ section.heading }}" class="mt-8 w-full rounded-2xl object-cover">
+            {% endif %}
+            {% if section.body %}
+                <div class="nexus-richtext mt-8">{{ section.body|safe }}</div>
+            {% endif %}
+        </div>
+    </section>
+{% endfor %}
 
 <!-- Section Navigation -->
 <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
 
-        <a href="#thrust" class="hover:text-primary transition">Thrust</a>
-        <a href="#process" class="hover:text-primary transition">Processes</a>
-        <a href="#targets" class="hover:text-primary transition">Targets</a>
-        <a href="#personnel" class="hover:text-primary transition">Personnel</a>
-        <a href="#sdg" class="hover:text-primary transition">SDGs</a>
-        <a href="#activities" class="hover:text-primary transition">Activities</a>
+        {% for row in home_headings %}
+            {% if row.is_visible and row.nav_label %}
+                <a href="#{{ row.section }}" class="hover:text-primary transition whitespace-nowrap">{{ row.nav_label }}</a>
+            {% endif %}
+        {% endfor %}
 
     </div>
 </section>
 
-<!-- EXTENSION THRUST SECTION -->
+<!-- EXTENSION THRUST SECTION (admin-managed) -->
+{% if home_sections.thrust.is_visible %}
 <section id="thrust" class="py-24 bg-white scroll-mt-32">
     <div class="max-w-7xl mx-auto px-6">
 
-        <!-- Main Title -->
-        <h2 class="text-4xl font-bold text-center mb-12">
-            Extension Thrust
-        </h2>
+        {% if home_sections.thrust.heading %}
+            <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.thrust.heading }}</h2>
+        {% endif %}
 
-        <!-- Subtitle: Isem Ni Aran -->
-        <h3 class="text-xl font-semibold text-center text-secondary mb-2" data-aos="fade-up">
-            Isem Ni Aran
-        </h3>
+        {% if home_sections.thrust.subtitle %}
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2" data-aos="fade-up">
+                {{ home_sections.thrust.subtitle }}
+            </h3>
+        {% endif %}
 
-        <!-- Subtitle: Approved BR No. -->
-        <p class="text-base text-center text-gray-700 mb-12" data-aos="fade-up">
-            Approved BR No. 95-1517, S. 2022
-        </p>
+        {% if home_sections.thrust.caption %}
+            <p class="text-base text-center text-gray-700 mb-12" data-aos="fade-up">
+                {{ home_sections.thrust.caption }}
+            </p>
+        {% endif %}
 
-        <!-- EXTENSION THRUST CARDS — colored titles like SDGs -->
-        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 ">
-
-        <!-- 1 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-green-600">Indigenous Heritage Protection</h4>
-            <p class="text-gray-500 text-sm">Protecting cultural heritage and indigenous rights within community extension activities.</p>
-        </div>
-
-        <!-- 2 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-blue-600">Environmental Protection</h4>
-            <p class="text-gray-500 text-sm">Programs that conserve ecosystems and promote sustainable practices.</p>
-        </div>
-
-        <!-- 3 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-yellow-500">Resource Sharing</h4>
-            <p class="text-gray-500 text-sm">Facilitating equitable distribution and community access to resources.</p>
-        </div>
-
-        <!-- 4 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-purple-600">Numeracy and Literacy</h4>
-            <p class="text-gray-500 text-sm">Adult and community education initiatives to improve literacy and numeracy.</p>
-        </div>
-
-        <!-- 5 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-red-600">Governance and Administration</h4>
-            <p class="text-gray-500 text-sm">Capacity-building and systems strengthening for local governance and administration.</p>
-        </div>
-
-        <!-- 6 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-indigo-600">IP-TBM Office Establishment</h4>
-            <p class="text-gray-500 text-sm">Setting up institutional structures for technology-business management and IP.</p>
-        </div>
-
-        <!-- 7 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-pink-500">Trade Fair and Exhibit</h4>
-            <p class="text-gray-500 text-sm">Showcasing local products and linking producers to markets.</p>
-        </div>
-
-        <!-- 8 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-teal-600">Technology Transfer & RD Results Dissemination</h4>
-            <p class="text-gray-500 text-sm">Dissemination of research outputs and support for technology uptake.</p>
-        </div>
-
-        <!-- 9 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-orange-500">Network and Linkage</h4>
-            <p class="text-gray-500 text-sm">Building partnerships, MOUs, and collaborative networks.</p>
-        </div>
-
-        <!-- 10 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-lime-600">Adult Education</h4>
-            <p class="text-gray-500 text-sm">Lifelong learning programs and vocational upskilling for adults.</p>
-        </div>
-
-        <!-- 11 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-rose-500">Calamity & Disaster Rehabilitation</h4>
-            <p class="text-gray-500 text-sm">Relief operations, rehabilitation, and disaster risk reduction activities.</p>
-        </div>
-
-        <!-- 12 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-amber-500">Entrepreneurship & Financial Literacy</h4>
-            <p class="text-gray-500 text-sm">Microenterprise support, financial literacy trainings, and market linkages.</p>
-        </div>
-
-        <!-- 13 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-cyan-600">Health and Nutrition</h4>
-            <p class="text-gray-500 text-sm">Health promotion, nutrition education, and preventive care outreach.</p>
-        </div>
-
-        <!-- 14 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <h4 class="font-semibold text-lg mb-2 text-violet-600">Advocacies & Social Justice</h4>
-            <p class="text-gray-500 text-sm">Community advocacy, rights awareness, and social justice initiatives.</p>
-        </div>
-
+        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {% for thrust in home_thrusts %}
+            <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+                <h4 class="font-semibold text-lg mb-2 {{ thrust.color_class }}">{{ thrust.title }}</h4>
+                <p class="text-gray-500 text-sm">{{ thrust.description }}</p>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </section>
+{% endif %}
 
 
+{% if home_sections.process.is_visible %}
 <section class="py-20 bg-gray-50 scroll-mt-32" id="process">
     <div class="max-w-6xl mx-auto px-6">
 
-        <h2 class="text-4xl font-bold text-center mb-12">
-        Extension Processes
-        </h2>
+        {% if home_sections.process.heading %}
+            <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.process.heading }}</h2>
+        {% endif %}
+        {% if home_sections.process.subtitle %}
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.process.subtitle }}</h3>
+        {% endif %}
+        {% if home_sections.process.caption %}
+            <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.process.caption }}</p>
+        {% endif %}
 
         {% for process in process_steps %}
         <div class="mb-6 bg-white rounded-xl border border-gray-100 hover:border-primary transition duration-300">
@@ -200,6 +155,7 @@
 
     </div>
 </section>
+{% endif %}
 <script>
 document.querySelectorAll(".process-toggle").forEach(button => {
     button.addEventListener("click", () => {
@@ -220,12 +176,19 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
 {% load humanize %}
 <!-- EXTENSION TARGETS SECTION -->
+{% if home_sections.targets.is_visible %}
 <section id="targets" class="py-24 bg-white scroll-mt-32">
     <div class="max-w-7xl mx-auto px-6">
 
-        <h2 class="text-4xl font-bold text-center mb-12">
-        Extension Targets
-        </h2>
+        {% if home_sections.targets.heading %}
+            <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.targets.heading }}</h2>
+        {% endif %}
+        {% if home_sections.targets.subtitle %}
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.targets.subtitle }}</h3>
+        {% endif %}
+        {% if home_sections.targets.caption %}
+            <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.targets.caption }}</p>
+        {% endif %}
 
         <!-- Year Selector -->
         <div class="text-center mb-10">
@@ -338,22 +301,36 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         </script>
     </div>
 </section>
+{% endif %}
 
 
 
 <!-- PERSONNEL -->
+{% if home_sections.personnel.is_visible %}
 <section id="personnel" class="py-24 bg-gray-50 scroll-mt-32">
     <div class="max-w-6xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-center mb-12">
-            Extension Personnel
-        </h2>
+        {% if home_sections.personnel.heading %}
+            <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.personnel.heading }}</h2>
+        {% endif %}
+        {% if home_sections.personnel.subtitle %}
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.personnel.subtitle }}</h3>
+        {% endif %}
+        {% if home_sections.personnel.caption %}
+            <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.personnel.caption }}</p>
+        {% endif %}
 
         <!-- Featured Director Centered - Same size as others -->
         {% if personnel %}
         <div class="flex justify-center mb-8">
             <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center w-full max-w-sm hover:border-primary transition duration-300">
-                <img src="{{ personnel.0.photo.url }}"
-                    class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% if personnel.0.photo %}
+                    <img src="{{ personnel.0.photo.url }}" alt="{{ personnel.0.name }}"
+                        class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% else %}
+                    <span class="w-32 h-32 mx-auto mb-6 grid place-items-center rounded-full border-4 border-primary bg-primary/5 text-3xl font-semibold text-primary">
+                        {{ personnel.0.name|first|upper }}
+                    </span>
+                {% endif %}
                 <h3 class="text-xl font-semibold mb-1">{{ personnel.0.name }}</h3>
                 <p class="text-secondary font-medium mb-3">{{ personnel.0.position }}</p>
                 <p class="text-sm text-gray-600">{{ personnel.0.description }}</p>
@@ -365,8 +342,14 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <div class="grid md:grid-cols-3 gap-10">
             {% for person in personnel|slice:"1:" %}
             <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center hover:border-primary transition duration-300">
-                <img src="{{ person.photo.url }}"
-                    class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% if person.photo %}
+                    <img src="{{ person.photo.url }}" alt="{{ person.name }}"
+                        class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% else %}
+                    <span class="w-32 h-32 mx-auto mb-6 grid place-items-center rounded-full border-4 border-primary bg-primary/5 text-3xl font-semibold text-primary">
+                        {{ person.name|first|upper }}
+                    </span>
+                {% endif %}
                 <h3 class="text-xl font-semibold mb-1">{{ person.name }}</h3>
                 <p class="text-secondary font-medium mb-3">{{ person.position }}</p>
                 <p class="text-sm text-gray-600">{{ person.description }}</p>
@@ -375,12 +358,20 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         </div>
     </div>
 </section>
+{% endif %}
 
+{% if home_sections.sdg.is_visible %}
 <section id="sdg" class="py-24 bg-white scroll-mt-32">
     <div class="max-w-7xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-center mb-16">
-        Sustainable Development Goals
-        </h2>
+        {% if home_sections.sdg.heading %}
+            <h2 class="text-4xl font-bold text-center mb-16">{{ home_sections.sdg.heading }}</h2>
+        {% endif %}
+        {% if home_sections.sdg.subtitle %}
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.sdg.subtitle }}</h3>
+        {% endif %}
+        {% if home_sections.sdg.caption %}
+            <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.sdg.caption }}</p>
+        {% endif %}
 
         <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
 
@@ -489,15 +480,23 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         </div>
     </div>
 </section>
+{% endif %}
 
 
 
 <!-- ACTIVITIES -->
+{% if home_sections.activities.is_visible %}
 <section id="activities" class="py-24 bg-gray-50 scroll-mt-32">
     <div class="max-w-6xl mx-auto px-6">
-        <h2 class="text-4xl font-bold text-center mb-12">
-            Extension Activities
-        </h2>
+        {% if home_sections.activities.heading %}
+            <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.activities.heading }}</h2>
+        {% endif %}
+        {% if home_sections.activities.subtitle %}
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.activities.subtitle }}</h3>
+        {% endif %}
+        {% if home_sections.activities.caption %}
+            <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.activities.caption }}</p>
+        {% endif %}
 
         <div class="grid md:grid-cols-3 gap-10">
             {% for activity in activities %}
@@ -535,5 +534,6 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         </div>
     </div>
 </section>
+{% endif %}
 
 {% endblock %}

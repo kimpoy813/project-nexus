@@ -25,8 +25,9 @@ staticfiles/
 db.sqlite3
 *.sqlite3
 
-# Uploaded media should use Supabase Storage in production.
-# Existing tracked media files are not removed by this ignore rule.
+# Uploaded media lives in Supabase Storage in production and is never
+# committed. The previously tracked files were untracked deliberately; a
+# fresh clone therefore starts with no uploads, which is intended.
 media/
 
 # Node / frontend

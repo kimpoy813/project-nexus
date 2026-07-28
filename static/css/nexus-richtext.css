@@ -1,0 +1,108 @@
+/* ==========================================================================
+   Rich-text output from the admin Page Content editor (CKEditor 5).
+   Shared by the Home, Services, Reports, and Achievements pages.
+   ========================================================================== */
+
+.nexus-richtext {
+    color: #374151;
+    line-height: 1.75;
+}
+
+.nexus-richtext h1,
+.nexus-richtext h2,
+.nexus-richtext h3,
+.nexus-richtext h4,
+.nexus-richtext h5,
+.nexus-richtext h6 {
+    color: #111827;
+    font-weight: 600;
+    margin: 1.5em 0 .5em;
+    line-height: 1.3;
+}
+
+.nexus-richtext h1 { font-size: 1.875rem; }
+.nexus-richtext h2 { font-size: 1.5rem; }
+.nexus-richtext h3 { font-size: 1.25rem; }
+.nexus-richtext h4 { font-size: 1.1rem; }
+
+.nexus-richtext > *:first-child { margin-top: 0; }
+
+.nexus-richtext p { margin: 0 0 1em; }
+
+.nexus-richtext ul,
+.nexus-richtext ol { margin: 0 0 1em 1.5em; }
+.nexus-richtext ul { list-style: disc; }
+.nexus-richtext ol { list-style: decimal; }
+.nexus-richtext li { margin: .35em 0; }
+.nexus-richtext li > ul,
+.nexus-richtext li > ol { margin-bottom: 0; }
+
+.nexus-richtext a {
+    color: var(--nexus-primary, #103b07);
+    text-decoration: underline;
+}
+.nexus-richtext a:hover { color: var(--nexus-secondary, #5a1113); }
+
+.nexus-richtext strong { font-weight: 600; color: #111827; }
+.nexus-richtext em { font-style: italic; }
+
+.nexus-richtext blockquote {
+    margin: 1.25em 0;
+    padding: .5em 1.25em;
+    border-left: 3px solid var(--nexus-primary, #103b07);
+    background: #f9fafb;
+    color: #4b5563;
+    font-style: italic;
+}
+
+.nexus-richtext table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.25em 0;
+    font-size: .925rem;
+}
+.nexus-richtext th,
+.nexus-richtext td {
+    border: 1px solid #e5e7eb;
+    padding: .6rem .8rem;
+    text-align: left;
+}
+.nexus-richtext th {
+    background: #f9fafb;
+    font-weight: 600;
+    color: #111827;
+}
+
+.nexus-richtext img {
+    max-width: 100%;
+    height: auto;
+    border-radius: .75rem;
+    margin: 1.25em 0;
+}
+
+.nexus-richtext figure { margin: 1.25em 0; }
+.nexus-richtext figure.image { display: table; }
+.nexus-richtext figcaption {
+    margin-top: .5em;
+    font-size: .85rem;
+    color: #6b7280;
+    text-align: center;
+}
+
+/* CKEditor image alignment classes */
+.nexus-richtext .image-style-align-left { float: left; margin-right: 1.5em; max-width: 50%; }
+.nexus-richtext .image-style-align-right { float: right; margin-left: 1.5em; max-width: 50%; }
+.nexus-richtext .image-style-side { float: right; margin-left: 1.5em; max-width: 50%; }
+
+.nexus-richtext hr {
+    margin: 2em 0;
+    border: 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Clear floats introduced by aligned images */
+.nexus-richtext::after {
+    content: "";
+    display: table;
+    clear: both;
+}

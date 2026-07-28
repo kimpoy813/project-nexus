@@ -3,16 +3,12 @@ from functools import wraps
 from django.contrib import messages
 from django.shortcuts import redirect
 
+from . import permissions
 from .models import Profile
 
 
-FACULTY_LIKE_ROLES = [
-    "FACULTY",
-    "EVALUATOR",
-    "DEPARTMENT_COORDINATOR",
-    "CAMPUS_COORDINATOR",
-    "DIRECTOR",
-]
+# Kept as a list for backwards compatibility with existing imports.
+FACULTY_LIKE_ROLES = sorted(permissions.PROPOSAL_AUTHOR_ROLES)
 
 
 def get_user_profile(request):
@@ -22,13 +18,14 @@ def get_user_profile(request):
 
 
 def get_normalized_role(profile):
+    """Normalise a profile's role, mapping the legacy "COORDINATOR" value."""
     if not profile:
         return None
 
-    role = profile.role or "FACULTY"
+    role = (profile.role or Profile.ROLE_FACULTY).strip().upper()
 
     if role == "COORDINATOR":
-        role = "CAMPUS_COORDINATOR"
+        role = Profile.ROLE_CAMPUS_COORDINATOR
 
     return role
 

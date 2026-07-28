@@ -38,7 +38,10 @@ SECRET_KEY = os.environ.get(
     "django-insecure-dev-only-change-this-in-production",
 )
 
-DEBUG = env_bool("DEBUG", True)
+# Default to False so an unset or misspelled DEBUG in production can never
+# expose stack traces, settings, and local variables to visitors.
+# Local development opts in explicitly via .env or the environment.
+DEBUG = env_bool("DEBUG", False)
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 # Django validates the complete Origin (scheme, host, and port) for unsafe
@@ -149,6 +152,44 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Manila"
 USE_I18N = True
 USE_TZ = True
+
+
+# ==============================
+# RICH TEXT EDITOR (CKEditor 5)
+# ==============================
+# Used by the admin Page Content editor (Home, Services, Reports, Achievements).
+
+CKEDITOR_5_FILE_STORAGE = None  # fall back to DEFAULT_FILE_STORAGE / STORAGES
+CKEDITOR_5_UPLOAD_FILE_TYPES = ["jpeg", "jpg", "png", "gif", "webp", "svg"]
+
+_CKEDITOR_5_TOOLBAR = [
+    "heading", "|",
+    "bold", "italic", "underline", "link", "|",
+    "bulletedList", "numberedList", "|",
+    "outdent", "indent", "|",
+    "blockQuote", "insertTable", "imageUpload", "|",
+    "undo", "redo", "|",
+    "sourceEditing",
+]
+
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": _CKEDITOR_5_TOOLBAR,
+        "height": 320,
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "imageStyle:alignLeft",
+                "imageStyle:full",
+                "imageStyle:alignRight",
+            ],
+        },
+        "table": {
+            "contentToolbar": ["tableColumn", "tableRow", "mergeTableCells"],
+        },
+        "link": {"addTargetToExternalLinks": True},
+    },
+}
 
 
 # ==============================
@@ -264,3 +305,42 @@ CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_HTTPONLY = env_bool("CSRF_COOKIE_HTTPONLY", False)
 CSRF_USE_SESSIONS = env_bool("CSRF_USE_SESSIONS", False)
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
+
+
+# ==============================
+# LOGGING
+# ==============================
+# Without this, Django's default configuration discards application logs
+# entirely outside of DEBUG, so a swallowed exception left no trace at all.
+# Everything goes to stdout, which is what Render/Heroku-style hosts capture.
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        # Application loggers. Use logging.getLogger(__name__) in each module.
+        "accounts": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "proposals": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "details": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        # Unhandled view exceptions.
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}
