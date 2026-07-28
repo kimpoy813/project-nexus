@@ -4,21 +4,13 @@
 
 :root {
   --nexus-primary: #103b07;
-  --nexus-primary-2: #1f5b12;
   --nexus-secondary: #5a1113;
-  --nexus-accent: #f5e587;
-  --nexus-ink: #0f172a;
-  --nexus-muted: #64748b;
-  --nexus-subtle: #94a3b8;
-  --nexus-line: rgba(15, 23, 42, 0.10);
-  --nexus-line-strong: rgba(15, 23, 42, 0.16);
-  --nexus-surface: rgba(255, 255, 255, 0.92);
-  --nexus-surface-solid: #ffffff;
-  --nexus-bg: #f6f8f3;
-  --nexus-bg-2: #eef4e8;
-  --nexus-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --nexus-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-  --nexus-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.14);
+  --nexus-tertiary: #f5e587;
+  --nexus-black: #000000;
+  --nexus-white: #ffffff;
+  --nexus-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 1px 1px rgba(0, 0, 0, 0.04);
+  --nexus-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+  --nexus-shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.14);
   --nexus-radius: 1.25rem;
   --nexus-radius-lg: 1.75rem;
 }
@@ -30,11 +22,11 @@ html {
 }
 
 body {
-  color: var(--nexus-ink);
+  color: var(--nexus-black);
   background:
     radial-gradient(circle at top left, rgba(245, 229, 135, 0.24), transparent 32rem),
     radial-gradient(circle at top right, rgba(16, 59, 7, 0.10), transparent 30rem),
-    linear-gradient(180deg, #f9fbf6 0%, var(--nexus-bg) 44%, #f8fafc 100%) !important;
+    linear-gradient(180deg, var(--nexus-white) 0%, var(--nexus-white) 44%, var(--nexus-white) 100%) !important;
 }
 
 ::selection {
@@ -51,7 +43,7 @@ body {
   transform: translateY(-150%);
   border-radius: 999px;
   background: var(--nexus-primary);
-  color: #fff;
+  color: var(--nexus-white);
   padding: .7rem 1rem;
   font-weight: 800;
   font-size: .875rem;
@@ -82,8 +74,8 @@ body {
 .nexus-navbar {
   height: 5rem;
   background: rgba(255, 255, 255, 0.86) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06) !important;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -99,7 +91,7 @@ body {
   min-height: 2.5rem;
   border-radius: 999px;
   padding: .55rem .85rem;
-  color: #475569;
+  color: var(--nexus-black);
   font-weight: 700;
   transition: color .18s ease, background .18s ease, transform .18s ease;
 }
@@ -136,8 +128,8 @@ body {
 
 .nexus-dropdown,
 .nexus-mobile-panel {
-  background: rgba(255, 255, 255, .96) !important;
-  border: 1px solid rgba(15, 23, 42, 0.10) !important;
+  background: var(--nexus-white) !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
   box-shadow: var(--nexus-shadow-lg) !important;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -152,8 +144,8 @@ body {
 .rounded-2xl.border.border-gray-100.bg-white,
 .bg-white.border.border-gray-100.rounded-2xl,
 .bg-white.border.border-gray-200.rounded-2xl {
-  border-color: var(--nexus-line) !important;
-  background: var(--nexus-surface) !important;
+  border-color: rgba(0, 0, 0, 0.10) !important;
+  background: var(--nexus-white) !important;
   box-shadow: var(--nexus-shadow-sm) !important;
 }
 
@@ -174,8 +166,8 @@ body {
 
 .ext-card,
 .mine-card {
-  background: var(--nexus-surface-solid);
-  border: 1px solid var(--nexus-line);
+  background: var(--nexus-white);
+  border: 1px solid rgba(0, 0, 0, 0.10);
   box-shadow: var(--nexus-shadow-sm);
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
@@ -201,11 +193,11 @@ button[type="submit"],
 
 .dir-btn,
 .nexus-btn-secondary {
-  border: 1px solid var(--nexus-line) !important;
-  background: #fff !important;
-  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+  background: var(--nexus-white) !important;
+  color: var(--nexus-black) !important;
   border-radius: .9rem !important;
-  box-shadow: 0 1px 1px rgba(15, 23, 42, .04);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 }
 .dir-btn:hover,
 .nexus-btn-secondary:hover {
@@ -220,8 +212,8 @@ button[type="submit"],
 .bg-primary,
 button.bg-primary,
 a.bg-primary {
-  background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-primary-2)) !important;
-  color: #fff !important;
+  background: var(--nexus-primary) !important;
+  color: var(--nexus-white) !important;
   border-color: transparent !important;
   box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
 }
@@ -230,7 +222,7 @@ a.bg-primary {
 .bg-primary:hover,
 button.bg-primary:hover,
 a.bg-primary:hover {
-  background: linear-gradient(135deg, #123f08, #2a7218) !important;
+  background: var(--nexus-secondary) !important;
   box-shadow: 0 14px 30px rgba(16, 59, 7, .24);
   transform: translateY(-1px);
 }
@@ -253,11 +245,11 @@ input[type="url"],
 select,
 textarea,
 .dir-input {
-  border-color: rgba(15, 23, 42, 0.14) !important;
+  border-color: rgba(0, 0, 0, 0.14) !important;
   border-radius: .9rem !important;
-  background-color: rgba(255, 255, 255, 0.96) !important;
-  color: var(--nexus-ink) !important;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.03);
+  background-color: var(--nexus-white) !important;
+  color: var(--nexus-black) !important;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.03);
   transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
 }
 input[type="text"]:focus,
@@ -276,7 +268,7 @@ textarea:focus,
   outline: none !important;
 }
 label {
-  color: #334155;
+  color: var(--nexus-black);
 }
 
 input[type="file"]::file-selector-button {
@@ -285,7 +277,7 @@ input[type="file"]::file-selector-button {
   padding: .55rem .9rem;
   margin-right: .75rem;
   background: var(--nexus-primary);
-  color: white;
+  color: var(--nexus-white);
   font-weight: 700;
   cursor: pointer;
 }
@@ -296,8 +288,8 @@ table {
   border-spacing: 0;
 }
 thead th {
-  background: #f8faf7 !important;
-  color: #64748b !important;
+  background: var(--nexus-white) !important;
+  color: var(--nexus-black) !important;
   letter-spacing: .045em;
   text-transform: uppercase;
 }
@@ -320,7 +312,7 @@ tbody tr:hover {
 .dashboard-nav-btn {
   border-radius: .95rem !important;
   padding: .72rem .85rem !important;
-  color: #64748b;
+  color: var(--nexus-black);
   font-weight: 800;
   text-align: left;
   transition: background .16s ease, color .16s ease, transform .16s ease;
@@ -339,7 +331,7 @@ tbody tr:hover {
 .max-h-\[75vh\].overflow-y-auto,
 .max-h-\[65vh\].overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 59, 7, .32) rgba(15, 23, 42, .05);
+  scrollbar-color: rgba(16, 59, 7, .32) rgba(0, 0, 0, .05);
 }
 #wizard-stepper-scroll::-webkit-scrollbar,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar,
@@ -368,9 +360,7 @@ tbody tr:hover {
 
 /* Footer */
 .nexus-footer {
-  background:
-    radial-gradient(circle at 20% 20%, rgba(245, 229, 135, .18), transparent 28rem),
-    linear-gradient(135deg, #0b2b04, var(--nexus-primary)) !important;
+  background: var(--nexus-primary) !important;
 }
 
 /* Mobile refinements */

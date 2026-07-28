@@ -17,7 +17,7 @@
                     colors: {
                         primary: '#103b07',
                         secondary: '#5a1113',
-                        accent: '#f5e587',
+                        tertiary: '#f5e587',
                     },
                     boxShadow: {
                         nexus: '0 16px 40px rgba(15, 23, 42, 0.08)',
@@ -37,9 +37,8 @@
     <style>
         :root {
             --nexus-primary: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-primary-2: {{ site_control.primary_color|default:'#103b07' }};
             --nexus-secondary: {{ site_control.secondary_color|default:'#5a1113' }};
-            --nexus-accent: {{ site_control.accent_color|default:'#f5e587' }};
+            --nexus-tertiary: {{ site_control.accent_color|default:'#f5e587' }};
         }
     </style>
     {% endif %}
@@ -111,7 +110,7 @@
                                  @click.away="openNotif = false"
                                  x-transition.origin.top.right
                                  class="nexus-dropdown absolute right-0 mt-3 w-80 rounded-3xl overflow-hidden z-50">
-                                <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-br from-primary/5 to-accent/20">
+                                <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-br from-primary/5 to-tertiary/20">
                                     <p class="text-sm font-black text-gray-900">Notifications</p>
                                     <p class="text-xs text-gray-500">Updates that need your attention.</p>
                                 </div>
