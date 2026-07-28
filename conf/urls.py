@@ -22,8 +22,6 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', include('details.urls')),  # Public landing page
-    path('reports/', lambda r: render(r, 'reports.html'), name='reports'),
-    path('achievements/', lambda r: render(r, 'achievements.html'), name='achievements'),
     path('', include('accounts.urls')),  # Auth routes
     path('', include('proposals.urls')),  # Proposal management
     path('admin/', admin.site.urls),
