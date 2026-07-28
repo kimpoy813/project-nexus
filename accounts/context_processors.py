@@ -25,8 +25,19 @@ def site_configuration(request):
     except Exception:
         capabilities = set()
 
+    # Accomplishment reports are a Staff/Director workflow. Admin implies every
+    # other capability but deliberately not this one, so it is resolved from the
+    # role directly rather than from the capability set.
+    can_submit_accomplishment = False
+    try:
+        if request.user.is_authenticated:
+            role = (getattr(getattr(request.user, "profile", None), "role", "") or "").upper()
+            can_submit_accomplishment = role in {"STAFF", "DIRECTOR"}
+    except Exception:
+        can_submit_accomplishment = False
+
     return {
         "site_control": config,
         "role_capabilities": capabilities,
-        "can_submit_accomplishment": "ALL" in capabilities or "SUBMIT_QUARTERLY_ACCOMPLISHMENT" in capabilities,
+        "can_submit_accomplishment": can_submit_accomplishment,
     }

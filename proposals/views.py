@@ -29,7 +29,7 @@ from accounts.decorators import faculty_like_required, role_required
 from details.models import (
     DocumentTemplate, DynamicFormAnswer, DynamicFormField, DynamicFormResponse,
     DynamicFormTemplate, ExtensionProcess, ProcessStep, ProposalWizardStepConfig, RoleCapability,
-    SitePage,
+    SitePage, WorkflowPhase,
 )
 from .moa_docx import build_moa_document
 from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
@@ -944,38 +944,27 @@ def services_home(request):
     office_templates = DocumentTemplate.objects.filter(is_active=True).order_by("category", "title")
     dynamic_form_templates = DynamicFormTemplate.objects.filter(is_active=True).prefetch_related("fields").order_by("applies_to", "name")
 
-    workflow_phases = [
-        {
-            "key": "proposal",
-            "label": "Proposal",
-            "summary": "Drafting, review, revision, printing, signed upload, and approval document release.",
-            "weight": "40% of overall progress when MOA is required",
-            "statuses": _build_status_flow(
-                Proposal.ProposalStatus.choices,
-                Proposal.PROPOSAL_PROGRESS_MAP,
-            ),
-        },
-        {
-            "key": "moa",
-            "label": "MOA",
-            "summary": "Optional agreement routing from draft through legal review, certification, agenda, and completion.",
-            "weight": "20% of overall progress when required",
-            "statuses": _build_status_flow(
-                Proposal.MOAStatus.choices,
-                Proposal.MOA_PROGRESS_MAP,
-            ),
-        },
-        {
-            "key": "implementation",
-            "label": "Implementation",
-            "summary": "Preparation, monitoring, progress reporting, terminal reporting, review, revision, and completion.",
-            "weight": "40% of overall progress when MOA is required",
-            "statuses": _build_status_flow(
-                Proposal.ImplementationStatus.choices,
-                Proposal.IMPLEMENTATION_PROGRESS_MAP,
-            ),
-        },
-    ]
+    # Status codes and progress maps stay in the model because they drive real
+    # permissions; only the public presentation is admin-editable.
+    status_flows = {
+        "proposal": (Proposal.ProposalStatus.choices, Proposal.PROPOSAL_PROGRESS_MAP),
+        "moa": (Proposal.MOAStatus.choices, Proposal.MOA_PROGRESS_MAP),
+        "implementation": (Proposal.ImplementationStatus.choices, Proposal.IMPLEMENTATION_PROGRESS_MAP),
+    }
+
+    workflow_phases = []
+    for phase in WorkflowPhase.ordered_visible():
+        choices_map = status_flows.get(phase.key)
+        workflow_phases.append({
+            "key": phase.key,
+            "label": phase.label,
+            "summary": phase.summary,
+            "weight_label": phase.weight_label,
+            "weight_percent": phase.weight_percent,
+            # Legacy alias so older markup keeps working.
+            "weight": phase.weight_label,
+            "statuses": _build_status_flow(*choices_map) if choices_map else [],
+        })
 
     context = {
         "sdgs": sdgs,

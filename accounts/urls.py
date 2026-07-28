@@ -117,6 +117,9 @@ urlpatterns = [
     path("admin/home-sections/thrusts/<int:pk>/delete/", views.home_thrust_delete, name="home_thrust_delete"),
     path("admin/home-sections/thrusts/<int:pk>/move/", views.home_thrust_move, name="home_thrust_move"),
 
+    # Services page workflow phases (Proposal / MOA / Implementation)
+    path("admin/workflow-phases/", views.workflow_phases_manager, name="workflow_phases_manager"),
+
     # Signatories management
     path("admin/signatories/", views.signatories_list, name="signatories_list"),
     path("admin/signatories/create/", views.signatory_create, name="signatory_create"),

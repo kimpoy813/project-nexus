@@ -598,3 +598,62 @@ class HomeThrust(models.Model):
             last = HomeThrust.objects.aggregate(Max("order"))["order__max"]
             self.order = (last or 0) + 1
         super().save(*args, **kwargs)
+
+
+# ==============================
+# WORKFLOW PHASES (ADMIN MANAGED)
+# ==============================
+
+class WorkflowPhase(models.Model):
+    """
+    The Proposal / MOA / Implementation phase cards on the Services page.
+
+    The underlying status codes and progress maps still live in the Proposal
+    model (they drive real permissions and must stay in code), but the public
+    presentation - label, summary, and progress weight - is admin-editable.
+    """
+
+    class Key(models.TextChoices):
+        PROPOSAL = "proposal", "Proposal"
+        MOA = "moa", "MOA"
+        IMPLEMENTATION = "implementation", "Implementation"
+
+    key = models.SlugField(
+        max_length=30,
+        unique=True,
+        choices=Key.choices,
+        help_text="Identifies which set of model statuses this phase displays.",
+    )
+    label = models.CharField(max_length=80)
+    summary = models.TextField(blank=True, default="")
+    weight_percent = models.PositiveSmallIntegerField(
+        default=40,
+        help_text="Share of overall progress, 0-100. Also sets the bar width.",
+    )
+    weight_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text='Caption beside the bar, e.g. "40% of overall progress when MOA is required".',
+    )
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Workflow Phase"
+
+    def __str__(self):
+        return self.label or self.get_key_display()
+
+    def save(self, *args, **kwargs):
+        if self.weight_percent is None:
+            self.weight_percent = 0
+        self.weight_percent = max(0, min(100, int(self.weight_percent)))
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def ordered_visible(cls):
+        return cls.objects.filter(is_visible=True)

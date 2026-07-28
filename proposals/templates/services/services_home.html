@@ -2,57 +2,69 @@
 {% load static %}
 
 {% block content %}
-<section class="bg-white">
-    <div class="mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-                {{ page.hero_eyebrow|default:"Extension Services" }}
+<!-- HERO (matches Home, Reports, and Achievements) -->
+<section class="relative bg-primary text-white py-28 overflow-hidden">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+        {% if page.hero_eyebrow %}
+            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
+                {{ page.hero_eyebrow }}
             </p>
-            <h1 class="mt-4 max-w-4xl text-4xl font-bold leading-tight text-gray-950 md:text-5xl">
-                {{ page.hero_heading|default:"Proposal processing, review, approval, and implementation in one guided flow." }}
-            </h1>
-            <p class="mt-5 max-w-3xl text-base leading-8 text-gray-600">
-                {% if page.hero_subheading %}{{ page.hero_subheading }}{% else %}The services page now follows the maintained process records and the Proposal model lifecycle: a
-                {{ total_wizard_steps }}-step proposal wizard, review rounds, post-approval document release, optional
-                MOA routing, and implementation reporting.{% endif %}
-            </p>
+        {% endif %}
 
-            <div class="mt-8 flex flex-wrap items-center gap-3">
-                <a href="{% url 'proposal_create' %}"
-                   class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
-                    <span>Create Proposal</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.69l-3.22-3.22a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.22-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
-                    </svg>
+        <h1 class="text-4xl md:text-5xl font-semibold leading-tight tracking-wide">
+            {{ page.hero_heading|default:"Extension Services" }}
+        </h1>
+
+        {% if page.hero_subheading %}
+            <p class="mt-6 text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+                {{ page.hero_subheading }}
+            </p>
+        {% endif %}
+
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <a href="{% url 'proposal_create' %}"
+               class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90">
+                <span>Create Proposal</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.69l-3.22-3.22a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.22-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
+                </svg>
+            </a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard_redirect' %}"
+                   class="inline-flex items-center rounded-lg border border-white/40 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                    View Dashboard
                 </a>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard_redirect' %}"
-                       class="inline-flex items-center rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-800 transition hover:border-primary hover:text-primary">
-                        View Dashboard
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
-            <p class="text-sm font-semibold text-gray-900">Model-backed lifecycle</p>
-            <div class="mt-5 space-y-4">
-                {% for phase in workflow_phases %}
-                    <div>
-                        <div class="mb-1 flex items-center justify-between gap-3">
-                            <span class="text-sm font-semibold text-gray-800">{{ phase.label }}</span>
-                            <span class="text-xs text-gray-500">{{ phase.weight }}</span>
-                        </div>
-                        <div class="h-2 overflow-hidden rounded-full bg-gray-200">
-                            <div class="h-2 rounded-full {% if phase.key == 'proposal' %}bg-primary{% elif phase.key == 'moa' %}bg-secondary{% else %}bg-yellow-600{% endif %}"
-                                 style="width: {% if phase.key == 'moa' %}20{% else %}40{% endif %}%"></div>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
+            {% endif %}
         </div>
     </div>
 </section>
+
+<!-- LIFECYCLE OVERVIEW -->
+{% if workflow_phases %}
+<section class="bg-white py-12">
+    <div class="mx-auto max-w-5xl px-6">
+        <p class="text-center text-sm font-semibold text-gray-900">
+            {{ lifecycle_heading|default:"Model-backed lifecycle" }}
+        </p>
+        <div class="mt-6 grid gap-5 md:grid-cols-3">
+            {% for phase in workflow_phases %}
+                <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
+                    <div class="mb-2 flex items-baseline justify-between gap-3">
+                        <span class="text-sm font-semibold text-gray-800">{{ phase.label }}</span>
+                        <span class="text-xs text-gray-500">{{ phase.weight_label }}</span>
+                    </div>
+                    <div class="h-2 overflow-hidden rounded-full bg-gray-200">
+                        <div class="h-2 rounded-full bg-primary" style="width: {{ phase.weight_percent }}%"></div>
+                    </div>
+                    {% if phase.summary %}
+                        <p class="mt-3 text-xs leading-5 text-gray-600">{{ phase.summary }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <section class="border-y border-gray-200 bg-gray-50">
     <div class="mx-auto max-w-7xl px-6 py-10">

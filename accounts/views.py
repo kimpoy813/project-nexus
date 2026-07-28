@@ -69,6 +69,7 @@ from details.models import (
     RoleCapability,
     SitePage,
     Target,
+    WorkflowPhase,
 )
 
 User = get_user_model()
@@ -1956,7 +1957,6 @@ def admin_dashboard(request):
         "dynamic_form_count": DynamicFormTemplate.objects.count(),
         "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
         "role_capability_count": RoleCapability.objects.filter(enabled=True).count(),
-        "accomplishment_report_count": AccomplishmentReport.objects.count(),
         "total_content": (
             Personnel.objects.count()
             + Activity.objects.count()
@@ -1966,7 +1966,6 @@ def admin_dashboard(request):
             + DocumentTemplate.objects.count()
             + DynamicFormTemplate.objects.count()
             + ProposalWizardStepConfig.objects.count()
-            + AccomplishmentReport.objects.count()
         ),
         "recent_users": Profile.objects.select_related("user").filter(
             user__date_joined__gte=week_ago
@@ -2817,10 +2816,31 @@ def _user_role(user):
     return (getattr(profile, "role", "") or "").upper()
 
 
+# Accomplishment reports are a Staff/Director workflow. Admins manage the
+# system but do not file or review these reports, so the capability is never
+# granted to them even though Admin otherwise implies every capability.
+ACCOMPLISHMENT_REPORT_ROLES = {
+    Profile.ROLE_STAFF,
+    Profile.ROLE_DIRECTOR,
+}
+
+
+def can_access_accomplishment_reports(user):
+    """Only Staff and Director may view or submit accomplishment reports."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return _user_role(user) in ACCOMPLISHMENT_REPORT_ROLES
+
+
 def user_has_capability(user, capability):
     if not user.is_authenticated:
         return False
     role = _user_role(user)
+
+    # Role-restricted capability: not implied by Admin/superuser.
+    if capability == RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT:
+        return role in ACCOMPLISHMENT_REPORT_ROLES
+
     if role == Profile.ROLE_ADMIN or getattr(user, "is_superuser", False):
         return True
     return RoleCapability.objects.filter(
@@ -3182,6 +3202,13 @@ def role_capabilities_manager(request):
     grouped = []
     by_role = OrderedDict()
     for item in capabilities:
+        # Accomplishment reports are restricted to Staff/Director in code, so
+        # showing a toggle for other roles would be misleading.
+        if (
+            item.capability == RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT
+            and item.role not in ACCOMPLISHMENT_REPORT_ROLES
+        ):
+            continue
         by_role.setdefault(item.role, []).append(item)
     for role, items in by_role.items():
         grouped.append({
@@ -3281,18 +3308,17 @@ PAGE_LINKED_DATA = {
         {"label": "Extension Targets", "url_name": "targets_list", "hint": "Figures shown in the Targets section."},
     ],
     "services": [
+        {"label": "Workflow Phases", "url_name": "workflow_phases_manager", "hint": "Proposal / MOA / Implementation cards and progress weights."},
         {"label": "Extension Processes", "url_name": "processes_list", "hint": "Drives the maintained process flow."},
         {"label": "Template Library", "url_name": "document_templates_list", "hint": "Downloadable office templates."},
         {"label": "Form Builder", "url_name": "dynamic_forms_list", "hint": "Configurable forms and checklists."},
         {"label": "Wizard Steps", "url_name": "wizard_steps_manager", "hint": "Proposal wizard step labels."},
     ],
     "reports": [
-        {"label": "Accomplishment Reports", "url_name": "accomplishment_reports_list", "hint": "Submitted quarterly reports."},
         {"label": "Extension Targets", "url_name": "targets_list", "hint": "Planned vs. actual figures."},
     ],
     "achievements": [
         {"label": "Extension Activities", "url_name": "activities_list", "hint": "Completed activities worth highlighting."},
-        {"label": "Accomplishment Reports", "url_name": "accomplishment_reports_list", "hint": "Source data for achievements."},
     ],
 }
 
@@ -3595,3 +3621,37 @@ def _valid_thrust_color(value):
     """Only allow colours from the model's allow-list."""
     allowed = {choice[0] for choice in HomeThrust.COLOR_CHOICES}
     return value if value in allowed else "text-green-600"
+
+
+# ==============================
+# WORKFLOW PHASES (ADMIN)
+# ==============================
+# Public presentation of the Proposal / MOA / Implementation phases shown on
+# the Services page. The underlying status codes stay in the Proposal model.
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def workflow_phases_manager(request):
+    phases = WorkflowPhase.objects.all()
+
+    if request.method == "POST":
+        for phase in phases:
+            prefix = f"phase_{phase.id}"
+            phase.label = (request.POST.get(f"{prefix}_label") or "").strip() or phase.label
+            phase.summary = (request.POST.get(f"{prefix}_summary") or "").strip()
+            phase.weight_label = (request.POST.get(f"{prefix}_weight_label") or "").strip()
+
+            raw_percent = (request.POST.get(f"{prefix}_weight_percent") or "").strip()
+            try:
+                phase.weight_percent = max(0, min(100, int(raw_percent)))
+            except (TypeError, ValueError):
+                pass  # model save() also clamps; keep the previous value
+
+            phase.is_visible = request.POST.get(f"{prefix}_is_visible") == "on"
+            phase.save()
+
+        messages.success(request, "Workflow phases updated successfully.")
+        return redirect("workflow_phases_manager")
+
+    return render(request, "dashboard/admin/workflow_phases_manager.html", {"phases": phases})

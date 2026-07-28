@@ -281,7 +281,7 @@
                     <h2 class="adm-card__title">Website Content</h2>
                     <p class="adm-card__sub">Content shown across the public platform.</p>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100">
                     <a href="{% url 'personnel_list' %}" class="adm-tile">
                         <span class="adm-tile__top"><span class="adm-tile__name">Personnel</span><span class="adm-tile__count">{{ personnel_count|default:0 }}</span></span>
                         <span class="adm-tile__desc">Staff and faculty on the homepage.</span>
@@ -293,10 +293,6 @@
                     <a href="{% url 'targets_list' %}" class="adm-tile">
                         <span class="adm-tile__top"><span class="adm-tile__name">Targets</span><span class="adm-tile__count">{{ targets_count|default:0 }}</span></span>
                         <span class="adm-tile__desc">Yearly targets and accomplishments.</span>
-                    </a>
-                    <a href="{% url 'accomplishment_reports_list' %}" class="adm-tile">
-                        <span class="adm-tile__top"><span class="adm-tile__name">Accomplishments</span><span class="adm-tile__count">{{ accomplishment_report_count|default:0 }}</span></span>
-                        <span class="adm-tile__desc">Submitted accomplishment reports.</span>
                     </a>
                 </div>
             </div>
