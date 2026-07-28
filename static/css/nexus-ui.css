@@ -150,7 +150,41 @@ body {
   -webkit-backdrop-filter: blur(16px);
 }
 
+
+/* 60-30-10 color governance
+   - 60% Primary: navigation, primary actions, key metrics, progress, active states
+   - 30% Secondary: warnings/destructive/supporting emphasis
+   - 10% Accent: highlights, pills, focus rings, subtle callouts
+   Semantic error/success meaning is retained through labels and light/dark contrast,
+   while decorative blues/purples/teals are normalized into the brand palette. */
+:root {
+  --nexus-primary-soft: color-mix(in srgb, var(--nexus-primary) 8%, white);
+  --nexus-primary-tint: color-mix(in srgb, var(--nexus-primary) 14%, white);
+  --nexus-secondary-soft: color-mix(in srgb, var(--nexus-secondary) 8%, white);
+  --nexus-secondary-tint: color-mix(in srgb, var(--nexus-secondary) 14%, white);
+  --nexus-accent-soft: color-mix(in srgb, var(--nexus-accent) 30%, white);
+  --nexus-accent-ink: #6f5f06;
+}
+
+/* Normalize decorative Tailwind color utilities to the 60-30-10 system. */
+:where(.text-emerald-600,.text-emerald-700,.text-green-600,.text-green-700,.text-green-800,.text-green-900,.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900,.text-indigo-600,.text-teal-600,.text-cyan-600,.text-lime-600) { color: var(--nexus-primary) !important; }
+:where(.text-red-600,.text-red-700,.text-red-800,.text-red-900,.text-purple-600,.text-purple-700,.text-purple-800,.text-pink-500,.text-rose-500,.text-orange-500) { color: var(--nexus-secondary) !important; }
+:where(.text-amber-500,.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-yellow-500,.text-yellow-600,.text-yellow-700,.text-yellow-800) { color: var(--nexus-accent-ink) !important; }
+
+:where(.bg-emerald-50,.bg-green-50,.bg-blue-50,.bg-indigo-50,.bg-teal-50,.bg-cyan-50,.bg-lime-50,.bg-emerald-100,.bg-green-100,.bg-blue-100,.bg-indigo-100,.bg-teal-100,.bg-cyan-100,.bg-lime-100) { background-color: var(--nexus-primary-soft) !important; }
+:where(.bg-red-50,.bg-purple-50,.bg-pink-50,.bg-rose-50,.bg-orange-50,.bg-red-100,.bg-purple-100,.bg-pink-100,.bg-rose-100,.bg-orange-100) { background-color: var(--nexus-secondary-soft) !important; }
+:where(.bg-amber-50,.bg-yellow-50,.bg-amber-100,.bg-yellow-100) { background-color: var(--nexus-accent-soft) !important; }
+
+:where(.border-emerald-200,.border-green-200,.border-blue-200,.border-indigo-200,.border-teal-200,.border-cyan-200,.border-lime-200) { border-color: var(--nexus-primary-tint) !important; }
+:where(.border-red-200,.border-purple-200,.border-pink-200,.border-rose-200,.border-orange-200) { border-color: var(--nexus-secondary-tint) !important; }
+:where(.border-amber-200,.border-yellow-200) { border-color: color-mix(in srgb, var(--nexus-accent) 45%, white) !important; }
+
+:where(.bg-emerald-600,.bg-emerald-700,.bg-green-600,.bg-green-700,.bg-blue-600,.bg-blue-700,.bg-indigo-600,.bg-teal-600,.bg-cyan-600,.bg-lime-600) { background-color: var(--nexus-primary) !important; }
+:where(.bg-red-600,.bg-red-700,.bg-purple-600,.bg-purple-700,.bg-pink-600,.bg-rose-600,.bg-orange-600) { background-color: var(--nexus-secondary) !important; }
+:where(.bg-amber-600,.bg-yellow-600,.bg-amber-700,.bg-yellow-700) { background-color: var(--nexus-accent-ink) !important; }
+
 /* Public hero and section primitives */
+.nexus-hero,
 .hero-unified {
   position: relative;
   overflow: hidden;
@@ -158,13 +192,66 @@ body {
   color: var(--nexus-ink) !important;
   border-bottom: 1px solid var(--nexus-line);
 }
+.nexus-hero { padding: 5rem 0 4.5rem; }
+.nexus-hero::before,
 .hero-unified::before,
+.nexus-hero .hero-glow,
+.nexus-hero .hero-glow-2,
 .hero-unified .hero-glow,
-.hero-unified .hero-glow-2 { display: none !important; }
+.hero-unified .hero-glow-2,
+.nexus-hero [style*="radial-gradient"],
+.hero-unified [style*="radial-gradient"] { display: none !important; }
+.nexus-hero-inner {
+  width: min(100% - 3rem, 72rem);
+  margin-inline: auto;
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+.nexus-hero-inner.is-split { grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); }
+.nexus-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid var(--nexus-primary-tint);
+  border-radius: 999px;
+  background: var(--nexus-primary-soft);
+  color: var(--nexus-primary) !important;
+  padding: .35rem .75rem;
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+}
+.nexus-hero-title,
+.nexus-hero h1,
 .hero-unified h1,
 .hero-unified h2,
-.hero-unified h3 { color: var(--nexus-ink) !important; }
-.hero-unified p { color: #475569 !important; }
+.hero-unified h3 {
+  color: var(--nexus-ink) !important;
+  max-width: 56rem;
+  font-size: clamp(2.25rem, 5vw, 4.5rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.045em !important;
+  font-weight: 800 !important;
+}
+.nexus-hero-copy,
+.nexus-hero p,
+.hero-unified p {
+  color: #475569 !important;
+  max-width: 44rem;
+  font-size: clamp(1rem, 1.5vw, 1.125rem) !important;
+  line-height: 1.75 !important;
+}
+.nexus-hero-panel {
+  background: var(--nexus-surface-soft);
+  border: 1px solid var(--nexus-line);
+  border-radius: var(--nexus-radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--nexus-shadow-sm);
+}
+@media (max-width: 1024px) { .nexus-hero-inner.is-split { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .nexus-hero { padding: 3.5rem 0 3rem; } .nexus-hero-inner { width: min(100% - 2rem, 72rem); } }
 
 .card-unified,
 .section-unified {
