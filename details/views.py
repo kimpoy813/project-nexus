@@ -8,6 +8,8 @@ from .models import (
     Target,
     ProcessStep,
     ExtensionProcess,
+    HomeSectionHeading,
+    HomeThrust,
     SitePage,
 )
 
@@ -57,6 +59,9 @@ def details_page(request):
         'overall_targets': overall_targets,
         'selected_year': year,
         'page': SitePage.get_for(SitePage.Slug.HOME),
+        'home_sections': HomeSectionHeading.as_map(),
+        'home_headings': HomeSectionHeading.objects.all(),
+        'home_thrusts': HomeThrust.objects.filter(is_visible=True),
     }
 
     return render(request, 'details/details_page.html', context)

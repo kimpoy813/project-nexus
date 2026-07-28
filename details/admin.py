@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Personnel, Activity, ProcessStep, Target, ExtensionProcess,
-    SitePage, PageSection,
+    SitePage, PageSection, HomeThrust, HomeSectionHeading,
 )
 
 admin.site.register(Personnel)
@@ -45,3 +45,18 @@ class PageSectionAdmin(admin.ModelAdmin):
     list_filter = ('page', 'layout', 'is_visible')
     search_fields = ('heading', 'subheading')
     ordering = ('page', 'order', 'id')
+
+
+@admin.register(HomeThrust)
+class HomeThrustAdmin(admin.ModelAdmin):
+    list_display = ('title', 'color_class', 'is_visible', 'order')
+    list_filter = ('is_visible',)
+    search_fields = ('title', 'description')
+    ordering = ('order', 'id')
+
+
+@admin.register(HomeSectionHeading)
+class HomeSectionHeadingAdmin(admin.ModelAdmin):
+    list_display = ('section', 'heading', 'subtitle', 'is_visible', 'order')
+    list_filter = ('is_visible',)
+    ordering = ('order', 'id')

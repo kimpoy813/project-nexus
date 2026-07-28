@@ -60,6 +60,8 @@ from details.models import (
     DynamicFormField,
     DynamicFormTemplate,
     ExtensionProcess,
+    HomeSectionHeading,
+    HomeThrust,
     PageSection,
     Personnel,
     ProcessStep,
@@ -3272,6 +3274,7 @@ def accomplishment_report_create(request):
 # surfaced in the editor as cross-links instead of being duplicated here.
 PAGE_LINKED_DATA = {
     "home": [
+        {"label": "Home Sections & Extension Thrust", "url_name": "home_sections_manager", "hint": "Section titles, \u201cIsem Ni Aran\u201d subtitle, and the thrust cards."},
         {"label": "Extension Personnel", "url_name": "personnel_list", "hint": "Photos and roles shown in the Personnel section."},
         {"label": "Extension Activities", "url_name": "activities_list", "hint": "Cards shown in the Activities section."},
         {"label": "Extension Processes", "url_name": "processes_list", "hint": "Steps shown in the Processes section."},
@@ -3454,3 +3457,141 @@ def page_section_move(request, pk):
             swap_with.save(update_fields=["order"])
 
     return redirect("page_content_edit", slug=section.page.slug)
+
+
+# ==============================
+# HOME PAGE SECTIONS (ADMIN)
+# ==============================
+# Editable headings for the Home page's built-in sections, plus full CRUD for
+# the Extension Thrust cards that used to be hardcoded in the template.
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def home_sections_manager(request):
+    """Edit the headings/subtitles of every built-in Home section."""
+    for section, _label in HomeSectionHeading.Section.choices:
+        HomeSectionHeading.get_for(section)
+
+    headings = HomeSectionHeading.objects.all()
+
+    if request.method == "POST":
+        for row in headings:
+            prefix = f"section_{row.section}"
+            row.heading = (request.POST.get(f"{prefix}_heading") or "").strip()
+            row.subtitle = (request.POST.get(f"{prefix}_subtitle") or "").strip()
+            row.caption = (request.POST.get(f"{prefix}_caption") or "").strip()
+            row.nav_label = (request.POST.get(f"{prefix}_nav_label") or "").strip()
+            row.is_visible = request.POST.get(f"{prefix}_is_visible") == "on"
+            row.save()
+
+        messages.success(request, "Home page sections updated successfully.")
+        return redirect("home_sections_manager")
+
+    return render(request, "dashboard/admin/home_sections_manager.html", {
+        "headings": headings,
+        "thrusts": HomeThrust.objects.all(),
+        "thrust_heading": HomeSectionHeading.get_for(HomeSectionHeading.Section.THRUST),
+    })
+
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def home_thrust_create(request):
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        if not title:
+            messages.error(request, "A title is required.")
+        else:
+            HomeThrust.objects.create(
+                title=title,
+                description=(request.POST.get("description") or "").strip(),
+                color_class=_valid_thrust_color(request.POST.get("color_class")),
+                is_visible=request.POST.get("is_visible") == "on",
+                order=0,  # model assigns the next order
+            )
+            messages.success(request, f'Thrust "{title}" added successfully.')
+            return redirect("home_sections_manager")
+
+    return render(request, "dashboard/admin/home_thrust_form.html", {
+        "color_choices": HomeThrust.COLOR_CHOICES,
+        "is_create": True,
+    })
+
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def home_thrust_edit(request, pk):
+    thrust = get_object_or_404(HomeThrust, pk=pk)
+
+    if request.method == "POST":
+        title = (request.POST.get("title") or "").strip()
+        if not title:
+            messages.error(request, "A title is required.")
+        else:
+            thrust.title = title
+            thrust.description = (request.POST.get("description") or "").strip()
+            thrust.color_class = _valid_thrust_color(request.POST.get("color_class"))
+            thrust.is_visible = request.POST.get("is_visible") == "on"
+            thrust.save()
+            messages.success(request, "Thrust updated successfully.")
+            return redirect("home_sections_manager")
+
+    return render(request, "dashboard/admin/home_thrust_form.html", {
+        "thrust": thrust,
+        "color_choices": HomeThrust.COLOR_CHOICES,
+        "is_create": False,
+    })
+
+
+@login_required
+@admin_required
+@require_POST
+def home_thrust_delete(request, pk):
+    thrust = get_object_or_404(HomeThrust, pk=pk)
+    title = thrust.title
+    thrust.delete()
+    messages.success(request, f'Thrust "{title}" deleted.')
+    return redirect("home_sections_manager")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_thrust_move(request, pk):
+    """Swap a thrust card with its neighbour to reorder the grid."""
+    thrust = get_object_or_404(HomeThrust, pk=pk)
+    direction = request.POST.get("direction")
+
+    siblings = list(HomeThrust.objects.order_by("order", "id"))
+    index = next((i for i, t in enumerate(siblings) if t.pk == thrust.pk), None)
+
+    if index is not None:
+        swap_with = None
+        if direction == "up" and index > 0:
+            swap_with = siblings[index - 1]
+        elif direction == "down" and index < len(siblings) - 1:
+            swap_with = siblings[index + 1]
+
+        if swap_with is not None:
+            # Normalise ordering first so swaps are always well-defined.
+            for position, item in enumerate(siblings, start=1):
+                if item.order != position:
+                    item.order = position
+                    item.save(update_fields=["order"])
+            thrust.refresh_from_db()
+            swap_with.refresh_from_db()
+
+            thrust.order, swap_with.order = swap_with.order, thrust.order
+            thrust.save(update_fields=["order"])
+            swap_with.save(update_fields=["order"])
+
+    return redirect("home_sections_manager")
+
+
+def _valid_thrust_color(value):
+    """Only allow colours from the model's allow-list."""
+    allowed = {choice[0] for choice in HomeThrust.COLOR_CHOICES}
+    return value if value in allowed else "text-green-600"
