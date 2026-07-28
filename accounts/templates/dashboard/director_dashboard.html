@@ -101,6 +101,10 @@
                                 <option value="">All Years</option>
                                 {% for d in review_year_choices %}<option value="{{ d.year }}" {% if request.GET.year == d.year|stringformat:"s" %}selected{% endif %}>{{ d.year }}</option>{% endfor %}
                             </select>
+                            <select id="ext-view-toggle" class="dir-input w-full" aria-label="Choose extension display view">
+                                <option value="cards">Cards View</option>
+                                <option value="table">Table View</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -778,6 +782,8 @@ select.dir-input {
         <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3" id="ext-card-grid">
             {% for item in monitored_page %}
             <div class="ext-card"
+                data-ext-record="true"
+                data-record-id="{{ item.proposal.id }}"
                 data-title="{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|lower }}"
                 data-campus="{{ item.proposal.campus|default:''|lower }}"
                 data-process="{{ item.status_stage|default:'PROPOSAL' }}"
@@ -847,6 +853,68 @@ select.dir-input {
             </div>
             {% endfor %}
         </div>
+
+        <div id="ext-table-wrap" class="hidden overflow-x-auto rounded-lg border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-100 bg-white">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Title</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Proponent</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Scope</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Process</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Progress</th>
+                        <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Date</th>
+                        <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-slate-400">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in monitored_page %}
+                    <tr class="ext-table-row transition hover:bg-slate-50"
+                        data-ext-record="true"
+                        data-record-id="{{ item.proposal.id }}"
+                        data-title="{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|lower }}"
+                        data-campus="{{ item.proposal.campus|default:''|lower }}"
+                        data-process="{{ item.status_stage|default:'PROPOSAL' }}"
+                        data-ext-type="{{ item.proposal.extension_type|default:'' }}"
+                        data-scope="{{ item.proposal.scope_type|default:'' }}">
+                        <td class="px-4 py-4 align-top">
+                            <p class="max-w-sm text-sm font-semibold" style="color:var(--text);">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</p>
+                        </td>
+                        <td class="px-4 py-4 align-top text-xs text-slate-600">{{ item.proposal.created_by.profile.full_name|default:item.proposal.created_by.username }}</td>
+                        <td class="px-4 py-4 align-top text-xs text-slate-600">{{ item.proposal.campus|default:"—" }}</td>
+                        <td class="px-4 py-4 align-top text-xs text-slate-600">{{ item.scope_label|default:"—" }}</td>
+                        <td class="px-4 py-4 align-top">
+                            {% if item.is_draft %}<span class="badge badge-gray">Draft</span>
+                            {% elif item.process_label == 'Proposal' or item.status_stage == 'PROPOSAL' %}<span class="badge badge-green">Proposal</span>
+                            {% elif item.process_label == 'MOA' or item.status_stage == 'MOA' %}<span class="badge badge-red">MOA</span>
+                            {% elif item.process_label == 'Implementation' or item.status_stage == 'IMPLEMENTATION' %}<span class="badge badge-blue">Implementation</span>
+                            {% elif item.process_label == 'Completed' or item.status_stage == 'COMPLETED' %}<span class="badge badge-purple">Completed</span>
+                            {% else %}<span class="badge badge-gray">{{ item.process_label|default:item.status_stage|default:"Proposal" }}</span>{% endif %}
+                        </td>
+                        <td class="px-4 py-4 align-top">
+                            <div class="flex min-w-[110px] items-center gap-2">
+                                <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                    <div class="h-full rounded-full" style="width: {{ item.progress_percent|default:0 }}%; background:var(--green);"></div>
+                                </div>
+                                <span class="text-xs font-semibold text-slate-700">{{ item.progress_percent|default:0 }}%</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-4 align-top text-xs text-slate-600">
+                            {% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}
+                        </td>
+                        <td class="px-4 py-4 align-top text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{% url 'proposal_storage' item.proposal.id %}" class="dir-btn" title="Proposal storage" aria-label="Proposal storage">Files</a>
+                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled">View</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
         <div id="ext-empty-state" class="hidden rounded-lg bg-slate-50 p-6 text-center">
             <p class="text-sm font-semibold" style="color:var(--green);">No extensions found</p>
             <p class="mt-1 text-xs text-slate-400">Try adjusting the filters on the left.</p>
@@ -903,12 +971,16 @@ select.dir-input {
                 <span class="section-label" style="margin-bottom:4px;">My Proposal Portfolio</span>
                 <p class="text-xs text-slate-400">Track your own extension records from draft to completion.</p>
             </div>
+            <select id="mine-view-toggle" class="dir-input w-36" aria-label="Choose proposal display view">
+                <option value="cards">Cards View</option>
+                <option value="table">Table View</option>
+            </select>
         </div>
         <div class="p-4">
             {% if all_proposals %}
-            <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
+            <div id="mine-card-grid" class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
                 {% for item in all_proposals %}
-                <div id="proposal-card-{{ item.proposal.id }}" class="mine-card">
+                <div id="proposal-card-{{ item.proposal.id }}" class="mine-card" data-mine-record="true">
                     <div class="flex items-start justify-between gap-3 mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</h3>
@@ -972,6 +1044,61 @@ select.dir-input {
                     </div>
                 </div>
                 {% endfor %}
+            </div>
+
+            <div id="mine-table-wrap" class="hidden overflow-x-auto rounded-lg border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-100 bg-white">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Title</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Scope</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Process</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Status</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Progress</th>
+                            <th class="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Date</th>
+                            <th class="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-slate-400">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in all_proposals %}
+                        <tr id="proposal-row-{{ item.proposal.id }}" class="transition hover:bg-slate-50" data-mine-record="true">
+                            <td class="px-4 py-4 align-top">
+                                <p class="max-w-sm text-sm font-semibold" style="color:var(--text);">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</p>
+                            </td>
+                            <td class="px-4 py-4 align-top text-xs text-slate-600">{{ item.scope_label|default:"—" }}</td>
+                            <td class="px-4 py-4 align-top">
+                                {% if item.is_draft %}<span class="badge badge-gray">Draft</span>
+                                {% elif item.process_label == 'Proposal' %}<span class="badge badge-green">Proposal</span>
+                                {% elif item.process_label == 'MOA' %}<span class="badge badge-red">MOA</span>
+                                {% elif item.process_label == 'Implementation' %}<span class="badge badge-blue">Implementation</span>
+                                {% elif item.process_label == 'Completed' %}<span class="badge badge-purple">Completed</span>
+                                {% else %}<span class="badge badge-gray">{{ item.status_stage }}</span>{% endif %}
+                            </td>
+                            <td class="px-4 py-4 align-top text-xs text-slate-600">{{ item.status_label }}</td>
+                            <td class="px-4 py-4 align-top">
+                                <div class="flex min-w-[110px] items-center gap-2">
+                                    <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                                        <div class="h-full rounded-full" style="width: {{ item.progress_percent|default:0 }}%; background:var(--green);"></div>
+                                    </div>
+                                    <span class="text-xs font-semibold text-slate-700">{{ item.progress_percent|default:0 }}%</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 align-top text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</td>
+                            <td class="px-4 py-4 align-top text-right">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    {% if item.is_draft %}
+                                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">Continue</a>
+                                        {% if item.proposal.created_by == request.user %}<button type="button" onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Draft"|escapejs }}')" class="dir-btn">Delete</button>{% endif %}
+                                    {% else %}
+                                        {% if item.is_for_revision %}<a href="{% url 'proposal_wizard' item.proposal.id item.current_step %}" class="dir-btn">Revise</a>{% endif %}
+                                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">View</a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
             {% else %}
             <div class="rounded-lg bg-slate-50 p-8 text-center">
@@ -1127,19 +1254,36 @@ document.addEventListener('DOMContentLoaded',function(){
     (function(){const c=document.getElementById('extGauge{{ item.proposal.id }}');const t=document.getElementById('extGaugeText{{ item.proposal.id }}');if(!c)return;c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
     {% endfor %}
 
-    // extensions filters
+    // extensions filters + cards/table view toggle
     (function(){
-        const q=document.getElementById('ext-filter-q'),ec=document.getElementById('ext-filter-campus'),ep=document.getElementById('ext-filter-process'),et=document.getElementById('ext-filter-type'),es=document.getElementById('ext-filter-scope');
-        const grid=document.getElementById('ext-card-grid'),empty=document.getElementById('ext-empty-state');
-        if(!grid)return;
-        const cards=Array.from(grid.querySelectorAll('.ext-card'));
-        function norm(v){return(v||'').trim().toLowerCase();}
-        function applyExtFilters(){const qv=norm(q?q.value:''),cv=norm(ec?ec.value:''),pv=norm(ep?ep.value:''),tv=norm(et?et.value:''),sv=norm(es?es.value:'');let visible=0;cards.forEach(card=>{const show=(!qv||norm(card.dataset.title).includes(qv))&&(!cv||norm(card.dataset.campus)===cv)&&(!pv||norm(card.dataset.process)===pv)&&(!tv||norm(card.dataset.extType)===tv)&&(!sv||norm(card.dataset.scope)===sv);card.classList.toggle('hidden',!show);if(show)visible++;});if(empty)empty.classList.toggle('hidden',visible>0);if(grid)grid.classList.toggle('hidden',visible===0);}
+        const q=document.getElementById('ext-filter-q'),ec=document.getElementById('ext-filter-campus'),ep=document.getElementById('ext-filter-process'),et=document.getElementById('ext-filter-type'),es=document.getElementById('ext-filter-scope'),view=document.getElementById('ext-view-toggle');
+        const grid=document.getElementById('ext-card-grid'),table=document.getElementById('ext-table-wrap'),empty=document.getElementById('ext-empty-state');
+        if(!grid&&!table)return;
+        const cards=grid?Array.from(grid.querySelectorAll('[data-ext-record="true"]')):[];
+        const rows=table?Array.from(table.querySelectorAll('[data-ext-record="true"]')):[];
+        const storageKey='directorExtensionsViewMode';
+        function norm(v){return(v||'').toString().trim().toLowerCase();}
+        function currentView(){return view?view.value:'cards';}
+        function recordMatches(record){const qv=norm(q?q.value:''),cv=norm(ec?ec.value:''),pv=norm(ep?ep.value:''),tv=norm(et?et.value:''),sv=norm(es?es.value:'');return(!qv||norm(record.dataset.title).includes(qv))&&(!cv||norm(record.dataset.campus)===cv)&&(!pv||norm(record.dataset.process)===pv)&&(!tv||norm(record.dataset.extType)===tv)&&(!sv||norm(record.dataset.scope)===sv);}
+        function applyExtFilters(){let visible=0;cards.forEach(card=>{const show=recordMatches(card);card.classList.toggle('hidden',!show);if(show)visible++;});rows.forEach(row=>{row.classList.toggle('hidden',!recordMatches(row));});const hasVisible=visible>0,tableMode=currentView()==='table';if(grid)grid.classList.toggle('hidden',tableMode||!hasVisible);if(table)table.classList.toggle('hidden',!tableMode||!hasVisible);if(empty)empty.classList.toggle('hidden',hasVisible);}
+        function setView(next){const normalized=next==='table'?'table':'cards';if(view)view.value=normalized;localStorage.setItem(storageKey,normalized);applyExtFilters();}
         if(q)q.addEventListener('input',applyExtFilters);
         [ec,ep,et,es].forEach(s=>{if(s)s.addEventListener('change',applyExtFilters);});
-        applyExtFilters();
+        if(view)view.addEventListener('change',()=>setView(view.value));
+        setView(localStorage.getItem(storageKey)||'cards');
     })();
 });
+
+/* ── My Proposal Portfolio view toggle ── */
+document.addEventListener('DOMContentLoaded',function(){
+    const view=document.getElementById('mine-view-toggle'),grid=document.getElementById('mine-card-grid'),table=document.getElementById('mine-table-wrap');
+    if(!grid&&!table)return;
+    const storageKey='directorMineProposalViewMode';
+    function setMineView(next){const mode=next==='table'?'table':'cards';if(view)view.value=mode;if(grid)grid.classList.toggle('hidden',mode==='table');if(table)table.classList.toggle('hidden',mode!=='table');localStorage.setItem(storageKey,mode);}
+    if(view)view.addEventListener('change',()=>setMineView(view.value));
+    setMineView(localStorage.getItem(storageKey)||'cards');
+});
+
 
 /* ── evaluator assignment ── */
 document.addEventListener('DOMContentLoaded',function(){
