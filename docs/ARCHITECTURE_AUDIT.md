@@ -97,7 +97,7 @@ already failing — they referenced `Proposal.mark_implementation_in_progress()`
 `proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
 refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-**Now: 171 tests, running in ~2.5 seconds.**
+**Now: 175 tests, running in ~2.8 seconds.**
 
 | Suite | Tests | Focus |
 |---|---|---|
@@ -108,6 +108,7 @@ refactor and nobody noticed, which is itself the clearest evidence the suite was
 | `proposals/tests.py` | 17 | Progress weighting, phase labels, access control |
 | `proposals/tests_permissions.py` | 30 | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | 24 | Wizard access and steps, status maps, review rounds, trackers |
+| `accounts/tests/test_structure.py` | 4 | URL resolution, no duplicate defs, re-export contract |
 | `details/tests.py` | 11 | Model ordering, clamping, visibility |
 
 Run with `python manage.py test --settings=conf.settings_test`.
@@ -137,7 +138,7 @@ broke the proposal lifecycle short of clicking through it manually.
 
 ## Severity 2 — Structural problems that slow every change
 
-### 2.1 Two view modules have become dumping grounds
+### 2.1 ✅ Two view modules had become dumping grounds — **fixed**
 
 | File | Lines | Functions |
 |---|---|---|
@@ -151,29 +152,41 @@ Consequences: merge conflicts on nearly every branch, no way to navigate by file
 duplicated because nobody can find the existing one, and functions this long cannot be unit
 tested in isolation.
 
-**Fix — mechanical and safe, done incrementally.** Convert each module into a package, moving
-functions without editing them:
+**Status:** both are now packages of themed modules. `__init__.py` re-exports every public
+name, so `urls.py` and all existing imports were untouched.
 
 ```
-accounts/views/__init__.py      # re-exports, so URLs and imports keep working
-accounts/views/auth.py          # login, register, verification, password reset
-accounts/views/dashboards.py    # the seven role dashboards
-accounts/views/admin_users.py   # user CRUD, roles, site control
-accounts/views/cms.py           # page content, home sections, workflow phases
-accounts/views/reports.py       # accomplishment reports
-
-proposals/views/__init__.py
-proposals/views/wizard.py
-proposals/views/review.py
-proposals/views/moa.py
-proposals/views/implementation.py
-proposals/views/documents.py
+accounts/views/          proposals/views/
+  helpers.py       95      constants.py      121
+  reports.py      103      permissions.py    116
+  admin_users.py  247      public.py          80
+  auth.py         322      helpers.py        181
+  cms.py          365      implementation.py 391
+  builders.py     390      moa.py            749
+  content.py      546      documents.py      869
+  proposal_queries.py 563  review.py        1175
+  dashboards.py  1062      wizard.py        1269
 ```
 
-The `__init__.py` re-export means `accounts/urls.py` needs no changes at all, which keeps each
-step reviewable and reversible.
+**Verified as a pure move.** An AST comparison confirmed all 116 `accounts` and 109 `proposals`
+top-level definitions survived with byte-identical bodies — no function was edited, dropped, or
+duplicated. The 171-test suite stayed green throughout, and all 289 URL patterns still resolve to
+real callables.
 
-**Effort:** 1–2 days. **Prerequisite:** finding 1.4, or you are refactoring blind.
+**A dead duplicate was found and removed:** `proposal_moa_draft` was defined *twice* in
+`proposals/views.py`. Python keeps the last definition, so the first 35-line version had been
+unreachable dead code — the routed behaviour came from the second, richer implementation 3,500
+lines later. Splitting the file forced the ambiguity into the open.
+
+Four structural guards now live in `accounts/tests/test_structure.py`: every URL pattern resolves
+to a callable, no duplicate definitions exist within a package, every public view is re-exported,
+and no submodule exceeds 1,400 lines. A missing re-export now fails loudly at import time rather
+than 500-ing a single URL in production.
+
+**Still oversized:** `wizard.py` (1,269) and `review.py` (1,175) are dominated by
+`proposal_wizard` at 631 lines and `summarize_comments` at 135. Splitting those means breaking up
+individual functions rather than moving them, which is a genuine refactor rather than a
+rearrangement — worth doing separately, and now covered by the wizard tests.
 
 ---
 
@@ -311,24 +324,26 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 
 1. ✅ `DEBUG` defaults to `False` *(1.1)*
 2. ✅ `db.sqlite3` untracked *(1.2)*
-3. ✅ Test suite: 0 → 96 passing tests, sabotage-verified *(1.4)*
+3. ✅ Test suite: 0 → 175 passing tests, sabotage-verified *(1.4)*
 4. ✅ Debug `print()` calls removed from the Director dashboard hot path *(2.4)*
 5. ✅ Shared dashboard design system *(3.1)*
+6. ✅ Permissions centralised in `accounts/permissions.py` *(2.2)*
+7. ✅ Wizard, review round, and tracker coverage added *(1.4)*
+8. ✅ Both view modules split into packages, with structural guards *(2.1)*
 
 **Next, in order:**
 
-6. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
-   first. *(1.3)*
-7. **Centralise permissions** into `accounts/permissions.py` — ~1 day, highest security value per
-   hour, and now safe because the permission tests will catch any behaviour change. *(2.2)*
-8. **Extend test coverage** to the proposal wizard, document generation, and the MOA and
-   implementation branches — 2–3 days. Required before step 9. *(1.4)*
-9. **Split the two view modules** — 1–2 days, mechanical. *(2.1)*
-10. **Tighten exception handling, add logging** — half a day. *(2.3)*
-11. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
+9. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
+   first. This is the only outstanding Severity 1 item. *(1.3)*
+10. **Tighten exception handling, add logging** — half a day, and the largest remaining
+    correctness risk now that the structure is sorted. *(2.3)*
+11. Cover document generation and the deeper MOA/implementation transitions — ~1 day. *(1.4)*
+12. Break up `proposal_wizard` (631 lines) and `summarize_comments` (135) — a genuine refactor
+    rather than a move, now protected by the wizard tests. *(2.1)*
+13. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
 
-The test suite is in place, so steps 7 and 9 are now routine rather than risky — provided step 8
-lands before anyone touches `proposals/views.py`.
+With permissions centralised, the packages split, and 175 tests in place, the remaining items are
+routine maintenance rather than structural risk.
 
 ---
 

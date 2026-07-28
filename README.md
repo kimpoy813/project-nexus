@@ -62,6 +62,7 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | `proposals/tests.py` | Proposal progress weighting, phase labels, proposal access control |
 | `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
+| `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
@@ -75,6 +76,28 @@ from accounts.tests import factories
 user, client = factories.director("my_director")
 response = client.get("/dashboard/director/")
 ```
+
+## Code layout
+
+The two view modules are Python **packages**, not single files:
+
+```
+accounts/views/          proposals/views/
+  helpers.py               constants.py
+  proposal_queries.py      helpers.py
+  auth.py                  permissions.py
+  dashboards.py            wizard.py
+  admin_users.py           public.py
+  content.py               review.py
+  builders.py              moa.py
+  reports.py               implementation.py
+  cms.py                   documents.py
+```
+
+Each `__init__.py` re-exports every public name, so `urls.py` refers to
+`views.some_view` exactly as before. **When you add a view to a submodule, add
+it to the package's `__init__.py` too** — otherwise the URLconf raises
+`AttributeError` at import. `accounts/tests/test_structure.py` guards this.
 
 ## Permissions
 
