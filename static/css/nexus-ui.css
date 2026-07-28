@@ -1,117 +1,541 @@
-/* NExUS Design System — Unified 60-30-10 Language
-   60% Primary (#103b07) | 30% Secondary (#5a1113) | 10% Accent (#f5e587)
-   Every component uses these ratios consistently. */
+/* NExUS Minimal Design System
+   Goal: calm surfaces, fewer gradients, consistent spacing, readable type,
+   and unified interactions across public pages, dashboards, forms, and tables. */
 
 :root {
-  /* 60% Dominant — Primary Deep Forest */
-  --nexus-60: #103b07;
-  --nexus-60-deep: #0a2e05;
+  /* Brand tokens. base.html may override these from Site Configuration. */
+  --nexus-primary: #103b07;
+  --nexus-secondary: #5a1113;
+  --nexus-accent: #111827;
+
+  /* Compatibility aliases used by older templates. */
+  --nexus-60: var(--nexus-primary);
+  --nexus-60-deep: #0b2b05;
   --nexus-60-light: #1f5b12;
-  --nexus-60-pale: rgba(16,59,7,0.06);
-  --nexus-60-muted: rgba(16,59,7,0.10);
-
-  /* 30% Secondary — Deep Burgundy */
-  --nexus-30: #5a1113;
+  --nexus-60-pale: rgba(16, 59, 7, 0.055);
+  --nexus-60-muted: rgba(16, 59, 7, 0.10);
+  --nexus-30: var(--nexus-secondary);
   --nexus-30-deep: #3d0c0d;
-  --nexus-30-muted: rgba(90,17,19,0.08);
+  --nexus-30-muted: rgba(90, 17, 19, 0.075);
+  --nexus-10: var(--nexus-accent);
+  --nexus-10-deep: #000000;
+  --nexus-10-muted: rgba(17, 24, 39, 0.08);
 
-  /* 10% Accent — Warm Gold */
-  --nexus-10: #f5e587;
-  --nexus-10-deep: #dccf5a;
-  --nexus-10-muted: rgba(245,229,135,0.25);
-
-  /* Neutrals — Ink, Surface, Subtle */
-  --nexus-ink: #0f172a;
+  /* Minimal neutral palette. */
+  --nexus-ink: #111827;
   --nexus-muted: #64748b;
   --nexus-subtle: #94a3b8;
-  --nexus-line: rgba(15,23,42,0.08);
-  --nexus-line-strong: rgba(15,23,42,0.14);
+  --nexus-line: #e5e7eb;
+  --nexus-line-strong: #d1d5db;
   --nexus-surface: #ffffff;
-  --nexus-surface-soft: #fdfbf6;
-  --nexus-surface-muted: #f6f4f0;
-  --nexus-bg: #f9fbf6;
-  --nexus-bg-2: #f3f5ee;
+  --nexus-surface-soft: #fafafa;
+  --nexus-surface-muted: #f6f7f6;
+  --nexus-bg: #f8faf8;
+  --nexus-bg-2: #f3f5f3;
 
-  /* Shadows */
-  --nexus-shadow-sm: 0 2px 6px rgba(15,23,42,0.05), 0 1px 3px rgba(15,23,42,0.04);
-  --nexus-shadow: 0 16px 40px rgba(15,23,42,0.08);
-  --nexus-shadow-lg: 0 28px 80px rgba(15,23,42,0.14);
-
-  /* Radius */
-  --nexus-radius: 1.25rem;
-  --nexus-radius-lg: 2rem;
-  --nexus-radius-xl: 2.5rem;
+  /* UI scale. */
+  --nexus-radius-sm: 0.625rem;
+  --nexus-radius: 0.875rem;
+  --nexus-radius-lg: 1rem;
+  --nexus-radius-xl: 1.25rem;
+  --nexus-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --nexus-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  --nexus-shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.10);
+  --nexus-focus: 0 0 0 3px rgba(16, 59, 7, 0.12);
 }
 
-html { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-body { color: var(--nexus-ink); background: linear-gradient(180deg, #fdfbf6 0%, var(--nexus-bg) 44%, #f8faf5 100%); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif; }
+html {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-::selection { background: rgba(16,59,7,0.18); color: var(--nexus-60-deep); }
+body {
+  color: var(--nexus-ink);
+  background: var(--nexus-bg) !important;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
 
-.skip-link { position: fixed; left: 1rem; top: 1rem; z-index: 9999; transform: translateY(-150%); border-radius: 999px; background: var(--nexus-60); color: #fff; padding: .7rem 1.1rem; font-weight: 800; font-size: .875rem; box-shadow: var(--nexus-shadow-lg); transition: transform .18s ease; }
-.skip-link:focus { transform: translateY(0); outline: 3px solid rgba(245,229,135,.9); }
+::selection { background: rgba(16, 59, 7, 0.14); color: var(--nexus-60-deep); }
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 9999;
+  transform: translateY(-150%);
+  border-radius: 999px;
+  background: var(--nexus-primary);
+  color: #fff;
+  padding: .65rem 1rem;
+  font-weight: 700;
+  font-size: .875rem;
+  box-shadow: var(--nexus-shadow-lg);
+  transition: transform .16s ease;
+}
+.skip-link:focus { transform: translateY(0); outline: 3px solid rgba(17, 24, 39, .35); }
 
 /* Layout */
-.nexus-shell { min-height: calc(100vh - 5rem); }
-.nexus-page, .max-w-7xl.mx-auto.px-4, .max-w-7xl.mx-auto.px-6, .max-w-6xl.mx-auto, .max-w-5xl.mx-auto { animation: nexusFadeIn .36s ease both; }
-@keyframes nexusFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.nexus-shell { min-height: calc(100vh - 4.5rem); }
+.nexus-page,
+.max-w-7xl.mx-auto.px-4,
+.max-w-7xl.mx-auto.px-6,
+.max-w-6xl.mx-auto,
+.max-w-5xl.mx-auto { animation: nexusFadeIn .22s ease both; }
+@keyframes nexusFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Navbar — unified across all pages */
-.nexus-navbar { height: 5rem; background: rgba(255,255,255,.92) !important; border-bottom: 1px solid var(--nexus-line) !important; box-shadow: 0 12px 32px rgba(15,23,42,.06) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
-.nexus-brand { letter-spacing: -0.035em; }
-.nexus-menu-link { position: relative; display: inline-flex; align-items: center; min-height: 2.5rem; border-radius: 999px; padding: .55rem .9rem; color: #475569; font-weight: 700; transition: color .18s ease, background .18s ease, transform .16s ease; }
-.nexus-menu-link:hover, .nexus-menu-link:focus-visible { color: var(--nexus-60); background: var(--nexus-60-pale); outline: none; }
-.nexus-menu-link.is-strong { color: var(--nexus-60); background: var(--nexus-60-pale); }
-.nexus-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 2.55rem; height: 2.55rem; border-radius: 999px; border: 1px solid transparent; color: var(--nexus-60); background: var(--nexus-60-pale); transition: transform .16s ease, background .16s ease, border-color .16s ease; }
-.nexus-icon-button:hover, .nexus-icon-button:focus-visible { transform: translateY(-1px); background: var(--nexus-60-muted); border-color: rgba(16,59,7,.14); outline: none; }
-.nexus-dropdown, .nexus-mobile-panel { background: rgba(255,255,255,.97) !important; border: 1px solid var(--nexus-line) !important; box-shadow: var(--nexus-shadow-lg) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+/* Navbar */
+.nexus-navbar {
+  height: 4.5rem;
+  background: rgba(255, 255, 255, .96) !important;
+  border-bottom: 1px solid var(--nexus-line) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.nexus-brand { letter-spacing: -0.03em; }
+.nexus-logo-mark { box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); }
+.nexus-brand > span:first-child {
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+  border-radius: .75rem !important;
+  box-shadow: none !important;
+}
+.nexus-brand > span:last-child { font-size: 1.35rem !important; font-weight: 800 !important; }
+.nexus-menu-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  border-radius: .75rem;
+  padding: .45rem .75rem;
+  color: #475569;
+  font-weight: 650;
+  transition: color .14s ease, background .14s ease, border-color .14s ease;
+}
+.nexus-menu-link:hover,
+.nexus-menu-link:focus-visible {
+  color: var(--nexus-primary);
+  background: var(--nexus-60-pale);
+  outline: none;
+}
+.nexus-menu-link.is-strong {
+  color: var(--nexus-primary);
+  background: transparent;
+}
+.nexus-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: .75rem;
+  border: 1px solid var(--nexus-line);
+  color: var(--nexus-primary);
+  background: #fff;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+.nexus-icon-button:hover,
+.nexus-icon-button:focus-visible {
+  background: var(--nexus-60-pale);
+  border-color: rgba(16, 59, 7, .18);
+  outline: none;
+}
+.nexus-dropdown,
+.nexus-mobile-panel {
+  background: rgba(255, 255, 255, .98) !important;
+  border: 1px solid var(--nexus-line) !important;
+  border-radius: var(--nexus-radius-lg) !important;
+  box-shadow: var(--nexus-shadow-lg) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
 
-/* Hero — unified hero for all pages */
-.hero-unified { position: relative; overflow: hidden; background: linear-gradient(135deg, var(--nexus-60) 0%, var(--nexus-60-deep) 55%, var(--nexus-30) 100%); color: #fff; }
-.hero-unified::before { content: ''; position: absolute; inset: 0; opacity: .08; background-image: radial-gradient(circle at 2px 2px, #fff 1px, transparent 0); background-size: 36px 36px; pointer-events: none; }
-.hero-unified .hero-glow { position: absolute; top: 0; right: 0; width: 40rem; height: 40rem; border-radius: 50%; background: rgba(245,229,135,.12); filter: blur(120px); pointer-events: none; transform: translate(20%,-40%); }
-.hero-unified .hero-glow-2 { position: absolute; bottom: 0; left: 0; width: 30rem; height: 30rem; border-radius: 50%; background: rgba(16,59,7,.35); filter: blur(100px); pointer-events: none; transform: translate(-20%,30%); }
 
-/* Cards — unified across dashboards, reports, achievements */
-.card-unified { background: var(--nexus-surface); border: 1px solid var(--nexus-line); border-radius: var(--nexus-radius); box-shadow: var(--nexus-shadow-sm); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-.card-unified:hover { transform: translateY(-3px); box-shadow: var(--nexus-shadow); border-color: rgba(16,59,7,.18); }
+/* 60-30-10 color governance
+   - 60% Primary: navigation, primary actions, key metrics, progress, active states
+   - 30% Secondary: warnings/destructive/supporting emphasis
+   - 10% Accent: highlights, pills, focus rings, subtle callouts
+   Semantic error/success meaning is retained through labels and light/dark contrast,
+   while decorative blues/purples/teals are normalized into the brand palette. */
+:root {
+  --nexus-primary-soft: color-mix(in srgb, var(--nexus-primary) 8%, white);
+  --nexus-primary-tint: color-mix(in srgb, var(--nexus-primary) 14%, white);
+  --nexus-secondary-soft: color-mix(in srgb, var(--nexus-secondary) 8%, white);
+  --nexus-secondary-tint: color-mix(in srgb, var(--nexus-secondary) 14%, white);
+  --nexus-accent-soft: color-mix(in srgb, var(--nexus-accent) 8%, white);
+  --nexus-accent-ink: #111827;
+}
 
-/* Section blocks */
-.section-unified { background: var(--nexus-surface); border: 1px solid var(--nexus-line); border-radius: var(--nexus-radius); overflow: hidden; box-shadow: var(--nexus-shadow-sm); }
+/* Normalize decorative Tailwind color utilities to the 60-30-10 system.
+   These exact-class selectors also cover hover/focus variants so every component
+   stays within green, maroon, black, white, and neutral tints. */
+:where(.text-emerald-50,.text-emerald-100,.text-emerald-200,.text-emerald-300,.text-emerald-400,.text-emerald-500,.text-emerald-600,.text-emerald-700,.text-emerald-800,.text-emerald-900,.text-emerald-950,.text-green-50,.text-green-100,.text-green-200,.text-green-300,.text-green-400,.text-green-500,.text-green-600,.text-green-700,.text-green-800,.text-green-900,.text-green-950,.text-blue-50,.text-blue-100,.text-blue-200,.text-blue-300,.text-blue-400,.text-blue-500,.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900,.text-blue-950,.text-sky-50,.text-sky-100,.text-sky-200,.text-sky-300,.text-sky-400,.text-sky-500,.text-sky-600,.text-sky-700,.text-sky-800,.text-sky-900,.text-sky-950,.text-cyan-50,.text-cyan-100,.text-cyan-200,.text-cyan-300,.text-cyan-400,.text-cyan-500,.text-cyan-600,.text-cyan-700,.text-cyan-800,.text-cyan-900,.text-cyan-950,.text-teal-50,.text-teal-100,.text-teal-200,.text-teal-300,.text-teal-400,.text-teal-500,.text-teal-600,.text-teal-700,.text-teal-800,.text-teal-900,.text-teal-950,.text-indigo-50,.text-indigo-100,.text-indigo-200,.text-indigo-300,.text-indigo-400,.text-indigo-500,.text-indigo-600,.text-indigo-700,.text-indigo-800,.text-indigo-900,.text-indigo-950,.text-lime-50,.text-lime-100,.text-lime-200,.text-lime-300,.text-lime-400,.text-lime-500,.text-lime-600,.text-lime-700,.text-lime-800,.text-lime-900,.text-lime-950,.hover\:text-emerald-50:hover,.hover\:text-emerald-100:hover,.hover\:text-emerald-200:hover,.hover\:text-emerald-300:hover,.hover\:text-emerald-400:hover,.hover\:text-emerald-500:hover,.hover\:text-emerald-600:hover,.hover\:text-emerald-700:hover,.hover\:text-emerald-800:hover,.hover\:text-emerald-900:hover,.hover\:text-emerald-950:hover,.hover\:text-green-50:hover,.hover\:text-green-100:hover,.hover\:text-green-200:hover,.hover\:text-green-300:hover,.hover\:text-green-400:hover,.hover\:text-green-500:hover,.hover\:text-green-600:hover,.hover\:text-green-700:hover,.hover\:text-green-800:hover,.hover\:text-green-900:hover,.hover\:text-green-950:hover,.hover\:text-blue-50:hover,.hover\:text-blue-100:hover,.hover\:text-blue-200:hover,.hover\:text-blue-300:hover,.hover\:text-blue-400:hover,.hover\:text-blue-500:hover,.hover\:text-blue-600:hover,.hover\:text-blue-700:hover,.hover\:text-blue-800:hover,.hover\:text-blue-900:hover,.hover\:text-blue-950:hover,.hover\:text-sky-50:hover,.hover\:text-sky-100:hover,.hover\:text-sky-200:hover,.hover\:text-sky-300:hover,.hover\:text-sky-400:hover,.hover\:text-sky-500:hover,.hover\:text-sky-600:hover,.hover\:text-sky-700:hover,.hover\:text-sky-800:hover,.hover\:text-sky-900:hover,.hover\:text-sky-950:hover,.hover\:text-cyan-50:hover,.hover\:text-cyan-100:hover,.hover\:text-cyan-200:hover,.hover\:text-cyan-300:hover,.hover\:text-cyan-400:hover,.hover\:text-cyan-500:hover,.hover\:text-cyan-600:hover,.hover\:text-cyan-700:hover,.hover\:text-cyan-800:hover,.hover\:text-cyan-900:hover,.hover\:text-cyan-950:hover,.hover\:text-teal-50:hover,.hover\:text-teal-100:hover,.hover\:text-teal-200:hover,.hover\:text-teal-300:hover,.hover\:text-teal-400:hover,.hover\:text-teal-500:hover,.hover\:text-teal-600:hover,.hover\:text-teal-700:hover,.hover\:text-teal-800:hover,.hover\:text-teal-900:hover,.hover\:text-teal-950:hover,.hover\:text-indigo-50:hover,.hover\:text-indigo-100:hover,.hover\:text-indigo-200:hover,.hover\:text-indigo-300:hover,.hover\:text-indigo-400:hover,.hover\:text-indigo-500:hover,.hover\:text-indigo-600:hover,.hover\:text-indigo-700:hover,.hover\:text-indigo-800:hover,.hover\:text-indigo-900:hover,.hover\:text-indigo-950:hover,.hover\:text-lime-50:hover,.hover\:text-lime-100:hover,.hover\:text-lime-200:hover,.hover\:text-lime-300:hover,.hover\:text-lime-400:hover,.hover\:text-lime-500:hover,.hover\:text-lime-600:hover,.hover\:text-lime-700:hover,.hover\:text-lime-800:hover,.hover\:text-lime-900:hover,.hover\:text-lime-950:hover,.focus\:text-emerald-50:focus,.focus\:text-emerald-100:focus,.focus\:text-emerald-200:focus,.focus\:text-emerald-300:focus,.focus\:text-emerald-400:focus,.focus\:text-emerald-500:focus,.focus\:text-emerald-600:focus,.focus\:text-emerald-700:focus,.focus\:text-emerald-800:focus,.focus\:text-emerald-900:focus,.focus\:text-emerald-950:focus,.focus\:text-green-50:focus,.focus\:text-green-100:focus,.focus\:text-green-200:focus,.focus\:text-green-300:focus,.focus\:text-green-400:focus,.focus\:text-green-500:focus,.focus\:text-green-600:focus,.focus\:text-green-700:focus,.focus\:text-green-800:focus,.focus\:text-green-900:focus,.focus\:text-green-950:focus,.focus\:text-blue-50:focus,.focus\:text-blue-100:focus,.focus\:text-blue-200:focus,.focus\:text-blue-300:focus,.focus\:text-blue-400:focus,.focus\:text-blue-500:focus,.focus\:text-blue-600:focus,.focus\:text-blue-700:focus,.focus\:text-blue-800:focus,.focus\:text-blue-900:focus,.focus\:text-blue-950:focus,.focus\:text-sky-50:focus,.focus\:text-sky-100:focus,.focus\:text-sky-200:focus,.focus\:text-sky-300:focus,.focus\:text-sky-400:focus,.focus\:text-sky-500:focus,.focus\:text-sky-600:focus,.focus\:text-sky-700:focus,.focus\:text-sky-800:focus,.focus\:text-sky-900:focus,.focus\:text-sky-950:focus,.focus\:text-cyan-50:focus,.focus\:text-cyan-100:focus,.focus\:text-cyan-200:focus,.focus\:text-cyan-300:focus,.focus\:text-cyan-400:focus,.focus\:text-cyan-500:focus,.focus\:text-cyan-600:focus,.focus\:text-cyan-700:focus,.focus\:text-cyan-800:focus,.focus\:text-cyan-900:focus,.focus\:text-cyan-950:focus,.focus\:text-teal-50:focus,.focus\:text-teal-100:focus,.focus\:text-teal-200:focus,.focus\:text-teal-300:focus,.focus\:text-teal-400:focus,.focus\:text-teal-500:focus,.focus\:text-teal-600:focus,.focus\:text-teal-700:focus,.focus\:text-teal-800:focus,.focus\:text-teal-900:focus,.focus\:text-teal-950:focus,.focus\:text-indigo-50:focus,.focus\:text-indigo-100:focus,.focus\:text-indigo-200:focus,.focus\:text-indigo-300:focus,.focus\:text-indigo-400:focus,.focus\:text-indigo-500:focus,.focus\:text-indigo-600:focus,.focus\:text-indigo-700:focus,.focus\:text-indigo-800:focus,.focus\:text-indigo-900:focus,.focus\:text-indigo-950:focus,.focus\:text-lime-50:focus,.focus\:text-lime-100:focus,.focus\:text-lime-200:focus,.focus\:text-lime-300:focus,.focus\:text-lime-400:focus,.focus\:text-lime-500:focus,.focus\:text-lime-600:focus,.focus\:text-lime-700:focus,.focus\:text-lime-800:focus,.focus\:text-lime-900:focus,.focus\:text-lime-950:focus,.group:hover .group-hover\:text-emerald-50,.group:hover .group-hover\:text-emerald-100,.group:hover .group-hover\:text-emerald-200,.group:hover .group-hover\:text-emerald-300,.group:hover .group-hover\:text-emerald-400,.group:hover .group-hover\:text-emerald-500,.group:hover .group-hover\:text-emerald-600,.group:hover .group-hover\:text-emerald-700,.group:hover .group-hover\:text-emerald-800,.group:hover .group-hover\:text-emerald-900,.group:hover .group-hover\:text-emerald-950,.group:hover .group-hover\:text-green-50,.group:hover .group-hover\:text-green-100,.group:hover .group-hover\:text-green-200,.group:hover .group-hover\:text-green-300,.group:hover .group-hover\:text-green-400,.group:hover .group-hover\:text-green-500,.group:hover .group-hover\:text-green-600,.group:hover .group-hover\:text-green-700,.group:hover .group-hover\:text-green-800,.group:hover .group-hover\:text-green-900,.group:hover .group-hover\:text-green-950,.group:hover .group-hover\:text-blue-50,.group:hover .group-hover\:text-blue-100,.group:hover .group-hover\:text-blue-200,.group:hover .group-hover\:text-blue-300,.group:hover .group-hover\:text-blue-400,.group:hover .group-hover\:text-blue-500,.group:hover .group-hover\:text-blue-600,.group:hover .group-hover\:text-blue-700,.group:hover .group-hover\:text-blue-800,.group:hover .group-hover\:text-blue-900,.group:hover .group-hover\:text-blue-950,.group:hover .group-hover\:text-sky-50,.group:hover .group-hover\:text-sky-100,.group:hover .group-hover\:text-sky-200,.group:hover .group-hover\:text-sky-300,.group:hover .group-hover\:text-sky-400,.group:hover .group-hover\:text-sky-500,.group:hover .group-hover\:text-sky-600,.group:hover .group-hover\:text-sky-700,.group:hover .group-hover\:text-sky-800,.group:hover .group-hover\:text-sky-900,.group:hover .group-hover\:text-sky-950,.group:hover .group-hover\:text-cyan-50,.group:hover .group-hover\:text-cyan-100,.group:hover .group-hover\:text-cyan-200,.group:hover .group-hover\:text-cyan-300,.group:hover .group-hover\:text-cyan-400,.group:hover .group-hover\:text-cyan-500,.group:hover .group-hover\:text-cyan-600,.group:hover .group-hover\:text-cyan-700,.group:hover .group-hover\:text-cyan-800,.group:hover .group-hover\:text-cyan-900,.group:hover .group-hover\:text-cyan-950,.group:hover .group-hover\:text-teal-50,.group:hover .group-hover\:text-teal-100,.group:hover .group-hover\:text-teal-200,.group:hover .group-hover\:text-teal-300,.group:hover .group-hover\:text-teal-400,.group:hover .group-hover\:text-teal-500,.group:hover .group-hover\:text-teal-600,.group:hover .group-hover\:text-teal-700,.group:hover .group-hover\:text-teal-800,.group:hover .group-hover\:text-teal-900,.group:hover .group-hover\:text-teal-950,.group:hover .group-hover\:text-indigo-50,.group:hover .group-hover\:text-indigo-100,.group:hover .group-hover\:text-indigo-200,.group:hover .group-hover\:text-indigo-300,.group:hover .group-hover\:text-indigo-400,.group:hover .group-hover\:text-indigo-500,.group:hover .group-hover\:text-indigo-600,.group:hover .group-hover\:text-indigo-700,.group:hover .group-hover\:text-indigo-800,.group:hover .group-hover\:text-indigo-900,.group:hover .group-hover\:text-indigo-950,.group:hover .group-hover\:text-lime-50,.group:hover .group-hover\:text-lime-100,.group:hover .group-hover\:text-lime-200,.group:hover .group-hover\:text-lime-300,.group:hover .group-hover\:text-lime-400,.group:hover .group-hover\:text-lime-500,.group:hover .group-hover\:text-lime-600,.group:hover .group-hover\:text-lime-700,.group:hover .group-hover\:text-lime-800,.group:hover .group-hover\:text-lime-900,.group:hover .group-hover\:text-lime-950) { color: var(--nexus-primary) !important; }
+:where(.text-red-50,.text-red-100,.text-red-200,.text-red-300,.text-red-400,.text-red-500,.text-red-600,.text-red-700,.text-red-800,.text-red-900,.text-red-950,.text-rose-50,.text-rose-100,.text-rose-200,.text-rose-300,.text-rose-400,.text-rose-500,.text-rose-600,.text-rose-700,.text-rose-800,.text-rose-900,.text-rose-950,.text-purple-50,.text-purple-100,.text-purple-200,.text-purple-300,.text-purple-400,.text-purple-500,.text-purple-600,.text-purple-700,.text-purple-800,.text-purple-900,.text-purple-950,.text-violet-50,.text-violet-100,.text-violet-200,.text-violet-300,.text-violet-400,.text-violet-500,.text-violet-600,.text-violet-700,.text-violet-800,.text-violet-900,.text-violet-950,.text-fuchsia-50,.text-fuchsia-100,.text-fuchsia-200,.text-fuchsia-300,.text-fuchsia-400,.text-fuchsia-500,.text-fuchsia-600,.text-fuchsia-700,.text-fuchsia-800,.text-fuchsia-900,.text-fuchsia-950,.text-pink-50,.text-pink-100,.text-pink-200,.text-pink-300,.text-pink-400,.text-pink-500,.text-pink-600,.text-pink-700,.text-pink-800,.text-pink-900,.text-pink-950,.text-orange-50,.text-orange-100,.text-orange-200,.text-orange-300,.text-orange-400,.text-orange-500,.text-orange-600,.text-orange-700,.text-orange-800,.text-orange-900,.text-orange-950,.hover\:text-red-50:hover,.hover\:text-red-100:hover,.hover\:text-red-200:hover,.hover\:text-red-300:hover,.hover\:text-red-400:hover,.hover\:text-red-500:hover,.hover\:text-red-600:hover,.hover\:text-red-700:hover,.hover\:text-red-800:hover,.hover\:text-red-900:hover,.hover\:text-red-950:hover,.hover\:text-rose-50:hover,.hover\:text-rose-100:hover,.hover\:text-rose-200:hover,.hover\:text-rose-300:hover,.hover\:text-rose-400:hover,.hover\:text-rose-500:hover,.hover\:text-rose-600:hover,.hover\:text-rose-700:hover,.hover\:text-rose-800:hover,.hover\:text-rose-900:hover,.hover\:text-rose-950:hover,.hover\:text-purple-50:hover,.hover\:text-purple-100:hover,.hover\:text-purple-200:hover,.hover\:text-purple-300:hover,.hover\:text-purple-400:hover,.hover\:text-purple-500:hover,.hover\:text-purple-600:hover,.hover\:text-purple-700:hover,.hover\:text-purple-800:hover,.hover\:text-purple-900:hover,.hover\:text-purple-950:hover,.hover\:text-violet-50:hover,.hover\:text-violet-100:hover,.hover\:text-violet-200:hover,.hover\:text-violet-300:hover,.hover\:text-violet-400:hover,.hover\:text-violet-500:hover,.hover\:text-violet-600:hover,.hover\:text-violet-700:hover,.hover\:text-violet-800:hover,.hover\:text-violet-900:hover,.hover\:text-violet-950:hover,.hover\:text-fuchsia-50:hover,.hover\:text-fuchsia-100:hover,.hover\:text-fuchsia-200:hover,.hover\:text-fuchsia-300:hover,.hover\:text-fuchsia-400:hover,.hover\:text-fuchsia-500:hover,.hover\:text-fuchsia-600:hover,.hover\:text-fuchsia-700:hover,.hover\:text-fuchsia-800:hover,.hover\:text-fuchsia-900:hover,.hover\:text-fuchsia-950:hover,.hover\:text-pink-50:hover,.hover\:text-pink-100:hover,.hover\:text-pink-200:hover,.hover\:text-pink-300:hover,.hover\:text-pink-400:hover,.hover\:text-pink-500:hover,.hover\:text-pink-600:hover,.hover\:text-pink-700:hover,.hover\:text-pink-800:hover,.hover\:text-pink-900:hover,.hover\:text-pink-950:hover,.hover\:text-orange-50:hover,.hover\:text-orange-100:hover,.hover\:text-orange-200:hover,.hover\:text-orange-300:hover,.hover\:text-orange-400:hover,.hover\:text-orange-500:hover,.hover\:text-orange-600:hover,.hover\:text-orange-700:hover,.hover\:text-orange-800:hover,.hover\:text-orange-900:hover,.hover\:text-orange-950:hover,.focus\:text-red-50:focus,.focus\:text-red-100:focus,.focus\:text-red-200:focus,.focus\:text-red-300:focus,.focus\:text-red-400:focus,.focus\:text-red-500:focus,.focus\:text-red-600:focus,.focus\:text-red-700:focus,.focus\:text-red-800:focus,.focus\:text-red-900:focus,.focus\:text-red-950:focus,.focus\:text-rose-50:focus,.focus\:text-rose-100:focus,.focus\:text-rose-200:focus,.focus\:text-rose-300:focus,.focus\:text-rose-400:focus,.focus\:text-rose-500:focus,.focus\:text-rose-600:focus,.focus\:text-rose-700:focus,.focus\:text-rose-800:focus,.focus\:text-rose-900:focus,.focus\:text-rose-950:focus,.focus\:text-purple-50:focus,.focus\:text-purple-100:focus,.focus\:text-purple-200:focus,.focus\:text-purple-300:focus,.focus\:text-purple-400:focus,.focus\:text-purple-500:focus,.focus\:text-purple-600:focus,.focus\:text-purple-700:focus,.focus\:text-purple-800:focus,.focus\:text-purple-900:focus,.focus\:text-purple-950:focus,.focus\:text-violet-50:focus,.focus\:text-violet-100:focus,.focus\:text-violet-200:focus,.focus\:text-violet-300:focus,.focus\:text-violet-400:focus,.focus\:text-violet-500:focus,.focus\:text-violet-600:focus,.focus\:text-violet-700:focus,.focus\:text-violet-800:focus,.focus\:text-violet-900:focus,.focus\:text-violet-950:focus,.focus\:text-fuchsia-50:focus,.focus\:text-fuchsia-100:focus,.focus\:text-fuchsia-200:focus,.focus\:text-fuchsia-300:focus,.focus\:text-fuchsia-400:focus,.focus\:text-fuchsia-500:focus,.focus\:text-fuchsia-600:focus,.focus\:text-fuchsia-700:focus,.focus\:text-fuchsia-800:focus,.focus\:text-fuchsia-900:focus,.focus\:text-fuchsia-950:focus,.focus\:text-pink-50:focus,.focus\:text-pink-100:focus,.focus\:text-pink-200:focus,.focus\:text-pink-300:focus,.focus\:text-pink-400:focus,.focus\:text-pink-500:focus,.focus\:text-pink-600:focus,.focus\:text-pink-700:focus,.focus\:text-pink-800:focus,.focus\:text-pink-900:focus,.focus\:text-pink-950:focus,.focus\:text-orange-50:focus,.focus\:text-orange-100:focus,.focus\:text-orange-200:focus,.focus\:text-orange-300:focus,.focus\:text-orange-400:focus,.focus\:text-orange-500:focus,.focus\:text-orange-600:focus,.focus\:text-orange-700:focus,.focus\:text-orange-800:focus,.focus\:text-orange-900:focus,.focus\:text-orange-950:focus,.group:hover .group-hover\:text-red-50,.group:hover .group-hover\:text-red-100,.group:hover .group-hover\:text-red-200,.group:hover .group-hover\:text-red-300,.group:hover .group-hover\:text-red-400,.group:hover .group-hover\:text-red-500,.group:hover .group-hover\:text-red-600,.group:hover .group-hover\:text-red-700,.group:hover .group-hover\:text-red-800,.group:hover .group-hover\:text-red-900,.group:hover .group-hover\:text-red-950,.group:hover .group-hover\:text-rose-50,.group:hover .group-hover\:text-rose-100,.group:hover .group-hover\:text-rose-200,.group:hover .group-hover\:text-rose-300,.group:hover .group-hover\:text-rose-400,.group:hover .group-hover\:text-rose-500,.group:hover .group-hover\:text-rose-600,.group:hover .group-hover\:text-rose-700,.group:hover .group-hover\:text-rose-800,.group:hover .group-hover\:text-rose-900,.group:hover .group-hover\:text-rose-950,.group:hover .group-hover\:text-purple-50,.group:hover .group-hover\:text-purple-100,.group:hover .group-hover\:text-purple-200,.group:hover .group-hover\:text-purple-300,.group:hover .group-hover\:text-purple-400,.group:hover .group-hover\:text-purple-500,.group:hover .group-hover\:text-purple-600,.group:hover .group-hover\:text-purple-700,.group:hover .group-hover\:text-purple-800,.group:hover .group-hover\:text-purple-900,.group:hover .group-hover\:text-purple-950,.group:hover .group-hover\:text-violet-50,.group:hover .group-hover\:text-violet-100,.group:hover .group-hover\:text-violet-200,.group:hover .group-hover\:text-violet-300,.group:hover .group-hover\:text-violet-400,.group:hover .group-hover\:text-violet-500,.group:hover .group-hover\:text-violet-600,.group:hover .group-hover\:text-violet-700,.group:hover .group-hover\:text-violet-800,.group:hover .group-hover\:text-violet-900,.group:hover .group-hover\:text-violet-950,.group:hover .group-hover\:text-fuchsia-50,.group:hover .group-hover\:text-fuchsia-100,.group:hover .group-hover\:text-fuchsia-200,.group:hover .group-hover\:text-fuchsia-300,.group:hover .group-hover\:text-fuchsia-400,.group:hover .group-hover\:text-fuchsia-500,.group:hover .group-hover\:text-fuchsia-600,.group:hover .group-hover\:text-fuchsia-700,.group:hover .group-hover\:text-fuchsia-800,.group:hover .group-hover\:text-fuchsia-900,.group:hover .group-hover\:text-fuchsia-950,.group:hover .group-hover\:text-pink-50,.group:hover .group-hover\:text-pink-100,.group:hover .group-hover\:text-pink-200,.group:hover .group-hover\:text-pink-300,.group:hover .group-hover\:text-pink-400,.group:hover .group-hover\:text-pink-500,.group:hover .group-hover\:text-pink-600,.group:hover .group-hover\:text-pink-700,.group:hover .group-hover\:text-pink-800,.group:hover .group-hover\:text-pink-900,.group:hover .group-hover\:text-pink-950,.group:hover .group-hover\:text-orange-50,.group:hover .group-hover\:text-orange-100,.group:hover .group-hover\:text-orange-200,.group:hover .group-hover\:text-orange-300,.group:hover .group-hover\:text-orange-400,.group:hover .group-hover\:text-orange-500,.group:hover .group-hover\:text-orange-600,.group:hover .group-hover\:text-orange-700,.group:hover .group-hover\:text-orange-800,.group:hover .group-hover\:text-orange-900,.group:hover .group-hover\:text-orange-950) { color: var(--nexus-secondary) !important; }
+:where(.text-amber-50,.text-amber-100,.text-amber-200,.text-amber-300,.text-amber-400,.text-amber-500,.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-amber-950,.text-yellow-50,.text-yellow-100,.text-yellow-200,.text-yellow-300,.text-yellow-400,.text-yellow-500,.text-yellow-600,.text-yellow-700,.text-yellow-800,.text-yellow-900,.text-yellow-950,.hover\:text-amber-50:hover,.hover\:text-amber-100:hover,.hover\:text-amber-200:hover,.hover\:text-amber-300:hover,.hover\:text-amber-400:hover,.hover\:text-amber-500:hover,.hover\:text-amber-600:hover,.hover\:text-amber-700:hover,.hover\:text-amber-800:hover,.hover\:text-amber-900:hover,.hover\:text-amber-950:hover,.hover\:text-yellow-50:hover,.hover\:text-yellow-100:hover,.hover\:text-yellow-200:hover,.hover\:text-yellow-300:hover,.hover\:text-yellow-400:hover,.hover\:text-yellow-500:hover,.hover\:text-yellow-600:hover,.hover\:text-yellow-700:hover,.hover\:text-yellow-800:hover,.hover\:text-yellow-900:hover,.hover\:text-yellow-950:hover,.focus\:text-amber-50:focus,.focus\:text-amber-100:focus,.focus\:text-amber-200:focus,.focus\:text-amber-300:focus,.focus\:text-amber-400:focus,.focus\:text-amber-500:focus,.focus\:text-amber-600:focus,.focus\:text-amber-700:focus,.focus\:text-amber-800:focus,.focus\:text-amber-900:focus,.focus\:text-amber-950:focus,.focus\:text-yellow-50:focus,.focus\:text-yellow-100:focus,.focus\:text-yellow-200:focus,.focus\:text-yellow-300:focus,.focus\:text-yellow-400:focus,.focus\:text-yellow-500:focus,.focus\:text-yellow-600:focus,.focus\:text-yellow-700:focus,.focus\:text-yellow-800:focus,.focus\:text-yellow-900:focus,.focus\:text-yellow-950:focus,.group:hover .group-hover\:text-amber-50,.group:hover .group-hover\:text-amber-100,.group:hover .group-hover\:text-amber-200,.group:hover .group-hover\:text-amber-300,.group:hover .group-hover\:text-amber-400,.group:hover .group-hover\:text-amber-500,.group:hover .group-hover\:text-amber-600,.group:hover .group-hover\:text-amber-700,.group:hover .group-hover\:text-amber-800,.group:hover .group-hover\:text-amber-900,.group:hover .group-hover\:text-amber-950,.group:hover .group-hover\:text-yellow-50,.group:hover .group-hover\:text-yellow-100,.group:hover .group-hover\:text-yellow-200,.group:hover .group-hover\:text-yellow-300,.group:hover .group-hover\:text-yellow-400,.group:hover .group-hover\:text-yellow-500,.group:hover .group-hover\:text-yellow-600,.group:hover .group-hover\:text-yellow-700,.group:hover .group-hover\:text-yellow-800,.group:hover .group-hover\:text-yellow-900,.group:hover .group-hover\:text-yellow-950) { color: var(--nexus-accent-ink) !important; }
 
-/* Buttons — unified across system */
-.btn-unified { display: inline-flex; align-items: center; justify-content: center; border-radius: .9rem; padding: .6rem 1.2rem; font-weight: 800; font-size: .85rem; transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease; border: 1px solid transparent; }
-.btn-unified:hover { transform: translateY(-1px); box-shadow: var(--nexus-shadow); }
-.btn-primary { background: linear-gradient(135deg, var(--nexus-60), var(--nexus-60-deep)); color: #fff; box-shadow: 0 10px 28px rgba(16,59,7,.22); }
-.btn-primary:hover { background: linear-gradient(135deg, var(--nexus-60-deep), #0a2e05); box-shadow: 0 14px 36px rgba(16,59,7,.28); }
-.btn-secondary { background: #fff; color: #334155; border-color: var(--nexus-line); box-shadow: var(--nexus-shadow-sm); }
-.btn-secondary:hover { color: var(--nexus-60); border-color: rgba(16,59,7,.22); box-shadow: var(--nexus-shadow); }
+:where(.bg-emerald-50,.bg-emerald-100,.bg-emerald-200,.bg-emerald-300,.bg-emerald-400,.bg-green-50,.bg-green-100,.bg-green-200,.bg-green-300,.bg-green-400,.bg-blue-50,.bg-blue-100,.bg-blue-200,.bg-blue-300,.bg-blue-400,.bg-sky-50,.bg-sky-100,.bg-sky-200,.bg-sky-300,.bg-sky-400,.bg-cyan-50,.bg-cyan-100,.bg-cyan-200,.bg-cyan-300,.bg-cyan-400,.bg-teal-50,.bg-teal-100,.bg-teal-200,.bg-teal-300,.bg-teal-400,.bg-indigo-50,.bg-indigo-100,.bg-indigo-200,.bg-indigo-300,.bg-indigo-400,.bg-lime-50,.bg-lime-100,.bg-lime-200,.bg-lime-300,.bg-lime-400,.hover\:bg-emerald-50:hover,.hover\:bg-emerald-100:hover,.hover\:bg-emerald-200:hover,.hover\:bg-emerald-300:hover,.hover\:bg-emerald-400:hover,.hover\:bg-green-50:hover,.hover\:bg-green-100:hover,.hover\:bg-green-200:hover,.hover\:bg-green-300:hover,.hover\:bg-green-400:hover,.hover\:bg-blue-50:hover,.hover\:bg-blue-100:hover,.hover\:bg-blue-200:hover,.hover\:bg-blue-300:hover,.hover\:bg-blue-400:hover,.hover\:bg-sky-50:hover,.hover\:bg-sky-100:hover,.hover\:bg-sky-200:hover,.hover\:bg-sky-300:hover,.hover\:bg-sky-400:hover,.hover\:bg-cyan-50:hover,.hover\:bg-cyan-100:hover,.hover\:bg-cyan-200:hover,.hover\:bg-cyan-300:hover,.hover\:bg-cyan-400:hover,.hover\:bg-teal-50:hover,.hover\:bg-teal-100:hover,.hover\:bg-teal-200:hover,.hover\:bg-teal-300:hover,.hover\:bg-teal-400:hover,.hover\:bg-indigo-50:hover,.hover\:bg-indigo-100:hover,.hover\:bg-indigo-200:hover,.hover\:bg-indigo-300:hover,.hover\:bg-indigo-400:hover,.hover\:bg-lime-50:hover,.hover\:bg-lime-100:hover,.hover\:bg-lime-200:hover,.hover\:bg-lime-300:hover,.hover\:bg-lime-400:hover,.focus\:bg-emerald-50:focus,.focus\:bg-emerald-100:focus,.focus\:bg-emerald-200:focus,.focus\:bg-emerald-300:focus,.focus\:bg-emerald-400:focus,.focus\:bg-green-50:focus,.focus\:bg-green-100:focus,.focus\:bg-green-200:focus,.focus\:bg-green-300:focus,.focus\:bg-green-400:focus,.focus\:bg-blue-50:focus,.focus\:bg-blue-100:focus,.focus\:bg-blue-200:focus,.focus\:bg-blue-300:focus,.focus\:bg-blue-400:focus,.focus\:bg-sky-50:focus,.focus\:bg-sky-100:focus,.focus\:bg-sky-200:focus,.focus\:bg-sky-300:focus,.focus\:bg-sky-400:focus,.focus\:bg-cyan-50:focus,.focus\:bg-cyan-100:focus,.focus\:bg-cyan-200:focus,.focus\:bg-cyan-300:focus,.focus\:bg-cyan-400:focus,.focus\:bg-teal-50:focus,.focus\:bg-teal-100:focus,.focus\:bg-teal-200:focus,.focus\:bg-teal-300:focus,.focus\:bg-teal-400:focus,.focus\:bg-indigo-50:focus,.focus\:bg-indigo-100:focus,.focus\:bg-indigo-200:focus,.focus\:bg-indigo-300:focus,.focus\:bg-indigo-400:focus,.focus\:bg-lime-50:focus,.focus\:bg-lime-100:focus,.focus\:bg-lime-200:focus,.focus\:bg-lime-300:focus,.focus\:bg-lime-400:focus) { background-color: var(--nexus-primary-soft) !important; }
+:where(.bg-red-50,.bg-red-100,.bg-red-200,.bg-red-300,.bg-red-400,.bg-rose-50,.bg-rose-100,.bg-rose-200,.bg-rose-300,.bg-rose-400,.bg-purple-50,.bg-purple-100,.bg-purple-200,.bg-purple-300,.bg-purple-400,.bg-violet-50,.bg-violet-100,.bg-violet-200,.bg-violet-300,.bg-violet-400,.bg-fuchsia-50,.bg-fuchsia-100,.bg-fuchsia-200,.bg-fuchsia-300,.bg-fuchsia-400,.bg-pink-50,.bg-pink-100,.bg-pink-200,.bg-pink-300,.bg-pink-400,.bg-orange-50,.bg-orange-100,.bg-orange-200,.bg-orange-300,.bg-orange-400,.hover\:bg-red-50:hover,.hover\:bg-red-100:hover,.hover\:bg-red-200:hover,.hover\:bg-red-300:hover,.hover\:bg-red-400:hover,.hover\:bg-rose-50:hover,.hover\:bg-rose-100:hover,.hover\:bg-rose-200:hover,.hover\:bg-rose-300:hover,.hover\:bg-rose-400:hover,.hover\:bg-purple-50:hover,.hover\:bg-purple-100:hover,.hover\:bg-purple-200:hover,.hover\:bg-purple-300:hover,.hover\:bg-purple-400:hover,.hover\:bg-violet-50:hover,.hover\:bg-violet-100:hover,.hover\:bg-violet-200:hover,.hover\:bg-violet-300:hover,.hover\:bg-violet-400:hover,.hover\:bg-fuchsia-50:hover,.hover\:bg-fuchsia-100:hover,.hover\:bg-fuchsia-200:hover,.hover\:bg-fuchsia-300:hover,.hover\:bg-fuchsia-400:hover,.hover\:bg-pink-50:hover,.hover\:bg-pink-100:hover,.hover\:bg-pink-200:hover,.hover\:bg-pink-300:hover,.hover\:bg-pink-400:hover,.hover\:bg-orange-50:hover,.hover\:bg-orange-100:hover,.hover\:bg-orange-200:hover,.hover\:bg-orange-300:hover,.hover\:bg-orange-400:hover,.focus\:bg-red-50:focus,.focus\:bg-red-100:focus,.focus\:bg-red-200:focus,.focus\:bg-red-300:focus,.focus\:bg-red-400:focus,.focus\:bg-rose-50:focus,.focus\:bg-rose-100:focus,.focus\:bg-rose-200:focus,.focus\:bg-rose-300:focus,.focus\:bg-rose-400:focus,.focus\:bg-purple-50:focus,.focus\:bg-purple-100:focus,.focus\:bg-purple-200:focus,.focus\:bg-purple-300:focus,.focus\:bg-purple-400:focus,.focus\:bg-violet-50:focus,.focus\:bg-violet-100:focus,.focus\:bg-violet-200:focus,.focus\:bg-violet-300:focus,.focus\:bg-violet-400:focus,.focus\:bg-fuchsia-50:focus,.focus\:bg-fuchsia-100:focus,.focus\:bg-fuchsia-200:focus,.focus\:bg-fuchsia-300:focus,.focus\:bg-fuchsia-400:focus,.focus\:bg-pink-50:focus,.focus\:bg-pink-100:focus,.focus\:bg-pink-200:focus,.focus\:bg-pink-300:focus,.focus\:bg-pink-400:focus,.focus\:bg-orange-50:focus,.focus\:bg-orange-100:focus,.focus\:bg-orange-200:focus,.focus\:bg-orange-300:focus,.focus\:bg-orange-400:focus) { background-color: var(--nexus-secondary-soft) !important; }
+:where(.bg-amber-50,.bg-amber-100,.bg-amber-200,.bg-amber-300,.bg-amber-400,.bg-yellow-50,.bg-yellow-100,.bg-yellow-200,.bg-yellow-300,.bg-yellow-400,.hover\:bg-amber-50:hover,.hover\:bg-amber-100:hover,.hover\:bg-amber-200:hover,.hover\:bg-amber-300:hover,.hover\:bg-amber-400:hover,.hover\:bg-yellow-50:hover,.hover\:bg-yellow-100:hover,.hover\:bg-yellow-200:hover,.hover\:bg-yellow-300:hover,.hover\:bg-yellow-400:hover,.focus\:bg-amber-50:focus,.focus\:bg-amber-100:focus,.focus\:bg-amber-200:focus,.focus\:bg-amber-300:focus,.focus\:bg-amber-400:focus,.focus\:bg-yellow-50:focus,.focus\:bg-yellow-100:focus,.focus\:bg-yellow-200:focus,.focus\:bg-yellow-300:focus,.focus\:bg-yellow-400:focus) { background-color: var(--nexus-accent-soft) !important; }
+:where(.bg-emerald-500,.bg-emerald-600,.bg-emerald-700,.bg-emerald-800,.bg-emerald-900,.bg-emerald-950,.bg-green-500,.bg-green-600,.bg-green-700,.bg-green-800,.bg-green-900,.bg-green-950,.bg-blue-500,.bg-blue-600,.bg-blue-700,.bg-blue-800,.bg-blue-900,.bg-blue-950,.bg-sky-500,.bg-sky-600,.bg-sky-700,.bg-sky-800,.bg-sky-900,.bg-sky-950,.bg-cyan-500,.bg-cyan-600,.bg-cyan-700,.bg-cyan-800,.bg-cyan-900,.bg-cyan-950,.bg-teal-500,.bg-teal-600,.bg-teal-700,.bg-teal-800,.bg-teal-900,.bg-teal-950,.bg-indigo-500,.bg-indigo-600,.bg-indigo-700,.bg-indigo-800,.bg-indigo-900,.bg-indigo-950,.bg-lime-500,.bg-lime-600,.bg-lime-700,.bg-lime-800,.bg-lime-900,.bg-lime-950,.hover\:bg-emerald-500:hover,.hover\:bg-emerald-600:hover,.hover\:bg-emerald-700:hover,.hover\:bg-emerald-800:hover,.hover\:bg-emerald-900:hover,.hover\:bg-emerald-950:hover,.hover\:bg-green-500:hover,.hover\:bg-green-600:hover,.hover\:bg-green-700:hover,.hover\:bg-green-800:hover,.hover\:bg-green-900:hover,.hover\:bg-green-950:hover,.hover\:bg-blue-500:hover,.hover\:bg-blue-600:hover,.hover\:bg-blue-700:hover,.hover\:bg-blue-800:hover,.hover\:bg-blue-900:hover,.hover\:bg-blue-950:hover,.hover\:bg-sky-500:hover,.hover\:bg-sky-600:hover,.hover\:bg-sky-700:hover,.hover\:bg-sky-800:hover,.hover\:bg-sky-900:hover,.hover\:bg-sky-950:hover,.hover\:bg-cyan-500:hover,.hover\:bg-cyan-600:hover,.hover\:bg-cyan-700:hover,.hover\:bg-cyan-800:hover,.hover\:bg-cyan-900:hover,.hover\:bg-cyan-950:hover,.hover\:bg-teal-500:hover,.hover\:bg-teal-600:hover,.hover\:bg-teal-700:hover,.hover\:bg-teal-800:hover,.hover\:bg-teal-900:hover,.hover\:bg-teal-950:hover,.hover\:bg-indigo-500:hover,.hover\:bg-indigo-600:hover,.hover\:bg-indigo-700:hover,.hover\:bg-indigo-800:hover,.hover\:bg-indigo-900:hover,.hover\:bg-indigo-950:hover,.hover\:bg-lime-500:hover,.hover\:bg-lime-600:hover,.hover\:bg-lime-700:hover,.hover\:bg-lime-800:hover,.hover\:bg-lime-900:hover,.hover\:bg-lime-950:hover,.focus\:bg-emerald-500:focus,.focus\:bg-emerald-600:focus,.focus\:bg-emerald-700:focus,.focus\:bg-emerald-800:focus,.focus\:bg-emerald-900:focus,.focus\:bg-emerald-950:focus,.focus\:bg-green-500:focus,.focus\:bg-green-600:focus,.focus\:bg-green-700:focus,.focus\:bg-green-800:focus,.focus\:bg-green-900:focus,.focus\:bg-green-950:focus,.focus\:bg-blue-500:focus,.focus\:bg-blue-600:focus,.focus\:bg-blue-700:focus,.focus\:bg-blue-800:focus,.focus\:bg-blue-900:focus,.focus\:bg-blue-950:focus,.focus\:bg-sky-500:focus,.focus\:bg-sky-600:focus,.focus\:bg-sky-700:focus,.focus\:bg-sky-800:focus,.focus\:bg-sky-900:focus,.focus\:bg-sky-950:focus,.focus\:bg-cyan-500:focus,.focus\:bg-cyan-600:focus,.focus\:bg-cyan-700:focus,.focus\:bg-cyan-800:focus,.focus\:bg-cyan-900:focus,.focus\:bg-cyan-950:focus,.focus\:bg-teal-500:focus,.focus\:bg-teal-600:focus,.focus\:bg-teal-700:focus,.focus\:bg-teal-800:focus,.focus\:bg-teal-900:focus,.focus\:bg-teal-950:focus,.focus\:bg-indigo-500:focus,.focus\:bg-indigo-600:focus,.focus\:bg-indigo-700:focus,.focus\:bg-indigo-800:focus,.focus\:bg-indigo-900:focus,.focus\:bg-indigo-950:focus,.focus\:bg-lime-500:focus,.focus\:bg-lime-600:focus,.focus\:bg-lime-700:focus,.focus\:bg-lime-800:focus,.focus\:bg-lime-900:focus,.focus\:bg-lime-950:focus) { background-color: var(--nexus-primary) !important; color: #fff !important; }
+:where(.bg-red-500,.bg-red-600,.bg-red-700,.bg-red-800,.bg-red-900,.bg-red-950,.bg-rose-500,.bg-rose-600,.bg-rose-700,.bg-rose-800,.bg-rose-900,.bg-rose-950,.bg-purple-500,.bg-purple-600,.bg-purple-700,.bg-purple-800,.bg-purple-900,.bg-purple-950,.bg-violet-500,.bg-violet-600,.bg-violet-700,.bg-violet-800,.bg-violet-900,.bg-violet-950,.bg-fuchsia-500,.bg-fuchsia-600,.bg-fuchsia-700,.bg-fuchsia-800,.bg-fuchsia-900,.bg-fuchsia-950,.bg-pink-500,.bg-pink-600,.bg-pink-700,.bg-pink-800,.bg-pink-900,.bg-pink-950,.bg-orange-500,.bg-orange-600,.bg-orange-700,.bg-orange-800,.bg-orange-900,.bg-orange-950,.hover\:bg-red-500:hover,.hover\:bg-red-600:hover,.hover\:bg-red-700:hover,.hover\:bg-red-800:hover,.hover\:bg-red-900:hover,.hover\:bg-red-950:hover,.hover\:bg-rose-500:hover,.hover\:bg-rose-600:hover,.hover\:bg-rose-700:hover,.hover\:bg-rose-800:hover,.hover\:bg-rose-900:hover,.hover\:bg-rose-950:hover,.hover\:bg-purple-500:hover,.hover\:bg-purple-600:hover,.hover\:bg-purple-700:hover,.hover\:bg-purple-800:hover,.hover\:bg-purple-900:hover,.hover\:bg-purple-950:hover,.hover\:bg-violet-500:hover,.hover\:bg-violet-600:hover,.hover\:bg-violet-700:hover,.hover\:bg-violet-800:hover,.hover\:bg-violet-900:hover,.hover\:bg-violet-950:hover,.hover\:bg-fuchsia-500:hover,.hover\:bg-fuchsia-600:hover,.hover\:bg-fuchsia-700:hover,.hover\:bg-fuchsia-800:hover,.hover\:bg-fuchsia-900:hover,.hover\:bg-fuchsia-950:hover,.hover\:bg-pink-500:hover,.hover\:bg-pink-600:hover,.hover\:bg-pink-700:hover,.hover\:bg-pink-800:hover,.hover\:bg-pink-900:hover,.hover\:bg-pink-950:hover,.hover\:bg-orange-500:hover,.hover\:bg-orange-600:hover,.hover\:bg-orange-700:hover,.hover\:bg-orange-800:hover,.hover\:bg-orange-900:hover,.hover\:bg-orange-950:hover,.focus\:bg-red-500:focus,.focus\:bg-red-600:focus,.focus\:bg-red-700:focus,.focus\:bg-red-800:focus,.focus\:bg-red-900:focus,.focus\:bg-red-950:focus,.focus\:bg-rose-500:focus,.focus\:bg-rose-600:focus,.focus\:bg-rose-700:focus,.focus\:bg-rose-800:focus,.focus\:bg-rose-900:focus,.focus\:bg-rose-950:focus,.focus\:bg-purple-500:focus,.focus\:bg-purple-600:focus,.focus\:bg-purple-700:focus,.focus\:bg-purple-800:focus,.focus\:bg-purple-900:focus,.focus\:bg-purple-950:focus,.focus\:bg-violet-500:focus,.focus\:bg-violet-600:focus,.focus\:bg-violet-700:focus,.focus\:bg-violet-800:focus,.focus\:bg-violet-900:focus,.focus\:bg-violet-950:focus,.focus\:bg-fuchsia-500:focus,.focus\:bg-fuchsia-600:focus,.focus\:bg-fuchsia-700:focus,.focus\:bg-fuchsia-800:focus,.focus\:bg-fuchsia-900:focus,.focus\:bg-fuchsia-950:focus,.focus\:bg-pink-500:focus,.focus\:bg-pink-600:focus,.focus\:bg-pink-700:focus,.focus\:bg-pink-800:focus,.focus\:bg-pink-900:focus,.focus\:bg-pink-950:focus,.focus\:bg-orange-500:focus,.focus\:bg-orange-600:focus,.focus\:bg-orange-700:focus,.focus\:bg-orange-800:focus,.focus\:bg-orange-900:focus,.focus\:bg-orange-950:focus) { background-color: var(--nexus-secondary) !important; color: #fff !important; }
+:where(.bg-amber-500,.bg-amber-600,.bg-amber-700,.bg-amber-800,.bg-amber-900,.bg-amber-950,.bg-yellow-500,.bg-yellow-600,.bg-yellow-700,.bg-yellow-800,.bg-yellow-900,.bg-yellow-950,.hover\:bg-amber-500:hover,.hover\:bg-amber-600:hover,.hover\:bg-amber-700:hover,.hover\:bg-amber-800:hover,.hover\:bg-amber-900:hover,.hover\:bg-amber-950:hover,.hover\:bg-yellow-500:hover,.hover\:bg-yellow-600:hover,.hover\:bg-yellow-700:hover,.hover\:bg-yellow-800:hover,.hover\:bg-yellow-900:hover,.hover\:bg-yellow-950:hover,.focus\:bg-amber-500:focus,.focus\:bg-amber-600:focus,.focus\:bg-amber-700:focus,.focus\:bg-amber-800:focus,.focus\:bg-amber-900:focus,.focus\:bg-amber-950:focus,.focus\:bg-yellow-500:focus,.focus\:bg-yellow-600:focus,.focus\:bg-yellow-700:focus,.focus\:bg-yellow-800:focus,.focus\:bg-yellow-900:focus,.focus\:bg-yellow-950:focus) { background-color: var(--nexus-accent-ink) !important; color: #fff !important; }
+
+:where(.border-emerald-50,.border-emerald-100,.border-emerald-200,.border-emerald-300,.border-emerald-400,.border-emerald-500,.border-emerald-600,.border-emerald-700,.border-emerald-800,.border-emerald-900,.border-emerald-950,.border-green-50,.border-green-100,.border-green-200,.border-green-300,.border-green-400,.border-green-500,.border-green-600,.border-green-700,.border-green-800,.border-green-900,.border-green-950,.border-blue-50,.border-blue-100,.border-blue-200,.border-blue-300,.border-blue-400,.border-blue-500,.border-blue-600,.border-blue-700,.border-blue-800,.border-blue-900,.border-blue-950,.border-sky-50,.border-sky-100,.border-sky-200,.border-sky-300,.border-sky-400,.border-sky-500,.border-sky-600,.border-sky-700,.border-sky-800,.border-sky-900,.border-sky-950,.border-cyan-50,.border-cyan-100,.border-cyan-200,.border-cyan-300,.border-cyan-400,.border-cyan-500,.border-cyan-600,.border-cyan-700,.border-cyan-800,.border-cyan-900,.border-cyan-950,.border-teal-50,.border-teal-100,.border-teal-200,.border-teal-300,.border-teal-400,.border-teal-500,.border-teal-600,.border-teal-700,.border-teal-800,.border-teal-900,.border-teal-950,.border-indigo-50,.border-indigo-100,.border-indigo-200,.border-indigo-300,.border-indigo-400,.border-indigo-500,.border-indigo-600,.border-indigo-700,.border-indigo-800,.border-indigo-900,.border-indigo-950,.border-lime-50,.border-lime-100,.border-lime-200,.border-lime-300,.border-lime-400,.border-lime-500,.border-lime-600,.border-lime-700,.border-lime-800,.border-lime-900,.border-lime-950,.hover\:border-emerald-50:hover,.hover\:border-emerald-100:hover,.hover\:border-emerald-200:hover,.hover\:border-emerald-300:hover,.hover\:border-emerald-400:hover,.hover\:border-emerald-500:hover,.hover\:border-emerald-600:hover,.hover\:border-emerald-700:hover,.hover\:border-emerald-800:hover,.hover\:border-emerald-900:hover,.hover\:border-emerald-950:hover,.hover\:border-green-50:hover,.hover\:border-green-100:hover,.hover\:border-green-200:hover,.hover\:border-green-300:hover,.hover\:border-green-400:hover,.hover\:border-green-500:hover,.hover\:border-green-600:hover,.hover\:border-green-700:hover,.hover\:border-green-800:hover,.hover\:border-green-900:hover,.hover\:border-green-950:hover,.hover\:border-blue-50:hover,.hover\:border-blue-100:hover,.hover\:border-blue-200:hover,.hover\:border-blue-300:hover,.hover\:border-blue-400:hover,.hover\:border-blue-500:hover,.hover\:border-blue-600:hover,.hover\:border-blue-700:hover,.hover\:border-blue-800:hover,.hover\:border-blue-900:hover,.hover\:border-blue-950:hover,.hover\:border-sky-50:hover,.hover\:border-sky-100:hover,.hover\:border-sky-200:hover,.hover\:border-sky-300:hover,.hover\:border-sky-400:hover,.hover\:border-sky-500:hover,.hover\:border-sky-600:hover,.hover\:border-sky-700:hover,.hover\:border-sky-800:hover,.hover\:border-sky-900:hover,.hover\:border-sky-950:hover,.hover\:border-cyan-50:hover,.hover\:border-cyan-100:hover,.hover\:border-cyan-200:hover,.hover\:border-cyan-300:hover,.hover\:border-cyan-400:hover,.hover\:border-cyan-500:hover,.hover\:border-cyan-600:hover,.hover\:border-cyan-700:hover,.hover\:border-cyan-800:hover,.hover\:border-cyan-900:hover,.hover\:border-cyan-950:hover,.hover\:border-teal-50:hover,.hover\:border-teal-100:hover,.hover\:border-teal-200:hover,.hover\:border-teal-300:hover,.hover\:border-teal-400:hover,.hover\:border-teal-500:hover,.hover\:border-teal-600:hover,.hover\:border-teal-700:hover,.hover\:border-teal-800:hover,.hover\:border-teal-900:hover,.hover\:border-teal-950:hover,.hover\:border-indigo-50:hover,.hover\:border-indigo-100:hover,.hover\:border-indigo-200:hover,.hover\:border-indigo-300:hover,.hover\:border-indigo-400:hover,.hover\:border-indigo-500:hover,.hover\:border-indigo-600:hover,.hover\:border-indigo-700:hover,.hover\:border-indigo-800:hover,.hover\:border-indigo-900:hover,.hover\:border-indigo-950:hover,.hover\:border-lime-50:hover,.hover\:border-lime-100:hover,.hover\:border-lime-200:hover,.hover\:border-lime-300:hover,.hover\:border-lime-400:hover,.hover\:border-lime-500:hover,.hover\:border-lime-600:hover,.hover\:border-lime-700:hover,.hover\:border-lime-800:hover,.hover\:border-lime-900:hover,.hover\:border-lime-950:hover,.focus\:border-emerald-50:focus,.focus\:border-emerald-100:focus,.focus\:border-emerald-200:focus,.focus\:border-emerald-300:focus,.focus\:border-emerald-400:focus,.focus\:border-emerald-500:focus,.focus\:border-emerald-600:focus,.focus\:border-emerald-700:focus,.focus\:border-emerald-800:focus,.focus\:border-emerald-900:focus,.focus\:border-emerald-950:focus,.focus\:border-green-50:focus,.focus\:border-green-100:focus,.focus\:border-green-200:focus,.focus\:border-green-300:focus,.focus\:border-green-400:focus,.focus\:border-green-500:focus,.focus\:border-green-600:focus,.focus\:border-green-700:focus,.focus\:border-green-800:focus,.focus\:border-green-900:focus,.focus\:border-green-950:focus,.focus\:border-blue-50:focus,.focus\:border-blue-100:focus,.focus\:border-blue-200:focus,.focus\:border-blue-300:focus,.focus\:border-blue-400:focus,.focus\:border-blue-500:focus,.focus\:border-blue-600:focus,.focus\:border-blue-700:focus,.focus\:border-blue-800:focus,.focus\:border-blue-900:focus,.focus\:border-blue-950:focus,.focus\:border-sky-50:focus,.focus\:border-sky-100:focus,.focus\:border-sky-200:focus,.focus\:border-sky-300:focus,.focus\:border-sky-400:focus,.focus\:border-sky-500:focus,.focus\:border-sky-600:focus,.focus\:border-sky-700:focus,.focus\:border-sky-800:focus,.focus\:border-sky-900:focus,.focus\:border-sky-950:focus,.focus\:border-cyan-50:focus,.focus\:border-cyan-100:focus,.focus\:border-cyan-200:focus,.focus\:border-cyan-300:focus,.focus\:border-cyan-400:focus,.focus\:border-cyan-500:focus,.focus\:border-cyan-600:focus,.focus\:border-cyan-700:focus,.focus\:border-cyan-800:focus,.focus\:border-cyan-900:focus,.focus\:border-cyan-950:focus,.focus\:border-teal-50:focus,.focus\:border-teal-100:focus,.focus\:border-teal-200:focus,.focus\:border-teal-300:focus,.focus\:border-teal-400:focus,.focus\:border-teal-500:focus,.focus\:border-teal-600:focus,.focus\:border-teal-700:focus,.focus\:border-teal-800:focus,.focus\:border-teal-900:focus,.focus\:border-teal-950:focus,.focus\:border-indigo-50:focus,.focus\:border-indigo-100:focus,.focus\:border-indigo-200:focus,.focus\:border-indigo-300:focus,.focus\:border-indigo-400:focus,.focus\:border-indigo-500:focus,.focus\:border-indigo-600:focus,.focus\:border-indigo-700:focus,.focus\:border-indigo-800:focus,.focus\:border-indigo-900:focus,.focus\:border-indigo-950:focus,.focus\:border-lime-50:focus,.focus\:border-lime-100:focus,.focus\:border-lime-200:focus,.focus\:border-lime-300:focus,.focus\:border-lime-400:focus,.focus\:border-lime-500:focus,.focus\:border-lime-600:focus,.focus\:border-lime-700:focus,.focus\:border-lime-800:focus,.focus\:border-lime-900:focus,.focus\:border-lime-950:focus) { border-color: var(--nexus-primary-tint) !important; }
+:where(.border-red-50,.border-red-100,.border-red-200,.border-red-300,.border-red-400,.border-red-500,.border-red-600,.border-red-700,.border-red-800,.border-red-900,.border-red-950,.border-rose-50,.border-rose-100,.border-rose-200,.border-rose-300,.border-rose-400,.border-rose-500,.border-rose-600,.border-rose-700,.border-rose-800,.border-rose-900,.border-rose-950,.border-purple-50,.border-purple-100,.border-purple-200,.border-purple-300,.border-purple-400,.border-purple-500,.border-purple-600,.border-purple-700,.border-purple-800,.border-purple-900,.border-purple-950,.border-violet-50,.border-violet-100,.border-violet-200,.border-violet-300,.border-violet-400,.border-violet-500,.border-violet-600,.border-violet-700,.border-violet-800,.border-violet-900,.border-violet-950,.border-fuchsia-50,.border-fuchsia-100,.border-fuchsia-200,.border-fuchsia-300,.border-fuchsia-400,.border-fuchsia-500,.border-fuchsia-600,.border-fuchsia-700,.border-fuchsia-800,.border-fuchsia-900,.border-fuchsia-950,.border-pink-50,.border-pink-100,.border-pink-200,.border-pink-300,.border-pink-400,.border-pink-500,.border-pink-600,.border-pink-700,.border-pink-800,.border-pink-900,.border-pink-950,.border-orange-50,.border-orange-100,.border-orange-200,.border-orange-300,.border-orange-400,.border-orange-500,.border-orange-600,.border-orange-700,.border-orange-800,.border-orange-900,.border-orange-950,.hover\:border-red-50:hover,.hover\:border-red-100:hover,.hover\:border-red-200:hover,.hover\:border-red-300:hover,.hover\:border-red-400:hover,.hover\:border-red-500:hover,.hover\:border-red-600:hover,.hover\:border-red-700:hover,.hover\:border-red-800:hover,.hover\:border-red-900:hover,.hover\:border-red-950:hover,.hover\:border-rose-50:hover,.hover\:border-rose-100:hover,.hover\:border-rose-200:hover,.hover\:border-rose-300:hover,.hover\:border-rose-400:hover,.hover\:border-rose-500:hover,.hover\:border-rose-600:hover,.hover\:border-rose-700:hover,.hover\:border-rose-800:hover,.hover\:border-rose-900:hover,.hover\:border-rose-950:hover,.hover\:border-purple-50:hover,.hover\:border-purple-100:hover,.hover\:border-purple-200:hover,.hover\:border-purple-300:hover,.hover\:border-purple-400:hover,.hover\:border-purple-500:hover,.hover\:border-purple-600:hover,.hover\:border-purple-700:hover,.hover\:border-purple-800:hover,.hover\:border-purple-900:hover,.hover\:border-purple-950:hover,.hover\:border-violet-50:hover,.hover\:border-violet-100:hover,.hover\:border-violet-200:hover,.hover\:border-violet-300:hover,.hover\:border-violet-400:hover,.hover\:border-violet-500:hover,.hover\:border-violet-600:hover,.hover\:border-violet-700:hover,.hover\:border-violet-800:hover,.hover\:border-violet-900:hover,.hover\:border-violet-950:hover,.hover\:border-fuchsia-50:hover,.hover\:border-fuchsia-100:hover,.hover\:border-fuchsia-200:hover,.hover\:border-fuchsia-300:hover,.hover\:border-fuchsia-400:hover,.hover\:border-fuchsia-500:hover,.hover\:border-fuchsia-600:hover,.hover\:border-fuchsia-700:hover,.hover\:border-fuchsia-800:hover,.hover\:border-fuchsia-900:hover,.hover\:border-fuchsia-950:hover,.hover\:border-pink-50:hover,.hover\:border-pink-100:hover,.hover\:border-pink-200:hover,.hover\:border-pink-300:hover,.hover\:border-pink-400:hover,.hover\:border-pink-500:hover,.hover\:border-pink-600:hover,.hover\:border-pink-700:hover,.hover\:border-pink-800:hover,.hover\:border-pink-900:hover,.hover\:border-pink-950:hover,.hover\:border-orange-50:hover,.hover\:border-orange-100:hover,.hover\:border-orange-200:hover,.hover\:border-orange-300:hover,.hover\:border-orange-400:hover,.hover\:border-orange-500:hover,.hover\:border-orange-600:hover,.hover\:border-orange-700:hover,.hover\:border-orange-800:hover,.hover\:border-orange-900:hover,.hover\:border-orange-950:hover,.focus\:border-red-50:focus,.focus\:border-red-100:focus,.focus\:border-red-200:focus,.focus\:border-red-300:focus,.focus\:border-red-400:focus,.focus\:border-red-500:focus,.focus\:border-red-600:focus,.focus\:border-red-700:focus,.focus\:border-red-800:focus,.focus\:border-red-900:focus,.focus\:border-red-950:focus,.focus\:border-rose-50:focus,.focus\:border-rose-100:focus,.focus\:border-rose-200:focus,.focus\:border-rose-300:focus,.focus\:border-rose-400:focus,.focus\:border-rose-500:focus,.focus\:border-rose-600:focus,.focus\:border-rose-700:focus,.focus\:border-rose-800:focus,.focus\:border-rose-900:focus,.focus\:border-rose-950:focus,.focus\:border-purple-50:focus,.focus\:border-purple-100:focus,.focus\:border-purple-200:focus,.focus\:border-purple-300:focus,.focus\:border-purple-400:focus,.focus\:border-purple-500:focus,.focus\:border-purple-600:focus,.focus\:border-purple-700:focus,.focus\:border-purple-800:focus,.focus\:border-purple-900:focus,.focus\:border-purple-950:focus,.focus\:border-violet-50:focus,.focus\:border-violet-100:focus,.focus\:border-violet-200:focus,.focus\:border-violet-300:focus,.focus\:border-violet-400:focus,.focus\:border-violet-500:focus,.focus\:border-violet-600:focus,.focus\:border-violet-700:focus,.focus\:border-violet-800:focus,.focus\:border-violet-900:focus,.focus\:border-violet-950:focus,.focus\:border-fuchsia-50:focus,.focus\:border-fuchsia-100:focus,.focus\:border-fuchsia-200:focus,.focus\:border-fuchsia-300:focus,.focus\:border-fuchsia-400:focus,.focus\:border-fuchsia-500:focus,.focus\:border-fuchsia-600:focus,.focus\:border-fuchsia-700:focus,.focus\:border-fuchsia-800:focus,.focus\:border-fuchsia-900:focus,.focus\:border-fuchsia-950:focus,.focus\:border-pink-50:focus,.focus\:border-pink-100:focus,.focus\:border-pink-200:focus,.focus\:border-pink-300:focus,.focus\:border-pink-400:focus,.focus\:border-pink-500:focus,.focus\:border-pink-600:focus,.focus\:border-pink-700:focus,.focus\:border-pink-800:focus,.focus\:border-pink-900:focus,.focus\:border-pink-950:focus,.focus\:border-orange-50:focus,.focus\:border-orange-100:focus,.focus\:border-orange-200:focus,.focus\:border-orange-300:focus,.focus\:border-orange-400:focus,.focus\:border-orange-500:focus,.focus\:border-orange-600:focus,.focus\:border-orange-700:focus,.focus\:border-orange-800:focus,.focus\:border-orange-900:focus,.focus\:border-orange-950:focus) { border-color: var(--nexus-secondary-tint) !important; }
+:where(.border-amber-50,.border-amber-100,.border-amber-200,.border-amber-300,.border-amber-400,.border-amber-500,.border-amber-600,.border-amber-700,.border-amber-800,.border-amber-900,.border-amber-950,.border-yellow-50,.border-yellow-100,.border-yellow-200,.border-yellow-300,.border-yellow-400,.border-yellow-500,.border-yellow-600,.border-yellow-700,.border-yellow-800,.border-yellow-900,.border-yellow-950,.hover\:border-amber-50:hover,.hover\:border-amber-100:hover,.hover\:border-amber-200:hover,.hover\:border-amber-300:hover,.hover\:border-amber-400:hover,.hover\:border-amber-500:hover,.hover\:border-amber-600:hover,.hover\:border-amber-700:hover,.hover\:border-amber-800:hover,.hover\:border-amber-900:hover,.hover\:border-amber-950:hover,.hover\:border-yellow-50:hover,.hover\:border-yellow-100:hover,.hover\:border-yellow-200:hover,.hover\:border-yellow-300:hover,.hover\:border-yellow-400:hover,.hover\:border-yellow-500:hover,.hover\:border-yellow-600:hover,.hover\:border-yellow-700:hover,.hover\:border-yellow-800:hover,.hover\:border-yellow-900:hover,.hover\:border-yellow-950:hover,.focus\:border-amber-50:focus,.focus\:border-amber-100:focus,.focus\:border-amber-200:focus,.focus\:border-amber-300:focus,.focus\:border-amber-400:focus,.focus\:border-amber-500:focus,.focus\:border-amber-600:focus,.focus\:border-amber-700:focus,.focus\:border-amber-800:focus,.focus\:border-amber-900:focus,.focus\:border-amber-950:focus,.focus\:border-yellow-50:focus,.focus\:border-yellow-100:focus,.focus\:border-yellow-200:focus,.focus\:border-yellow-300:focus,.focus\:border-yellow-400:focus,.focus\:border-yellow-500:focus,.focus\:border-yellow-600:focus,.focus\:border-yellow-700:focus,.focus\:border-yellow-800:focus,.focus\:border-yellow-900:focus,.focus\:border-yellow-950:focus) { border-color: color-mix(in srgb, var(--nexus-accent) 18%, white) !important; }
+:where(.ring-emerald-50,.ring-emerald-100,.ring-emerald-200,.ring-emerald-300,.ring-emerald-400,.ring-emerald-500,.ring-emerald-600,.ring-emerald-700,.ring-emerald-800,.ring-emerald-900,.ring-emerald-950,.ring-green-50,.ring-green-100,.ring-green-200,.ring-green-300,.ring-green-400,.ring-green-500,.ring-green-600,.ring-green-700,.ring-green-800,.ring-green-900,.ring-green-950,.ring-blue-50,.ring-blue-100,.ring-blue-200,.ring-blue-300,.ring-blue-400,.ring-blue-500,.ring-blue-600,.ring-blue-700,.ring-blue-800,.ring-blue-900,.ring-blue-950,.ring-sky-50,.ring-sky-100,.ring-sky-200,.ring-sky-300,.ring-sky-400,.ring-sky-500,.ring-sky-600,.ring-sky-700,.ring-sky-800,.ring-sky-900,.ring-sky-950,.ring-cyan-50,.ring-cyan-100,.ring-cyan-200,.ring-cyan-300,.ring-cyan-400,.ring-cyan-500,.ring-cyan-600,.ring-cyan-700,.ring-cyan-800,.ring-cyan-900,.ring-cyan-950,.ring-teal-50,.ring-teal-100,.ring-teal-200,.ring-teal-300,.ring-teal-400,.ring-teal-500,.ring-teal-600,.ring-teal-700,.ring-teal-800,.ring-teal-900,.ring-teal-950,.ring-indigo-50,.ring-indigo-100,.ring-indigo-200,.ring-indigo-300,.ring-indigo-400,.ring-indigo-500,.ring-indigo-600,.ring-indigo-700,.ring-indigo-800,.ring-indigo-900,.ring-indigo-950,.ring-lime-50,.ring-lime-100,.ring-lime-200,.ring-lime-300,.ring-lime-400,.ring-lime-500,.ring-lime-600,.ring-lime-700,.ring-lime-800,.ring-lime-900,.ring-lime-950,.focus\:ring-emerald-50:focus,.focus\:ring-emerald-100:focus,.focus\:ring-emerald-200:focus,.focus\:ring-emerald-300:focus,.focus\:ring-emerald-400:focus,.focus\:ring-emerald-500:focus,.focus\:ring-emerald-600:focus,.focus\:ring-emerald-700:focus,.focus\:ring-emerald-800:focus,.focus\:ring-emerald-900:focus,.focus\:ring-emerald-950:focus,.focus\:ring-green-50:focus,.focus\:ring-green-100:focus,.focus\:ring-green-200:focus,.focus\:ring-green-300:focus,.focus\:ring-green-400:focus,.focus\:ring-green-500:focus,.focus\:ring-green-600:focus,.focus\:ring-green-700:focus,.focus\:ring-green-800:focus,.focus\:ring-green-900:focus,.focus\:ring-green-950:focus,.focus\:ring-blue-50:focus,.focus\:ring-blue-100:focus,.focus\:ring-blue-200:focus,.focus\:ring-blue-300:focus,.focus\:ring-blue-400:focus,.focus\:ring-blue-500:focus,.focus\:ring-blue-600:focus,.focus\:ring-blue-700:focus,.focus\:ring-blue-800:focus,.focus\:ring-blue-900:focus,.focus\:ring-blue-950:focus,.focus\:ring-sky-50:focus,.focus\:ring-sky-100:focus,.focus\:ring-sky-200:focus,.focus\:ring-sky-300:focus,.focus\:ring-sky-400:focus,.focus\:ring-sky-500:focus,.focus\:ring-sky-600:focus,.focus\:ring-sky-700:focus,.focus\:ring-sky-800:focus,.focus\:ring-sky-900:focus,.focus\:ring-sky-950:focus,.focus\:ring-cyan-50:focus,.focus\:ring-cyan-100:focus,.focus\:ring-cyan-200:focus,.focus\:ring-cyan-300:focus,.focus\:ring-cyan-400:focus,.focus\:ring-cyan-500:focus,.focus\:ring-cyan-600:focus,.focus\:ring-cyan-700:focus,.focus\:ring-cyan-800:focus,.focus\:ring-cyan-900:focus,.focus\:ring-cyan-950:focus,.focus\:ring-teal-50:focus,.focus\:ring-teal-100:focus,.focus\:ring-teal-200:focus,.focus\:ring-teal-300:focus,.focus\:ring-teal-400:focus,.focus\:ring-teal-500:focus,.focus\:ring-teal-600:focus,.focus\:ring-teal-700:focus,.focus\:ring-teal-800:focus,.focus\:ring-teal-900:focus,.focus\:ring-teal-950:focus,.focus\:ring-indigo-50:focus,.focus\:ring-indigo-100:focus,.focus\:ring-indigo-200:focus,.focus\:ring-indigo-300:focus,.focus\:ring-indigo-400:focus,.focus\:ring-indigo-500:focus,.focus\:ring-indigo-600:focus,.focus\:ring-indigo-700:focus,.focus\:ring-indigo-800:focus,.focus\:ring-indigo-900:focus,.focus\:ring-indigo-950:focus,.focus\:ring-lime-50:focus,.focus\:ring-lime-100:focus,.focus\:ring-lime-200:focus,.focus\:ring-lime-300:focus,.focus\:ring-lime-400:focus,.focus\:ring-lime-500:focus,.focus\:ring-lime-600:focus,.focus\:ring-lime-700:focus,.focus\:ring-lime-800:focus,.focus\:ring-lime-900:focus,.focus\:ring-lime-950:focus) { --tw-ring-color: var(--nexus-primary-tint) !important; }
+:where(.ring-red-50,.ring-red-100,.ring-red-200,.ring-red-300,.ring-red-400,.ring-red-500,.ring-red-600,.ring-red-700,.ring-red-800,.ring-red-900,.ring-red-950,.ring-rose-50,.ring-rose-100,.ring-rose-200,.ring-rose-300,.ring-rose-400,.ring-rose-500,.ring-rose-600,.ring-rose-700,.ring-rose-800,.ring-rose-900,.ring-rose-950,.ring-purple-50,.ring-purple-100,.ring-purple-200,.ring-purple-300,.ring-purple-400,.ring-purple-500,.ring-purple-600,.ring-purple-700,.ring-purple-800,.ring-purple-900,.ring-purple-950,.ring-violet-50,.ring-violet-100,.ring-violet-200,.ring-violet-300,.ring-violet-400,.ring-violet-500,.ring-violet-600,.ring-violet-700,.ring-violet-800,.ring-violet-900,.ring-violet-950,.ring-fuchsia-50,.ring-fuchsia-100,.ring-fuchsia-200,.ring-fuchsia-300,.ring-fuchsia-400,.ring-fuchsia-500,.ring-fuchsia-600,.ring-fuchsia-700,.ring-fuchsia-800,.ring-fuchsia-900,.ring-fuchsia-950,.ring-pink-50,.ring-pink-100,.ring-pink-200,.ring-pink-300,.ring-pink-400,.ring-pink-500,.ring-pink-600,.ring-pink-700,.ring-pink-800,.ring-pink-900,.ring-pink-950,.ring-orange-50,.ring-orange-100,.ring-orange-200,.ring-orange-300,.ring-orange-400,.ring-orange-500,.ring-orange-600,.ring-orange-700,.ring-orange-800,.ring-orange-900,.ring-orange-950,.focus\:ring-red-50:focus,.focus\:ring-red-100:focus,.focus\:ring-red-200:focus,.focus\:ring-red-300:focus,.focus\:ring-red-400:focus,.focus\:ring-red-500:focus,.focus\:ring-red-600:focus,.focus\:ring-red-700:focus,.focus\:ring-red-800:focus,.focus\:ring-red-900:focus,.focus\:ring-red-950:focus,.focus\:ring-rose-50:focus,.focus\:ring-rose-100:focus,.focus\:ring-rose-200:focus,.focus\:ring-rose-300:focus,.focus\:ring-rose-400:focus,.focus\:ring-rose-500:focus,.focus\:ring-rose-600:focus,.focus\:ring-rose-700:focus,.focus\:ring-rose-800:focus,.focus\:ring-rose-900:focus,.focus\:ring-rose-950:focus,.focus\:ring-purple-50:focus,.focus\:ring-purple-100:focus,.focus\:ring-purple-200:focus,.focus\:ring-purple-300:focus,.focus\:ring-purple-400:focus,.focus\:ring-purple-500:focus,.focus\:ring-purple-600:focus,.focus\:ring-purple-700:focus,.focus\:ring-purple-800:focus,.focus\:ring-purple-900:focus,.focus\:ring-purple-950:focus,.focus\:ring-violet-50:focus,.focus\:ring-violet-100:focus,.focus\:ring-violet-200:focus,.focus\:ring-violet-300:focus,.focus\:ring-violet-400:focus,.focus\:ring-violet-500:focus,.focus\:ring-violet-600:focus,.focus\:ring-violet-700:focus,.focus\:ring-violet-800:focus,.focus\:ring-violet-900:focus,.focus\:ring-violet-950:focus,.focus\:ring-fuchsia-50:focus,.focus\:ring-fuchsia-100:focus,.focus\:ring-fuchsia-200:focus,.focus\:ring-fuchsia-300:focus,.focus\:ring-fuchsia-400:focus,.focus\:ring-fuchsia-500:focus,.focus\:ring-fuchsia-600:focus,.focus\:ring-fuchsia-700:focus,.focus\:ring-fuchsia-800:focus,.focus\:ring-fuchsia-900:focus,.focus\:ring-fuchsia-950:focus,.focus\:ring-pink-50:focus,.focus\:ring-pink-100:focus,.focus\:ring-pink-200:focus,.focus\:ring-pink-300:focus,.focus\:ring-pink-400:focus,.focus\:ring-pink-500:focus,.focus\:ring-pink-600:focus,.focus\:ring-pink-700:focus,.focus\:ring-pink-800:focus,.focus\:ring-pink-900:focus,.focus\:ring-pink-950:focus,.focus\:ring-orange-50:focus,.focus\:ring-orange-100:focus,.focus\:ring-orange-200:focus,.focus\:ring-orange-300:focus,.focus\:ring-orange-400:focus,.focus\:ring-orange-500:focus,.focus\:ring-orange-600:focus,.focus\:ring-orange-700:focus,.focus\:ring-orange-800:focus,.focus\:ring-orange-900:focus,.focus\:ring-orange-950:focus) { --tw-ring-color: var(--nexus-secondary-tint) !important; }
+:where(.ring-amber-50,.ring-amber-100,.ring-amber-200,.ring-amber-300,.ring-amber-400,.ring-amber-500,.ring-amber-600,.ring-amber-700,.ring-amber-800,.ring-amber-900,.ring-amber-950,.ring-yellow-50,.ring-yellow-100,.ring-yellow-200,.ring-yellow-300,.ring-yellow-400,.ring-yellow-500,.ring-yellow-600,.ring-yellow-700,.ring-yellow-800,.ring-yellow-900,.ring-yellow-950,.focus\:ring-amber-50:focus,.focus\:ring-amber-100:focus,.focus\:ring-amber-200:focus,.focus\:ring-amber-300:focus,.focus\:ring-amber-400:focus,.focus\:ring-amber-500:focus,.focus\:ring-amber-600:focus,.focus\:ring-amber-700:focus,.focus\:ring-amber-800:focus,.focus\:ring-amber-900:focus,.focus\:ring-amber-950:focus,.focus\:ring-yellow-50:focus,.focus\:ring-yellow-100:focus,.focus\:ring-yellow-200:focus,.focus\:ring-yellow-300:focus,.focus\:ring-yellow-400:focus,.focus\:ring-yellow-500:focus,.focus\:ring-yellow-600:focus,.focus\:ring-yellow-700:focus,.focus\:ring-yellow-800:focus,.focus\:ring-yellow-900:focus,.focus\:ring-yellow-950:focus) { --tw-ring-color: color-mix(in srgb, var(--nexus-accent) 18%, white) !important; }
+
+/* Brand-only gradients for components that still use Tailwind gradient utilities. */
+.bg-gradient-to-br,
+.bg-gradient-to-r,
+.bg-gradient-to-l,
+.bg-gradient-to-t,
+.bg-gradient-to-b {
+  background-image: linear-gradient(135deg, var(--nexus-primary) 0%, var(--nexus-primary) 60%, var(--nexus-secondary) 100%) !important;
+}
+
+/* Normalize legacy inline color declarations that existed before the design system. */
+:where([style*="#0c447c"], [style*="#0C447C"], [style*="#3C3489"], [style*="#854F0B"]) { color: var(--nexus-primary) !important; }
+:where([style*="#E5243B"], [style*="#C5192D"], [style*="#FF3A21"], [style*="#A21942"], [style*="#FD6925"], [style*="#DD1367"], [style*="#FD9D24"]) { color: var(--nexus-secondary) !important; }
+:where([style*="#DDA63A"], [style*="#FCC30B"], [style*="#BF8B2E"]) { color: var(--nexus-accent-ink) !important; }
+:where([style*="#4C9F38"], [style*="#26BDE2"], [style*="#3F7E44"], [style*="#0A97D9"], [style*="#56C02B"], [style*="#00689D"], [style*="#19486A"]) { color: var(--nexus-primary) !important; }
+
+/* Public hero and section primitives */
+.nexus-hero,
+.hero-unified {
+  position: relative;
+  overflow: hidden;
+  background: #fff !important;
+  color: var(--nexus-ink) !important;
+  border-bottom: 1px solid var(--nexus-line);
+}
+.nexus-hero { padding: 5rem 0 4.5rem; }
+.nexus-hero::before,
+.hero-unified::before,
+.nexus-hero .hero-glow,
+.nexus-hero .hero-glow-2,
+.hero-unified .hero-glow,
+.hero-unified .hero-glow-2,
+.nexus-hero [style*="radial-gradient"],
+.hero-unified [style*="radial-gradient"] { display: none !important; }
+.nexus-hero-inner {
+  width: min(100% - 3rem, 72rem);
+  margin-inline: auto;
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+.nexus-hero-inner.is-split { grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); }
+.nexus-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid var(--nexus-primary-tint);
+  border-radius: 999px;
+  background: var(--nexus-primary-soft);
+  color: var(--nexus-primary) !important;
+  padding: .35rem .75rem;
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+}
+.nexus-hero-title,
+.nexus-hero h1,
+.hero-unified h1,
+.hero-unified h2,
+.hero-unified h3 {
+  color: var(--nexus-ink) !important;
+  max-width: 56rem;
+  font-size: clamp(2.25rem, 5vw, 4.5rem) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.045em !important;
+  font-weight: 800 !important;
+}
+.nexus-hero-copy,
+.nexus-hero p,
+.hero-unified p {
+  color: #475569 !important;
+  max-width: 44rem;
+  font-size: clamp(1rem, 1.5vw, 1.125rem) !important;
+  line-height: 1.75 !important;
+}
+.nexus-hero-panel {
+  background: var(--nexus-surface-soft);
+  border: 1px solid var(--nexus-line);
+  border-radius: var(--nexus-radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--nexus-shadow-sm);
+}
+@media (max-width: 1024px) { .nexus-hero-inner.is-split { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .nexus-hero { padding: 3.5rem 0 3rem; } .nexus-hero-inner { width: min(100% - 2rem, 72rem); } }
+
+.card-unified,
+.section-unified {
+  background: var(--nexus-surface);
+  border: 1px solid var(--nexus-line);
+  border-radius: var(--nexus-radius-lg);
+  box-shadow: var(--nexus-shadow-sm);
+}
+.card-unified { transition: border-color .14s ease, box-shadow .14s ease; }
+.card-unified:hover { border-color: var(--nexus-line-strong); box-shadow: var(--nexus-shadow-sm); transform: none; }
+.section-unified { overflow: hidden; }
+
+/* Buttons */
+.btn-unified,
+.nexus-btn-primary,
+.dir-btn,
+.dir-btn-primary,
+.quick-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: .75rem !important;
+  font-weight: 700 !important;
+  transition: background .14s ease, border-color .14s ease, color .14s ease, opacity .14s ease !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+.btn-unified { padding: .6rem 1rem; font-size: .85rem; border: 1px solid transparent; }
+.btn-primary,
+.nexus-btn-primary,
+.dir-btn-primary,
+.dir-btn.filled {
+  background: var(--nexus-primary) !important;
+  color: #fff !important;
+  border-color: var(--nexus-primary) !important;
+}
+.btn-primary:hover,
+.nexus-btn-primary:hover,
+.dir-btn-primary:hover,
+.dir-btn.filled:hover { opacity: .9 !important; }
+.btn-secondary,
+.dir-btn,
+.quick-tab-btn {
+  background: #fff !important;
+  color: var(--nexus-primary) !important;
+  border: 1px solid var(--nexus-line-strong) !important;
+}
+.btn-secondary:hover,
+.dir-btn:hover,
+.quick-tab-btn:hover {
+  background: var(--nexus-60-pale) !important;
+  color: var(--nexus-primary) !important;
+  border-color: rgba(16, 59, 7, .22) !important;
+}
 
 /* Forms */
-input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], input[type="search"], input[type="tel"], input[type="url"], select, textarea { border-color: var(--nexus-line) !important; border-radius: .9rem !important; background-color: rgba(255,255,255,.96) !important; color: var(--nexus-ink) !important; box-shadow: inset 0 1px 2px rgba(15,23,42,.03); transition: border-color .16s ease, box-shadow .16s ease; }
-input:focus, select:focus, textarea:focus { border-color: rgba(16,59,7,.55) !important; box-shadow: 0 0 0 4px rgba(16,59,7,.08) !important; outline: none !important; }
-label { color: #334155; font-weight: 700; }
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="file"],
+select,
+textarea,
+.dir-input {
+  border-color: var(--nexus-line-strong) !important;
+  border-radius: .75rem !important;
+  background-color: #fff !important;
+  color: var(--nexus-ink) !important;
+  box-shadow: none !important;
+  transition: border-color .14s ease, box-shadow .14s ease, background .14s ease;
+}
+input:focus,
+select:focus,
+textarea:focus,
+.dir-input:focus {
+  border-color: rgba(16, 59, 7, .45) !important;
+  box-shadow: var(--nexus-focus) !important;
+  outline: none !important;
+}
+label { color: #334155; font-weight: 650; }
 
 /* Tables */
 table { border-collapse: separate; border-spacing: 0; }
-thead th { background: #f8faf7 !important; color: #64748b !important; letter-spacing: .06em; text-transform: uppercase; font-weight: 800; }
-tbody tr { transition: background .14s ease; }
-tbody tr:hover { background: rgba(16,59,7,.035) !important; }
+thead th {
+  background: #f8faf8 !important;
+  color: #64748b !important;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+  font-weight: 750;
+}
+tbody tr { transition: background .12s ease; }
+tbody tr:hover { background: rgba(16, 59, 7, .03) !important; }
 
-/* Badges — unified */
-.badge-unified { border-radius: 999px; padding: .35rem .9rem; font-size: .7rem; font-weight: 800; letter-spacing: .04em; border: 1px solid; text-transform: uppercase; }
+/* Badges */
+.badge,
+.badge-unified,
+[class*="badge-"] {
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+  letter-spacing: .02em;
+}
+.badge-unified { padding: .32rem .75rem; font-size: .68rem; border: 1px solid; text-transform: uppercase; }
 
-/* Dashboard nav */
-.dashboard-nav-btn { border-radius: 1rem !important; padding: .7rem .9rem !important; color: #64748b; font-weight: 800; transition: background .16s ease, color .16s ease, transform .14s ease; }
-.dashboard-nav-btn:hover { background: var(--nexus-60-pale) !important; color: var(--nexus-60) !important; }
-.dashboard-nav-btn.active { background: linear-gradient(135deg, rgba(16,59,7,.10), rgba(245,229,135,.18)) !important; color: var(--nexus-60) !important; }
+/* Dashboard unification */
+.dir-card,
+.kpi-card,
+.section-block,
+.ext-card,
+.rq-card,
+.mine-card,
+.prop-row,
+.rounded-2xl.border,
+.rounded-xl.border {
+  box-shadow: var(--nexus-shadow-sm) !important;
+}
+.dir-card,
+.kpi-card,
+.section-block,
+.ext-card,
+.rq-card,
+.mine-card {
+  background: #fff !important;
+  border: 1px solid var(--nexus-line) !important;
+  border-radius: var(--nexus-radius-lg) !important;
+}
+.kpi-card,
+.ext-card,
+.rq-card,
+.mine-card { padding: 1rem !important; }
+.kpi-card:hover,
+.ext-card:hover,
+.rq-card:hover,
+.mine-card:hover,
+.prop-row:hover {
+  transform: none !important;
+  box-shadow: var(--nexus-shadow-sm) !important;
+  border-color: var(--nexus-line-strong) !important;
+}
+.dir-card-accent {
+  height: 1px !important;
+  background: var(--nexus-line) !important;
+  border-radius: var(--nexus-radius-lg) var(--nexus-radius-lg) 0 0 !important;
+}
+.section-block-head {
+  border-bottom: 1px solid var(--nexus-line) !important;
+  padding: 1rem 1.25rem !important;
+}
+.section-label {
+  color: #64748b !important;
+  font-weight: 750 !important;
+  letter-spacing: .08em !important;
+}
+.dashboard-nav-btn {
+  border-radius: .75rem !important;
+  padding: .65rem .8rem !important;
+  color: #64748b !important;
+  font-weight: 700 !important;
+  transition: background .14s ease, color .14s ease !important;
+}
+.dashboard-nav-btn:hover { background: var(--nexus-60-pale) !important; color: var(--nexus-primary) !important; }
+.dashboard-nav-btn.active { background: var(--nexus-60-pale) !important; color: var(--nexus-primary) !important; }
 
-/* Mobile */
+/* Progress/gauge helpers */
+.stage-bar-track,
+.seg-bar { background: #eef2f0 !important; }
+.stage-bar-fill,
+.seg-fill { transition-duration: .8s !important; }
+
+/* Footer */
+.nexus-footer {
+  background: #0f172a !important;
+  margin-top: 4rem !important;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+.nexus-footer h3,
+.nexus-footer h4 { font-weight: 750 !important; }
+
+/* General UX polish */
+a { text-underline-offset: 3px; }
+button:focus-visible,
+a:focus-visible { outline: none; box-shadow: var(--nexus-focus); }
+img, svg { flex-shrink: 0; }
+
 @media (max-width: 768px) {
-  .nexus-navbar { height: 4.5rem; }
-  .nexus-shell { padding-top: 4.5rem !important; }
-  #toast-container { top: 5.25rem !important; left: 1rem; right: 1rem; }
-  .section-unified, .card-unified { border-radius: 1rem !important; }
+  .nexus-navbar { height: 4.25rem; }
+  .nexus-shell { padding-top: 4.25rem !important; }
+  #toast-container { top: 5rem !important; left: 1rem; right: 1rem; }
+  .section-unified,
+  .card-unified,
+  .dir-card,
+  .kpi-card,
+  .section-block,
+  .ext-card,
+  .rq-card,
+  .mine-card { border-radius: .875rem !important; }
   table { font-size: .85rem; }
 }
-@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .001ms !important; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+
+/* System-wide readability and component safety pass */
+/* Dark brand surfaces: force readable white text even when legacy utility
+   classes request green/maroon/yellow/blue text. This fixes dashboard cards,
+   menus, toasts, wizard notices, and old gradient headers. */
+:where(.bg-primary,.bg-secondary,.dir-btn-primary,.dir-btn.filled,.btn-primary,.nexus-btn-primary,.dashboard-nav-btn.active,.bg-emerald-500,.bg-emerald-600,.bg-emerald-700,.bg-emerald-800,.bg-emerald-900,.bg-emerald-950,.bg-green-500,.bg-green-600,.bg-green-700,.bg-green-800,.bg-green-900,.bg-green-950,.bg-blue-500,.bg-blue-600,.bg-blue-700,.bg-blue-800,.bg-blue-900,.bg-blue-950,.bg-sky-500,.bg-sky-600,.bg-sky-700,.bg-sky-800,.bg-sky-900,.bg-sky-950,.bg-cyan-500,.bg-cyan-600,.bg-cyan-700,.bg-cyan-800,.bg-cyan-900,.bg-cyan-950,.bg-teal-500,.bg-teal-600,.bg-teal-700,.bg-teal-800,.bg-teal-900,.bg-teal-950,.bg-indigo-500,.bg-indigo-600,.bg-indigo-700,.bg-indigo-800,.bg-indigo-900,.bg-indigo-950,.bg-lime-500,.bg-lime-600,.bg-lime-700,.bg-lime-800,.bg-lime-900,.bg-lime-950,.bg-red-500,.bg-red-600,.bg-red-700,.bg-red-800,.bg-red-900,.bg-red-950,.bg-rose-500,.bg-rose-600,.bg-rose-700,.bg-rose-800,.bg-rose-900,.bg-rose-950,.bg-purple-500,.bg-purple-600,.bg-purple-700,.bg-purple-800,.bg-purple-900,.bg-purple-950,.bg-violet-500,.bg-violet-600,.bg-violet-700,.bg-violet-800,.bg-violet-900,.bg-violet-950,.bg-fuchsia-500,.bg-fuchsia-600,.bg-fuchsia-700,.bg-fuchsia-800,.bg-fuchsia-900,.bg-fuchsia-950,.bg-pink-500,.bg-pink-600,.bg-pink-700,.bg-pink-800,.bg-pink-900,.bg-pink-950,.bg-orange-500,.bg-orange-600,.bg-orange-700,.bg-orange-800,.bg-orange-900,.bg-orange-950,.bg-amber-500,.bg-amber-600,.bg-amber-700,.bg-amber-800,.bg-amber-900,.bg-amber-950,.bg-yellow-500,.bg-yellow-600,.bg-yellow-700,.bg-yellow-800,.bg-yellow-900,.bg-yellow-950,.bg-gradient-to-br,.bg-gradient-to-r,.bg-gradient-to-l,.bg-gradient-to-t,.bg-gradient-to-b) :where(.text-primary,.text-secondary,.text-gray-950,.text-gray-900,.text-gray-800,.text-gray-700,.text-gray-600,.text-slate-950,.text-slate-900,.text-slate-800,.text-slate-700,.text-slate-600,.text-emerald-50,.text-emerald-100,.text-emerald-200,.text-emerald-300,.text-emerald-400,.text-emerald-500,.text-emerald-600,.text-emerald-700,.text-emerald-800,.text-emerald-900,.text-emerald-950,.text-green-50,.text-green-100,.text-green-200,.text-green-300,.text-green-400,.text-green-500,.text-green-600,.text-green-700,.text-green-800,.text-green-900,.text-green-950,.text-blue-50,.text-blue-100,.text-blue-200,.text-blue-300,.text-blue-400,.text-blue-500,.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900,.text-blue-950,.text-sky-50,.text-sky-100,.text-sky-200,.text-sky-300,.text-sky-400,.text-sky-500,.text-sky-600,.text-sky-700,.text-sky-800,.text-sky-900,.text-sky-950,.text-cyan-50,.text-cyan-100,.text-cyan-200,.text-cyan-300,.text-cyan-400,.text-cyan-500,.text-cyan-600,.text-cyan-700,.text-cyan-800,.text-cyan-900,.text-cyan-950,.text-teal-50,.text-teal-100,.text-teal-200,.text-teal-300,.text-teal-400,.text-teal-500,.text-teal-600,.text-teal-700,.text-teal-800,.text-teal-900,.text-teal-950,.text-indigo-50,.text-indigo-100,.text-indigo-200,.text-indigo-300,.text-indigo-400,.text-indigo-500,.text-indigo-600,.text-indigo-700,.text-indigo-800,.text-indigo-900,.text-indigo-950,.text-lime-50,.text-lime-100,.text-lime-200,.text-lime-300,.text-lime-400,.text-lime-500,.text-lime-600,.text-lime-700,.text-lime-800,.text-lime-900,.text-lime-950,.text-red-50,.text-red-100,.text-red-200,.text-red-300,.text-red-400,.text-red-500,.text-red-600,.text-red-700,.text-red-800,.text-red-900,.text-red-950,.text-rose-50,.text-rose-100,.text-rose-200,.text-rose-300,.text-rose-400,.text-rose-500,.text-rose-600,.text-rose-700,.text-rose-800,.text-rose-900,.text-rose-950,.text-purple-50,.text-purple-100,.text-purple-200,.text-purple-300,.text-purple-400,.text-purple-500,.text-purple-600,.text-purple-700,.text-purple-800,.text-purple-900,.text-purple-950,.text-violet-50,.text-violet-100,.text-violet-200,.text-violet-300,.text-violet-400,.text-violet-500,.text-violet-600,.text-violet-700,.text-violet-800,.text-violet-900,.text-violet-950,.text-fuchsia-50,.text-fuchsia-100,.text-fuchsia-200,.text-fuchsia-300,.text-fuchsia-400,.text-fuchsia-500,.text-fuchsia-600,.text-fuchsia-700,.text-fuchsia-800,.text-fuchsia-900,.text-fuchsia-950,.text-pink-50,.text-pink-100,.text-pink-200,.text-pink-300,.text-pink-400,.text-pink-500,.text-pink-600,.text-pink-700,.text-pink-800,.text-pink-900,.text-pink-950,.text-orange-50,.text-orange-100,.text-orange-200,.text-orange-300,.text-orange-400,.text-orange-500,.text-orange-600,.text-orange-700,.text-orange-800,.text-orange-900,.text-orange-950,.text-amber-50,.text-amber-100,.text-amber-200,.text-amber-300,.text-amber-400,.text-amber-500,.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900,.text-amber-950,.text-yellow-50,.text-yellow-100,.text-yellow-200,.text-yellow-300,.text-yellow-400,.text-yellow-500,.text-yellow-600,.text-yellow-700,.text-yellow-800,.text-yellow-900,.text-yellow-950) {
+  color: #ffffff !important;
+}
+:where(.bg-primary,.bg-secondary,.dir-btn-primary,.dir-btn.filled,.btn-primary,.nexus-btn-primary,.dashboard-nav-btn.active,.bg-emerald-500,.bg-emerald-600,.bg-emerald-700,.bg-emerald-800,.bg-emerald-900,.bg-emerald-950,.bg-green-500,.bg-green-600,.bg-green-700,.bg-green-800,.bg-green-900,.bg-green-950,.bg-blue-500,.bg-blue-600,.bg-blue-700,.bg-blue-800,.bg-blue-900,.bg-blue-950,.bg-sky-500,.bg-sky-600,.bg-sky-700,.bg-sky-800,.bg-sky-900,.bg-sky-950,.bg-cyan-500,.bg-cyan-600,.bg-cyan-700,.bg-cyan-800,.bg-cyan-900,.bg-cyan-950,.bg-teal-500,.bg-teal-600,.bg-teal-700,.bg-teal-800,.bg-teal-900,.bg-teal-950,.bg-indigo-500,.bg-indigo-600,.bg-indigo-700,.bg-indigo-800,.bg-indigo-900,.bg-indigo-950,.bg-lime-500,.bg-lime-600,.bg-lime-700,.bg-lime-800,.bg-lime-900,.bg-lime-950,.bg-red-500,.bg-red-600,.bg-red-700,.bg-red-800,.bg-red-900,.bg-red-950,.bg-rose-500,.bg-rose-600,.bg-rose-700,.bg-rose-800,.bg-rose-900,.bg-rose-950,.bg-purple-500,.bg-purple-600,.bg-purple-700,.bg-purple-800,.bg-purple-900,.bg-purple-950,.bg-violet-500,.bg-violet-600,.bg-violet-700,.bg-violet-800,.bg-violet-900,.bg-violet-950,.bg-fuchsia-500,.bg-fuchsia-600,.bg-fuchsia-700,.bg-fuchsia-800,.bg-fuchsia-900,.bg-fuchsia-950,.bg-pink-500,.bg-pink-600,.bg-pink-700,.bg-pink-800,.bg-pink-900,.bg-pink-950,.bg-orange-500,.bg-orange-600,.bg-orange-700,.bg-orange-800,.bg-orange-900,.bg-orange-950,.bg-amber-500,.bg-amber-600,.bg-amber-700,.bg-amber-800,.bg-amber-900,.bg-amber-950,.bg-yellow-500,.bg-yellow-600,.bg-yellow-700,.bg-yellow-800,.bg-yellow-900,.bg-yellow-950,.bg-gradient-to-br,.bg-gradient-to-r,.bg-gradient-to-l,.bg-gradient-to-t,.bg-gradient-to-b) :where(.text-white,.text-white\/80,.text-white\/90) { color: #ffffff !important; }
+:where(.bg-primary,.bg-secondary,.dir-btn-primary,.dir-btn.filled,.btn-primary,.nexus-btn-primary,.dashboard-nav-btn.active,.bg-emerald-500,.bg-emerald-600,.bg-emerald-700,.bg-emerald-800,.bg-emerald-900,.bg-emerald-950,.bg-green-500,.bg-green-600,.bg-green-700,.bg-green-800,.bg-green-900,.bg-green-950,.bg-blue-500,.bg-blue-600,.bg-blue-700,.bg-blue-800,.bg-blue-900,.bg-blue-950,.bg-sky-500,.bg-sky-600,.bg-sky-700,.bg-sky-800,.bg-sky-900,.bg-sky-950,.bg-cyan-500,.bg-cyan-600,.bg-cyan-700,.bg-cyan-800,.bg-cyan-900,.bg-cyan-950,.bg-teal-500,.bg-teal-600,.bg-teal-700,.bg-teal-800,.bg-teal-900,.bg-teal-950,.bg-indigo-500,.bg-indigo-600,.bg-indigo-700,.bg-indigo-800,.bg-indigo-900,.bg-indigo-950,.bg-lime-500,.bg-lime-600,.bg-lime-700,.bg-lime-800,.bg-lime-900,.bg-lime-950,.bg-red-500,.bg-red-600,.bg-red-700,.bg-red-800,.bg-red-900,.bg-red-950,.bg-rose-500,.bg-rose-600,.bg-rose-700,.bg-rose-800,.bg-rose-900,.bg-rose-950,.bg-purple-500,.bg-purple-600,.bg-purple-700,.bg-purple-800,.bg-purple-900,.bg-purple-950,.bg-violet-500,.bg-violet-600,.bg-violet-700,.bg-violet-800,.bg-violet-900,.bg-violet-950,.bg-fuchsia-500,.bg-fuchsia-600,.bg-fuchsia-700,.bg-fuchsia-800,.bg-fuchsia-900,.bg-fuchsia-950,.bg-pink-500,.bg-pink-600,.bg-pink-700,.bg-pink-800,.bg-pink-900,.bg-pink-950,.bg-orange-500,.bg-orange-600,.bg-orange-700,.bg-orange-800,.bg-orange-900,.bg-orange-950,.bg-amber-500,.bg-amber-600,.bg-amber-700,.bg-amber-800,.bg-amber-900,.bg-amber-950,.bg-yellow-500,.bg-yellow-600,.bg-yellow-700,.bg-yellow-800,.bg-yellow-900,.bg-yellow-950,.bg-gradient-to-br,.bg-gradient-to-r,.bg-gradient-to-l,.bg-gradient-to-t,.bg-gradient-to-b) :where(.border-gray-100,.border-gray-200,.border-slate-100,.border-slate-200) { border-color: rgba(255,255,255,.22) !important; }
+:where(.bg-primary,.bg-secondary,.dir-btn-primary,.dir-btn.filled,.btn-primary,.nexus-btn-primary,.dashboard-nav-btn.active,.bg-emerald-500,.bg-emerald-600,.bg-emerald-700,.bg-emerald-800,.bg-emerald-900,.bg-emerald-950,.bg-green-500,.bg-green-600,.bg-green-700,.bg-green-800,.bg-green-900,.bg-green-950,.bg-blue-500,.bg-blue-600,.bg-blue-700,.bg-blue-800,.bg-blue-900,.bg-blue-950,.bg-sky-500,.bg-sky-600,.bg-sky-700,.bg-sky-800,.bg-sky-900,.bg-sky-950,.bg-cyan-500,.bg-cyan-600,.bg-cyan-700,.bg-cyan-800,.bg-cyan-900,.bg-cyan-950,.bg-teal-500,.bg-teal-600,.bg-teal-700,.bg-teal-800,.bg-teal-900,.bg-teal-950,.bg-indigo-500,.bg-indigo-600,.bg-indigo-700,.bg-indigo-800,.bg-indigo-900,.bg-indigo-950,.bg-lime-500,.bg-lime-600,.bg-lime-700,.bg-lime-800,.bg-lime-900,.bg-lime-950,.bg-red-500,.bg-red-600,.bg-red-700,.bg-red-800,.bg-red-900,.bg-red-950,.bg-rose-500,.bg-rose-600,.bg-rose-700,.bg-rose-800,.bg-rose-900,.bg-rose-950,.bg-purple-500,.bg-purple-600,.bg-purple-700,.bg-purple-800,.bg-purple-900,.bg-purple-950,.bg-violet-500,.bg-violet-600,.bg-violet-700,.bg-violet-800,.bg-violet-900,.bg-violet-950,.bg-fuchsia-500,.bg-fuchsia-600,.bg-fuchsia-700,.bg-fuchsia-800,.bg-fuchsia-900,.bg-fuchsia-950,.bg-pink-500,.bg-pink-600,.bg-pink-700,.bg-pink-800,.bg-pink-900,.bg-pink-950,.bg-orange-500,.bg-orange-600,.bg-orange-700,.bg-orange-800,.bg-orange-900,.bg-orange-950,.bg-amber-500,.bg-amber-600,.bg-amber-700,.bg-amber-800,.bg-amber-900,.bg-amber-950,.bg-yellow-500,.bg-yellow-600,.bg-yellow-700,.bg-yellow-800,.bg-yellow-900,.bg-yellow-950,.bg-gradient-to-br,.bg-gradient-to-r,.bg-gradient-to-l,.bg-gradient-to-t,.bg-gradient-to-b) :where(.bg-white,.bg-gray-50,.bg-slate-50) { background-color: rgba(255,255,255,.10) !important; }
+
+/* Light surfaces: standard readable hierarchy. */
+:where(.bg-white,.card-unified,.section-unified,.dir-card,.kpi-card,.section-block,.ext-card,.rq-card,.mine-card,.nexus-hero-panel) :where(h1,h2,h3,h4,.text-gray-950,.text-gray-900,.text-slate-950,.text-slate-900) { color: var(--nexus-ink) !important; }
+:where(.bg-white,.card-unified,.section-unified,.dir-card,.kpi-card,.section-block,.ext-card,.rq-card,.mine-card,.nexus-hero-panel) :where(p,li,td,.text-gray-700,.text-gray-600,.text-slate-700,.text-slate-600) { color: #475569 !important; }
+:where(.bg-white,.card-unified,.section-unified,.dir-card,.kpi-card,.section-block,.ext-card,.rq-card,.mine-card,.nexus-hero-panel) :where(.text-gray-500,.text-gray-400,.text-slate-500,.text-slate-400) { color: #64748b !important; }
+
+/* Preserve intentional brand labels on light surfaces. */
+:where(.bg-white,.card-unified,.section-unified,.dir-card,.kpi-card,.section-block,.ext-card,.rq-card,.mine-card,.nexus-hero-panel) :where(.text-primary) { color: var(--nexus-primary) !important; }
+:where(.bg-white,.card-unified,.section-unified,.dir-card,.kpi-card,.section-block,.ext-card,.rq-card,.mine-card,.nexus-hero-panel) :where(.text-secondary) { color: var(--nexus-secondary) !important; }
+
+/* Wizard UX polish. */
+.nexus-wizard-layout > aside > div,
+.nexus-wizard-layout > section > div,
+.nexus-wizard-layout aside .sticky {
+  border: 1px solid var(--nexus-line) !important;
+  border-radius: var(--nexus-radius-lg) !important;
+  background: #fff !important;
+  box-shadow: var(--nexus-shadow-sm) !important;
+}
+#wizard-stepper-scroll a { border-radius: .8rem !important; }
+#wizard-stepper-scroll a[data-current-step="true"] {
+  background: var(--nexus-primary-soft) !important;
+  border-color: var(--nexus-primary-tint) !important;
+}
+.wizard-step-circle { box-shadow: none !important; }
+.nexus-wizard-layout textarea,
+.nexus-wizard-layout input,
+.nexus-wizard-layout select { font-size: .925rem !important; }
+
+/* Menus/dropdowns must remain readable after palette normalization. */
+.nexus-dropdown :where(a,button,p,span,div),
+.nexus-mobile-panel :where(a,button,p,span,div) { color: inherit; }
+.nexus-dropdown a:not(.text-red-600),
+.nexus-mobile-panel a:not(.text-red-600) { color: #334155 !important; }
+.nexus-dropdown a:hover,
+.nexus-mobile-panel a:hover { color: var(--nexus-primary) !important; background: var(--nexus-primary-soft) !important; }
+
+/* Simple system logo: letter N with green/maroon brand mark and white type. */
+.nexus-logo-mark {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--nexus-primary) 0%, var(--nexus-primary) 68%, var(--nexus-secondary) 68%, var(--nexus-secondary) 100%) !important;
+  color: #fff !important;
+}
+.nexus-logo-mark > span { position: relative; z-index: 1; color: #fff !important; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }

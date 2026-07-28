@@ -131,6 +131,10 @@
             <option value="IMPLEMENTATION">Implementation</option>
             <option value="COMPLETED">Completed</option>
         </select>
+        <select id="proposal-view-toggle" class="dir-input w-40 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Choose proposal display view">
+            <option value="cards">Cards View</option>
+            <option value="table">Table View</option>
+        </select>
     </div>
 
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -141,9 +145,10 @@
 
         <div class="p-5">
             {% if all_proposals %}
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div id="proposal-card-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {% for item in all_proposals %}
-                <article id="proposal-card-{{ item.proposal.id }}" class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                <article id="proposal-card-{{ item.proposal.id }}" class="proposal-record group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md"
+                    data-proposal-record="true"
                     data-title="{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|lower }}"
                     data-process="{{ item.status_stage|default:'PROPOSAL' }}">
                     <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
@@ -273,6 +278,114 @@
                 </article>
                 {% endfor %}
             </div>
+
+            <div id="proposal-table-wrap" class="hidden overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-100 bg-white">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Process</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Progress</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Date</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for item in all_proposals %}
+                        <tr id="proposal-row-{{ item.proposal.id }}" class="proposal-record transition hover:bg-gray-50"
+                            data-proposal-record="true"
+                            data-title="{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|lower }}"
+                            data-process="{{ item.status_stage|default:'PROPOSAL' }}">
+                            <td class="px-4 py-4 align-top">
+                                <p class="max-w-xs text-sm font-semibold text-gray-900">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</p>
+                            </td>
+                            <td class="px-4 py-4 align-top text-sm text-gray-600">{{ item.scope_label|default:"—" }}</td>
+                            <td class="px-4 py-4 align-top">
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                                    {% if item.is_draft %}
+                                        bg-gray-100 text-gray-700
+                                    {% elif item.progress_percent < 40 %}
+                                        bg-gray-100 text-gray-700
+                                    {% elif item.progress_percent < 60 %}
+                                        bg-blue-100 text-blue-700
+                                    {% elif item.progress_percent < 80 %}
+                                        bg-amber-100 text-amber-700
+                                    {% elif item.progress_percent < 100 %}
+                                        bg-emerald-100 text-emerald-700
+                                    {% else %}
+                                        bg-green-100 text-green-700
+                                    {% endif %}
+                                ">
+                                    {% if item.is_draft %}Draft{% else %}{{ item.status_stage|default:"Proposal" }}{% endif %}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 align-top text-sm text-gray-600">{{ item.status_label|default:"—" }}</td>
+                            <td class="px-4 py-4 align-top">
+                                <div class="flex min-w-[110px] items-center gap-2">
+                                    <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                                        <div class="h-full rounded-full bg-primary" style="width: {{ item.progress_percent|default:0 }}%"></div>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-700">{{ item.progress_percent|default:0 }}%</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-4 align-top text-sm text-gray-600">
+                                {% if item.is_draft %}
+                                    {% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}
+                                {% else %}
+                                    {% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4 align-top text-right">
+                                <div class="flex flex-wrap items-center justify-end gap-1.5">
+                                    {% if item.is_draft %}
+                                        <button type="button"
+                                                onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|escapejs }}')"
+                                                class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
+                                            Delete
+                                        </button>
+                                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
+                                           class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary">
+                                            Continue
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'proposal_storage' item.proposal.id %}"
+                                           class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-primary hover:bg-gray-50 hover:text-primary"
+                                           title="Proposal storage"
+                                           aria-label="Proposal storage">
+                                            Files
+                                        </a>
+                                        {% if item.process_label == "MOA" %}
+                                            <a href="{% url 'proposal_moa_tracker' item.proposal.id %}"
+                                               class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                                View MOA
+                                            </a>
+                                        {% elif item.process_label == "Implementation" %}
+                                            <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}"
+                                               class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                                View Implementation
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
+                                               class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                                View
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="proposal-filter-empty-state" class="hidden rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
+                <h3 class="text-base font-semibold text-gray-900">No proposals found</h3>
+                <p class="mt-2 text-sm text-gray-500">Try adjusting the search, process filter, or view.</p>
+            </div>
+
             {% else %}
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
                 <div class="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -476,7 +589,7 @@ function createDoughnutGauge(canvas, percentage) {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.strokeStyle = '#facc15';
+    ctx.strokeStyle = '#111827';
     ctx.lineWidth = lineWidth;
     ctx.arc(centerX, centerY, radius, zone2End, endAngle, false);
     ctx.stroke();
@@ -569,32 +682,70 @@ window.addEventListener("load", function () {
     }
 });
 
-// Extension filters applied across dashboards
-(function applyExtensionFilters() {
+// Proposal filters and cards/table view toggle
+(function setupProposalDisplayControls() {
     const qInput = document.getElementById('ext-filter-q');
     const processSelect = document.getElementById('ext-filter-process');
-    if (!qInput && !processSelect) return;
+    const viewSelect = document.getElementById('proposal-view-toggle');
+    const cardGrid = document.getElementById('proposal-card-grid');
+    const tableWrap = document.getElementById('proposal-table-wrap');
+    const emptyState = document.getElementById('proposal-filter-empty-state');
+    if (!cardGrid && !tableWrap) return;
 
-    const cards = document.querySelectorAll('#proposal-card-{{ item.proposal.id }}');
-    // Note: cards selector needs to be generic; since the cards have IDs, we'll use a broader query
+    const storageKey = 'facultyProposalViewMode';
+    const normalize = (value) => (value || '').toString().trim().toLowerCase();
+
+    function currentView() {
+        return viewSelect ? viewSelect.value : 'cards';
+    }
+
+    function setView(view) {
+        const nextView = view === 'table' ? 'table' : 'cards';
+        if (viewSelect) viewSelect.value = nextView;
+        localStorage.setItem(storageKey, nextView);
+        applyExtFilters();
+    }
+
+    function matches(record) {
+        const qv = normalize(qInput ? qInput.value : '');
+        const pv = normalize(processSelect ? processSelect.value : '');
+        const titleMatch = !qv || normalize(record.dataset.title).includes(qv);
+        const processMatch = !pv || normalize(record.dataset.process) === pv;
+        return titleMatch && processMatch;
+    }
+
+    function applyExtFilters() {
+        const cards = Array.from(document.querySelectorAll('#proposal-card-grid [data-proposal-record="true"]'));
+        const rows = Array.from(document.querySelectorAll('#proposal-table-wrap [data-proposal-record="true"]'));
+        const visibleIds = new Set();
+
+        cards.forEach((card) => {
+            const visible = matches(card);
+            card.classList.toggle('hidden', !visible);
+            card.style.display = '';
+            if (visible) visibleIds.add(card.id.replace('proposal-card-', ''));
+        });
+
+        rows.forEach((row) => {
+            const visible = matches(row);
+            row.classList.toggle('hidden', !visible);
+            if (visible) visibleIds.add(row.id.replace('proposal-row-', ''));
+        });
+
+        const hasVisible = visibleIds.size > 0;
+        const tableMode = currentView() === 'table';
+        if (cardGrid) cardGrid.classList.toggle('hidden', tableMode || !hasVisible);
+        if (tableWrap) tableWrap.classList.toggle('hidden', !tableMode || !hasVisible);
+        if (emptyState) emptyState.classList.toggle('hidden', hasVisible);
+    }
+
+    const savedView = localStorage.getItem(storageKey) || 'cards';
+    if (viewSelect) {
+        viewSelect.addEventListener('change', () => setView(viewSelect.value));
+    }
+    if (qInput) qInput.addEventListener('input', applyExtFilters);
+    if (processSelect) processSelect.addEventListener('change', applyExtFilters);
+    setView(savedView);
 })();
-
-function applyExtFilters() {
-    const qInput = document.getElementById('ext-filter-q');
-    const processSelect = document.getElementById('ext-filter-process');
-    if (!qInput && !processSelect) return;
-    const qv = (qInput ? qInput.value : '').trim().toLowerCase();
-    const pv = (processSelect ? processSelect.value : '').trim().toLowerCase();
-    document.querySelectorAll('article[data-process]').forEach(function(card) {
-        const titleMatch = !qv || (card.dataset.title || '').includes(qv);
-        const processMatch = !pv || (card.dataset.process || '').toLowerCase() === pv;
-        card.style.display = (titleMatch && processMatch) ? '' : 'none';
-    });
-}
-
-const qInput = document.getElementById('ext-filter-q');
-const processSelect = document.getElementById('ext-filter-process');
-if (qInput) qInput.addEventListener('input', applyExtFilters);
-if (processSelect) processSelect.addEventListener('change', applyExtFilters);
 </script>
 {% endblock %}
