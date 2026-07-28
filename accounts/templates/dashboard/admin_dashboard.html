@@ -10,8 +10,8 @@
         <!-- ============ HEADER ============ -->
         <header class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-                <h1 class="text-xl font-semibold tracking-tight text-primary">Admin Dashboard</h1>
-                <p class="mt-0.5 text-sm text-slate-500">Manage accounts, site content, and global settings.</p>
+                <h1 class="nx-dash__title">Admin Dashboard</h1>
+                <p class="nx-dash__subtitle">Manage accounts, site content, and global settings.</p>
             </div>
             <div class="flex items-center gap-2">
                 {% if site_control.maintenance_mode %}
@@ -426,10 +426,11 @@
 </div>
 
 <style>
-:root { --adm-green:#103b07; --adm-green-l:#eaf3de; }
+/* Aliases onto the shared tokens in css/dashboard-views.css. */
+:root { --adm-green:var(--nx-green, #103b07); --adm-green-l:var(--nx-green-soft, #eaf3de); }
 
 /* Cards */
-.adm-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:14px; overflow:hidden; }
+.adm-card { background:var(--nx-surface, #fff); border:1px solid var(--nx-border, #e2e8f0); border-radius:var(--nx-radius, 14px); overflow:hidden; }
 .adm-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
 .adm-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
 .adm-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }

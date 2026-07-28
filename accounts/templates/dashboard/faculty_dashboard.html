@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" data-dashboard-view>
+<div class="nx-dash" data-dashboard-view>
+<div class="nx-dash__inner">
 
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Faculty Dashboard</h1>
-            <p class="mt-1 text-sm text-gray-600">Monitor your extension proposals from draft to completion.</p>
+            <h1 class="nx-dash__title">Faculty Dashboard</h1>
+            <p class="nx-dash__subtitle">Monitor your extension proposals from draft to completion.</p>
         </div>
 
         <a href="{% url 'proposal_create' %}"
@@ -15,23 +16,23 @@
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div class="nx-card" style="padding:.75rem">
             <p class="text-xs text-gray-500">Drafts</p>
             <p id="draft-count" class="mt-1 text-2xl font-bold text-gray-900">{{ draft_count|default:0 }}</p>
         </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div class="nx-card" style="padding:.75rem">
             <p class="text-xs text-gray-500">Proposal Phase</p>
             <p class="mt-1 text-2xl font-bold text-gray-900">{{ proposal_phase_count|default:0 }}</p>
         </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div class="nx-card" style="padding:.75rem">
             <p class="text-xs text-gray-500">MOA Phase</p>
             <p class="mt-1 text-2xl font-bold text-gray-900">{{ moa_phase_count|default:0 }}</p>
         </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div class="nx-card" style="padding:.75rem">
             <p class="text-xs text-gray-500">Implementation</p>
             <p class="mt-1 text-2xl font-bold text-gray-900">{{ implementation_phase_count|default:0 }}</p>
         </div>
-        <div class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+        <div class="nx-card" style="padding:.75rem">
             <p class="text-xs text-gray-500">Completed</p>
             <p class="mt-1 text-2xl font-bold text-gray-900">{{ completed_phase_count|default:0 }}</p>
         </div>
@@ -556,4 +557,5 @@ window.addEventListener("load", function () {
     }
 });
 </script>
+</div>
 {% endblock %}

@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-dashboard-view>
+<div class="nx-dash" data-dashboard-view>
+<div class="nx-dash__inner">
 
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Campus Coordinator Dashboard</h1>
-            <p class="mt-1 text-sm text-gray-600">
+            <h1 class="nx-dash__title">Campus Coordinator Dashboard</h1>
+            <p class="nx-dash__subtitle">
                 Monitor your drafts, submitted proposals, and campus review queue.
             </p>
         </div>
@@ -19,27 +20,27 @@
 
     <!-- Summary cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="nx-card" style="padding:1.25rem">
             <p class="text-sm text-gray-500">Drafts</p>
             <p id="draft-count" class="mt-2 text-3xl font-bold text-gray-900">{{ draft_count|default:0 }}</p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="nx-card" style="padding:1.25rem">
             <p class="text-sm text-gray-500">Submitted</p>
             <p class="mt-2 text-3xl font-bold text-gray-900">{{ submitted_count|default:0 }}</p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="nx-card" style="padding:1.25rem">
             <p class="text-sm text-gray-500">Under Review</p>
             <p class="mt-2 text-3xl font-bold text-gray-900">{{ under_review_count|default:0 }}</p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="nx-card" style="padding:1.25rem">
             <p class="text-sm text-gray-500">Approved</p>
             <p class="mt-2 text-3xl font-bold text-gray-900">{{ approved_count|default:0 }}</p>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div class="nx-card" style="padding:1.25rem">
             <p class="text-sm text-gray-500">Review Queue</p>
             <p class="mt-2 text-3xl font-bold text-gray-900">{{ review_queue_count|default:0 }}</p>
         </div>
@@ -50,7 +51,7 @@
     <div class="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-sm font-bold text-green-900">Quarterly accomplishment reporting is enabled for your role</p>
-            <p class="text-sm text-green-700">Submit or review accomplishment reports for your assigned scope.</p>
+            <p class="text-sm text-green-700">Submit quarterly accomplishment reports for your assigned scope.</p>
         </div>
         <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-green-700 bg-white border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50">
             Open Reports
@@ -72,7 +73,7 @@
     {% endif %}
 
     <!-- Campus Review Queue -->
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm mb-8">
+    <div class="nx-card mb-8">
         <div class="border-b border-gray-100 px-6 py-4">
             <h2 class="text-lg font-semibold text-gray-900">Campus Review Queue</h2>
             <p class="text-sm text-gray-600 mt-1">
@@ -170,7 +171,7 @@
     </div>
 
     <!-- Drafts -->
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm mb-8">
+    <div class="nx-card mb-8">
         <div class="border-b border-gray-100 px-6 py-4">
             <h2 class="text-lg font-semibold text-gray-900">My Drafts</h2>
             <p class="text-sm text-gray-600 mt-1">
@@ -243,7 +244,7 @@
     </div>
 
     <!-- Submitted -->
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="nx-card">
         <div class="border-b border-gray-100 px-6 py-4">
             <h2 class="text-lg font-semibold text-gray-900">My Submitted Proposals</h2>
             <p class="text-sm text-gray-600 mt-1">
@@ -530,4 +531,5 @@ window.addEventListener("load", function () {
     }
 });
 </script>
+</div>
 {% endblock %}

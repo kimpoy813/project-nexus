@@ -1157,12 +1157,6 @@ def director_dashboard(request):
                 if item.get("process_label") == wanted_label
             ]
 
-    print("ALL PROPOSALS:", Proposal.objects.count())
-    print("QUEUE COUNT:", review_queue.count())
-
-    for p in review_queue:
-        print(p.id, p.proposal_status)
-
     def build_campus_stats_from_items(items):
         grouped = {}
 
@@ -2816,17 +2810,34 @@ def _user_role(user):
     return (getattr(profile, "role", "") or "").upper()
 
 
-# Accomplishment reports are a Staff/Director workflow. Admins manage the
-# system but do not file or review these reports, so the capability is never
-# granted to them even though Admin otherwise implies every capability.
-ACCOMPLISHMENT_REPORT_ROLES = {
+# Accomplishment reports split into two permissions:
+#   - Coordinators file the reports.
+#   - Staff and Director read them but never submit.
+# Admin manages the system and is deliberately excluded from both, even though
+# Admin otherwise implies every capability.
+ACCOMPLISHMENT_SUBMIT_ROLES = {
+    Profile.ROLE_DEPARTMENT_COORDINATOR,
+    Profile.ROLE_CAMPUS_COORDINATOR,
+}
+
+ACCOMPLISHMENT_VIEW_ONLY_ROLES = {
     Profile.ROLE_STAFF,
     Profile.ROLE_DIRECTOR,
 }
 
+# Anyone who may open the reports list at all.
+ACCOMPLISHMENT_REPORT_ROLES = ACCOMPLISHMENT_SUBMIT_ROLES | ACCOMPLISHMENT_VIEW_ONLY_ROLES
+
+
+def can_submit_accomplishment_reports(user):
+    """Only Department and Campus Coordinators may submit reports."""
+    if not getattr(user, "is_authenticated", False):
+        return False
+    return _user_role(user) in ACCOMPLISHMENT_SUBMIT_ROLES
+
 
 def can_access_accomplishment_reports(user):
-    """Only Staff and Director may view or submit accomplishment reports."""
+    """Coordinators (submit) plus Staff and Director (view only)."""
     if not getattr(user, "is_authenticated", False):
         return False
     return _user_role(user) in ACCOMPLISHMENT_REPORT_ROLES
@@ -2838,8 +2849,9 @@ def user_has_capability(user, capability):
     role = _user_role(user)
 
     # Role-restricted capability: not implied by Admin/superuser.
+    # This capability specifically means "may submit", which is coordinators only.
     if capability == RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT:
-        return role in ACCOMPLISHMENT_REPORT_ROLES
+        return role in ACCOMPLISHMENT_SUBMIT_ROLES
 
     if role == Profile.ROLE_ADMIN or getattr(user, "is_superuser", False):
         return True
@@ -3226,25 +3238,29 @@ def role_capabilities_manager(request):
 
 @login_required
 def accomplishment_reports_list(request):
-    if not user_has_capability(request.user, RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT):
-        messages.error(request, "You do not have permission to manage accomplishment reports.")
+    if not can_access_accomplishment_reports(request.user):
+        messages.error(request, "You do not have permission to view accomplishment reports.")
         return redirect("dashboard_redirect")
 
     profile = getattr(request.user, "profile", None)
     role = _user_role(request.user)
     reports = AccomplishmentReport.objects.select_related("submitted_by", "submitted_by__profile")
 
+    # Coordinators only see their own scope; Staff and Director see everything.
     if role == Profile.ROLE_DEPARTMENT_COORDINATOR:
         reports = reports.filter(department=getattr(profile, "department", ""))
     elif role == Profile.ROLE_CAMPUS_COORDINATOR:
         reports = reports.filter(campus=getattr(profile, "campus", ""))
-    elif role not in {Profile.ROLE_ADMIN, Profile.ROLE_DIRECTOR, Profile.ROLE_STAFF}:
+    elif role not in ACCOMPLISHMENT_VIEW_ONLY_ROLES:
         reports = reports.filter(submitted_by=request.user)
 
     return render(
         request,
         "dashboard/accomplishment_reports_list.html",
-        {"reports": reports, "can_submit_accomplishment": True},
+        {
+            "reports": reports,
+            "can_submit_accomplishment": can_submit_accomplishment_reports(request.user),
+        },
     )
 
 
