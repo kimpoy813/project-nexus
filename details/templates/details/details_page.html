@@ -323,8 +323,14 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         {% if personnel %}
         <div class="flex justify-center mb-8">
             <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center w-full max-w-sm hover:border-primary transition duration-300">
-                <img src="{{ personnel.0.photo.url }}"
-                    class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% if personnel.0.photo %}
+                    <img src="{{ personnel.0.photo.url }}" alt="{{ personnel.0.name }}"
+                        class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% else %}
+                    <span class="w-32 h-32 mx-auto mb-6 grid place-items-center rounded-full border-4 border-primary bg-primary/5 text-3xl font-semibold text-primary">
+                        {{ personnel.0.name|first|upper }}
+                    </span>
+                {% endif %}
                 <h3 class="text-xl font-semibold mb-1">{{ personnel.0.name }}</h3>
                 <p class="text-secondary font-medium mb-3">{{ personnel.0.position }}</p>
                 <p class="text-sm text-gray-600">{{ personnel.0.description }}</p>
@@ -336,8 +342,14 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <div class="grid md:grid-cols-3 gap-10">
             {% for person in personnel|slice:"1:" %}
             <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center hover:border-primary transition duration-300">
-                <img src="{{ person.photo.url }}"
-                    class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% if person.photo %}
+                    <img src="{{ person.photo.url }}" alt="{{ person.name }}"
+                        class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
+                {% else %}
+                    <span class="w-32 h-32 mx-auto mb-6 grid place-items-center rounded-full border-4 border-primary bg-primary/5 text-3xl font-semibold text-primary">
+                        {{ person.name|first|upper }}
+                    </span>
+                {% endif %}
                 <h3 class="text-xl font-semibold mb-1">{{ person.name }}</h3>
                 <p class="text-secondary font-medium mb-3">{{ person.position }}</p>
                 <p class="text-sm text-gray-600">{{ person.description }}</p>

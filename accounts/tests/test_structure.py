@@ -116,3 +116,43 @@ class ViewPackageTests(SimpleTestCase):
                         limit,
                         f"{module.name} has {line_count} lines; consider splitting it",
                     )
+
+
+class RepositoryHygieneTests(SimpleTestCase):
+    """Generated and uploaded artefacts must stay out of version control."""
+
+    def _tracked(self, pattern):
+        import subprocess
+
+        result = subprocess.run(
+            ["git", "ls-files", pattern],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            self.skipTest("git is unavailable in this environment")
+        return [line for line in result.stdout.split("\n") if line.strip()]
+
+    def test_no_uploaded_media_is_tracked(self):
+        """Uploads belong in Supabase Storage, not the repository.
+
+        47 files (~120 MB) were untracked deliberately; this stops them
+        creeping back in via `git add -A`.
+        """
+        tracked = self._tracked("media/")
+        self.assertEqual(
+            tracked, [], f"{len(tracked)} media files are tracked again: {tracked[:5]}"
+        )
+
+    def test_no_sqlite_database_is_tracked(self):
+        tracked = self._tracked("*.sqlite3")
+        self.assertEqual(tracked, [], f"database committed: {tracked}")
+
+    def test_document_templates_are_still_tracked(self):
+        """These are source assets, not uploads — they must stay in the repo."""
+        tracked = self._tracked("proposals/template_files/")
+        self.assertGreater(
+            len(tracked), 5, "the DOCX/XLSX templates appear to have been removed"
+        )

@@ -122,7 +122,18 @@ python manage.py migrate
 python manage.py loaddata data.json
 ```
 
-You must separately copy existing `media/` files into your Supabase bucket.
+### Uploaded media
+
+Uploaded files are **not** stored in the repository — `media/` is ignored, so a fresh clone
+starts with no uploads. This is intentional.
+
+The public pages handle that state: a personnel record with no photo renders an initials avatar
+rather than a broken image, and activity/section images are simply omitted. Re-upload content
+through the admin dashboard, or copy existing files into your Supabase bucket if you are
+migrating an established instance.
+
+Note this applies only to *uploads*. The DOCX/XLSX form templates under
+`proposals/template_files/` are source assets and remain in the repository.
 
 ## 8. Important security note
 

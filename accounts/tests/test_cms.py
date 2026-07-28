@@ -407,3 +407,48 @@ class WorkflowPhaseTests(TestCase):
         """Presentation is editable; the underlying statuses stay in code."""
         response = self.client.get("/proposals/")
         self.assertContains(response, "Draft")
+
+
+class MissingMediaTests(TestCase):
+    """The public site must look intentional on a fresh install.
+
+    Uploaded media is no longer committed, so a new deployment starts with no
+    files on disk. Personnel rows may still exist (restored from a database
+    dump) while their photos do not — that combination previously rendered a
+    broken image icon.
+    """
+
+    def test_the_home_page_renders_with_no_personnel_at_all(self):
+        from details.models import Personnel
+
+        Personnel.objects.all().delete()
+        self.assertEqual(self.client.get("/").status_code, 200)
+
+    def test_a_personnel_row_without_a_photo_renders_initials(self):
+        from details.models import Personnel
+
+        Personnel.objects.all().delete()
+        Personnel.objects.create(name="Maria Santos", position="Coordinator", photo="")
+
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Maria Santos")
+        self.assertNotContains(response, "<img src=\"\"", html=False)
+
+    def test_several_photoless_personnel_all_render(self):
+        from details.models import Personnel
+
+        Personnel.objects.all().delete()
+        for name in ["Ana Cruz", "Ben Reyes", "Carla Lim"]:
+            Personnel.objects.create(name=name, position="Staff", photo="")
+
+        response = self.client.get("/")
+        for name in ["Ana Cruz", "Ben Reyes", "Carla Lim"]:
+            with self.subTest(name=name):
+                self.assertContains(response, name)
+
+    def test_the_home_page_renders_with_no_activities(self):
+        from details.models import Activity
+
+        Activity.objects.all().delete()
+        self.assertEqual(self.client.get("/").status_code, 200)

@@ -66,27 +66,25 @@ rather than something to do unannounced.
 
 ---
 
-### 1.3 47 uploaded media files are committed
+### 1.3 ✅ 47 uploaded media files were committed — **fixed**
 
 `git ls-files media/ | wc -l` → 47
 
 `.gitignore` excludes `media/`, but these predate the rule. Production uses Supabase Storage, so
 these are dead weight that will keep growing if anyone commits before the ignore takes effect.
 
-**Deliberately not actioned — needs your confirmation.** The 47 files total **120 MB** and
-include the personnel photographs rendered on the public homepage. `DEPLOYMENT.md` (line 125)
-states media must be copied into the Supabase bucket separately, so Git is not the delivery
-mechanism — but I cannot verify from here that your bucket is actually populated.
+**Status:** untracked via `git rm -r --cached media/`, with the owner's approval to start the
+system from a clean slate. The local files are untouched; only Git stops tracking them, and the
+existing `.gitignore` rule now takes effect for anything uploaded in future.
 
-Untracking them before that is true would break every image on the live site.
+Because a fresh clone now starts with no uploads, the Home page was hardened for that state: a
+`Personnel` row whose photo is missing previously rendered a broken image icon, and now falls back
+to an initials avatar. Activities and CMS section images were already guarded.
 
-**To action, once you have confirmed the bucket holds these files:**
-
-```bash
-git rm -r --cached media/
-```
-
-The local files stay in place; only Git stops tracking them.
+Three regression tests in `accounts/tests/test_structure.py` stop this reappearing: no media
+tracked, no SQLite database tracked, and the DOCX/XLSX templates under
+`proposals/template_files/` *still* tracked — those are source assets rather than uploads and must
+not be swept up by the same rule.
 
 ---
 
@@ -97,18 +95,18 @@ already failing — they referenced `Proposal.mark_implementation_in_progress()`
 `proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
 refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-**Now: 259 tests, running in ~14 seconds.**
+**Now: 266 tests, running in ~14 seconds.**
 
 | Suite | Tests | Focus |
 |---|---|---|
 | `accounts/tests/test_permissions.py` | 17 | Role access, admin-only areas, dashboards |
 | `accounts/tests/test_permissions_module.py` | 21 | The permission predicates themselves |
 | `accounts/tests/test_auth.py` | 16 | Login, registration gating, verification, maintenance |
-| `accounts/tests/test_cms.py` | 35 | Page content, Home sections, thrusts, workflow phases |
+| `accounts/tests/test_cms.py` | 39 | Page content, Home sections, thrusts, phases, missing media |
 | `proposals/tests.py` | 17 | Progress weighting, phase labels, access control |
 | `proposals/tests_permissions.py` | 30 | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | 24 | Wizard access and steps, status maps, review rounds, trackers |
-| `accounts/tests/test_structure.py` | 4 | URL resolution, no duplicate defs, re-export contract |
+| `accounts/tests/test_structure.py` | 7 | URL resolution, no duplicate defs, re-exports, repo hygiene |
 | `accounts/tests/test_error_handling.py` | 11 | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | 35 | DOCX/XLSX generation, template routing, download access |
 | `proposals/tests_transitions.py` | 38 | MOA/implementation transitions, status derivation, wizard helpers |
@@ -306,7 +304,7 @@ Each of the seven role dashboards had grown its own near-identical CSS under a p
 (`.adm-*`, `.dir-*`, `.kpi-card`, `.rq-card`, `.ext-card`, `.mine-card`), with three different
 heading styles, two different page backgrounds, and two different card treatments.
 
-**Done:** a shared `nx-*` design system in `static/css/dashboard-views.css` (tokens, cards, KPIs,
+**All items complete:** a shared `nx-*` design system in `static/css/dashboard-views.css` (tokens, cards, KPIs,
 tabs, buttons, badges, tables, empty states); all seven dashboards moved to a common page shell
 and heading style; 36 ad-hoc card declarations normalised; the Admin and Director private palettes
 re-pointed at the shared tokens via `var()` aliases.
@@ -349,7 +347,7 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 
 1. ✅ `DEBUG` defaults to `False` *(1.1)*
 2. ✅ `db.sqlite3` untracked *(1.2)*
-3. ✅ Test suite: 0 → 259 passing tests, sabotage-verified *(1.4)*
+3. ✅ Test suite: 0 → 266 passing tests, sabotage-verified *(1.4)*
 4. ✅ Debug `print()` calls removed from the Director dashboard hot path *(2.4)*
 5. ✅ Shared dashboard design system *(3.1)*
 6. ✅ Permissions centralised in `accounts/permissions.py` *(2.2)*
@@ -358,15 +356,9 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 9. ✅ Logging configured; broad exception handlers narrowed and logged *(2.3)*
 10. ✅ Document generation covered; `docx_forms` handlers narrowed 42 → 28 *(1.4, 2.3)*
 11. ✅ `proposal_wizard` split 629 → 470 lines; MOA/implementation transitions covered *(2.1, 1.4)*
+12. ✅ `media/` untracked; Home page hardened for a fresh install *(1.3)*
 
-**Next, in order:**
-
-**Only one item remains, and it needs a decision from you:**
-
-12. **Untrack `media/`** — 5 minutes of work, but it needs confirmation that the Supabase bucket
-    holds these 47 files first. They are 120 MB and include the personnel photographs rendered on
-    the public homepage, so untracking them before the bucket is populated would break every
-    image on the live site. *(1.3)*
+**Every finding in this document is now closed.**
 
 Deliberately **not** recommended as further work:
 
@@ -376,8 +368,8 @@ Deliberately **not** recommended as further work:
 * **Further splitting of `proposal_wizard`** *(2.1)* — see the note under that finding.
 * **Renaming the `details` app** *(3.4)* — migration risk outweighs the clarity gain.
 
-Everything else in this document is closed. The codebase now has 259 tests, centralised
-permissions, structured logging, and no module over ~1,300 lines.
+The codebase now has 266 tests, centralised permissions, structured logging, no module over
+~1,300 lines, and no generated or uploaded artefacts in version control.
 
 ---
 
