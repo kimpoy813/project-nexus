@@ -29,6 +29,7 @@ from accounts.decorators import faculty_like_required, role_required
 from details.models import (
     DocumentTemplate, DynamicFormAnswer, DynamicFormField, DynamicFormResponse,
     DynamicFormTemplate, ExtensionProcess, ProcessStep, ProposalWizardStepConfig, RoleCapability,
+    SitePage,
 )
 from .moa_docx import build_moa_document
 from .forms import MOADraftForm, MOAPartiesForm, MOATermsForm, MOAAttachmentsForm
@@ -985,6 +986,7 @@ def services_home(request):
         "total_wizard_steps": TOTAL_STEPS,
         "office_templates": office_templates,
         "dynamic_form_templates": dynamic_form_templates,
+        "page": SitePage.get_for(SitePage.Slug.SERVICES),
     }
     return render(request, "services/services_home.html", context)
 

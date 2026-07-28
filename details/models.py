@@ -366,3 +366,109 @@ class AccomplishmentReport(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.year} {self.quarter})"
+
+
+# ==============================
+# EDITABLE PAGE CONTENT (ADMIN MANAGED CMS)
+# ==============================
+
+class SitePage(models.Model):
+    """
+    An admin-editable public page (Home, Services, Reports, Achievements).
+
+    Rows are seeded by migration for the four known pages and are looked up by
+    ``slug``. Each page owns an ordered set of :class:`PageSection` records that
+    hold the actual rich-text content.
+    """
+
+    class Slug(models.TextChoices):
+        HOME = "home", "Home"
+        SERVICES = "services", "Services"
+        REPORTS = "reports", "Reports"
+        ACHIEVEMENTS = "achievements", "Achievements"
+
+    slug = models.SlugField(max_length=40, unique=True, choices=Slug.choices)
+    title = models.CharField(max_length=150)
+
+    # Hero / masthead
+    hero_eyebrow = models.CharField(max_length=120, blank=True, default="")
+    hero_heading = models.CharField(max_length=220, blank=True, default="")
+    hero_subheading = models.TextField(blank=True, default="")
+
+    # Browser <title> / SEO
+    meta_title = models.CharField(max_length=180, blank=True, default="")
+    meta_description = models.TextField(blank=True, default="")
+
+    is_published = models.BooleanField(
+        default=True,
+        help_text="Unpublish to hide this page from visitors (admins can still preview it).",
+    )
+
+    updated_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="site_page_updates",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["slug"]
+        verbose_name = "Site Page"
+
+    def __str__(self):
+        return self.title or self.get_slug_display()
+
+    @classmethod
+    def get_for(cls, slug):
+        """Fetch a page by slug, creating a sensible default row if missing."""
+        defaults = {"title": dict(cls.Slug.choices).get(slug, slug.title())}
+        obj, _ = cls.objects.get_or_create(slug=slug, defaults=defaults)
+        return obj
+
+    @property
+    def visible_sections(self):
+        return self.sections.filter(is_visible=True)
+
+
+class PageSection(models.Model):
+    """An ordered, rich-text content block belonging to a :class:`SitePage`."""
+
+    class Layout(models.TextChoices):
+        RICH_TEXT = "RICH_TEXT", "Rich text"
+        CARD = "CARD", "Card"
+        CALLOUT = "CALLOUT", "Callout / highlight"
+
+    page = models.ForeignKey(SitePage, related_name="sections", on_delete=models.CASCADE)
+    heading = models.CharField(max_length=220, blank=True, default="")
+    subheading = models.CharField(max_length=300, blank=True, default="")
+    body = CKEditor5Field(blank=True, default="", config_name="default")
+    layout = models.CharField(max_length=20, choices=Layout.choices, default=Layout.RICH_TEXT)
+
+    anchor = models.SlugField(
+        max_length=60,
+        blank=True,
+        default="",
+        help_text="Optional #anchor so the section can be linked to directly.",
+    )
+    image = models.ImageField(upload_to="page_sections/", blank=True, null=True)
+
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Page Section"
+
+    def __str__(self):
+        return f"{self.page.slug} · {self.heading or 'Untitled section'}"
+
+    def save(self, *args, **kwargs):
+        if self.order is None or self.order == 0:
+            last = PageSection.objects.filter(page=self.page).aggregate(Max("order"))["order__max"]
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)

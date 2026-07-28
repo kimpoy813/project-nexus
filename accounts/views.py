@@ -18,7 +18,7 @@ from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Min, Q, Case, When, IntegerField
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -39,7 +39,7 @@ import proposals
 
 from .campus_data import get_college_choices, get_department_choices, get_campus_choices
 from .decorators import admin_required, faculty_like_required, role_required
-from .forms import AdminCreateUserForm, ProfileUpdateForm, RegisterForm
+from .forms import AdminCreateUserForm, PageSectionForm, ProfileUpdateForm, RegisterForm
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
 from .tokens import email_verification_token
 
@@ -60,10 +60,12 @@ from details.models import (
     DynamicFormField,
     DynamicFormTemplate,
     ExtensionProcess,
+    PageSection,
     Personnel,
     ProcessStep,
     ProposalWizardStepConfig,
     RoleCapability,
+    SitePage,
     Target,
 )
 
@@ -1967,6 +1969,15 @@ def admin_dashboard(request):
         "recent_users": Profile.objects.select_related("user").filter(
             user__date_joined__gte=week_ago
         ).order_by("-user__date_joined")[:5],
+        "editable_pages": [
+            {
+                "slug": page.slug,
+                "title": page.title,
+                "is_published": page.is_published,
+                "visible_count": page.sections.filter(is_visible=True).count(),
+            }
+            for page in (SitePage.get_for(slug) for slug, _ in SitePage.Slug.choices)
+        ],
     }
     return render(request, "dashboard/admin_dashboard.html", context)
 
@@ -3249,3 +3260,197 @@ def accomplishment_report_create(request):
             "current_year": timezone.now().year,
         },
     )
+
+
+# ==============================
+# PAGE CONTENT MANAGEMENT (ADMIN)
+# ==============================
+# Lets the Admin edit the public pages (Home, Services, Reports, Achievements)
+# without touching source files.
+
+# Sections of a page whose data lives in dedicated managers already. These are
+# surfaced in the editor as cross-links instead of being duplicated here.
+PAGE_LINKED_DATA = {
+    "home": [
+        {"label": "Extension Personnel", "url_name": "personnel_list", "hint": "Photos and roles shown in the Personnel section."},
+        {"label": "Extension Activities", "url_name": "activities_list", "hint": "Cards shown in the Activities section."},
+        {"label": "Extension Processes", "url_name": "processes_list", "hint": "Steps shown in the Processes section."},
+        {"label": "Extension Targets", "url_name": "targets_list", "hint": "Figures shown in the Targets section."},
+    ],
+    "services": [
+        {"label": "Extension Processes", "url_name": "processes_list", "hint": "Drives the maintained process flow."},
+        {"label": "Template Library", "url_name": "document_templates_list", "hint": "Downloadable office templates."},
+        {"label": "Form Builder", "url_name": "dynamic_forms_list", "hint": "Configurable forms and checklists."},
+        {"label": "Wizard Steps", "url_name": "wizard_steps_manager", "hint": "Proposal wizard step labels."},
+    ],
+    "reports": [
+        {"label": "Accomplishment Reports", "url_name": "accomplishment_reports_list", "hint": "Submitted quarterly reports."},
+        {"label": "Extension Targets", "url_name": "targets_list", "hint": "Planned vs. actual figures."},
+    ],
+    "achievements": [
+        {"label": "Extension Activities", "url_name": "activities_list", "hint": "Completed activities worth highlighting."},
+        {"label": "Accomplishment Reports", "url_name": "accomplishment_reports_list", "hint": "Source data for achievements."},
+    ],
+}
+
+# Public URL name for each editable page, used for the "View page" link.
+PAGE_PUBLIC_URL_NAMES = {
+    "home": "details_page",
+    "services": "services_home",
+    "reports": "reports_page",
+    "achievements": "achievements_page",
+}
+
+
+@login_required
+@admin_required
+def page_content_list(request):
+    """Overview of every admin-editable public page."""
+    pages = []
+    for slug, _label in SitePage.Slug.choices:
+        page = SitePage.get_for(slug)
+        pages.append({
+            "page": page,
+            "section_count": page.sections.count(),
+            "visible_count": page.sections.filter(is_visible=True).count(),
+            "public_url_name": PAGE_PUBLIC_URL_NAMES.get(slug),
+        })
+
+    return render(request, "dashboard/admin/page_content_list.html", {"pages": pages})
+
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def page_content_edit(request, slug):
+    """Edit a page's hero/SEO fields and manage its content sections."""
+    if slug not in dict(SitePage.Slug.choices):
+        raise Http404("Unknown page.")
+
+    page = SitePage.get_for(slug)
+
+    if request.method == "POST":
+        page.title = (request.POST.get("title") or "").strip() or page.title
+        page.hero_eyebrow = (request.POST.get("hero_eyebrow") or "").strip()
+        page.hero_heading = (request.POST.get("hero_heading") or "").strip()
+        page.hero_subheading = (request.POST.get("hero_subheading") or "").strip()
+        page.meta_title = (request.POST.get("meta_title") or "").strip()
+        page.meta_description = (request.POST.get("meta_description") or "").strip()
+        page.is_published = request.POST.get("is_published") == "on"
+        page.updated_by = request.user
+        page.save()
+
+        SiteConfigurationLog.objects.create(
+            changed_by=request.user,
+            summary=f'Updated "{page.title}" page content',
+        )
+        messages.success(request, f'"{page.title}" page updated successfully.')
+        return redirect("page_content_edit", slug=page.slug)
+
+    context = {
+        "page": page,
+        "sections": page.sections.all(),
+        "linked_data": PAGE_LINKED_DATA.get(slug, []),
+        "public_url_name": PAGE_PUBLIC_URL_NAMES.get(slug),
+        "layout_choices": PageSection.Layout.choices,
+    }
+    return render(request, "dashboard/admin/page_content_edit.html", context)
+
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def page_section_create(request, slug):
+    if slug not in dict(SitePage.Slug.choices):
+        raise Http404("Unknown page.")
+
+    page = SitePage.get_for(slug)
+
+    if request.method == "POST":
+        form = PageSectionForm(request.POST, request.FILES)
+        if form.is_valid():
+            section = form.save(commit=False)
+            section.page = page
+            section.order = 0  # model assigns the next order on save
+            section.save()
+            messages.success(request, "Section added successfully.")
+            return redirect("page_content_edit", slug=page.slug)
+    else:
+        form = PageSectionForm()
+
+    return render(request, "dashboard/admin/page_section_form.html", {
+        "page": page,
+        "form": form,
+        "is_create": True,
+    })
+
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def page_section_edit(request, pk):
+    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
+
+    if request.method == "POST":
+        form = PageSectionForm(request.POST, request.FILES, instance=section)
+        if form.is_valid():
+            section = form.save(commit=False)
+            if request.POST.get("remove_image") == "on":
+                section.image = None
+            section.save()
+            messages.success(request, "Section updated successfully.")
+            return redirect("page_content_edit", slug=section.page.slug)
+    else:
+        form = PageSectionForm(instance=section)
+
+    return render(request, "dashboard/admin/page_section_form.html", {
+        "page": section.page,
+        "section": section,
+        "form": form,
+        "is_create": False,
+    })
+
+
+@login_required
+@admin_required
+@require_POST
+def page_section_delete(request, pk):
+    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
+    page_slug = section.page.slug
+    section.delete()
+    messages.success(request, "Section deleted.")
+    return redirect("page_content_edit", slug=page_slug)
+
+
+@login_required
+@admin_required
+@require_POST
+def page_section_move(request, pk):
+    """Swap a section with its neighbour to reorder the page."""
+    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
+    direction = request.POST.get("direction")
+
+    siblings = list(PageSection.objects.filter(page=section.page).order_by("order", "id"))
+    index = next((i for i, s in enumerate(siblings) if s.pk == section.pk), None)
+
+    if index is not None:
+        swap_with = None
+        if direction == "up" and index > 0:
+            swap_with = siblings[index - 1]
+        elif direction == "down" and index < len(siblings) - 1:
+            swap_with = siblings[index + 1]
+
+        if swap_with is not None:
+            # Normalise ordering first so swaps are always well-defined.
+            for position, item in enumerate(siblings, start=1):
+                if item.order != position:
+                    item.order = position
+                    item.save(update_fields=["order"])
+            section.refresh_from_db()
+            swap_with.refresh_from_db()
+
+            section.order, swap_with.order = swap_with.order, section.order
+            section.save(update_fields=["order"])
+            swap_with.save(update_fields=["order"])
+
+    return redirect("page_content_edit", slug=section.page.slug)

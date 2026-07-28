@@ -152,6 +152,44 @@ USE_TZ = True
 
 
 # ==============================
+# RICH TEXT EDITOR (CKEditor 5)
+# ==============================
+# Used by the admin Page Content editor (Home, Services, Reports, Achievements).
+
+CKEDITOR_5_FILE_STORAGE = None  # fall back to DEFAULT_FILE_STORAGE / STORAGES
+CKEDITOR_5_UPLOAD_FILE_TYPES = ["jpeg", "jpg", "png", "gif", "webp", "svg"]
+
+_CKEDITOR_5_TOOLBAR = [
+    "heading", "|",
+    "bold", "italic", "underline", "link", "|",
+    "bulletedList", "numberedList", "|",
+    "outdent", "indent", "|",
+    "blockQuote", "insertTable", "imageUpload", "|",
+    "undo", "redo", "|",
+    "sourceEditing",
+]
+
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": _CKEDITOR_5_TOOLBAR,
+        "height": 320,
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "imageStyle:alignLeft",
+                "imageStyle:full",
+                "imageStyle:alignRight",
+            ],
+        },
+        "table": {
+            "contentToolbar": ["tableColumn", "tableRow", "mergeTableCells"],
+        },
+        "link": {"addTargetToExternalLinks": True},
+    },
+}
+
+
+# ==============================
 # STATIC FILES
 # ==============================
 

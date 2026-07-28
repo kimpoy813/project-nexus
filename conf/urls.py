@@ -25,6 +25,8 @@ urlpatterns = [
     path('', include('accounts.urls')),  # Auth routes
     path('', include('proposals.urls')),  # Proposal management
     path('admin/', admin.site.urls),
+    # Rich-text editor image uploads (admin Page Content editor)
+    path('ckeditor5/', include('django_ckeditor_5.urls')),
 ]
 
 from django.conf import settings

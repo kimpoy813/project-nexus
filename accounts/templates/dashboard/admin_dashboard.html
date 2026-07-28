@@ -252,6 +252,30 @@
                 </div>
             </div>
 
+            <div class="adm-card mb-5">
+                <div class="adm-card__head">
+                    <h2 class="adm-card__title">Page Content</h2>
+                    <p class="adm-card__sub">Edit the text and sections shown on each public page.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100">
+                    {% for item in editable_pages %}
+                    <a href="{% url 'page_content_edit' item.slug %}" class="adm-tile">
+                        <span class="adm-tile__top">
+                            <span class="adm-tile__name">{{ item.title }}</span>
+                            <span class="adm-tile__count">{{ item.visible_count }}</span>
+                        </span>
+                        <span class="adm-tile__desc">
+                            {% if item.is_published %}
+                                {{ item.visible_count }} visible section{{ item.visible_count|pluralize }}
+                            {% else %}
+                                Draft — hidden from visitors
+                            {% endif %}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div class="adm-card">
                 <div class="adm-card__head">
                     <h2 class="adm-card__title">Website Content</h2>

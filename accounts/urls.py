@@ -102,6 +102,14 @@ urlpatterns = [
     # Admin content dashboard
     path("admin/content/", views.admin_content_dashboard, name="admin_content_dashboard"),
 
+    # Public page content editor (Home, Services, Reports, Achievements)
+    path("admin/pages/", views.page_content_list, name="page_content_list"),
+    path("admin/pages/<slug:slug>/", views.page_content_edit, name="page_content_edit"),
+    path("admin/pages/<slug:slug>/sections/new/", views.page_section_create, name="page_section_create"),
+    path("admin/pages/sections/<int:pk>/edit/", views.page_section_edit, name="page_section_edit"),
+    path("admin/pages/sections/<int:pk>/delete/", views.page_section_delete, name="page_section_delete"),
+    path("admin/pages/sections/<int:pk>/move/", views.page_section_move, name="page_section_move"),
+
     # Signatories management
     path("admin/signatories/", views.signatories_list, name="signatories_list"),
     path("admin/signatories/create/", views.signatory_create, name="signatory_create"),

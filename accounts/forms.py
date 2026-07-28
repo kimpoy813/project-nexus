@@ -4,6 +4,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import PasswordResetForm, SetPasswordForm
 from django.core.exceptions import ValidationError
+from django_ckeditor_5.widgets import CKEditor5Widget
 
 from .campus_data import (
     get_campus_choices,
@@ -302,3 +303,50 @@ class NexusSetPasswordForm(SetPasswordForm, StyledFormMixin):
         password = self.cleaned_data.get("new_password1")
         validate_nexus_password_rules(password)
         return password
+
+# ==============================
+# PAGE CONTENT (ADMIN CMS)
+# ==============================
+
+class PageSectionForm(forms.ModelForm):
+    """
+    Rich-text form for a public page section.
+
+    Exists mainly so the CKEditor 5 widget contributes its JS/CSS via
+    ``{{ form.media }}`` in the template.
+    """
+
+    # Declared as a plain CharField so admins can type free text such as
+    # "Our Impact"; ``clean_anchor`` slugifies it. A SlugField would reject the
+    # input before we get a chance to normalise it.
+    anchor = forms.CharField(
+        required=False,
+        max_length=60,
+        help_text="Optional #anchor so the section can be linked to directly.",
+    )
+
+    class Meta:
+        from details.models import PageSection as _PageSection
+
+        model = _PageSection
+        fields = ["heading", "subheading", "body", "layout", "anchor", "image", "is_visible"]
+        widgets = {
+            "body": CKEditor5Widget(config_name="default"),
+        }
+
+    def clean_anchor(self):
+        """Accept free text (e.g. "Our Impact") and normalise it to a slug."""
+        from django.utils.text import slugify
+
+        return slugify(self.cleaned_data.get("anchor") or "")[:60]
+
+    def clean(self):
+        """Require at least a heading or some body content."""
+        from django.utils.html import strip_tags
+
+        cleaned = super().clean()
+        heading = (cleaned.get("heading") or "").strip()
+        body = strip_tags(cleaned.get("body") or "").strip()
+        if not heading and not body:
+            raise forms.ValidationError("Add a heading or some content before saving.")
+        return cleaned

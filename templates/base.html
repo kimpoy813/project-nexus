@@ -33,6 +33,7 @@
     <!-- NExUS UI Refresh -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
+    <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
     {% if site_control %}
     <style>
         :root {
@@ -77,8 +78,8 @@
             <div class="hidden lg:flex items-center gap-1 text-sm">
                 <a href="/" class="nexus-menu-link">Home</a>
                 <a href="/proposals/" class="nexus-menu-link">Services</a>
-                <a href="/reports/" class="nexus-menu-link">Reports</a>
-                <a href="/achievements/" class="nexus-menu-link">Achievements</a>
+                <a href="{% url 'reports_page' %}" class="nexus-menu-link">Reports</a>
+                <a href="{% url 'achievements_page' %}" class="nexus-menu-link">Achievements</a>
 
                 {% if user.is_authenticated %}
                     <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
@@ -205,8 +206,8 @@
             <div class="p-3 space-y-1">
                 <a href="/" class="nexus-menu-link w-full">Home</a>
                 <a href="/proposals/" class="nexus-menu-link w-full">Services</a>
-                <a href="/reports/" class="nexus-menu-link w-full">Reports</a>
-                <a href="/achievements/" class="nexus-menu-link w-full">Achievements</a>
+                <a href="{% url 'reports_page' %}" class="nexus-menu-link w-full">Reports</a>
+                <a href="{% url 'achievements_page' %}" class="nexus-menu-link w-full">Achievements</a>
                 {% if user.is_authenticated %}
                     <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
                        class="nexus-menu-link is-strong w-full">Dashboard</a>
@@ -261,8 +262,8 @@
                 <ul class="space-y-2 text-sm">
                     <li><a href="/" class="hover:text-white transition">Home</a></li>
                     <li><a href="/proposals/" class="hover:text-white transition">Services</a></li>
-                    <li><a href="/reports/" class="hover:text-white transition">Reports</a></li>
-                    <li><a href="/achievements/" class="hover:text-white transition">Achievements</a></li>
+                    <li><a href="{% url 'reports_page' %}" class="hover:text-white transition">Reports</a></li>
+                    <li><a href="{% url 'achievements_page' %}" class="hover:text-white transition">Achievements</a></li>
                     {% if user.is_authenticated %}
                         <li><a href="{% url 'dashboard_redirect' %}" class="hover:text-white transition">Dashboard</a></li>
                     {% else %}
