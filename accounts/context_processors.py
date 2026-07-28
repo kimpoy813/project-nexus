@@ -25,16 +25,15 @@ def site_configuration(request):
     except Exception:
         capabilities = set()
 
-    # Accomplishment reports split into submit vs. view-only. Admin implies
-    # every other capability but deliberately neither of these, so both are
-    # resolved from the role directly rather than from the capability set.
+    # Resolved through accounts.permissions so templates and views can never
+    # disagree about who may submit or view accomplishment reports.
     can_submit_accomplishment = False
     can_view_accomplishment = False
     try:
-        if request.user.is_authenticated:
-            role = (getattr(getattr(request.user, "profile", None), "role", "") or "").upper()
-            can_submit_accomplishment = role in {"DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR"}
-            can_view_accomplishment = can_submit_accomplishment or role in {"STAFF", "DIRECTOR"}
+        from . import permissions
+
+        can_submit_accomplishment = permissions.can_submit_accomplishment_reports(request.user)
+        can_view_accomplishment = permissions.can_view_accomplishment_reports(request.user)
     except Exception:
         can_submit_accomplishment = False
         can_view_accomplishment = False

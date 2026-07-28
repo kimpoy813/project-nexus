@@ -97,14 +97,17 @@ already failing — they referenced `Proposal.mark_implementation_in_progress()`
 `proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
 refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-**Now: 96 tests, running in ~1.6 seconds.**
+**Now: 171 tests, running in ~2.5 seconds.**
 
 | Suite | Tests | Focus |
 |---|---|---|
 | `accounts/tests/test_permissions.py` | 17 | Role access, admin-only areas, dashboards |
+| `accounts/tests/test_permissions_module.py` | 21 | The permission predicates themselves |
 | `accounts/tests/test_auth.py` | 16 | Login, registration gating, verification, maintenance |
 | `accounts/tests/test_cms.py` | 35 | Page content, Home sections, thrusts, workflow phases |
 | `proposals/tests.py` | 17 | Progress weighting, phase labels, access control |
+| `proposals/tests_permissions.py` | 30 | Characterisation of the proposal permission helpers |
+| `proposals/tests_workflow.py` | 24 | Wizard access and steps, status maps, review rounds, trackers |
 | `details/tests.py` | 11 | Model ordering, clamping, visibility |
 
 Run with `python manage.py test --settings=conf.settings_test`.
@@ -118,16 +121,17 @@ template crash (3 errors). The suite returned to green when each was reverted.
 *every* viewer whenever any report had a null `submitted_by` — which the model explicitly allows
 via `on_delete=SET_NULL`. Deleting a user would have broken the page for everyone. Fixed.
 
-**Still not covered:** the proposal wizard itself (631 lines), document generation
-(`docx_forms.py`, 2,176 lines), and the MOA and implementation workflows. These are the next
-targets and are the reason finding 2.1 remains risky.
+**Now covered:** the wizard's access rules and all 19 steps, status/progress maps, review round
+constraints, and tracker access.
+
+**Still not covered:** document generation (`docx_forms.py`, 2,176 lines) and the deeper MOA and
+implementation state transitions.
 
 This is the finding that gates everything else. **Every other refactor in this document is
 dangerous until this is addressed**, because there is currently no way to know whether a change
 broke the proposal lifecycle short of clicking through it manually.
 
-**Remaining effort:** 2–3 days to cover the wizard, document generation, and the MOA and
-implementation branches.
+**Remaining effort:** ~1 day for document generation and the deeper workflow transitions.
 
 ---
 
@@ -173,7 +177,7 @@ step reviewable and reversible.
 
 ---
 
-### 2.2 Role checks are scattered and inconsistent
+### 2.2 ✅ Role checks were scattered and inconsistent — **fixed**
 
 26 separate inline role comparisons across `accounts/` and `proposals/`, in at least four styles:
 
@@ -189,12 +193,28 @@ is no single place to answer "who can do X?", which is how the accomplishment-re
 drifted (see the changelog below — Admin had unintended access purely because `user_has_capability`
 returned `True` for every capability when the role was Admin).
 
-**Fix:** one `accounts/permissions.py` exposing named predicates — `can_review_proposal(user,
-proposal)`, `can_submit_accomplishment(user)` — with views calling those exclusively. The recent
-`ACCOMPLISHMENT_SUBMIT_ROLES` / `ACCOMPLISHMENT_VIEW_ONLY_ROLES` constants are a small example of
-the target shape.
+**Status:** `accounts/permissions.py` is now the single source of truth. It exposes named role
+groups (`PROPOSAL_AUTHOR_ROLES`, `PHASE_MANAGER_ROLES`, `ACCOMPLISHMENT_SUBMIT_ROLES`...) and
+predicates (`can_review_proposal`, `can_edit_proposal`, `can_manage_proposal_phase`,
+`can_submit_accomplishment_reports`...).
 
-**Effort:** 1 day, and it directly reduces the chance of a permissions bug.
+The old helpers in `proposals/views.py` (`_can_edit`, `_can_review`, `_can_manage_phase`,
+`_role_has_capability`, `_is_director`...) are kept as one-line delegations so no call site
+changed, and `accounts/views.py` and the context processor now resolve through the same module.
+Previously the context processor duplicated the role logic in a separate string comparison, so a
+template and a view could disagree.
+
+**Approach:** 30 characterisation tests were written first, pinning the existing behaviour of
+every helper, and only then was the logic moved. The suite stayed green throughout, which is what
+makes the change safe to review.
+
+**Two latent bugs fixed in passing:**
+
+* `_can_review` computed a 12-line `step_comment_counts` block — several database queries — and
+  then discarded it without ever using the result. Dead code inside a permission check on every
+  call. Removed.
+* Scope matching was case-sensitive, so a coordinator for `Computer Science` silently could not
+  review a proposal recorded as `COMPUTER SCIENCE`. Now compared case-insensitively.
 
 ---
 

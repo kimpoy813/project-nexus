@@ -26,6 +26,7 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from urllib3 import request
 from accounts.decorators import faculty_like_required, role_required
+from accounts import permissions
 from details.models import (
     DocumentTemplate, DynamicFormAnswer, DynamicFormField, DynamicFormResponse,
     DynamicFormTemplate, ExtensionProcess, ProcessStep, ProposalWizardStepConfig, RoleCapability,
@@ -183,127 +184,45 @@ def _strip_phase_prefix(text: str) -> str:
 
 
 def _is_director(user):
-    profile = getattr(user, "profile", None)
-    return getattr(profile, "role", "") == "DIRECTOR"
+    return permissions.is_director(user)
 
 
 def _is_staff(user):
-    profile = getattr(user, "profile", None)
-    return getattr(profile, "role", "") == "STAFF"
+    return permissions.is_staff_role(user)
 
 
 def _is_department_coordinator(user):
-    profile = getattr(user, "profile", None)
-    return getattr(profile, "role", "") == "DEPARTMENT_COORDINATOR"
+    return permissions.is_department_coordinator(user)
 
 
 def _is_campus_coordinator(user):
-    profile = getattr(user, "profile", None)
-    return getattr(profile, "role", "") == "CAMPUS_COORDINATOR"
+    return permissions.is_campus_coordinator(user)
 
 
 def _user_role_value(user):
-    profile = getattr(user, "profile", None)
-    return (getattr(profile, "role", "") or "").upper()
+    return permissions.get_role(user)
 
 
 def _role_has_capability(user, capability):
-    if not user.is_authenticated:
-        return False
-    role = _user_role_value(user)
-    if role == "ADMIN" or getattr(user, "is_superuser", False):
-        return True
-
-    existing = RoleCapability.objects.filter(role=role, capability=capability).first()
-    if existing is not None:
-        return existing.enabled
-
-    # Backward-compatible defaults before the admin capability matrix is initialized.
-    defaults = {
-        RoleCapability.Capability.CREATE_PROPOSAL: {"FACULTY", "EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR", "DIRECTOR"},
-        RoleCapability.Capability.REVIEW_PROPOSAL: {"EVALUATOR", "DEPARTMENT_COORDINATOR", "CAMPUS_COORDINATOR", "DIRECTOR"},
-        RoleCapability.Capability.MANAGE_MOA: {"STAFF", "DIRECTOR"},
-        RoleCapability.Capability.MANAGE_IMPLEMENTATION: {"STAFF", "DIRECTOR"},
-    }
-    return role in defaults.get(capability, set())
+    return permissions.has_capability(user, capability)
 
 
 def _has_active_evaluator_assignment(user, proposal=None, review_round=None):
-    qs = ProposalEvaluatorAssignment.objects.filter(
-        evaluator=user,
-        is_active=True,
+    return permissions.has_active_evaluator_assignment(
+        user, proposal=proposal, review_round=review_round
     )
-    if proposal is not None:
-        qs = qs.filter(proposal=proposal)
-    if review_round is not None:
-        qs = qs.filter(review_round=review_round)
-    return qs.exists()
 
 
 def _can_edit(user, proposal):
-    if not user.is_authenticated:
-        return False
-
-    if proposal.created_by_id == user.id:
-        return True
-
-    if ProposalCollaborator.objects.filter(
-        proposal=proposal,
-        user=user,
-        can_edit=True,
-    ).exists():
-        return True
-
-    if ProposalProponent.objects.filter(
-        proposal=proposal,
-        user=user,
-    ).exists():
-        return True
-
-    return False
+    return permissions.can_edit_proposal(user, proposal)
 
 
 def _can_review(user, proposal):
-    if not user.is_authenticated:
-        return False
-
-    profile = getattr(user, "profile", None)
-    role = getattr(profile, "role", "")
-
-    if not _role_has_capability(user, RoleCapability.Capability.REVIEW_PROPOSAL):
-        return _has_active_evaluator_assignment(user, proposal=proposal)
-
-    if role == "DIRECTOR":
-        return True
-
-    if role == "DEPARTMENT_COORDINATOR":
-        return (proposal.department or "").strip() == (getattr(profile, "department", "") or "").strip()
-
-    if role == "CAMPUS_COORDINATOR":
-        return (proposal.campus or "").strip() == (getattr(profile, "campus", "") or "").strip()
-
-    current_round = proposal.get_active_review_round() or proposal.get_current_review_round()
-
-    # Step-level comment counts (for sidebar markers)
-    step_comment_counts = {}
-    if current_round:
-        raw_steps = ProposalSectionComment.objects.filter(
-            proposal=proposal,
-            review_round=current_round,
-        ).values_list("step_no", flat=True)
-        temp = Counter()
-        for st in raw_steps:
-            try:
-                st_no = int(st or 1)
-            except (TypeError, ValueError):
-                st_no = 1
-            temp[st_no] += 1
-        step_comment_counts = dict(temp)
-    return _has_active_evaluator_assignment(user, proposal=proposal, review_round=current_round)
+    return permissions.can_review_proposal(user, proposal)
 
 
 def _can_view_proposal(user, proposal):
-    return _can_edit(user, proposal) or _can_review(user, proposal) or _is_staff(user)
+    return permissions.can_view_proposal(user, proposal)
 
 
 def _can_manage_phase(user, proposal):
@@ -312,15 +231,7 @@ def _can_manage_phase(user, proposal):
     or the Implementation Tracker (i.e. advance/send back a stage, or
     upload the stage's official documents).
     """
-    if not user.is_authenticated:
-        return False
-    return (
-        _role_has_capability(user, RoleCapability.Capability.MANAGE_MOA)
-        or _role_has_capability(user, RoleCapability.Capability.MANAGE_IMPLEMENTATION)
-        or _is_staff(user)
-        or _is_director(user)
-    )
-
+    return permissions.can_manage_proposal_phase(user, proposal)
 
 
 def _ensure_open_review_round(proposal, user):
@@ -3554,15 +3465,7 @@ def proposal_send_summary(request, proposal_id):
 
 
 def _can_view_summary(user, proposal):
-    if not user.is_authenticated:
-        return False
-    if _is_staff(user):
-        return True
-    if user == proposal.created_by:
-        return True
-    if proposal.proponents.filter(user=user).exists():
-        return True
-    return False
+    return permissions.can_view_proposal_summary(user, proposal)
 
 
 @login_required

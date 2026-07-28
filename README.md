@@ -56,9 +56,12 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | Suite | Focus |
 |---|---|
 | `accounts/tests/test_permissions.py` | Role access: who may submit vs. view accomplishment reports, admin-only areas, dashboard access |
+| `accounts/tests/test_permissions_module.py` | The `accounts.permissions` predicates themselves |
 | `accounts/tests/test_auth.py` | Login, logout, registration gating, email verification, maintenance mode |
 | `accounts/tests/test_cms.py` | Admin-editable page content, Home sections, thrust cards, workflow phases |
 | `proposals/tests.py` | Proposal progress weighting, phase labels, proposal access control |
+| `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
+| `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
@@ -73,8 +76,28 @@ user, client = factories.director("my_director")
 response = client.get("/dashboard/director/")
 ```
 
+## Permissions
+
+All permission logic lives in **`accounts/permissions.py`**. Views, templates,
+and decorators should call its predicates rather than comparing roles inline:
+
+```python
+from accounts import permissions
+
+if permissions.can_review_proposal(request.user, proposal):
+    ...
+```
+
+The helpers still present in `proposals/views.py` (`_can_edit`, `_can_review`,
+and friends) are thin delegations kept for backwards compatibility.
+
+One rule worth knowing: **`ADMIN` implies most capabilities but not all.**
+`SUBMIT_QUARTERLY_ACCOMPLISHMENT` is restricted to coordinators, because Admin
+manages the system rather than filing reports for a department. See
+`_role_restricted_capabilities()`.
+
 ### Coverage status
 
-Permissions, authentication, and the CMS are covered. The proposal wizard
-itself (a 631-line view), document generation, and the MOA and implementation
-workflows are **not** yet covered — see the architecture audit for context.
+Permissions, authentication, the CMS, and the proposal wizard are covered.
+Document generation (`docx_forms.py`) and the deeper MOA and implementation
+state transitions are **not** yet covered — see the architecture audit.

@@ -38,6 +38,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 import proposals
 
 from .campus_data import get_college_choices, get_department_choices, get_campus_choices
+from . import permissions
 from .decorators import admin_required, faculty_like_required, role_required
 from .forms import AdminCreateUserForm, PageSectionForm, ProfileUpdateForm, RegisterForm
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
@@ -2810,56 +2811,15 @@ def _user_role(user):
     return (getattr(profile, "role", "") or "").upper()
 
 
-# Accomplishment reports split into two permissions:
-#   - Coordinators file the reports.
-#   - Staff and Director read them but never submit.
-# Admin manages the system and is deliberately excluded from both, even though
-# Admin otherwise implies every capability.
-ACCOMPLISHMENT_SUBMIT_ROLES = {
-    Profile.ROLE_DEPARTMENT_COORDINATOR,
-    Profile.ROLE_CAMPUS_COORDINATOR,
-}
+# Permission logic lives in accounts/permissions.py. These names are kept as
+# thin aliases so existing call sites and imports continue to work.
+ACCOMPLISHMENT_SUBMIT_ROLES = permissions.ACCOMPLISHMENT_SUBMIT_ROLES
+ACCOMPLISHMENT_VIEW_ONLY_ROLES = permissions.ACCOMPLISHMENT_VIEW_ONLY_ROLES
+ACCOMPLISHMENT_REPORT_ROLES = permissions.ACCOMPLISHMENT_REPORT_ROLES
 
-ACCOMPLISHMENT_VIEW_ONLY_ROLES = {
-    Profile.ROLE_STAFF,
-    Profile.ROLE_DIRECTOR,
-}
-
-# Anyone who may open the reports list at all.
-ACCOMPLISHMENT_REPORT_ROLES = ACCOMPLISHMENT_SUBMIT_ROLES | ACCOMPLISHMENT_VIEW_ONLY_ROLES
-
-
-def can_submit_accomplishment_reports(user):
-    """Only Department and Campus Coordinators may submit reports."""
-    if not getattr(user, "is_authenticated", False):
-        return False
-    return _user_role(user) in ACCOMPLISHMENT_SUBMIT_ROLES
-
-
-def can_access_accomplishment_reports(user):
-    """Coordinators (submit) plus Staff and Director (view only)."""
-    if not getattr(user, "is_authenticated", False):
-        return False
-    return _user_role(user) in ACCOMPLISHMENT_REPORT_ROLES
-
-
-def user_has_capability(user, capability):
-    if not user.is_authenticated:
-        return False
-    role = _user_role(user)
-
-    # Role-restricted capability: not implied by Admin/superuser.
-    # This capability specifically means "may submit", which is coordinators only.
-    if capability == RoleCapability.Capability.SUBMIT_QUARTERLY_ACCOMPLISHMENT:
-        return role in ACCOMPLISHMENT_SUBMIT_ROLES
-
-    if role == Profile.ROLE_ADMIN or getattr(user, "is_superuser", False):
-        return True
-    return RoleCapability.objects.filter(
-        role=role,
-        capability=capability,
-        enabled=True,
-    ).exists()
+can_submit_accomplishment_reports = permissions.can_submit_accomplishment_reports
+can_access_accomplishment_reports = permissions.can_view_accomplishment_reports
+user_has_capability = permissions.has_capability
 
 
 def _sync_default_wizard_step_configs():
@@ -3251,7 +3211,7 @@ def accomplishment_reports_list(request):
         reports = reports.filter(department=getattr(profile, "department", ""))
     elif role == Profile.ROLE_CAMPUS_COORDINATOR:
         reports = reports.filter(campus=getattr(profile, "campus", ""))
-    elif role not in ACCOMPLISHMENT_VIEW_ONLY_ROLES:
+    elif not permissions.sees_all_accomplishment_reports(request.user):
         reports = reports.filter(submitted_by=request.user)
 
     return render(
