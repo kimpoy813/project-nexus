@@ -65,6 +65,7 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
+| `proposals/tests_transitions.py` | MOA/implementation transitions, status derivation, wizard helpers |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
@@ -145,9 +146,8 @@ manages the system rather than filing reports for a department. See
 
 ### Coverage status
 
-Permissions, authentication, the CMS, the proposal wizard, and document
-generation are covered. The deeper MOA and implementation state transitions
-are **not** yet covered — see the architecture audit.
+Permissions, authentication, the CMS, the proposal wizard, document
+generation, and the MOA/implementation state transitions are all covered.
 
 Document tests generate real files from the templates committed under
 `proposals/template_files/`, so a corrupt template or a broken field lookup

@@ -97,7 +97,7 @@ already failing — they referenced `Proposal.mark_implementation_in_progress()`
 `proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
 refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-**Now: 221 tests, running in ~14 seconds.**
+**Now: 259 tests, running in ~14 seconds.**
 
 | Suite | Tests | Focus |
 |---|---|---|
@@ -111,6 +111,7 @@ refactor and nobody noticed, which is itself the clearest evidence the suite was
 | `accounts/tests/test_structure.py` | 4 | URL resolution, no duplicate defs, re-export contract |
 | `accounts/tests/test_error_handling.py` | 11 | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | 35 | DOCX/XLSX generation, template routing, download access |
+| `proposals/tests_transitions.py` | 38 | MOA/implementation transitions, status derivation, wizard helpers |
 | `details/tests.py` | 11 | Model ordering, clamping, visibility |
 
 Run with `python manage.py test --settings=conf.settings_test`.
@@ -128,7 +129,7 @@ via `on_delete=SET_NULL`. Deleting a user would have broken the page for everyon
 constraints, tracker access, and document generation (both DOCX entry points, template routing,
 and the download endpoints).
 
-**Still not covered:** the deeper MOA and implementation state transitions.
+**Now also covered:** MOA and implementation state transitions, overall-status derivation, the progress high-water ratchet, and terminal (rejected/cancelled) states.
 
 This is the finding that gates everything else. **Every other refactor in this document is
 dangerous until this is addressed**, because there is currently no way to know whether a change
@@ -348,7 +349,7 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 
 1. ✅ `DEBUG` defaults to `False` *(1.1)*
 2. ✅ `db.sqlite3` untracked *(1.2)*
-3. ✅ Test suite: 0 → 221 passing tests, sabotage-verified *(1.4)*
+3. ✅ Test suite: 0 → 259 passing tests, sabotage-verified *(1.4)*
 4. ✅ Debug `print()` calls removed from the Director dashboard hot path *(2.4)*
 5. ✅ Shared dashboard design system *(3.1)*
 6. ✅ Permissions centralised in `accounts/permissions.py` *(2.2)*
@@ -356,18 +357,27 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 8. ✅ Both view modules split into packages, with structural guards *(2.1)*
 9. ✅ Logging configured; broad exception handlers narrowed and logged *(2.3)*
 10. ✅ Document generation covered; `docx_forms` handlers narrowed 42 → 28 *(1.4, 2.3)*
+11. ✅ `proposal_wizard` split 629 → 470 lines; MOA/implementation transitions covered *(2.1, 1.4)*
 
 **Next, in order:**
 
-11. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
-    first. This is the only outstanding Severity 1 item. *(1.3)*
-12. Break up `proposal_wizard` (631 lines) and `summarize_comments` (135) — a genuine refactor
-    rather than a move, now protected by the wizard tests. *(2.1)*
-13. Cover the deeper MOA and implementation state transitions — ~half a day. *(1.4)*
-14. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
+**Only one item remains, and it needs a decision from you:**
 
-With permissions centralised, the packages split, and 221 tests in place, the remaining items are
-routine maintenance rather than structural risk.
+12. **Untrack `media/`** — 5 minutes of work, but it needs confirmation that the Supabase bucket
+    holds these 47 files first. They are 120 MB and include the personnel photographs rendered on
+    the public homepage, so untracking them before the bucket is populated would break every
+    image on the live site. *(1.3)*
+
+Deliberately **not** recommended as further work:
+
+* **The Tailwind CDN → build step** *(3.3)*. It is a real improvement on paper, but it introduces
+  a Node toolchain into a Python deployment for a purely cosmetic gain. Not worth the operational
+  cost at this project's size unless page weight becomes a measured problem.
+* **Further splitting of `proposal_wizard`** *(2.1)* — see the note under that finding.
+* **Renaming the `details` app** *(3.4)* — migration risk outweighs the clarity gain.
+
+Everything else in this document is closed. The codebase now has 259 tests, centralised
+permissions, structured logging, and no module over ~1,300 lines.
 
 ---
 

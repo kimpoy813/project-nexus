@@ -462,6 +462,206 @@ def proposal_create(request):
     return redirect("proposal_wizard", proposal_id=proposal.id, step=1)
 
 
+def _sidebar_comment_counts(proposal, current_round):
+    """Comments per wizard step, for the sidebar badges.
+
+    Only populated while the proposal is FOR_REVISION: badges are a cue for
+    the proponent to act, so they are noise at any other status.
+    """
+    if not current_round:
+        return {}
+    if proposal.proposal_status != Proposal.ProposalStatus.FOR_REVISION:
+        return {}
+
+    raw_steps = ProposalSectionComment.objects.filter(
+        proposal=proposal,
+        review_round=current_round,
+    ).values_list("step_no", flat=True)
+
+    counts = Counter()
+    for raw in raw_steps:
+        try:
+            step_no = int(raw or 1)
+        except (TypeError, ValueError):
+            step_no = 1
+        counts[step_no] += 1
+    return dict(counts)
+
+
+def _proponent_review_panel(proposal, current_round, step, *, is_proponent):
+    """Return ``(review_summary, visible_comments)`` for the read-only panel.
+
+    Reviewers see their own tooling elsewhere; this is what the *proponent*
+    sees. Individual comments are only exposed once the proposal has been
+    returned FOR_REVISION, so in-progress review notes stay private.
+    """
+    if not (is_proponent and current_round):
+        return None, []
+
+    review_summary = ProposalCommentSummary.objects.filter(
+        proposal=proposal,
+        review_round=current_round,
+        sent_to_proponent=True,
+    ).first()
+
+    if proposal.proposal_status != Proposal.ProposalStatus.FOR_REVISION:
+        return review_summary, []
+
+    visible_comments = (
+        ProposalSectionComment.objects.filter(
+            proposal=proposal,
+            review_round=current_round,
+            step_no=step,
+        )
+        .select_related("reviewer", "reviewer__profile")
+        .order_by("step_no", "created_at")
+    )
+    return review_summary, visible_comments
+
+
+def _add_step_context_for_get(ctx, proposal, step):
+    """Attach the per-step data the wizard templates need on GET.
+
+    Split out of ``proposal_wizard`` purely for readability: this was ~100
+    lines of ``if step == N`` inline in the view. Mutates and returns ``ctx``.
+    """
+    if step == 2 and proposal.scope_type == "PROGRAM":
+        ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
+
+    if step == 3:
+        ctx["proponents"] = proposal.proponents.select_related("user").all().order_by("id")
+        if proposal.scope_type == "PROGRAM":
+            ctx["program_projects"] = proposal.program_projects.select_related("leader_user").all().order_by("order", "id")
+
+    if step == 6:
+        ctx["sdgs"] = SDG_LIST
+        ctx["thrusts"] = THRUST_LIST
+        sdg_links = proposal.sdg_links.all()
+        thrust_links = proposal.thrust_links.all()
+        ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
+        ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
+        ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
+        ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
+
+    if step == 7:
+        ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
+
+    if step == 8:
+        ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
+        ctx["gender_total"] = (
+            (proposal.g_lesbian or 0)
+            + (proposal.g_gay or 0)
+            + (proposal.g_bisexual or 0)
+            + (proposal.g_transgender or 0)
+            + (proposal.g_straight or 0)
+            + (proposal.g_others or 0)
+        )
+
+    if step == 9:
+        ctx["gender_issues"] = GENDER_ISSUE_LIST
+        ctx["selected_gender_issue_keys"] = set(
+            proposal.gender_issue_links.values_list("issue_key", flat=True)
+        )
+        others_item = proposal.gender_issue_links.filter(issue_key="others").first()
+        ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
+
+    if step == 10:
+        ctx["estimated_month"] = proposal.estimated_month or ""
+        ctx["estimated_year"] = proposal.estimated_year or ""
+        ctx["extension_venue"] = proposal.extension_venue or ""
+        ctx["month_choices"] = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        ]
+
+    if step == 11:
+        ctx["rationale_background"] = proposal.rationale_background or ""
+
+    if step == 12:
+        ctx["significance"] = proposal.significance or ""
+
+    if step == 13:
+        ctx["general_objective"] = proposal.general_objective or ""
+        if proposal.scope_type == "PROGRAM":
+            projects = proposal.program_projects.all().order_by("order", "id")
+            ctx["program_projects"] = projects
+            ctx["project_objectives_map"] = {
+                prj.id: list(
+                    proposal.specific_objectives.filter(program_project=prj)
+                    .values_list("objective", flat=True)
+                )
+                for prj in projects
+            }
+        else:
+            ctx["specific_objectives"] = list(
+                proposal.specific_objectives.filter(program_project__isnull=True)
+                .values_list("objective", flat=True)
+            )
+
+    if step == 14:
+        ctx["methodologies"] = list(proposal.methodologies.values_list("item", flat=True))
+
+    if step == 15:
+        ctx["output_outcomes"] = list(proposal.output_outcomes.values_list("item", flat=True))
+
+    if step == 16:
+        ctx["existing_attachments"] = proposal.attachments.filter(
+            category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES
+        ).order_by("id")
+        if proposal.scope_type == "PROGRAM":
+            ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
+
+    if step == 17:
+        ctx["existing_funding_attachments"] = proposal.attachments.filter(
+            category=ProposalAttachment.Category.OTHER
+        ).order_by("id")
+
+    if step == 18:
+        ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
+
+    if step == 19:
+        ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
+    return ctx
+
+def _handle_save_comment(request, proposal, step, current_round, reviewer_role):
+    """Persist a reviewer's comment for one wizard step.
+
+    One comment per reviewer per step per round: re-submitting updates the
+    existing row rather than adding another. Always returns a redirect.
+    """
+    comment_text = (request.POST.get("comment") or "").strip()
+    if not comment_text:
+        messages.error(request, "Comment cannot be empty.")
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
+
+    existing_step_comment = ProposalSectionComment.objects.filter(
+        proposal=proposal,
+        review_round=current_round,
+        reviewer=request.user,
+        step_no=step,
+    ).first()
+
+    if existing_step_comment:
+        existing_step_comment.comment = comment_text
+        existing_step_comment.reviewer_role = reviewer_role
+        existing_step_comment.save(update_fields=["comment", "reviewer_role"])
+        messages.success(request, f"Your comment for Step {step} was updated.")
+    else:
+        ProposalSectionComment.objects.create(
+            proposal=proposal,
+            review_round=current_round,
+            reviewer=request.user,
+            reviewer_role=reviewer_role,
+            step_no=step,
+            comment=comment_text,
+        )
+        messages.success(request, f"Your comment for Step {step} was saved.")
+
+    if proposal.proposal_status == Proposal.ProposalStatus.SUBMITTED_FOR_REVIEW:
+        proposal.mark_in_review(review_level=proposal.review_level or Proposal.ReviewLevel.DEPARTMENT)
+
+    return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
+
 @login_required
 @faculty_like_required
 def proposal_wizard(request, proposal_id, step):
@@ -491,22 +691,7 @@ def proposal_wizard(request, proposal_id, step):
 
     current_round = proposal.get_active_review_round() or proposal.get_current_review_round()
 
-    # Sidebar step comment markers (count comments per step for the current review round).
-    # We only show badges to proponents when the proposal is FOR_REVISION.
-    step_comment_counts = {}
-    if current_round and proposal.proposal_status == Proposal.ProposalStatus.FOR_REVISION:
-        raw_steps = ProposalSectionComment.objects.filter(
-            proposal=proposal,
-            review_round=current_round,
-        ).values_list("step_no", flat=True)
-        temp = Counter()
-        for st in raw_steps:
-            try:
-                st_no = int(st or 1)
-            except (TypeError, ValueError):
-                st_no = 1
-            temp[st_no] += 1
-        step_comment_counts = dict(temp)
+    step_comment_counts = _sidebar_comment_counts(proposal, current_round)
 
 
     is_proponent_view = (
@@ -514,28 +699,9 @@ def proposal_wizard(request, proposal_id, step):
         or proposal.proponents.filter(user=request.user).exists()
     )
 
-    review_summary = None
-    visible_comments = []
-
-    if is_proponent_view and current_round:
-        review_summary = ProposalCommentSummary.objects.filter(
-            proposal=proposal,
-            review_round=current_round,
-            sent_to_proponent=True,
-        ).first()
-
-        if proposal.proposal_status == Proposal.ProposalStatus.FOR_REVISION:
-            visible_comments = (
-                ProposalSectionComment.objects.filter(
-                    proposal=proposal,
-                    review_round=current_round,
-                    step_no=step,
-                )
-                .select_related("reviewer", "reviewer__profile")
-                .order_by("step_no", "created_at")
-            )
-        else:
-            visible_comments = []
+    review_summary, visible_comments = _proponent_review_panel(
+        proposal, current_round, step, is_proponent=is_proponent_view
+    )
 
     # 🔥 IMPORTANT: ctx must exist first
     ctx = _build_wizard_context(proposal, step, request.user, comment_counts=step_comment_counts)
@@ -599,138 +765,13 @@ def proposal_wizard(request, proposal_id, step):
     template = f"services/wizard/step_{step}.html"
 
     if request.method == "GET":
-        if step == 2 and proposal.scope_type == "PROGRAM":
-            ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
-
-        if step == 3:
-            ctx["proponents"] = proposal.proponents.select_related("user").all().order_by("id")
-            if proposal.scope_type == "PROGRAM":
-                ctx["program_projects"] = proposal.program_projects.select_related("leader_user").all().order_by("order", "id")
-
-        if step == 6:
-            ctx["sdgs"] = SDG_LIST
-            ctx["thrusts"] = THRUST_LIST
-            sdg_links = proposal.sdg_links.all()
-            thrust_links = proposal.thrust_links.all()
-            ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
-            ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
-            ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
-            ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
-
-        if step == 7:
-            ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
-
-        if step == 8:
-            ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-            ctx["gender_total"] = (
-                (proposal.g_lesbian or 0)
-                + (proposal.g_gay or 0)
-                + (proposal.g_bisexual or 0)
-                + (proposal.g_transgender or 0)
-                + (proposal.g_straight or 0)
-                + (proposal.g_others or 0)
-            )
-
-        if step == 9:
-            ctx["gender_issues"] = GENDER_ISSUE_LIST
-            ctx["selected_gender_issue_keys"] = set(
-                proposal.gender_issue_links.values_list("issue_key", flat=True)
-            )
-            others_item = proposal.gender_issue_links.filter(issue_key="others").first()
-            ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
-
-        if step == 10:
-            ctx["estimated_month"] = proposal.estimated_month or ""
-            ctx["estimated_year"] = proposal.estimated_year or ""
-            ctx["extension_venue"] = proposal.extension_venue or ""
-            ctx["month_choices"] = [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December",
-            ]
-
-        if step == 11:
-            ctx["rationale_background"] = proposal.rationale_background or ""
-
-        if step == 12:
-            ctx["significance"] = proposal.significance or ""
-
-        if step == 13:
-            ctx["general_objective"] = proposal.general_objective or ""
-            if proposal.scope_type == "PROGRAM":
-                projects = proposal.program_projects.all().order_by("order", "id")
-                ctx["program_projects"] = projects
-                ctx["project_objectives_map"] = {
-                    prj.id: list(
-                        proposal.specific_objectives.filter(program_project=prj)
-                        .values_list("objective", flat=True)
-                    )
-                    for prj in projects
-                }
-            else:
-                ctx["specific_objectives"] = list(
-                    proposal.specific_objectives.filter(program_project__isnull=True)
-                    .values_list("objective", flat=True)
-                )
-
-        if step == 14:
-            ctx["methodologies"] = list(proposal.methodologies.values_list("item", flat=True))
-
-        if step == 15:
-            ctx["output_outcomes"] = list(proposal.output_outcomes.values_list("item", flat=True))
-
-        if step == 16:
-            ctx["existing_attachments"] = proposal.attachments.filter(
-                category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES
-            ).order_by("id")
-            if proposal.scope_type == "PROGRAM":
-                ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
-
-        if step == 17:
-            ctx["existing_funding_attachments"] = proposal.attachments.filter(
-                category=ProposalAttachment.Category.OTHER
-            ).order_by("id")
-
-        if step == 18:
-            ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
-
-        if step == 19:
-            ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
-
+        _add_step_context_for_get(ctx, proposal, step)
         return render(request, template, ctx)
 
     if action == "save_comment":
-        comment_text = (request.POST.get("comment") or "").strip()
-        if not comment_text:
-            messages.error(request, "Comment cannot be empty.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
-
-        existing_step_comment = ProposalSectionComment.objects.filter(
-            proposal=proposal,
-            review_round=current_round,
-            reviewer=request.user,
-            step_no=step,
-        ).first()
-
-        if existing_step_comment:
-            existing_step_comment.comment = comment_text
-            existing_step_comment.reviewer_role = reviewer_role
-            existing_step_comment.save(update_fields=["comment", "reviewer_role"])
-            messages.success(request, f"Your comment for Step {step} was updated.")
-        else:
-            ProposalSectionComment.objects.create(
-                proposal=proposal,
-                review_round=current_round,
-                reviewer=request.user,
-                reviewer_role=reviewer_role,
-                step_no=step,
-                comment=comment_text,
-            )
-            messages.success(request, f"Your comment for Step {step} was saved.")
-
-        if proposal.proposal_status == Proposal.ProposalStatus.SUBMITTED_FOR_REVIEW:
-            proposal.mark_in_review(review_level=proposal.review_level or Proposal.ReviewLevel.DEPARTMENT)
-
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
+        return _handle_save_comment(
+            request, proposal, step, current_round, reviewer_role
+        )
 
     if step == 1:
         proposal.extension_type = request.POST.get("extension_type", "")
