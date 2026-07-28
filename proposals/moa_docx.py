@@ -43,7 +43,7 @@ from docx.oxml.ns import qn
 
 try:
     from accounts.models import Signatory  # type: ignore
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     Signatory = None  # type: ignore
 
 try:
@@ -51,7 +51,7 @@ try:
     # generated documents, so the ISPSC signature block is consistent
     # app-wide.
     from .docx_forms import _signatory_lookup, _display_signatory
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     _signatory_lookup = None  # type: ignore
     _display_signatory = None  # type: ignore
 

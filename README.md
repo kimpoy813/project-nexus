@@ -64,6 +64,7 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
+| `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
@@ -144,6 +145,10 @@ manages the system rather than filing reports for a department. See
 
 ### Coverage status
 
-Permissions, authentication, the CMS, and the proposal wizard are covered.
-Document generation (`docx_forms.py`) and the deeper MOA and implementation
-state transitions are **not** yet covered — see the architecture audit.
+Permissions, authentication, the CMS, the proposal wizard, and document
+generation are covered. The deeper MOA and implementation state transitions
+are **not** yet covered — see the architecture audit.
+
+Document tests generate real files from the templates committed under
+`proposals/template_files/`, so a corrupt template or a broken field lookup
+fails the suite rather than only surfacing on a user's download.

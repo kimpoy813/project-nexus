@@ -97,7 +97,7 @@ already failing — they referenced `Proposal.mark_implementation_in_progress()`
 `proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
 refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-**Now: 186 tests, running in ~3.1 seconds.**
+**Now: 221 tests, running in ~14 seconds.**
 
 | Suite | Tests | Focus |
 |---|---|---|
@@ -110,6 +110,7 @@ refactor and nobody noticed, which is itself the clearest evidence the suite was
 | `proposals/tests_workflow.py` | 24 | Wizard access and steps, status maps, review rounds, trackers |
 | `accounts/tests/test_structure.py` | 4 | URL resolution, no duplicate defs, re-export contract |
 | `accounts/tests/test_error_handling.py` | 11 | Logging config, graceful degradation, no leaked error text |
+| `proposals/tests_documents.py` | 35 | DOCX/XLSX generation, template routing, download access |
 | `details/tests.py` | 11 | Model ordering, clamping, visibility |
 
 Run with `python manage.py test --settings=conf.settings_test`.
@@ -124,16 +125,16 @@ template crash (3 errors). The suite returned to green when each was reverted.
 via `on_delete=SET_NULL`. Deleting a user would have broken the page for everyone. Fixed.
 
 **Now covered:** the wizard's access rules and all 19 steps, status/progress maps, review round
-constraints, and tracker access.
+constraints, tracker access, and document generation (both DOCX entry points, template routing,
+and the download endpoints).
 
-**Still not covered:** document generation (`docx_forms.py`, 2,176 lines) and the deeper MOA and
-implementation state transitions.
+**Still not covered:** the deeper MOA and implementation state transitions.
 
 This is the finding that gates everything else. **Every other refactor in this document is
 dangerous until this is addressed**, because there is currently no way to know whether a change
 broke the proposal lifecycle short of clicking through it manually.
 
-**Remaining effort:** ~1 day for document generation and the deeper workflow transitions.
+**Remaining effort:** ~half a day for the deeper MOA and implementation state transitions.
 
 ---
 
@@ -259,12 +260,16 @@ no permissions", and nothing was recorded anywhere.
   every user out. That decision is now commented and logged, so it cannot silently disable
   maintenance mode unnoticed.
 
-**Deliberately left alone:** the 42 handlers in `proposals/docx_forms.py`. They read arbitrary,
-often-absent fields to populate document templates, where a missing value must degrade to a blank
-cell rather than abort a download, and none of them wrap a write. That module still has no test
-coverage, so narrowing 40+ handlers blind would risk breaking document generation for no
-correctness gain. A comment block at the top of the file now explains this rather than leaving it
-to be rediscovered.
+**`docx_forms.py` follow-up (now done):** the 42 handlers there were initially left alone because
+the module had no tests. With `proposals/tests_documents.py` in place, 14 were narrowed to their
+real failure modes — `TypeError` for sorts, `AttributeError`/`ValueError` for optional python-docx
+attributes, `DatabaseError` for Signatory lookups, `ImportError` for optional imports — taking the
+file from 42 broad handlers to 28. `moa_docx.py` went from 2 to 0.
+
+The remaining 28 wrap third-party parsing of user-uploaded `.xlsx` and `.pdf` files, where the
+library can raise almost anything and the only sane response is to skip that section and leave the
+cell blank. Those are deliberately still broad, and the comment block at the top of the file now
+explains that distinction.
 
 **Verified by 11 new tests** in `accounts/tests/test_error_handling.py`, sabotage-checked:
 reverting the context processor to a silent swallow, re-leaking exception text to the user, and
@@ -343,25 +348,25 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 
 1. ✅ `DEBUG` defaults to `False` *(1.1)*
 2. ✅ `db.sqlite3` untracked *(1.2)*
-3. ✅ Test suite: 0 → 186 passing tests, sabotage-verified *(1.4)*
+3. ✅ Test suite: 0 → 221 passing tests, sabotage-verified *(1.4)*
 4. ✅ Debug `print()` calls removed from the Director dashboard hot path *(2.4)*
 5. ✅ Shared dashboard design system *(3.1)*
 6. ✅ Permissions centralised in `accounts/permissions.py` *(2.2)*
 7. ✅ Wizard, review round, and tracker coverage added *(1.4)*
 8. ✅ Both view modules split into packages, with structural guards *(2.1)*
 9. ✅ Logging configured; broad exception handlers narrowed and logged *(2.3)*
+10. ✅ Document generation covered; `docx_forms` handlers narrowed 42 → 28 *(1.4, 2.3)*
 
 **Next, in order:**
 
-10. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
+11. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
     first. This is the only outstanding Severity 1 item. *(1.3)*
-11. Cover document generation, which would then allow the `docx_forms.py` handlers to be
-    narrowed safely — ~1 day. *(1.4, 2.3)*
 12. Break up `proposal_wizard` (631 lines) and `summarize_comments` (135) — a genuine refactor
     rather than a move, now protected by the wizard tests. *(2.1)*
-13. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
+13. Cover the deeper MOA and implementation state transitions — ~half a day. *(1.4)*
+14. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
 
-With permissions centralised, the packages split, and 175 tests in place, the remaining items are
+With permissions centralised, the packages split, and 221 tests in place, the remaining items are
 routine maintenance rather than structural risk.
 
 ---
