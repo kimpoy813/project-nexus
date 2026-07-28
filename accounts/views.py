@@ -1941,6 +1941,8 @@ def admin_dashboard(request):
             role=Profile.ROLE_CAMPUS_COORDINATOR
         ).count(),
         "director_count": Profile.objects.filter(role=Profile.ROLE_DIRECTOR).count(),
+        "staff_count": Profile.objects.filter(role=Profile.ROLE_STAFF).count(),
+        "admin_count": Profile.objects.filter(role=Profile.ROLE_ADMIN).count(),
         "personnel_count": Personnel.objects.count(),
         "activities_count": Activity.objects.count(),
         "processes_count": ExtensionProcess.objects.count(),

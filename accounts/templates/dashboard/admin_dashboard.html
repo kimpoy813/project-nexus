@@ -4,177 +4,358 @@
 {% block title %}Admin Dashboard - NExUS{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8" data-dashboard-view>
+<div class="min-h-screen bg-[#f6f7f5] py-8" data-dashboard-view>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <!-- Header -->
-        <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <!-- ============ HEADER ============ -->
+        <header class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p class="mt-2 text-gray-600">
-                    Manage user accounts, permissions, and website content.
-                </p>
+                <h1 class="text-xl font-semibold tracking-tight text-primary">Admin Dashboard</h1>
+                <p class="mt-0.5 text-sm text-slate-500">Manage accounts, site content, and global settings.</p>
             </div>
+            <div class="flex items-center gap-2">
+                {% if site_control.maintenance_mode %}
+                    <span class="adm-pill adm-pill--danger">Maintenance on</span>
+                {% else %}
+                    <span class="adm-pill adm-pill--ok">Site online</span>
+                {% endif %}
+                <a href="{% url 'admin_create_account' %}" class="adm-btn-primary">Create Account</a>
+            </div>
+        </header>
 
-            <div class="flex flex-wrap gap-3">
-                <a href="{% url 'admin_create_account' %}"
-                   class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
-                    Create Account
-                </a>
+        <!-- ============ KPIs ============ -->
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+            <div class="adm-kpi">
+                <p class="adm-kpi__label">Total Users</p>
+                <p class="adm-kpi__value">{{ total_users|default:"0" }}</p>
+                <p class="adm-kpi__hint">{{ active_today|default:"0" }} active today</p>
+            </div>
+            <div class="adm-kpi">
+                <p class="adm-kpi__label">Verified</p>
+                <p class="adm-kpi__value">{{ verified_users|default:"0" }}</p>
+                <p class="adm-kpi__hint">{{ unverified_users|default:"0" }} pending</p>
+            </div>
+            <div class="adm-kpi">
+                <p class="adm-kpi__label">Content Items</p>
+                <p class="adm-kpi__value">{{ total_content|default:"0" }}</p>
+                <p class="adm-kpi__hint">across all libraries</p>
+            </div>
+            <div class="adm-kpi">
+                <p class="adm-kpi__label">Configurations</p>
+                <p class="adm-kpi__value">{{ dynamic_form_count|default:"0" }}</p>
+                <p class="adm-kpi__hint">{{ document_template_count|default:"0" }} templates</p>
             </div>
         </div>
 
-        <!-- Top Summary -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Total Users</p>
-                <p class="mt-2 text-3xl font-bold text-gray-900">{{ total_users|default:"0" }}</p>
-            </div>
+        <!-- ============ TABS ============ -->
+        <nav class="adm-tabs mb-5" role="tablist" aria-label="Admin sections">
+            <button type="button" class="adm-tab active" data-tab="overview" role="tab">Overview</button>
+            <button type="button" class="adm-tab" data-tab="users" role="tab">
+                Users
+                {% if unverified_users %}<span class="adm-tab__count">{{ unverified_users }}</span>{% endif %}
+            </button>
+            <button type="button" class="adm-tab" data-tab="content" role="tab">Content &amp; Builders</button>
+            <button type="button" class="adm-tab" data-tab="settings" role="tab">Site Settings</button>
+        </nav>
 
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Verified Users</p>
-                <p class="mt-2 text-3xl font-bold text-green-600">{{ verified_users|default:"0" }}</p>
-                <p class="mt-1 text-xs text-gray-500">
-                    {{ unverified_users|default:"0" }} pending verification
-                </p>
-            </div>
+        <!-- ================================================================
+             OVERVIEW
+        ================================================================ -->
+        <section class="adm-panel" data-tab-panel="overview">
 
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Active Today</p>
-                <p class="mt-2 text-3xl font-bold text-purple-600">{{ active_today|default:"0" }}</p>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Content Items</p>
-                <p class="mt-2 text-3xl font-bold text-blue-600">{{ total_content|default:"0" }}</p>
-                <p class="mt-1 text-xs text-gray-500 leading-relaxed">
-                    Personnel: {{ personnel_count|default:"0" }} •
-                    Activities: {{ activities_count|default:"0" }} •
-                    Processes: {{ processes_count|default:"0" }} •
-                    Targets: {{ targets_count|default:"0" }}
-                </p>
-            </div>
-        </div>
-
-        <!-- No-Code Operations Builder -->
-        <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
-            <div class="border-b border-gray-200 bg-gradient-to-br from-primary/10 via-white to-accent/30 px-6 py-5">
-                <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Operations Builder</p>
-                <h2 class="mt-1 text-xl font-black tracking-tight text-gray-900">Update processes, forms, and templates without coding</h2>
-                <p class="mt-1 text-sm text-gray-600">When the Extension Office changes requirements, use these builders instead of editing source files.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 p-6">
-                <a href="{% url 'processes_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
-                    <p class="text-sm font-black text-gray-900">Process Builder</p>
-                    <p class="mt-2 text-3xl font-black text-primary">{{ processes_count|default:0 }}</p>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Edit public process flows and step-by-step office procedures.</p>
-                </a>
-                <a href="{% url 'wizard_steps_manager' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
-                    <p class="text-sm font-black text-gray-900">Wizard Step Manager</p>
-                    <p class="mt-2 text-3xl font-black text-primary">{{ wizard_step_config_count|default:0 }}</p>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Rename, hide, or make built-in proposal wizard steps optional.</p>
-                </a>
-                <a href="{% url 'dynamic_forms_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
-                    <p class="text-sm font-black text-gray-900">Form Builder</p>
-                    <p class="mt-2 text-3xl font-black text-primary">{{ dynamic_form_count|default:0 }}</p>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Create configurable forms/checklists for Proposal, MOA, Implementation, and Evaluation.</p>
-                </a>
-                <a href="{% url 'document_templates_list' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
-                    <p class="text-sm font-black text-gray-900">Template Library</p>
-                    <p class="mt-2 text-3xl font-black text-primary">{{ document_template_count|default:0 }}</p>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Upload official DOCX/XLSX/PDF templates used by proponents and office staff.</p>
-                </a>
-                <a href="{% url 'role_capabilities_manager' %}" class="rounded-2xl border border-gray-200 bg-gray-50/70 p-5 transition hover:border-primary hover:bg-white hover:shadow-sm">
-                    <p class="text-sm font-black text-gray-900">Role Capability Matrix</p>
-                    <p class="mt-2 text-3xl font-black text-primary">{{ role_capability_count|default:0 }}</p>
-                    <p class="mt-1 text-xs leading-5 text-gray-500">Turn role functions on/off, like coordinator quarterly reports.</p>
-                </a>
-            </div>
-        </div>
-
-        <!-- Website Command Center -->
-        <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
-            <div class="border-b border-gray-200 bg-gradient-to-br from-primary/10 via-white to-accent/30 px-6 py-5">
-                <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Admin Power</p>
-                        <h2 class="mt-1 text-xl font-black tracking-tight text-gray-900">Website Command Center</h2>
-                        <p class="mt-1 text-sm text-gray-600">Control branding, site-wide announcements, public registration, and maintenance mode for the whole website.</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        {% if site_control.maintenance_mode %}
-                            <span class="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700 ring-1 ring-red-200">Maintenance ON</span>
-                        {% else %}
-                            <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700 ring-1 ring-green-200">Site Online</span>
-                        {% endif %}
-                        {% if site_control.announcement_enabled %}
-                            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700 ring-1 ring-blue-200">Announcement Live</span>
-                        {% endif %}
-                        {% if not site_control.registration_enabled %}
-                            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700 ring-1 ring-amber-200">Registration Closed</span>
-                        {% endif %}
-                    </div>
+            <div class="adm-card mb-5">
+                <div class="adm-card__head">
+                    <h2 class="adm-card__title">Role Distribution</h2>
+                    <p class="adm-card__sub">User access levels across the system.</p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-px bg-slate-100">
+                    <div class="adm-stat"><span class="adm-stat__label">Faculty</span><span class="adm-stat__value">{{ faculty_count|default:"0" }}</span></div>
+                    <div class="adm-stat"><span class="adm-stat__label">Staff</span><span class="adm-stat__value">{{ staff_count|default:"0" }}</span></div>
+                    <div class="adm-stat"><span class="adm-stat__label">Evaluators</span><span class="adm-stat__value">{{ evaluator_count|default:"0" }}</span></div>
+                    <div class="adm-stat"><span class="adm-stat__label">Dept. Coord.</span><span class="adm-stat__value">{{ department_coordinator_count|default:"0" }}</span></div>
+                    <div class="adm-stat"><span class="adm-stat__label">Campus Coord.</span><span class="adm-stat__value">{{ campus_coordinator_count|default:"0" }}</span></div>
+                    <div class="adm-stat"><span class="adm-stat__label">Director</span><span class="adm-stat__value">{{ director_count|default:"0" }}</span></div>
+                    <div class="adm-stat"><span class="adm-stat__label">Admin</span><span class="adm-stat__value">{{ admin_count|default:"0" }}</span></div>
                 </div>
             </div>
 
-            <form method="POST" action="{% url 'admin_site_control' %}" class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div class="adm-card">
+                    <div class="adm-card__head flex items-center justify-between">
+                        <div>
+                            <h2 class="adm-card__title">Recent Sign-ups</h2>
+                            <p class="adm-card__sub">Joined in the last 7 days.</p>
+                        </div>
+                        <button type="button" class="adm-link" data-goto-tab="users">View all →</button>
+                    </div>
+                    <ul class="divide-y divide-slate-100">
+                        {% for profile in recent_users %}
+                        <li class="flex items-center gap-3 px-5 py-3">
+                            <span class="adm-avatar">{{ profile.full_name|default:profile.user.username|first|upper }}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-medium text-slate-800">{{ profile.full_name|default:profile.user.username }}</span>
+                                <span class="block truncate text-xs text-slate-500">{{ profile.user.email|default:"No email" }}</span>
+                            </span>
+                            <span class="adm-pill {% if profile.email_verified %}adm-pill--ok{% else %}adm-pill--warn{% endif %}">
+                                {% if profile.email_verified %}Verified{% else %}Pending{% endif %}
+                            </span>
+                        </li>
+                        {% empty %}
+                        <li class="px-5 py-8 text-center text-sm text-slate-400">No new users this week.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="adm-card">
+                    <div class="adm-card__head">
+                        <h2 class="adm-card__title">Recent Global Changes</h2>
+                        <p class="adm-card__sub">Latest site-wide setting updates.</p>
+                    </div>
+                    <ul class="divide-y divide-slate-100">
+                        {% for log in site_logs %}
+                        <li class="px-5 py-3">
+                            <p class="text-sm text-slate-800">{{ log.summary }}</p>
+                            <p class="mt-0.5 text-xs text-slate-400">
+                                {{ log.created_at|date:"M d, Y h:i A" }}{% if log.changed_by %} · {{ log.changed_by.profile.full_name|default:log.changed_by.username }}{% endif %}
+                            </p>
+                        </li>
+                        {% empty %}
+                        <li class="px-5 py-8 text-center text-sm text-slate-400">No global changes logged yet.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================
+             USERS
+        ================================================================ -->
+        <section class="adm-panel hidden" data-tab-panel="users">
+            <div class="adm-card">
+                <div class="adm-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="adm-card__title">Account Management</h2>
+                        <p class="adm-card__sub">Assign roles and review user access.</p>
+                    </div>
+                    <div class="flex flex-col gap-2 sm:flex-row">
+                        <input type="text" id="userSearch" placeholder="Search users…" class="adm-input w-full sm:w-56">
+                        <select id="roleFilter" class="adm-input w-full sm:w-44">
+                            <option value="">All roles</option>
+                            <option value="FACULTY">Faculty</option>
+                            <option value="STAFF">Staff</option>
+                            <option value="EVALUATOR">Evaluator</option>
+                            <option value="DEPARTMENT_COORDINATOR">Department Coordinator</option>
+                            <option value="CAMPUS_COORDINATOR">Campus Coordinator</option>
+                            <option value="DIRECTOR">Director</option>
+                            <option value="ADMIN">Admin</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full" id="userTable">
+                        <thead>
+                            <tr class="border-b border-slate-100 bg-slate-50/70">
+                                <th class="adm-th">User</th>
+                                <th class="adm-th">Campus</th>
+                                <th class="adm-th">Role</th>
+                                <th class="adm-th">Status</th>
+                                <th class="adm-th text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for profile in profiles %}
+                            <tr class="transition hover:bg-slate-50/70" data-role="{{ profile.role }}">
+                                <td class="adm-td">
+                                    <div class="flex items-center gap-3">
+                                        <span class="adm-avatar">{{ profile.full_name|default:profile.user.username|first|upper }}</span>
+                                        <span class="min-w-0">
+                                            <span class="block truncate text-sm font-medium text-slate-800">{{ profile.full_name|default:profile.user.username }}</span>
+                                            <span class="block truncate text-xs text-slate-500">{{ profile.user.email|default:"No email" }}</span>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="adm-td text-sm text-slate-600">{{ profile.campus|default:"—" }}</td>
+                                <td class="adm-td">
+                                    <form method="POST" action="{% url 'manage_roles' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                                        <select name="role" onchange="this.form.submit()" class="adm-input adm-input--sm">
+                                            <option value="FACULTY" {% if profile.role == 'FACULTY' %}selected{% endif %}>Faculty</option>
+                                            <option value="STAFF" {% if profile.role == 'STAFF' %}selected{% endif %}>Staff</option>
+                                            <option value="EVALUATOR" {% if profile.role == 'EVALUATOR' %}selected{% endif %}>Evaluator</option>
+                                            <option value="DEPARTMENT_COORDINATOR" {% if profile.role == 'DEPARTMENT_COORDINATOR' %}selected{% endif %}>Department Coordinator</option>
+                                            <option value="CAMPUS_COORDINATOR" {% if profile.role == 'CAMPUS_COORDINATOR' %}selected{% endif %}>Campus Coordinator</option>
+                                            <option value="DIRECTOR" {% if profile.role == 'DIRECTOR' %}selected{% endif %}>Director</option>
+                                            <option value="ADMIN" {% if profile.role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td class="adm-td">
+                                    <span class="adm-pill {% if profile.email_verified %}adm-pill--ok{% else %}adm-pill--warn{% endif %}">
+                                        {% if profile.email_verified %}Verified{% else %}Pending{% endif %}
+                                    </span>
+                                </td>
+                                <td class="adm-td text-right whitespace-nowrap">
+                                    <a href="{% url 'admin_user_detail' profile.user.id %}" class="adm-link">View</a>
+                                    <span class="mx-1.5 text-slate-200">|</span>
+                                    <a href="{% url 'admin_edit_user' profile.user.id %}" class="adm-link">Edit</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="px-5 py-12 text-center text-sm text-slate-400">No users found.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div id="userEmptyState" class="hidden px-5 py-12 text-center text-sm text-slate-400">
+                    No users match your filters.
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================
+             CONTENT & BUILDERS
+        ================================================================ -->
+        <section class="adm-panel hidden" data-tab-panel="content">
+
+            <div class="adm-card mb-5">
+                <div class="adm-card__head">
+                    <h2 class="adm-card__title">No-Code Builders</h2>
+                    <p class="adm-card__sub">Update processes, forms, and templates without editing source files.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px bg-slate-100">
+                    <a href="{% url 'processes_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Process Builder</span><span class="adm-tile__count">{{ processes_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Public process flows and office procedures.</span>
+                    </a>
+                    <a href="{% url 'wizard_steps_manager' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Wizard Steps</span><span class="adm-tile__count">{{ wizard_step_config_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Rename, hide, or make proposal steps optional.</span>
+                    </a>
+                    <a href="{% url 'dynamic_forms_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Form Builder</span><span class="adm-tile__count">{{ dynamic_form_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Configurable forms and checklists.</span>
+                    </a>
+                    <a href="{% url 'document_templates_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Template Library</span><span class="adm-tile__count">{{ document_template_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Official DOCX/XLSX/PDF templates.</span>
+                    </a>
+                    <a href="{% url 'role_capabilities_manager' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Role Capabilities</span><span class="adm-tile__count">{{ role_capability_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Turn role functions on or off.</span>
+                    </a>
+                    <a href="{% url 'signatories_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Signatories</span><span class="adm-tile__count">{{ signatories_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Signatories for printed summaries and letters.</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="adm-card">
+                <div class="adm-card__head">
+                    <h2 class="adm-card__title">Website Content</h2>
+                    <p class="adm-card__sub">Content shown across the public platform.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100">
+                    <a href="{% url 'personnel_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Personnel</span><span class="adm-tile__count">{{ personnel_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Staff and faculty on the homepage.</span>
+                    </a>
+                    <a href="{% url 'activities_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Activities</span><span class="adm-tile__count">{{ activities_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Upcoming and past extension activities.</span>
+                    </a>
+                    <a href="{% url 'targets_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Targets</span><span class="adm-tile__count">{{ targets_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Yearly targets and accomplishments.</span>
+                    </a>
+                    <a href="{% url 'accomplishment_reports_list' %}" class="adm-tile">
+                        <span class="adm-tile__top"><span class="adm-tile__name">Accomplishments</span><span class="adm-tile__count">{{ accomplishment_report_count|default:0 }}</span></span>
+                        <span class="adm-tile__desc">Submitted accomplishment reports.</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================
+             SITE SETTINGS
+        ================================================================ -->
+        <section class="adm-panel hidden" data-tab-panel="settings">
+            <form method="POST" action="{% url 'admin_site_control' %}">
                 {% csrf_token %}
-                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    <div class="xl:col-span-2 space-y-6">
-                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
-                            <h3 class="text-sm font-black uppercase tracking-wide text-gray-900">Branding</h3>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div class="adm-card mb-5">
+                    <div class="adm-card__head flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="adm-card__title">Website Controls</h2>
+                            <p class="adm-card__sub">Changes here affect the whole website immediately.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            {% if site_control.announcement_enabled %}<span class="adm-pill adm-pill--info">Announcement live</span>{% endif %}
+                            {% if not site_control.registration_enabled %}<span class="adm-pill adm-pill--warn">Registration closed</span>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="p-5 space-y-6">
+                        <!-- Branding -->
+                        <fieldset>
+                            <legend class="adm-legend">Branding</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Site Name</label>
-                                    <input type="text" name="site_name" value="{{ site_control.site_name }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                    <label class="adm-label">Site Name</label>
+                                    <input type="text" name="site_name" value="{{ site_control.site_name }}" class="adm-input">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Short Name</label>
-                                    <input type="text" name="short_name" value="{{ site_control.short_name }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                    <label class="adm-label">Short Name</label>
+                                    <input type="text" name="short_name" value="{{ site_control.short_name }}" class="adm-input">
                                 </div>
                                 <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Tagline</label>
-                                    <input type="text" name="tagline" value="{{ site_control.tagline }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                    <label class="adm-label">Tagline</label>
+                                    <input type="text" name="tagline" value="{{ site_control.tagline }}" class="adm-input">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Contact Email</label>
-                                    <input type="email" name="contact_email" value="{{ site_control.contact_email }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                    <label class="adm-label">Contact Email</label>
+                                    <input type="email" name="contact_email" value="{{ site_control.contact_email }}" class="adm-input">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Facebook URL</label>
-                                    <input type="url" name="facebook_url" value="{{ site_control.facebook_url }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Primary Color</label>
-                                    <input type="color" name="primary_color" value="{{ site_control.primary_color }}" class="h-11 w-full rounded-xl border border-gray-300 p-1">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Secondary Color</label>
-                                    <input type="color" name="secondary_color" value="{{ site_control.secondary_color }}" class="h-11 w-full rounded-xl border border-gray-300 p-1">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Accent Color</label>
-                                    <input type="color" name="accent_color" value="{{ site_control.accent_color }}" class="h-11 w-full rounded-xl border border-gray-300 p-1">
+                                    <label class="adm-label">Facebook URL</label>
+                                    <input type="url" name="facebook_url" value="{{ site_control.facebook_url }}" class="adm-input">
                                 </div>
                             </div>
-                        </section>
+                            <div class="mt-4 grid grid-cols-3 gap-4">
+                                <div>
+                                    <label class="adm-label">Primary</label>
+                                    <input type="color" name="primary_color" value="{{ site_control.primary_color }}" class="adm-color">
+                                </div>
+                                <div>
+                                    <label class="adm-label">Secondary</label>
+                                    <input type="color" name="secondary_color" value="{{ site_control.secondary_color }}" class="adm-color">
+                                </div>
+                                <div>
+                                    <label class="adm-label">Accent</label>
+                                    <input type="color" name="accent_color" value="{{ site_control.accent_color }}" class="adm-color">
+                                </div>
+                            </div>
+                        </fieldset>
 
-                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
+                        <!-- Announcement -->
+                        <fieldset class="border-t border-slate-100 pt-5">
                             <div class="flex items-center justify-between gap-3">
-                                <h3 class="text-sm font-black uppercase tracking-wide text-gray-900">Global Announcement</h3>
-                                <label class="inline-flex items-center gap-2 text-xs font-bold text-gray-700">
-                                    <input type="checkbox" name="announcement_enabled" {% if site_control.announcement_enabled %}checked{% endif %} class="rounded border-gray-300 text-primary focus:ring-primary">
+                                <legend class="adm-legend">Global Announcement</legend>
+                                <label class="adm-check">
+                                    <input type="checkbox" name="announcement_enabled" {% if site_control.announcement_enabled %}checked{% endif %}>
                                     Publish banner
                                 </label>
                             </div>
-                            <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Announcement Title</label>
-                                    <input type="text" name="announcement_title" value="{{ site_control.announcement_title }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                    <label class="adm-label">Title</label>
+                                    <input type="text" name="announcement_title" value="{{ site_control.announcement_title }}" class="adm-input">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Tone</label>
-                                    <select name="announcement_tone" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                                    <label class="adm-label">Tone</label>
+                                    <select name="announcement_tone" class="adm-input">
                                         <option value="INFO" {% if site_control.announcement_tone == 'INFO' %}selected{% endif %}>Info</option>
                                         <option value="SUCCESS" {% if site_control.announcement_tone == 'SUCCESS' %}selected{% endif %}>Success</option>
                                         <option value="WARNING" {% if site_control.announcement_tone == 'WARNING' %}selected{% endif %}>Warning</option>
@@ -182,360 +363,200 @@
                                     </select>
                                 </div>
                                 <div class="md:col-span-3">
-                                    <label class="block text-xs font-bold text-gray-600 mb-1">Message</label>
-                                    <textarea name="announcement_message" rows="3" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ site_control.announcement_message }}</textarea>
+                                    <label class="adm-label">Message</label>
+                                    <textarea name="announcement_message" rows="3" class="adm-input">{{ site_control.announcement_message }}</textarea>
                                 </div>
                             </div>
-                        </section>
-                    </div>
+                        </fieldset>
 
-                    <div class="space-y-6">
-                        <section class="rounded-2xl border border-red-200 bg-red-50 p-5">
-                            <h3 class="text-sm font-black uppercase tracking-wide text-red-900">System Access</h3>
-                            <div class="mt-4 space-y-4">
-                                <label class="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-red-900 ring-1 ring-red-100">
-                                    <input type="checkbox" name="maintenance_mode" {% if site_control.maintenance_mode %}checked{% endif %} class="mt-0.5 rounded border-red-300 text-red-700 focus:ring-red-600">
-                                    <span><strong>Maintenance mode</strong><br><span class="text-xs text-red-700">Locks the site for non-admin users.</span></span>
+                        <!-- System access -->
+                        <fieldset class="border-t border-slate-100 pt-5">
+                            <legend class="adm-legend">System Access</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <label class="adm-toggle">
+                                    <input type="checkbox" name="maintenance_mode" {% if site_control.maintenance_mode %}checked{% endif %}>
+                                    <span>
+                                        <span class="block text-sm font-medium text-slate-800">Maintenance mode</span>
+                                        <span class="block text-xs text-slate-500">Locks the site for non-admin users.</span>
+                                    </span>
                                 </label>
-                                <label class="flex items-start gap-3 rounded-xl bg-white/70 p-3 text-sm text-gray-800 ring-1 ring-gray-100">
-                                    <input type="checkbox" name="registration_enabled" {% if site_control.registration_enabled %}checked{% endif %} class="mt-0.5 rounded border-gray-300 text-primary focus:ring-primary">
-                                    <span><strong>Allow public registration</strong><br><span class="text-xs text-gray-500">Turn off to stop new sign-ups.</span></span>
+                                <label class="adm-toggle">
+                                    <input type="checkbox" name="registration_enabled" {% if site_control.registration_enabled %}checked{% endif %}>
+                                    <span>
+                                        <span class="block text-sm font-medium text-slate-800">Allow public registration</span>
+                                        <span class="block text-xs text-slate-500">Turn off to stop new sign-ups.</span>
+                                    </span>
                                 </label>
-                                <div>
-                                    <label class="block text-xs font-bold text-red-800 mb-1">Maintenance Message</label>
-                                    <textarea name="maintenance_message" rows="4" class="w-full rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm">{{ site_control.maintenance_message }}</textarea>
+                                <div class="md:col-span-2">
+                                    <label class="adm-label">Maintenance Message</label>
+                                    <textarea name="maintenance_message" rows="3" class="adm-input">{{ site_control.maintenance_message }}</textarea>
                                 </div>
                             </div>
-                        </section>
-
-                        <section class="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
-                            <h3 class="text-sm font-black uppercase tracking-wide text-gray-900">Recent Global Changes</h3>
-                            <div class="mt-4 space-y-3">
-                                {% for log in site_logs %}
-                                    <div class="rounded-xl border border-gray-200 bg-white p-3">
-                                        <p class="text-xs font-bold text-gray-900">{{ log.summary }}</p>
-                                        <p class="mt-1 text-[11px] text-gray-500">{{ log.created_at|date:"M d, Y h:i A" }}{% if log.changed_by %} · {{ log.changed_by.profile.full_name|default:log.changed_by.username }}{% endif %}</p>
-                                    </div>
-                                {% empty %}
-                                    <p class="rounded-xl border border-dashed border-gray-300 bg-white p-4 text-center text-xs text-gray-500">No global changes logged yet.</p>
-                                {% endfor %}
-                            </div>
-                        </section>
+                        </fieldset>
                     </div>
-                </div>
 
-                <div class="mt-6 flex flex-col gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                    <p class="text-xs text-gray-500">Changes here affect the whole website immediately.</p>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-secondary">
-                        Save Website Controls
-                    </button>
+                    <div class="flex items-center justify-end border-t border-slate-100 px-5 py-4">
+                        <button type="submit" class="adm-btn-primary">Save Settings</button>
+                    </div>
                 </div>
             </form>
-        </div>
-
-        <!-- Role Distribution -->
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
-            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
-                <h2 class="text-lg font-semibold text-gray-900">Role Distribution</h2>
-                <p class="mt-1 text-sm text-gray-600">
-                    Overview of user access levels across the system.
-                </p>
-            </div>
-
-            <div class="p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Faculty</p>
-                    <p class="mt-2 text-2xl font-bold text-gray-900">{{ faculty_count|default:"0" }}</p>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 bg-green-50 p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-green-700">Evaluators</p>
-                    <p class="mt-2 text-2xl font-bold text-green-800">{{ evaluator_count|default:"0" }}</p>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 bg-blue-50 p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-blue-700">Department Coord.</p>
-                    <p class="mt-2 text-2xl font-bold text-blue-800">{{ department_coordinator_count|default:"0" }}</p>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 bg-indigo-50 p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-indigo-700">Campus Coord.</p>
-                    <p class="mt-2 text-2xl font-bold text-indigo-800">{{ campus_coordinator_count|default:"0" }}</p>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 bg-red-50 p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-red-700">Director</p>
-                    <p class="mt-2 text-2xl font-bold text-red-800">{{ director_count|default:"0" }}</p>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 bg-purple-50 p-4">
-                    <p class="text-xs font-medium uppercase tracking-wide text-purple-700">Admin</p>
-                    <p class="mt-2 text-2xl font-bold text-purple-800">
-                        {{ profiles|length|default:"0" }}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Account Management -->
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-8">
-            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
-                <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Account Management</h2>
-                        <p class="mt-1 text-sm text-gray-600">
-                            Create accounts, assign roles, and review user access.
-                        </p>
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <input type="text"
-                               id="searchInput"
-                               placeholder="Search users..."
-                               class="w-full sm:w-72 rounded-xl border border-gray-300 px-4 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary">
-                    </div>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200" id="userTable">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">User</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Email</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Campus</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Role</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
-                        </tr>
-                    </thead>
-
-                    <tbody class="divide-y divide-gray-200 bg-white">
-                        {% for profile in profiles %}
-                        <tr class="transition hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                                        <span class="text-sm font-semibold text-primary">
-                                            {{ profile.full_name|default:profile.user.username|first|upper }}
-                                        </span>
-                                    </div>
-                                    <div class="ml-4 min-w-0">
-                                        <div class="truncate text-sm font-semibold text-gray-900">
-                                            {{ profile.full_name|default:profile.user.username }}
-                                        </div>
-                                        <div class="truncate text-sm text-gray-500">
-                                            @{{ profile.user.username }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ profile.user.email|default:"No email" }}
-                            </td>
-
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ profile.campus|default:"Not set" }}
-                            </td>
-
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <form method="POST" action="{% url 'manage_roles' %}" class="inline-block">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="user_id" value="{{ profile.user.id }}">
-
-                                    <select name="role"
-                                            onchange="this.form.submit()"
-                                            class="rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary
-                                            {% if profile.role == 'ADMIN' %}bg-purple-50 text-purple-800
-                                            {% elif profile.role == 'DIRECTOR' %}bg-red-50 text-red-800
-                                            {% elif profile.role == 'DEPARTMENT_COORDINATOR' %}bg-blue-50 text-blue-800
-                                            {% elif profile.role == 'CAMPUS_COORDINATOR' %}bg-indigo-50 text-indigo-800
-                                            {% elif profile.role == 'STAFF' %}bg-yellow-50 text-yellow-800
-                                            {% elif profile.role == 'EVALUATOR' %}bg-green-50 text-green-800
-                                            {% else %}bg-gray-50 text-gray-800{% endif %}">
-                                        <option value="FACULTY" {% if profile.role == 'FACULTY' %}selected{% endif %}>Faculty</option>
-                                        <option value="STAFF" {% if profile.role == 'STAFF' %}selected{% endif %}>Staff</option>
-                                        <option value="EVALUATOR" {% if profile.role == 'EVALUATOR' %}selected{% endif %}>Evaluator</option>
-                                        <option value="DEPARTMENT_COORDINATOR" {% if profile.role == 'DEPARTMENT_COORDINATOR' %}selected{% endif %}>Department Coordinator</option>
-                                        <option value="CAMPUS_COORDINATOR" {% if profile.role == 'CAMPUS_COORDINATOR' %}selected{% endif %}>Campus Coordinator</option>
-                                        <option value="DIRECTOR" {% if profile.role == 'DIRECTOR' %}selected{% endif %}>Director</option>
-                                        <option value="ADMIN" {% if profile.role == 'ADMIN' %}selected{% endif %}>Admin</option>
-                                    </select>
-                                </form>
-                            </td>
-
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold
-                                    {% if profile.email_verified %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                    {% if profile.email_verified %}Verified{% else %}Pending{% endif %}
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <div class="flex flex-wrap gap-2">
-                                    <a href="{% url 'admin_edit_user' profile.user.id %}"
-                                       class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary hover:text-white">
-                                        Edit
-                                    </a>
-
-                                    <a href="{% url 'admin_user_detail' profile.user.id %}"
-                                       class="inline-flex items-center rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-gray-400 hover:bg-gray-50">
-                                        View
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">
-                                <svg class="mx-auto mb-3 h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                </svg>
-                                <p class="text-lg font-medium">No users found</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Content Management -->
-        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div class="border-b border-gray-200 bg-gray-50 px-6 py-4">
-                <h2 class="text-lg font-semibold text-gray-900">Website Content Management</h2>
-                <p class="mt-1 text-sm text-gray-600">
-                    Manage extension-related content shown across the platform.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
-                <div class="rounded-xl border border-gray-200 p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold text-gray-900">Extension Personnel</h3>
-                        <span class="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
-                            {{ personnel_count|default:"0" }}
-                        </span>
-                    </div>
-                    <p class="mb-4 text-sm text-gray-600">
-                        Manage staff and faculty members featured on the homepage.
-                    </p>
-                    <a href="{% url 'personnel_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
-                        Manage Personnel
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold text-gray-900">Extension Activities</h3>
-                        <span class="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                            {{ activities_count|default:"0" }}
-                        </span>
-                    </div>
-                    <p class="mb-4 text-sm text-gray-600">
-                        Manage upcoming and past extension activities.
-                    </p>
-                    <a href="{% url 'activities_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
-                        Manage Activities
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold text-gray-900">Extension Processes</h3>
-                        <span class="rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
-                            {{ processes_count|default:"0" }}
-                        </span>
-                    </div>
-                    <p class="mb-4 text-sm text-gray-600">
-                        Manage the extension workflow and process steps.
-                    </p>
-                    <a href="{% url 'processes_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
-                        Manage Processes
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold text-gray-900">Extension Targets</h3>
-                        <span class="rounded-full bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800">
-                            {{ targets_count|default:"0" }}
-                        </span>
-                    </div>
-                    <p class="mb-4 text-sm text-gray-600">
-                        Manage yearly targets and accomplishments by campus.
-                    </p>
-                    <a href="{% url 'targets_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
-                        Manage Targets
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                </div>
-
-                <div class="rounded-xl border border-gray-200 p-5">
-                    <div class="mb-3 flex items-center justify-between">
-                        <h3 class="text-base font-semibold text-gray-900">Signatories</h3>
-                        <span class="rounded-full bg-rose-100 px-2 py-1 text-xs font-medium text-rose-800">
-                            {{ signatories_count|default:"0" }}
-                        </span>
-                    </div>
-                    <p class="mb-4 text-sm text-gray-600">
-                        Manage document signatories used in printed comment summaries and letters.
-                    </p>
-                    <a href="{% url 'signatories_list' %}" class="inline-flex items-center text-sm font-medium text-primary hover:text-secondary">
-                        Manage Signatories
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
-                    </a>
-                </div>
-
-            </div>
-        </div>
+        </section>
 
     </div>
 </div>
 
+<style>
+:root { --adm-green:#103b07; --adm-green-l:#eaf3de; }
+
+/* Cards */
+.adm-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:14px; overflow:hidden; }
+.adm-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
+.adm-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
+.adm-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }
+
+/* KPI */
+.adm-kpi { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:1rem 1.15rem; }
+.adm-kpi__label { font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; }
+.adm-kpi__value { margin-top:.35rem; font-size:1.6rem; font-weight:600; line-height:1.1; color:#0f172a; }
+.adm-kpi__hint { margin-top:.15rem; font-size:.72rem; color:#94a3b8; }
+
+/* Tabs */
+.adm-tabs { display:flex; flex-wrap:wrap; gap:.25rem; border-bottom:1px solid #e2e8f0; }
+.adm-tab {
+    position:relative; padding:.6rem .9rem; margin-bottom:-1px;
+    font-size:.83rem; font-weight:500; color:#64748b;
+    background:transparent; border:none; border-bottom:2px solid transparent;
+    transition:color .15s, border-color .15s; cursor:pointer;
+}
+.adm-tab:hover { color:#0f172a; }
+.adm-tab.active { color:var(--adm-green); border-bottom-color:var(--adm-green); font-weight:600; }
+.adm-tab__count {
+    display:inline-block; margin-left:.35rem; padding:.05rem .4rem;
+    border-radius:999px; background:#fef3c7; color:#92400e; font-size:.68rem; font-weight:600;
+}
+
+/* Stats strip */
+.adm-stat { display:flex; flex-direction:column; gap:.25rem; background:#fff; padding:.9rem 1.1rem; }
+.adm-stat__label { font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; }
+.adm-stat__value { font-size:1.25rem; font-weight:600; color:#0f172a; }
+
+/* Tiles */
+.adm-tile { display:flex; flex-direction:column; gap:.3rem; background:#fff; padding:1rem 1.15rem; transition:background .15s; }
+.adm-tile:hover { background:#f8fafc; }
+.adm-tile__top { display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; }
+.adm-tile__name { font-size:.85rem; font-weight:600; color:#0f172a; }
+.adm-tile__count { font-size:1.1rem; font-weight:600; color:var(--adm-green); }
+.adm-tile__desc { font-size:.75rem; line-height:1.4; color:#94a3b8; }
+
+/* Table */
+.adm-th { padding:.7rem 1.25rem; text-align:left; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; }
+.adm-td { padding:.75rem 1.25rem; vertical-align:middle; }
+
+/* Avatar */
+.adm-avatar {
+    display:grid; place-items:center; flex:none; height:2.1rem; width:2.1rem;
+    border-radius:999px; background:var(--adm-green-l); color:var(--adm-green);
+    font-size:.78rem; font-weight:600;
+}
+
+/* Pills */
+.adm-pill { display:inline-flex; align-items:center; padding:.15rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; white-space:nowrap; }
+.adm-pill--ok { background:#dcfce7; color:#166534; }
+.adm-pill--warn { background:#fef3c7; color:#92400e; }
+.adm-pill--danger { background:#fee2e2; color:#991b1b; }
+.adm-pill--info { background:#dbeafe; color:#1e40af; }
+
+/* Buttons & links */
+.adm-btn-primary {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.5rem 1rem; border-radius:8px; background:var(--adm-green); color:#fff;
+    font-size:.8rem; font-weight:600; border:none; transition:opacity .15s; cursor:pointer;
+}
+.adm-btn-primary:hover { opacity:.85; }
+.adm-link { font-size:.78rem; font-weight:500; color:var(--adm-green); background:none; border:none; padding:0; cursor:pointer; }
+.adm-link:hover { text-decoration:underline; }
+
+/* Forms */
+.adm-legend { display:block; margin-bottom:.75rem; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; }
+.adm-label { display:block; margin-bottom:.3rem; font-size:.73rem; font-weight:500; color:#64748b; }
+.adm-input {
+    display:block; width:100%; padding:.5rem .7rem; border-radius:8px;
+    font-size:.82rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
+    outline:none; transition:border-color .15s;
+}
+.adm-input:focus { border-color:var(--adm-green); }
+.adm-input--sm { padding:.3rem .5rem; font-size:.78rem; }
+.adm-color { height:2.35rem; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:.15rem; background:#fff; cursor:pointer; }
+.adm-check { display:inline-flex; align-items:center; gap:.45rem; font-size:.78rem; font-weight:500; color:#475569; }
+.adm-toggle { display:flex; align-items:flex-start; gap:.6rem; padding:.75rem .9rem; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:border-color .15s; }
+.adm-toggle:hover { border-color:#cbd5e1; }
+.adm-toggle input { margin-top:.15rem; }
+</style>
+
 <script>
-document.getElementById('searchInput')?.addEventListener('keyup', function () {
-    let searchText = this.value.toLowerCase();
-    let tableRows = document.querySelectorAll('#userTable tbody tr');
+(function () {
+    const STORAGE_KEY = 'adminDashboardTab';
 
-    tableRows.forEach(row => {
-        let text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchText) ? '' : 'none';
-    });
-});
+    function activateTab(name) {
+        const tabs = document.querySelectorAll('.adm-tab');
+        const valid = Array.from(tabs).some(t => t.dataset.tab === name);
+        if (!valid) name = 'overview';
 
-document.addEventListener("submit", function () {
-    sessionStorage.setItem("scrollPosition", window.scrollY);
-});
-
-window.addEventListener("beforeunload", function () {
-    sessionStorage.setItem("scrollPosition", window.scrollY);
-});
-
-window.addEventListener("load", function () {
-    const scrollPosition = sessionStorage.getItem("scrollPosition");
-    if (scrollPosition !== null) {
-        window.scrollTo({
-            top: parseInt(scrollPosition, 10),
-            behavior: "auto"
+        tabs.forEach(t => {
+            const on = t.dataset.tab === name;
+            t.classList.toggle('active', on);
+            t.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-        sessionStorage.removeItem("scrollPosition");
+        document.querySelectorAll('.adm-panel').forEach(p => {
+            p.classList.toggle('hidden', p.dataset.tabPanel !== name);
+        });
+
+        try { localStorage.setItem(STORAGE_KEY, name); } catch (e) {}
+        const url = new URL(window.location);
+        url.searchParams.set('tab', name);
+        window.history.replaceState({}, '', url);
     }
-});
+
+    // Filtering for the users table
+    function filterUsers() {
+        const q = (document.getElementById('userSearch')?.value || '').toLowerCase().trim();
+        const role = document.getElementById('roleFilter')?.value || '';
+        const rows = document.querySelectorAll('#userTable tbody tr[data-role]');
+        let shown = 0;
+
+        rows.forEach(row => {
+            const matchesText = !q || row.textContent.toLowerCase().includes(q);
+            const matchesRole = !role || row.dataset.role === role;
+            const visible = matchesText && matchesRole;
+            row.classList.toggle('hidden', !visible);
+            if (visible) shown++;
+        });
+
+        const empty = document.getElementById('userEmptyState');
+        if (empty && rows.length) empty.classList.toggle('hidden', shown !== 0);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.adm-tab').forEach(btn => {
+            btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+        });
+        document.querySelectorAll('[data-goto-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activateTab(btn.dataset.gotoTab);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        let initial = 'overview';
+        try {
+            initial = new URLSearchParams(window.location.search).get('tab')
+                || localStorage.getItem(STORAGE_KEY) || 'overview';
+        } catch (e) {}
+        activateTab(initial);
+
+        document.getElementById('userSearch')?.addEventListener('input', filterUsers);
+        document.getElementById('roleFilter')?.addEventListener('change', filterUsers);
+    });
+})();
 </script>
 {% endblock %}
