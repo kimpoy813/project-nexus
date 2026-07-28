@@ -63,6 +63,7 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
+| `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
@@ -98,6 +99,28 @@ Each `__init__.py` re-exports every public name, so `urls.py` refers to
 `views.some_view` exactly as before. **When you add a view to a submodule, add
 it to the package's `__init__.py` too** — otherwise the URLconf raises
 `AttributeError` at import. `accounts/tests/test_structure.py` guards this.
+
+## Logging
+
+`conf/settings.py` configures console logging. Use a module logger rather than
+`print()`:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+logger.exception("Could not do the thing for proposal %s.", proposal.pk)
+```
+
+Application loggers (`accounts`, `proposals`, `details`) default to `INFO`;
+set `LOG_LEVEL=DEBUG` in the environment for more detail. The root logger sits
+at `WARNING` so third-party libraries stay quiet.
+
+**When catching exceptions**, prefer a specific type. Where a broad
+`except Exception` is genuinely warranted — code that must never crash, such as
+context processors or middleware — log it with `logger.exception(...)` and
+never interpolate the exception into a user-facing message, since that leaks
+database constraint names and internal paths.
 
 ## Permissions
 

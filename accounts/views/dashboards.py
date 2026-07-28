@@ -1,6 +1,7 @@
 """
 The seven role dashboards and the evaluator-assignment actions they expose.
 """
+import logging
 from collections import OrderedDict
 
 from datetime import timedelta
@@ -41,6 +42,8 @@ from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
 from .helpers import User, _get_or_create_profile, _get_role_dashboard_name
 from .proposal_queries import _build_proposal_dashboard_item, _get_assignable_evaluators_for_proposal, _get_assigned_evaluators_for_proposal, _get_campus_review_queue, _get_department_review_queue, _get_director_monitored_proposals, _get_evaluator_review_queue, _get_open_review_round, _get_or_create_open_review_round, _get_proposal_prohibited_evaluator_ids, _get_user_proposals_context
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -597,10 +600,11 @@ def proposal_assign_evaluator(request, proposal_id, evaluator_id):
         messages.success(request, f'"{evaluator_name}" has been added as evaluator.')
         return redirect("director_dashboard")
 
-    except Exception as e:
+    except Exception:
+        logger.exception("Failed to assign evaluator on proposal %s.", proposal_id)
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return JsonResponse(
-                {"ok": False, "message": f"Server error: {str(e)}"},
+                {"ok": False, "message": "Server error. The problem has been logged."},
                 status=500,
             )
         raise
@@ -705,7 +709,8 @@ def staff_dashboard(request):
         # Prefer rr.summaries if your FK uses related_name="summaries"; fallback to ProposalCommentSummary.
         try:
             summaries_qs = rr.summaries.all()
-        except Exception:
+        except AttributeError:
+            # The FK does not declare related_name="summaries" on this model.
             summaries_qs = ProposalCommentSummary.objects.filter(review_round=rr)
 
         p.summary_sent = summaries_qs.filter(sent_to_proponent=True).exists()
@@ -807,11 +812,16 @@ def staff_dashboard(request):
     }
 
     def _safe_file_url(file_field):
+        """Return a file's URL, or "" when the backing file is unavailable."""
         if not file_field:
             return ""
         try:
             return file_field.url
+        except (ValueError, FileNotFoundError):
+            # No file associated, or it is missing from storage.
+            return ""
         except Exception:
+            logger.exception("Could not resolve URL for %r.", file_field)
             return ""
 
     moa_queue = []

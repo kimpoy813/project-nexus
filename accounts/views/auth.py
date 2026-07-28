@@ -1,9 +1,10 @@
 """
 Registration, login/logout, email verification, and profile self-service.
 """
+import logging
 
-import traceback
 from django.conf import settings
+from django.db import DatabaseError
 from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
@@ -36,6 +37,8 @@ from ..forms import RegisterForm
 from ..models import Profile
 from ..models import SiteConfiguration
 from ..tokens import email_verification_token
+
+logger = logging.getLogger(__name__)
 from .helpers import User, _get_client_ip, _get_or_create_profile, _get_role_dashboard_name, _increment_failed, _is_blocked, _normalize_role, _reset_failed
 
 
@@ -62,7 +65,10 @@ def get_departments_ajax(request):
 def register_view(request):
     try:
         site_config = SiteConfiguration.get_solo()
-    except Exception:
+    except DatabaseError:
+        logger.warning(
+            "Could not load SiteConfiguration for the registration gate.", exc_info=True
+        )
         site_config = None
 
     if site_config and not site_config.registration_enabled:
@@ -134,6 +140,9 @@ def register_view(request):
                         "Account created! Please check your email to verify your account.",
                     )
                 except Exception:
+                    logger.exception(
+                        "Verification email failed for new account %r.", user.username
+                    )
                     messages.warning(
                         request,
                         "Account created but verification email could not be sent. Please contact support.",
@@ -142,7 +151,7 @@ def register_view(request):
                 return redirect("login")
 
             except Exception:
-                traceback.print_exc()
+                logger.exception("Registration failed while creating the account.")
                 messages.error(request, "An error occurred while creating the account. Please try again.")
         else:
             messages.error(request, "Please correct the errors below.")

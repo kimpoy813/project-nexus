@@ -305,3 +305,42 @@ CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_HTTPONLY = env_bool("CSRF_COOKIE_HTTPONLY", False)
 CSRF_USE_SESSIONS = env_bool("CSRF_USE_SESSIONS", False)
 CSRF_COOKIE_SAMESITE = os.environ.get("CSRF_COOKIE_SAMESITE", "Lax")
+
+
+# ==============================
+# LOGGING
+# ==============================
+# Without this, Django's default configuration discards application logs
+# entirely outside of DEBUG, so a swallowed exception left no trace at all.
+# Everything goes to stdout, which is what Render/Heroku-style hosts capture.
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        # Application loggers. Use logging.getLogger(__name__) in each module.
+        "accounts": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "proposals": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        "details": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+        # Unhandled view exceptions.
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}

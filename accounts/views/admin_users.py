@@ -1,6 +1,7 @@
 """
 Admin user management: account creation, editing, roles, and site controls.
 """
+import logging
 
 import re
 from django.contrib import messages
@@ -18,6 +19,8 @@ from ..forms import AdminCreateUserForm
 from ..models import Profile
 from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
+
+logger = logging.getLogger(__name__)
 from .helpers import User, _get_or_create_profile
 
 
@@ -53,8 +56,12 @@ def admin_create_account(request):
                 messages.success(request, f'Account "{user.username}" created successfully.')
                 return redirect("admin_dashboard")
 
-            except Exception as e:
-                messages.error(request, f"Error creating account: {e}")
+            except Exception:
+                logger.exception("Admin account creation failed.")
+                messages.error(
+                    request,
+                    "Could not create the account. The error has been logged.",
+                )
         else:
             messages.error(request, "Please correct the errors below.")
     else:
@@ -100,8 +107,12 @@ def admin_edit_user(request, user_id):
 
             messages.success(request, f'User "{user_obj.username}" updated successfully.')
             return redirect("admin_dashboard")
-        except Exception as e:
-            messages.error(request, f"Error updating user: {e}")
+        except Exception:
+            logger.exception("Admin failed to update user %s.", user_obj.pk)
+            messages.error(
+                request,
+                "Could not update this user. The error has been logged.",
+            )
 
     return render(
         request,
@@ -239,8 +250,12 @@ def manage_roles(request):
                 )
             except Profile.DoesNotExist:
                 messages.error(request, "User profile not found.")
-            except Exception as e:
-                messages.error(request, f"Error updating role: {str(e)}")
+            except Exception:
+                logger.exception("Failed to update role for user_id=%r.", user_id)
+                messages.error(
+                    request,
+                    "Could not update the role. The error has been logged.",
+                )
 
         return redirect("admin_dashboard")
 

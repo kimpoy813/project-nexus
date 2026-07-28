@@ -1,6 +1,7 @@
 """
 Review rounds, evaluator actions, and comment summary generation.
 """
+import logging
 from docx import Document
 from accounts.models import Signatory
 
@@ -32,6 +33,8 @@ from accounts.decorators import role_required
 from .constants import STEP_LABELS, User
 from .helpers import _extract_last_name, _extract_points, _get_signatory, _insert_paragraph_after, _proponent_line
 from .permissions import _can_view_proposal, _can_view_summary, _ensure_open_review_round, _is_campus_coordinator, _is_department_coordinator, _is_director, _is_staff
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -1031,7 +1034,8 @@ def _build_clear_summary_docx(*, proposal: Proposal, points):
             pf.space_after = Pt(0)
             try:
                 pf.tab_stops.add_tab_stop(Pt(80))  # align comment text
-            except Exception:
+            except (AttributeError, ValueError):
+                # Some paragraph styles do not expose tab stops; cosmetic only.
                 pass
 
         # Replace [Comments] run text WITHOUT resetting paragraph.runs
@@ -1096,6 +1100,9 @@ def staff_comment_summary_preview(request, proposal_id):
         try:
             points = summarize_comments(comments_qs, include_step_labels=False)
         except Exception:
+            logger.exception(
+                "summarize_comments failed for proposal %s; using raw comments.", proposal.pk
+            )
             points = [c.comment.strip() for c in comments_qs[:12] if (c.comment or "").strip()]
 
     campus = (proposal.campus or "").strip()
@@ -1162,6 +1169,9 @@ def staff_comment_summary_docx(request, proposal_id):
         try:
             points = summarize_comments(comments_qs, include_step_labels=False)
         except Exception:
+            logger.exception(
+                "summarize_comments failed for proposal %s; using raw comments.", proposal.pk
+            )
             points = [c.comment.strip() for c in comments_qs[:8] if (c.comment or "").strip()]
 
     data = _build_clear_summary_docx(proposal=proposal, points=points)

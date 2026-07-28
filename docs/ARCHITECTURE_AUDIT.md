@@ -97,7 +97,7 @@ already failing — they referenced `Proposal.mark_implementation_in_progress()`
 `proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
 refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-**Now: 175 tests, running in ~2.8 seconds.**
+**Now: 186 tests, running in ~3.1 seconds.**
 
 | Suite | Tests | Focus |
 |---|---|---|
@@ -109,6 +109,7 @@ refactor and nobody noticed, which is itself the clearest evidence the suite was
 | `proposals/tests_permissions.py` | 30 | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | 24 | Wizard access and steps, status maps, review rounds, trackers |
 | `accounts/tests/test_structure.py` | 4 | URL resolution, no duplicate defs, re-export contract |
+| `accounts/tests/test_error_handling.py` | 11 | Logging config, graceful degradation, no leaked error text |
 | `details/tests.py` | 11 | Model ordering, clamping, visibility |
 
 Run with `python manage.py test --settings=conf.settings_test`.
@@ -231,25 +232,43 @@ makes the change safe to review.
 
 ---
 
-### 2.3 70 broad `except Exception` handlers
+### 2.3 ✅ 70 broad `except Exception` handlers — **fixed**
 
-Across `accounts/`, `proposals/`, and `details/`. Several silently swallow errors:
+Across `accounts/`, `proposals/`, and `details/`. Several silently swallowed errors, and no
+`LOGGING` configuration existed at all — so a database failure looked identical to "this user has
+no permissions", and nothing was recorded anywhere.
 
-```python
-try:
-    ...
-except Exception:
-    capabilities = set()      # a DB error is indistinguishable from "no permissions"
-```
+**Status:**
 
-This converts real failures into confusing behaviour — a database problem looks like a permissions
-problem, and nothing is logged.
+* **`LOGGING` is now configured** in `conf/settings.py`: console output, `accounts`/`proposals`/
+  `details` loggers at `LOG_LEVEL` (default `INFO`, override by env var), `django.request` at
+  `ERROR`, and a `WARNING` root so third-party noise stays out. Verified to emit through the real
+  settings module, not just in tests.
+* **Every remaining broad handler now logs** with a traceback instead of discarding the error.
+  Where the exception type was predictable it was narrowed: `DatabaseError` for config reads,
+  `ValidationError` for `full_clean()`, `(ValueError, FileNotFoundError)` for storage lookups,
+  `(TypeError, ValueError)` for parsing, `AttributeError` for optional model accessors.
+* **`traceback.print_exc()` in the registration view** was replaced with `logger.exception`. It
+  wrote to stdout outside the logging system, so it was invisible to any log aggregator.
+* **Internal exception text no longer leaks to users.** Four handlers interpolated the raw
+  exception into a `messages.error(...)`, exposing database constraint names and internal paths
+  to whoever triggered them. They now show a generic message and log the detail. `ValidationError`
+  text is still shown, because that copy is written for the user.
+* **Fail-open behaviour is now explicit.** The maintenance-mode middleware deliberately lets
+  requests through if it cannot read the config — otherwise a transient database error would lock
+  every user out. That decision is now commented and logged, so it cannot silently disable
+  maintenance mode unnoticed.
 
-**Fix:** catch specific exceptions; where a broad catch is genuinely warranted (context processors
-that must never break rendering), log the exception rather than discarding it. No `LOGGING`
-configuration currently exists, so adding one is a prerequisite.
+**Deliberately left alone:** the 42 handlers in `proposals/docx_forms.py`. They read arbitrary,
+often-absent fields to populate document templates, where a missing value must degrade to a blank
+cell rather than abort a download, and none of them wrap a write. That module still has no test
+coverage, so narrowing 40+ handlers blind would risk breaking document generation for no
+correctness gain. A comment block at the top of the file now explains this rather than leaving it
+to be rediscovered.
 
-**Effort:** half a day for the worst offenders.
+**Verified by 11 new tests** in `accounts/tests/test_error_handling.py`, sabotage-checked:
+reverting the context processor to a silent swallow, re-leaking exception text to the user, and
+introducing a bare `except:` were each caught.
 
 ---
 
@@ -324,20 +343,20 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 
 1. ✅ `DEBUG` defaults to `False` *(1.1)*
 2. ✅ `db.sqlite3` untracked *(1.2)*
-3. ✅ Test suite: 0 → 175 passing tests, sabotage-verified *(1.4)*
+3. ✅ Test suite: 0 → 186 passing tests, sabotage-verified *(1.4)*
 4. ✅ Debug `print()` calls removed from the Director dashboard hot path *(2.4)*
 5. ✅ Shared dashboard design system *(3.1)*
 6. ✅ Permissions centralised in `accounts/permissions.py` *(2.2)*
 7. ✅ Wizard, review round, and tracker coverage added *(1.4)*
 8. ✅ Both view modules split into packages, with structural guards *(2.1)*
+9. ✅ Logging configured; broad exception handlers narrowed and logged *(2.3)*
 
 **Next, in order:**
 
-9. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
-   first. This is the only outstanding Severity 1 item. *(1.3)*
-10. **Tighten exception handling, add logging** — half a day, and the largest remaining
-    correctness risk now that the structure is sorted. *(2.3)*
-11. Cover document generation and the deeper MOA/implementation transitions — ~1 day. *(1.4)*
+10. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
+    first. This is the only outstanding Severity 1 item. *(1.3)*
+11. Cover document generation, which would then allow the `docx_forms.py` handlers to be
+    narrowed safely — ~1 day. *(1.4, 2.3)*
 12. Break up `proposal_wizard` (631 lines) and `summarize_comments` (135) — a genuine refactor
     rather than a move, now protected by the wizard tests. *(2.1)*
 13. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.

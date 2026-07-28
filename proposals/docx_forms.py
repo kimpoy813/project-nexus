@@ -165,10 +165,22 @@ def _find_row_index_by_keyword(table, keyword: str) -> Optional[int]:
     return None
 
 
+# NOTE ON EXCEPTION HANDLING IN THIS MODULE
+# The helpers below intentionally use broad handlers. They read arbitrary,
+# frequently-absent fields off proposal records to fill a document template,
+# and a missing or malformed value must degrade to a blank cell rather than
+# abort the whole download. They are read-only: none of them swallow a save,
+# write, or delete.
+#
+# They are deliberately left as-is because this module has no test coverage
+# yet (see docs/ARCHITECTURE_AUDIT.md 1.4); narrowing 40+ handlers blind would
+# risk breaking document generation for no correctness gain.
+
+
 def _safe_int(v: object, default: int = 0) -> int:
     try:
         return int(v)  # type: ignore[arg-type]
-    except Exception:
+    except (TypeError, ValueError):
         return default
 
 

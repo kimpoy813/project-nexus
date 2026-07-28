@@ -1,11 +1,13 @@
 """
 Read-only query helpers that build proposal data for the dashboards.
 """
+import logging
 
 from django.db.models import Case
 from django.db.models import IntegerField
 from django.db.models import Q
 from django.db.models import When
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from proposals.models import Proposal
 from proposals.models import ProposalFinalDocument
@@ -13,6 +15,8 @@ from proposals.models import ProposalReviewRound
 from proposals.models import ProposalSectionComment
 from ..models import Profile
 from .helpers import User, _safe_int
+
+logger = logging.getLogger(__name__)
 
 
 def _get_total_proposal_steps():
@@ -26,7 +30,11 @@ def _get_current_step(proposal):
 def _get_comment_count_for_current_round(proposal):
     try:
         current_round = proposal.get_active_review_round() or proposal.get_current_review_round()
+    except (AttributeError, ObjectDoesNotExist):
+        # Older proposals may predate review rounds entirely.
+        current_round = None
     except Exception:
+        logger.exception("Could not resolve review round for proposal %s.", proposal.pk)
         current_round = None
 
     if not current_round:
@@ -146,7 +154,8 @@ def _build_proposal_dashboard_item(proposal):
     if submitted_at:
         try:
             days_since_submission = max((timezone.now() - submitted_at).days, 0)
-        except Exception:
+        except (TypeError, ValueError):
+            # submitted_at is not a comparable datetime.
             days_since_submission = None
 
     scope_label = proposal.get_scope_type_display() if getattr(proposal, "scope_type", None) else "—"
@@ -500,19 +509,25 @@ def _review_round_field_names():
 
 
 def _get_open_review_round(proposal):
+    # Both accessors are optional on older records, so a miss is normal here
+    # and only unexpected failures are worth logging.
     try:
         current_round = proposal.get_active_review_round()
         if current_round:
             return current_round
-    except Exception:
+    except (AttributeError, ObjectDoesNotExist):
         pass
+    except Exception:
+        logger.exception("get_active_review_round failed for proposal %s.", proposal.pk)
 
     try:
         current_round = proposal.get_current_review_round()
         if current_round and not getattr(current_round, "is_closed", False):
             return current_round
-    except Exception:
+    except (AttributeError, ObjectDoesNotExist):
         pass
+    except Exception:
+        logger.exception("get_current_review_round failed for proposal %s.", proposal.pk)
 
     field_names = _review_round_field_names()
     qs = ProposalReviewRound.objects.filter(proposal=proposal)

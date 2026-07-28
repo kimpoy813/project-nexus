@@ -1,9 +1,11 @@
 """
 Admin CRUD for public content: personnel, activities, processes, targets, signatories.
 """
+import logging
 
 import json
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.db.models import Min
 from django.http import JsonResponse
@@ -23,6 +25,8 @@ from ..campus_data import get_department_choices
 from ..decorators import admin_required
 from ..models import Profile
 from ..models import Signatory
+
+logger = logging.getLogger(__name__)
 
 @login_required
 @admin_required
@@ -118,8 +122,12 @@ def signatory_create(request):
             signatory.save()
             messages.success(request, f'Signatory "{signatory.display_name}" added successfully.')
             return redirect("signatories_list")
-        except Exception as e:
-            messages.error(request, f"Please correct the errors: {e}")
+        except ValidationError as exc:
+            # Validation text is written for the user, so it is safe to show.
+            messages.error(request, "; ".join(exc.messages))
+        except Exception:
+            logger.exception("Failed to create signatory.")
+            messages.error(request, "Could not save this signatory. The error has been logged.")
 
         college_choices, dept_choices = _build_scope_choices(campus, college)
         scope_level, scope_help = _signatory_scope_meta(position_title)
@@ -175,8 +183,11 @@ def signatory_edit(request, pk):
             signatory.save()
             messages.success(request, "Signatory updated successfully.")
             return redirect("signatories_list")
-        except Exception as e:
-            messages.error(request, f"Please correct the errors: {e}")
+        except ValidationError as exc:
+            messages.error(request, "; ".join(exc.messages))
+        except Exception:
+            logger.exception("Failed to update signatory %s.", signatory.pk)
+            messages.error(request, "Could not save this signatory. The error has been logged.")
 
     college_choices, dept_choices = _build_scope_choices(signatory.campus, signatory.college)
     scope_level, scope_help = _signatory_scope_meta(signatory.position_title)
@@ -449,8 +460,12 @@ def reorder_process_steps(request, pk):
 
         return JsonResponse({"ok": True})
 
-    except Exception as e:
-        return JsonResponse({"ok": False, "error": str(e)}, status=400)
+    except (ValueError, TypeError, KeyError):
+        logger.warning("Malformed reorder_process_steps payload.", exc_info=True)
+        return JsonResponse({"ok": False, "error": "Invalid request."}, status=400)
+    except Exception:
+        logger.exception("Failed to reorder process steps for process %s.", pk)
+        return JsonResponse({"ok": False, "error": "Server error."}, status=500)
 
 
 @login_required

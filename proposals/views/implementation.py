@@ -1,6 +1,7 @@
 """
 Implementation tracker and proposal document storage.
 """
+import logging
 
 from pathlib import Path
 from urllib3 import request
@@ -15,6 +16,8 @@ from ..models import ProposalCommentSummary
 from ..models import ProposalFinalDocument
 from ..models import ProposalPhaseLog
 from .permissions import _can_manage_phase, _can_view_proposal
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -224,7 +227,11 @@ def proposal_storage(request, proposal_id):
             return None
         try:
             return f.url
+        except (ValueError, FileNotFoundError):
+            # No file associated, or missing from storage.
+            return None
         except Exception:
+            logger.exception("Could not resolve URL for %s.", field_name)
             return None
 
     def file_name_from_path(url_or_name: str | None) -> str:
@@ -304,8 +311,11 @@ def proposal_storage(request, proposal_id):
         try:
             file_url = a.file.url
             filename = Path(a.file.name).name
+        except (ValueError, FileNotFoundError):
+            # Attachment row exists but the file is gone; skip it.
+            logger.debug("Attachment %s has no reachable file.", a.pk)
         except Exception:
-            pass
+            logger.exception("Could not resolve URL for attachment %s.", a.pk)
         if file_url:
             other_files.append({
                 "label": a.label or a.get_category_display() or "Attachment",
