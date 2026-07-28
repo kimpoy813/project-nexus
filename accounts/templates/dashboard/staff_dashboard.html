@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" data-dashboard-view>
 
     <!-- Header -->
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
@@ -78,17 +78,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="mb-6 flex flex-wrap items-center gap-3">
-        <input type="text" id="staff-ext-filter-q" placeholder="Search titles…" class="dir-input w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20" oninput="applyStaffFilters()">
-        <select id="staff-ext-filter-process" class="dir-input w-44 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white" onchange="applyStaffFilters()">
-            <option value="">All Processes</option>
-            <option value="PROPOSAL">Proposal</option>
-            <option value="MOA">MOA</option>
-            <option value="IMPLEMENTATION">Implementation</option>
-            <option value="COMPLETED">Completed</option>
-        </select>
     </div>
 
     <!-- MOA Draft Workflow Queue -->
@@ -365,22 +354,4 @@
     </div>
 
 </div>
-
-<script>
-function applyStaffFilters() {
-    const qInput = document.getElementById('staff-ext-filter-q');
-    const processSelect = document.getElementById('staff-ext-filter-process');
-    const qv = (qInput ? qInput.value : '').trim().toLowerCase();
-    const pv = (processSelect ? processSelect.value : '').trim().toLowerCase();
-    document.querySelectorAll('table tbody tr').forEach(function(row) {
-        const titleCell = row.querySelector('td');
-        if (!titleCell) return;
-        const titleText = (titleCell.innerText || '').toLowerCase();
-        const titleMatch = !qv || titleText.includes(qv);
-        const processMatch = !pv || true; // Process filter applies mainly to proposal rows which don't have a direct data-process attribute on staff rows; keeping basic behavior
-        row.style.display = (titleMatch && processMatch) ? '' : 'none';
-    });
-}
-</script>
-
 {% endblock %}

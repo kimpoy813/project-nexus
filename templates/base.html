@@ -32,6 +32,7 @@
 
     <!-- NExUS UI Refresh -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
+    <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     {% if site_control %}
     <style>
         :root {
@@ -436,6 +437,7 @@
         </button>
     </div>
 
+    <script src="{% static 'js/dashboard-views.js' %}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

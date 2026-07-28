@@ -41,7 +41,14 @@ SECRET_KEY = os.environ.get(
 DEBUG = env_bool("DEBUG", True)
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
+# Django validates the complete Origin (scheme, host, and port) for unsafe
+# requests.  Include the standard local development origins so the login form
+# works when run with `python manage.py runserver` at localhost:8000. Deployments
+# should set CSRF_TRUSTED_ORIGINS explicitly with their HTTPS public URLs.
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:8000,http://127.0.0.1:8000",
+)
 
 
 # ==============================
