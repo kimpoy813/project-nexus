@@ -38,7 +38,10 @@ SECRET_KEY = os.environ.get(
     "django-insecure-dev-only-change-this-in-production",
 )
 
-DEBUG = env_bool("DEBUG", True)
+# Default to False so an unset or misspelled DEBUG in production can never
+# expose stack traces, settings, and local variables to visitors.
+# Local development opts in explicitly via .env or the environment.
+DEBUG = env_bool("DEBUG", False)
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 # Django validates the complete Origin (scheme, host, and port) for unsafe

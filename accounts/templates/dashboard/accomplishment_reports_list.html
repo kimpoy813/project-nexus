@@ -34,7 +34,7 @@
         <tbody class="divide-y divide-gray-100">
           {% for report in reports %}
           <tr>
-            <td class="px-6 py-4"><p class="font-bold text-gray-900">{{ report.title }}</p><p class="text-xs text-gray-500">{{ report.submitted_by.profile.full_name|default:report.submitted_by.username }} · {{ report.submitted_at|date:"M d, Y" }}</p></td>
+            <td class="px-6 py-4"><p class="font-bold text-gray-900">{{ report.title }}</p><p class="text-xs text-gray-500">{% if report.submitted_by %}{{ report.submitted_by.profile.full_name|default:report.submitted_by.username }}{% else %}Unknown submitter{% endif %} · {{ report.submitted_at|date:"M d, Y" }}</p></td>
             <td class="px-6 py-4 text-sm text-gray-700">{{ report.year }} {{ report.get_quarter_display }}</td>
             <td class="px-6 py-4 text-sm text-gray-700">{{ report.campus|default:"—" }}{% if report.department %} · {{ report.department }}{% endif %}</td>
             <td class="px-6 py-4 text-xs text-gray-600">Activities: {{ report.activities_count }}<br>Beneficiaries: {{ report.beneficiaries_count }}<br>Partners: {{ report.partners_count }}</td>

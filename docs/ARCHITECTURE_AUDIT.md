@@ -2,7 +2,8 @@
 
 **Date:** 2026-07-28
 **Scope:** Whole repository — ~16,500 lines of Python, ~17,900 lines of templates, 4 Django apps
-**Status:** Findings only. Nothing in this document has been actioned except where explicitly marked ✅.
+**Status:** Items marked ✅ have been actioned. Everything else is a finding awaiting a decision.
+**Last updated:** 2026-07-28, after the safety fixes and test-suite work.
 
 ---
 
@@ -20,9 +21,9 @@ production-safety settings. None require a rewrite; all can be fixed incremental
 
 ## Severity 1 — Fix before the next production deploy
 
-### 1.1 `DEBUG` defaults to `True`
+### 1.1 ✅ `DEBUG` defaulted to `True` — **fixed**
 
-`conf/settings.py:41`
+`conf/settings.py`
 
 ```python
 DEBUG = env_bool("DEBUG", True)
@@ -32,17 +33,20 @@ If `DEBUG` is ever unset in the production environment, Django serves full stack
 source, local variables, and settings to any visitor who triggers an error. This is the single
 highest-impact issue in the repo, and it is a one-line fix.
 
-**Fix:** default to `False`. Development can opt in via `.env`.
+**Status:** now defaults to `False`; development opts in via `.env`.
 
 ```python
 DEBUG = env_bool("DEBUG", False)
 ```
 
-**Effort:** minutes. **Risk of fixing:** none.
+Consequence worth knowing: with `DEBUG=False`, WhiteNoise's manifest storage
+requires `collectstatic` before static files resolve. This is why the test
+suite needs `--settings=conf.settings_test`, and why `.env.example` and the
+README now spell out the local workflow.
 
 ---
 
-### 1.2 `db.sqlite3` is committed to Git
+### 1.2 ✅ `db.sqlite3` was committed to Git — **untracked**
 
 The 1.2 MB SQLite database is tracked, despite `.gitignore` listing `db.sqlite3` and `*.sqlite3`
 (the ignore rules do not apply to already-tracked files).
@@ -52,11 +56,13 @@ Consequences:
 - Every developer's local data churn produces spurious diffs and merge conflicts.
 - Production runs PostgreSQL, so the committed file is misleading.
 
-**Fix:** `git rm --cached db.sqlite3`. Note this only stops future commits; the data remains in
-history. If the database ever held real credentials, those should be rotated, and purging history
-(`git filter-repo`) is worth considering.
+**Status:** untracked via `git rm --cached db.sqlite3`; the local file is untouched and the
+existing `.gitignore` rule now takes effect.
 
-**Effort:** minutes to stop the bleeding; longer if history must be purged.
+**Still outstanding:** this stops future commits but the data remains in Git history. If the
+database ever held real user credentials, those should be rotated, and purging history with
+`git filter-repo` is worth considering. That rewrites history for everyone, so it is your call
+rather than something to do unannounced.
 
 ---
 
@@ -67,42 +73,61 @@ history. If the database ever held real credentials, those should be rotated, an
 `.gitignore` excludes `media/`, but these predate the rule. Production uses Supabase Storage, so
 these are dead weight that will keep growing if anyone commits before the ignore takes effect.
 
-**Fix:** `git rm -r --cached media/` once you have confirmed the files exist in Supabase.
+**Deliberately not actioned — needs your confirmation.** The 47 files total **120 MB** and
+include the personnel photographs rendered on the public homepage. `DEPLOYMENT.md` (line 125)
+states media must be copied into the Supabase bucket separately, so Git is not the delivery
+mechanism — but I cannot verify from here that your bucket is actually populated.
+
+Untracking them before that is true would break every image on the live site.
+
+**To action, once you have confirmed the bucket holds these files:**
+
+```bash
+git rm -r --cached media/
+```
+
+The local files stay in place; only Git stops tracking them.
 
 ---
 
-### 1.4 Effectively no test coverage
+### 1.4 ✅ Effectively no test coverage — **substantially addressed**
 
-| File | Lines |
-|---|---|
-| `accounts/tests.py` | 3 |
-| `details/tests.py` | 3 |
-| `proposals/tests.py` | 34 |
-| **Total** | **40** |
+**Before:** 40 lines across three files. Worse, *both* real tests in `proposals/tests.py` were
+already failing — they referenced `Proposal.mark_implementation_in_progress()` and a
+`proposal_moa_workflow` URL, neither of which still exists. They had been broken since an earlier
+refactor and nobody noticed, which is itself the clearest evidence the suite was not being run.
 
-40 lines of tests for 16,500 lines of application code, covering a multi-role approval workflow
-with document generation and role-based permissions.
+**Now: 96 tests, running in ~1.6 seconds.**
+
+| Suite | Tests | Focus |
+|---|---|---|
+| `accounts/tests/test_permissions.py` | 17 | Role access, admin-only areas, dashboards |
+| `accounts/tests/test_auth.py` | 16 | Login, registration gating, verification, maintenance |
+| `accounts/tests/test_cms.py` | 35 | Page content, Home sections, thrusts, workflow phases |
+| `proposals/tests.py` | 17 | Progress weighting, phase labels, access control |
+| `details/tests.py` | 11 | Model ordering, clamping, visibility |
+
+Run with `python manage.py test --settings=conf.settings_test`.
+
+**These were verified to actually catch regressions**, not merely pass. Three deliberate
+sabotages were introduced and each was caught: re-granting Admin the submit capability (10
+failures), removing the workflow-weight clamp (1 failure), and reintroducing the null-submitter
+template crash (3 errors). The suite returned to green when each was reverted.
+
+**A real bug was found while writing them:** the accomplishment reports list raised a 500 for
+*every* viewer whenever any report had a null `submitted_by` — which the model explicitly allows
+via `on_delete=SET_NULL`. Deleting a user would have broken the page for everyone. Fixed.
+
+**Still not covered:** the proposal wizard itself (631 lines), document generation
+(`docx_forms.py`, 2,176 lines), and the MOA and implementation workflows. These are the next
+targets and are the reason finding 2.1 remains risky.
 
 This is the finding that gates everything else. **Every other refactor in this document is
 dangerous until this is addressed**, because there is currently no way to know whether a change
 broke the proposal lifecycle short of clicking through it manually.
 
-**Suggested first targets**, in order of value:
-
-1. **Permissions** — who may view/submit/approve at each stage. Highest value: security-relevant,
-   fast to write, and exactly the logic most likely to regress silently.
-2. **Proposal lifecycle** — draft → submit → review → revise → approve, plus the MOA and
-   implementation branches.
-3. **Auth** — registration, email verification, lockout, password reset.
-4. **CMS/admin** — the page content and workflow-phase editors.
-
-I have written throwaway integration suites while making the recent changes (roughly 240 checks
-across four features). Those were deliberately not committed because they were scaffolding, but
-they demonstrate the approach works well here: Django's test client exercises real URLs, real
-permissions, and real templates without needing a browser. **Converting that approach into a
-committed `tests/` package is the highest-value next step available.**
-
-**Effort:** 2–4 days for meaningful coverage of the four areas above.
+**Remaining effort:** 2–3 days to cover the wizard, document generation, and the MOA and
+implementation branches.
 
 ---
 
@@ -260,18 +285,30 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 
 ---
 
-## What I would actually do, in order
+## Progress and what remains
 
-1. **`DEBUG=False` default** — minutes, removes the largest production risk. *(1.1)*
-2. **Untrack `db.sqlite3` and `media/`** — minutes. *(1.2, 1.3)*
-3. **Build the test suite** — 2–4 days. Everything below depends on it. *(1.4)*
-4. **Centralise permissions** — 1 day, highest security value per hour. *(2.2)*
-5. **Split the two view modules** — 1–2 days, mechanical once tests exist. *(2.1)*
-6. **Tighten exception handling, add logging** — half a day. *(2.3)*
-7. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
+**Done:**
 
-Steps 1 and 2 are safe to do immediately. **Step 3 is the real unlock** — it is what converts
-steps 4–6 from risky to routine.
+1. ✅ `DEBUG` defaults to `False` *(1.1)*
+2. ✅ `db.sqlite3` untracked *(1.2)*
+3. ✅ Test suite: 0 → 96 passing tests, sabotage-verified *(1.4)*
+4. ✅ Debug `print()` calls removed from the Director dashboard hot path *(2.4)*
+5. ✅ Shared dashboard design system *(3.1)*
+
+**Next, in order:**
+
+6. **Untrack `media/`** — 5 minutes, but needs you to confirm the Supabase bucket is populated
+   first. *(1.3)*
+7. **Centralise permissions** into `accounts/permissions.py` — ~1 day, highest security value per
+   hour, and now safe because the permission tests will catch any behaviour change. *(2.2)*
+8. **Extend test coverage** to the proposal wizard, document generation, and the MOA and
+   implementation branches — 2–3 days. Required before step 9. *(1.4)*
+9. **Split the two view modules** — 1–2 days, mechanical. *(2.1)*
+10. **Tighten exception handling, add logging** — half a day. *(2.3)*
+11. Cosmetic CSS/JS consolidation and the Tailwind build, if and when they start costing time.
+
+The test suite is in place, so steps 7 and 9 are now routine rather than risky — provided step 8
+lands before anyone touches `proposals/views.py`.
 
 ---
 
