@@ -38,6 +38,13 @@ def admin_create_account(request):
                         email=form.cleaned_data.get("email", ""),
                         password=form.cleaned_data["password"],
                     )
+                    # An ADMIN profile is a full platform administrator, not
+                    # merely a dashboard role. Keep Django's model admin in
+                    # sync so the account can edit every registered model too.
+                    if form.cleaned_data["role"] == Profile.ROLE_ADMIN:
+                        user.is_staff = True
+                        user.is_superuser = True
+                        user.save(update_fields=["is_staff", "is_superuser"])
 
                     full_name = form.cleaned_data.get("full_name") or user.username
 
@@ -95,6 +102,10 @@ def admin_edit_user(request, user_id):
                 if requested_role not in allowed_roles:
                     requested_role = Profile.ROLE_FACULTY
 
+                # Keep the two admin surfaces consistent. A role promoted to
+                # ADMIN receives full Django-admin access; demotion removes it.
+                user_obj.is_staff = requested_role == Profile.ROLE_ADMIN
+                user_obj.is_superuser = requested_role == Profile.ROLE_ADMIN
                 full_name = (request.POST.get("full_name") or "").strip() or user_obj.username
 
                 profile.full_name = full_name

@@ -1,0 +1,148 @@
+/* NExUS premium system theme
+   A final, global layer so every page shares the same elevated language. */
+:root {
+  --premium-ink: #102219;
+  --premium-forest: #123d25;
+  --premium-forest-deep: #092116;
+  --premium-gold: #b68a3d;
+  --premium-gold-light: #f1e1b6;
+  --premium-cream: #fbfaf6;
+  --premium-line: rgba(18, 61, 37, .12);
+  --premium-shadow: 0 18px 55px rgba(20, 38, 28, .09);
+  --premium-shadow-soft: 0 7px 24px rgba(20, 38, 28, .065);
+}
+
+body {
+  color: var(--premium-ink) !important;
+  background: var(--premium-cream) !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-black, .font-extrabold {
+  font-family: 'Manrope', 'DM Sans', ui-sans-serif, sans-serif;
+  letter-spacing: -.035em;
+}
+
+/* Page rhythm and surfaces. These utility selectors deliberately cover the
+   older Tailwind-heavy templates too, so they do not feel like a separate app. */
+main.nexus-shell { background: transparent; }
+main > * { isolation: isolate; }
+.bg-gray-50, .bg-\[\#f6f7f5\], .bg-slate-50 { background-color: transparent !important; }
+.bg-white { background-color: rgba(255,255,255,.90) !important; }
+.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-100, .border-slate-200 {
+  border-color: var(--premium-line) !important;
+}
+.shadow-sm { box-shadow: var(--premium-shadow-soft) !important; }
+
+.rounded-2xl.border,
+.rounded-3xl.border,
+.nexus-card,
+.adm-card,
+.nx-card,
+.auth-card,
+.section-block,
+.dir-card,
+.ext-card,
+.mine-card {
+  border: 1px solid var(--premium-line) !important;
+  border-radius: 1.15rem !important;
+  box-shadow: var(--premium-shadow-soft) !important;
+}
+
+.rounded-2xl.border:hover,
+.rounded-3xl.border:hover,
+.nexus-card:hover,
+.adm-card:hover,
+.nx-card:hover,
+.auth-card:hover {
+  border-color: rgba(182, 138, 61, .27) !important;
+  box-shadow: var(--premium-shadow) !important;
+}
+
+/* Make headings, labels and metadata feel deliberate */
+.nx-dash__title, .adm-card__title, .nx-card__title { color: var(--premium-forest-deep) !important; }
+.nx-dash__subtitle, .adm-card__sub, .nx-card__sub { color: #718076 !important; }
+.adm-kpi, .nx-kpi {
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(249,247,239,.88)) !important;
+  border-color: var(--premium-line) !important;
+}
+.adm-kpi__value, .nx-kpi__value { color: var(--premium-forest-deep) !important; font-family: 'Manrope', sans-serif; }
+
+/* Inputs, selects and textareas across every form */
+input:not([type="checkbox"]):not([type="radio"]),
+select, textarea,
+.nx-input, .adm-input {
+  border: 1px solid rgba(18, 61, 37, .16) !important;
+  border-radius: .72rem !important;
+  background: rgba(255,255,255,.82) !important;
+  color: var(--premium-ink) !important;
+  box-shadow: inset 0 1px 1px rgba(18,61,37,.025) !important;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease !important;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus, textarea:focus,
+.nx-input:focus, .adm-input:focus {
+  border-color: var(--premium-gold) !important;
+  background: #fff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 4px rgba(182,138,61,.13), 0 7px 18px rgba(18,61,37,.06) !important;
+}
+label, .nx-label, .adm-label { letter-spacing: .025em; }
+
+/* Buttons: polished, tactile, consistent */
+button, .nx-btn, .adm-btn-primary, a[class*="btn"] {
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease !important;
+}
+button:hover, .nx-btn:hover, .adm-btn-primary:hover, a[class*="btn"]:hover {
+  transform: translateY(-1px);
+}
+.nx-btn--primary, .adm-btn-primary, button.bg-primary {
+  background: linear-gradient(135deg, #164c2d, #0b2b1b) !important;
+  border-color: #164c2d !important;
+  box-shadow: 0 8px 20px rgba(9, 33, 22, .19) !important;
+}
+.nx-btn--primary:hover, .adm-btn-primary:hover, button.bg-primary:hover {
+  background: linear-gradient(135deg, #1b5a35, #0d3521) !important;
+  box-shadow: 0 12px 25px rgba(9, 33, 22, .24) !important;
+}
+
+/* Navigation, tabs and active states */
+.nexus-navbar { border-bottom-color: rgba(182,138,61,.20) !important; }
+.nexus-menu-link.is-strong, .nx-tab.active, .dashboard-nav-btn.active {
+  color: var(--premium-forest) !important;
+  background: linear-gradient(135deg, rgba(18,61,37,.09), rgba(241,225,182,.34)) !important;
+}
+.nx-tab.active { border-bottom-color: var(--premium-gold) !important; }
+
+/* Tables and list rows */
+table thead, .nx-table thead tr { background: rgba(241,225,182,.16) !important; }
+table th, .nx-th, .adm-th { color: #64766a !important; letter-spacing: .09em; }
+table tbody tr, .nx-table tbody tr { border-color: rgba(18,61,37,.08) !important; }
+table tbody tr:hover, .nx-table tbody tr:hover { background: rgba(241,225,182,.12) !important; }
+
+/* Status accents */
+.nx-badge--ok, .adm-pill--ok { background: #e5f1e7 !important; color: #1e6139 !important; }
+.nx-badge--warn, .adm-pill--warn { background: #f8edcf !important; color: #8b6424 !important; }
+.nx-badge--info, .adm-pill--info { background: #e4edf0 !important; color: #28596a !important; }
+
+/* Rich content and public page hero areas */
+.nexus-richtext blockquote { border-left-color: var(--premium-gold) !important; background: rgba(241,225,182,.20); }
+.nexus-richtext a { color: var(--premium-forest) !important; text-decoration-color: rgba(182,138,61,.6); }
+
+/* Toasts, dropdowns and overlays */
+.nexus-dropdown, .nexus-mobile-panel {
+  border-color: rgba(182,138,61,.20) !important;
+  box-shadow: 0 22px 60px rgba(9,33,22,.16) !important;
+}
+#toast-container > div { border: 1px solid rgba(255,255,255,.18); box-shadow: 0 15px 38px rgba(9,33,22,.20) !important; }
+
+/* Premium divider detail */
+.nexus-footer { border-top: 1px solid rgba(241,225,182,.22); }
+hr { border-color: rgba(18,61,37,.12) !important; }
+
+@media (max-width: 640px) {
+  .nexus-wordmark { font-size: .92rem; }
+  .nexus-monogram { width: 2.55rem; height: 2.55rem; }
+  .nx-dash__title { font-size: 1.25rem; }
+}

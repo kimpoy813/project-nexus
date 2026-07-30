@@ -21,7 +21,51 @@
   --nexus-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.14);
   --nexus-radius: 1.25rem;
   --nexus-radius-lg: 1.75rem;
+  --nexus-gold: #b88a3b;
+  --nexus-gold-soft: #f4e6bd;
 }
+
+/* Premium identity: a restrained monogram, generous spacing, and warm metal
+   accents keep the interface institutional without feeling corporate-heavy. */
+body {
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.008em;
+}
+
+.nexus-brand { gap: .7rem !important; }
+.nexus-monogram {
+  display: block;
+  width: 2.85rem;
+  height: 2.85rem;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 7px 12px rgba(7, 27, 18, .18));
+  transition: transform .22s ease, filter .22s ease;
+}
+.nexus-monogram svg { display: block; width: 100%; height: 100%; }
+.nexus-brand:hover .nexus-monogram,
+.nexus-brand:focus-visible .nexus-monogram {
+  transform: translateY(-2px) rotate(-2deg);
+  filter: drop-shadow(0 10px 16px rgba(7, 27, 18, .26));
+}
+.nexus-wordmark {
+  color: var(--nexus-primary);
+  font-family: 'Manrope', ui-sans-serif, sans-serif;
+  font-size: 1.04rem;
+  font-weight: 800;
+  letter-spacing: .17em;
+  line-height: 1;
+}
+
+.nexus-navbar {
+  background: rgba(255, 255, 255, .90) !important;
+  box-shadow: 0 10px 34px rgba(15, 23, 42, .055) !important;
+}
+
+.nexus-menu-link { font-size: .76rem; letter-spacing: .025em; }
+.nexus-btn--primary, .adm-btn-primary {
+  box-shadow: 0 8px 18px rgba(16, 59, 7, .14);
+}
+
 
 html {
   text-rendering: optimizeLegibility;
