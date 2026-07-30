@@ -71,9 +71,22 @@ class DetailsModelAdmin(admin.ModelAdmin):
     save_on_top = True
 
 
-# Activity dates, process steps, and any future detail models are editable from
-# the admin automatically. Existing specialized admins above remain preferred.
+# Activity dates and any future detail models are editable from the admin
+# automatically. These models already have richer admins in accounts.admin;
+# excluding them avoids import-order-dependent AlreadyRegistered errors during
+# Django admin autodiscovery.
+ACCOUNT_ADMIN_MANAGED = {
+    "DynamicFormTemplate",
+    "DynamicFormField",
+    "DynamicFormResponse",
+    "DynamicFormAnswer",
+    "ProposalWizardStepConfig",
+    "RoleCapability",
+    "AccomplishmentReport",
+    "DocumentTemplate",
+}
+
 for model in apps.get_app_config("details").get_models():
-    if model in admin.site._registry:
+    if model.__name__ in ACCOUNT_ADMIN_MANAGED or model in admin.site._registry:
         continue
     admin.site.register(model, DetailsModelAdmin)
