@@ -74,6 +74,13 @@ class Proposal(models.Model):
         on_delete=models.PROTECT,
         related_name="proposals_created",
     )
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="proposals",
+    )
 
     campus = models.CharField(max_length=120, blank=True, default="")
     college = models.CharField(max_length=120, blank=True, default="")

@@ -49,6 +49,7 @@ urlpatterns = [
     path("profile/edit/", views.profile_edit_view, name="profile_edit"),
 
     # Campus / College / Department AJAX
+    path("ajax/campuses/", views.get_campuses_ajax, name="get_campuses_ajax"),
     path("ajax/colleges/", views.get_colleges_ajax, name="get_colleges_ajax"),
     path("ajax/departments/", views.get_departments_ajax, name="get_departments_ajax"),
 
@@ -95,6 +96,7 @@ urlpatterns = [
     # Admin user and role management
     path("manage-roles/", views.manage_roles, name="manage_roles"),
     path("admin/create-account/", views.admin_create_account, name="admin_create_account"),
+    path("admin/onboarding/", views.institution_onboarding, name="institution_onboarding"),
     path("admin/site-control/", views.admin_site_control, name="admin_site_control"),
     path("admin/users/<int:user_id>/", views.admin_user_detail, name="admin_user_detail"),
     path("admin/users/<int:user_id>/edit/", views.admin_edit_user, name="admin_edit_user"),

@@ -182,7 +182,12 @@ def has_capability(user, capability):
     if is_admin(user):
         return True
 
-    existing = RoleCapability.objects.filter(role=role, capability=capability).first()
+    institution = getattr(getattr(user, "profile", None), "institution", None)
+    existing = RoleCapability.objects.filter(
+        institution=institution,
+        role=role,
+        capability=capability,
+    ).first()
     if existing is not None:
         return existing.enabled
 

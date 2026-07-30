@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10">
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div class="mb-8 rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
+      <p class="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Institution setup</p>
+      <h1 class="mt-3 text-3xl font-bold tracking-tight text-slate-900">
+        Build {{ institution.short_name|default:institution.name }}'s own NExUS structure
+      </h1>
+      <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+        NExUS is now institution-based. Define your campuses/branches, colleges/units,
+        and departments/programs first. After this, every account, form, template,
+        wizard step, and workflow configuration can be managed under this institution.
+      </p>
+    </div>
+
+    <form method="post" class="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      {% csrf_token %}
+      <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-900">Organization structure</h2>
+          <p class="text-sm text-slate-500">Add at least one campus/branch. Colleges and departments are optional.</p>
+        </div>
+        <div class="flex gap-2">
+          {% if not structure.campuses %}
+          <button type="submit" name="action" value="use_ispsc_template" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            Use ISPSC sample
+          </button>
+          {% endif %}
+          <button type="button" id="add-campus" class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90">
+            Add campus/branch
+          </button>
+        </div>
+      </div>
+
+      <div id="campus-list" class="space-y-4"></div>
+
+      <div class="mt-8 flex items-center justify-end gap-3 border-t border-slate-100 pt-6">
+        <a href="{% url 'logout' %}" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700">Logout</a>
+        <button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-90">
+          Save structure and continue
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{ structure|json_script:"initial-structure" }}
+<script>
+(function () {
+  const list = document.getElementById('campus-list');
+  const addCampusBtn = document.getElementById('add-campus');
+  const initial = JSON.parse(document.getElementById('initial-structure').textContent || '{"campuses":[]}');
+
+  function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value || '';
+    return div.innerHTML;
+  }
+
+  function campusTemplate(campusIndex, campus) {
+    const colleges = (campus.colleges && campus.colleges.length ? campus.colleges : [{name: '', departments: []}]);
+    return `
+      <section class="campus-card rounded-2xl border border-slate-200 bg-slate-50 p-4" data-campus-index="${campusIndex}">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <label class="block flex-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Campus / Branch / Main Unit</span>
+            <input name="campus_name[]" value="${escapeHtml(campus.name)}" required placeholder="e.g. Main Campus" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+          </label>
+          <button type="button" class="remove-campus rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Remove</button>
+        </div>
+        <div class="college-list mt-4 space-y-3">
+          ${colleges.map((college, collegeIndex) => collegeTemplate(campusIndex, collegeIndex, college)).join('')}
+        </div>
+        <button type="button" class="add-college mt-3 rounded-xl border border-primary/20 px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5">Add college/unit</button>
+      </section>`;
+  }
+
+  function collegeTemplate(campusIndex, collegeIndex, college) {
+    const departments = college.departments && college.departments.length ? college.departments : [''];
+    return `
+      <div class="college-card rounded-2xl border border-slate-200 bg-white p-4" data-college-index="${collegeIndex}">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <label class="block flex-1">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">College / Unit</span>
+            <input name="college_name[${campusIndex}][]" value="${escapeHtml(college.name)}" placeholder="Optional, e.g. College of Arts and Sciences" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+          </label>
+          <button type="button" class="remove-college rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Remove</button>
+        </div>
+        <div class="department-list mt-3 space-y-2">
+          ${departments.map((department) => departmentTemplate(campusIndex, collegeIndex, department)).join('')}
+        </div>
+        <button type="button" class="add-department mt-2 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Add department/program</button>
+      </div>`;
+  }
+
+  function departmentTemplate(campusIndex, collegeIndex, department) {
+    return `
+      <div class="department-row flex gap-2">
+        <input name="department_name[${campusIndex}][${collegeIndex}][]" value="${escapeHtml(department)}" placeholder="Optional department/program" class="w-full rounded-xl border border-slate-300 px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+        <button type="button" class="remove-department rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50">×</button>
+      </div>`;
+  }
+
+  function renumber() {
+    [...list.querySelectorAll('.campus-card')].forEach((campusCard, campusIndex) => {
+      campusCard.dataset.campusIndex = campusIndex;
+      campusCard.querySelectorAll('.college-card').forEach((collegeCard, collegeIndex) => {
+        collegeCard.dataset.collegeIndex = collegeIndex;
+        collegeCard.querySelector('input[name^="college_name"]').name = `college_name[${campusIndex}][]`;
+        collegeCard.querySelectorAll('input[name^="department_name"]').forEach((input) => {
+          input.name = `department_name[${campusIndex}][${collegeIndex}][]`;
+        });
+      });
+    });
+  }
+
+  function addCampus(campus) {
+    const index = list.querySelectorAll('.campus-card').length;
+    list.insertAdjacentHTML('beforeend', campusTemplate(index, campus || {name: '', colleges: [{name: '', departments: ['']}]}));
+    renumber();
+  }
+
+  function addCollege(campusCard) {
+    const campusIndex = Number(campusCard.dataset.campusIndex || 0);
+    const collegeIndex = campusCard.querySelectorAll('.college-card').length;
+    campusCard.querySelector('.college-list').insertAdjacentHTML('beforeend', collegeTemplate(campusIndex, collegeIndex, {name: '', departments: ['']}));
+    renumber();
+  }
+
+  function addDepartment(collegeCard) {
+    const campusCard = collegeCard.closest('.campus-card');
+    const campusIndex = Number(campusCard.dataset.campusIndex || 0);
+    const collegeIndex = Number(collegeCard.dataset.collegeIndex || 0);
+    collegeCard.querySelector('.department-list').insertAdjacentHTML('beforeend', departmentTemplate(campusIndex, collegeIndex, ''));
+    renumber();
+  }
+
+  addCampusBtn.addEventListener('click', () => addCampus());
+  list.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target.classList.contains('remove-campus')) {
+      target.closest('.campus-card').remove();
+      if (!list.querySelector('.campus-card')) addCampus();
+      renumber();
+    }
+    if (target.classList.contains('add-college')) addCollege(target.closest('.campus-card'));
+    if (target.classList.contains('remove-college')) {
+      const campusCard = target.closest('.campus-card');
+      target.closest('.college-card').remove();
+      if (!campusCard.querySelector('.college-card')) addCollege(campusCard);
+      renumber();
+    }
+    if (target.classList.contains('add-department')) addDepartment(target.closest('.college-card'));
+    if (target.classList.contains('remove-department')) {
+      const departmentList = target.closest('.department-list');
+      target.closest('.department-row').remove();
+      if (!departmentList.querySelector('.department-row')) {
+        const collegeCard = departmentList.closest('.college-card');
+        addDepartment(collegeCard);
+      }
+      renumber();
+    }
+  });
+
+  (initial.campuses && initial.campuses.length ? initial.campuses : [{name: '', colleges: [{name: '', departments: ['']}]}]).forEach(addCampus);
+})();
+</script>
+{% endblock %}

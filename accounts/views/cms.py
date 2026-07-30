@@ -18,6 +18,7 @@ from details.models import WorkflowPhase
 from ..decorators import admin_required
 from ..forms import PageSectionForm
 from ..models import SiteConfigurationLog
+from ..tenancy import get_user_institution
 
 PAGE_LINKED_DATA = {
     "home": [
@@ -57,7 +58,7 @@ def page_content_list(request):
     """Overview of every admin-editable public page."""
     pages = []
     for slug, _label in SitePage.Slug.choices:
-        page = SitePage.get_for(slug)
+        page = SitePage.get_for(slug, institution=get_user_institution(request.user))
         pages.append({
             "page": page,
             "section_count": page.sections.count(),
@@ -76,7 +77,7 @@ def page_content_edit(request, slug):
     if slug not in dict(SitePage.Slug.choices):
         raise Http404("Unknown page.")
 
-    page = SitePage.get_for(slug)
+    page = SitePage.get_for(slug, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         page.title = (request.POST.get("title") or "").strip() or page.title
@@ -113,7 +114,7 @@ def page_section_create(request, slug):
     if slug not in dict(SitePage.Slug.choices):
         raise Http404("Unknown page.")
 
-    page = SitePage.get_for(slug)
+    page = SitePage.get_for(slug, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         form = PageSectionForm(request.POST, request.FILES)
@@ -138,7 +139,7 @@ def page_section_create(request, slug):
 @admin_required
 @require_http_methods(["GET", "POST"])
 def page_section_edit(request, pk):
-    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
+    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk, page__institution=get_user_institution(request.user))
 
     if request.method == "POST":
         form = PageSectionForm(request.POST, request.FILES, instance=section)
@@ -164,7 +165,7 @@ def page_section_edit(request, pk):
 @admin_required
 @require_POST
 def page_section_delete(request, pk):
-    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
+    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk, page__institution=get_user_institution(request.user))
     page_slug = section.page.slug
     section.delete()
     messages.success(request, "Section deleted.")
@@ -176,7 +177,7 @@ def page_section_delete(request, pk):
 @require_POST
 def page_section_move(request, pk):
     """Swap a section with its neighbour to reorder the page."""
-    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
+    section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk, page__institution=get_user_institution(request.user))
     direction = request.POST.get("direction")
 
     siblings = list(PageSection.objects.filter(page=section.page).order_by("order", "id"))
@@ -211,9 +212,9 @@ def page_section_move(request, pk):
 def home_sections_manager(request):
     """Edit the headings/subtitles of every built-in Home section."""
     for section, _label in HomeSectionHeading.Section.choices:
-        HomeSectionHeading.get_for(section)
+        HomeSectionHeading.get_for(section, institution=get_user_institution(request.user))
 
-    headings = HomeSectionHeading.objects.all()
+    headings = HomeSectionHeading.objects.filter(institution=get_user_institution(request.user))
 
     if request.method == "POST":
         for row in headings:
@@ -230,8 +231,8 @@ def home_sections_manager(request):
 
     return render(request, "dashboard/admin/home_sections_manager.html", {
         "headings": headings,
-        "thrusts": HomeThrust.objects.all(),
-        "thrust_heading": HomeSectionHeading.get_for(HomeSectionHeading.Section.THRUST),
+        "thrusts": HomeThrust.objects.filter(institution=get_user_institution(request.user)),
+        "thrust_heading": HomeSectionHeading.get_for(HomeSectionHeading.Section.THRUST, institution=get_user_institution(request.user)),
     })
 
 
@@ -245,6 +246,7 @@ def home_thrust_create(request):
             messages.error(request, "A title is required.")
         else:
             HomeThrust.objects.create(
+                institution=get_user_institution(request.user),
                 title=title,
                 description=(request.POST.get("description") or "").strip(),
                 color_class=_valid_thrust_color(request.POST.get("color_class")),
@@ -264,7 +266,7 @@ def home_thrust_create(request):
 @admin_required
 @require_http_methods(["GET", "POST"])
 def home_thrust_edit(request, pk):
-    thrust = get_object_or_404(HomeThrust, pk=pk)
+    thrust = get_object_or_404(HomeThrust, pk=pk, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         title = (request.POST.get("title") or "").strip()
@@ -290,7 +292,7 @@ def home_thrust_edit(request, pk):
 @admin_required
 @require_POST
 def home_thrust_delete(request, pk):
-    thrust = get_object_or_404(HomeThrust, pk=pk)
+    thrust = get_object_or_404(HomeThrust, pk=pk, institution=get_user_institution(request.user))
     title = thrust.title
     thrust.delete()
     messages.success(request, f'Thrust "{title}" deleted.')
@@ -302,10 +304,10 @@ def home_thrust_delete(request, pk):
 @require_POST
 def home_thrust_move(request, pk):
     """Swap a thrust card with its neighbour to reorder the grid."""
-    thrust = get_object_or_404(HomeThrust, pk=pk)
+    thrust = get_object_or_404(HomeThrust, pk=pk, institution=get_user_institution(request.user))
     direction = request.POST.get("direction")
 
-    siblings = list(HomeThrust.objects.order_by("order", "id"))
+    siblings = list(HomeThrust.objects.filter(institution=get_user_institution(request.user)).order_by("order", "id"))
     index = next((i for i, t in enumerate(siblings) if t.pk == thrust.pk), None)
 
     if index is not None:
@@ -341,7 +343,7 @@ def _valid_thrust_color(value):
 @admin_required
 @require_http_methods(["GET", "POST"])
 def workflow_phases_manager(request):
-    phases = WorkflowPhase.objects.all()
+    phases = WorkflowPhase.objects.filter(institution=get_user_institution(request.user))
 
     if request.method == "POST":
         for phase in phases:

@@ -16,17 +16,19 @@ from .models import (
 
 
 def details_page(request):
-    personnel = Personnel.objects.all()
+    page = SitePage.get_for(SitePage.Slug.HOME)
+    institution = page.institution
+    personnel = Personnel.objects.filter(institution=institution)
     # Activities (multi-date) - ordered by latest date
     activities = (
-        Activity.objects.prefetch_related("dates").all()
+        Activity.objects.filter(institution=institution).prefetch_related("dates")
         .annotate(first_date=Min("dates__date"), last_date=Max("dates__date"))
         .order_by("-last_date", "-id")
     )
 
     # ✅ Processes - ordered by "order"
-    process_steps = ExtensionProcess.objects.all().prefetch_related("steps").order_by("order", "id")
-    targets = Target.objects.all()
+    process_steps = ExtensionProcess.objects.filter(institution=institution).prefetch_related("steps").order_by("order", "id")
+    targets = Target.objects.filter(institution=institution)
 
     # Year selection
     year = int(request.GET.get('year', 2026))
@@ -58,10 +60,10 @@ def details_page(request):
         'targets_by_campus': targets_by_campus,
         'overall_targets': overall_targets,
         'selected_year': year,
-        'page': SitePage.get_for(SitePage.Slug.HOME),
-        'home_sections': HomeSectionHeading.as_map(),
-        'home_headings': HomeSectionHeading.objects.all(),
-        'home_thrusts': HomeThrust.objects.filter(is_visible=True),
+        'page': page,
+        'home_sections': HomeSectionHeading.as_map(institution),
+        'home_headings': HomeSectionHeading.objects.filter(institution=institution),
+        'home_thrusts': HomeThrust.objects.filter(institution=institution, is_visible=True),
     }
 
     return render(request, 'details/details_page.html', context)

@@ -1,16 +1,25 @@
 from django.contrib import admin
 
-from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
+from .models import Institution, Profile, Signatory, SiteConfiguration, SiteConfigurationLog
 from details.models import (
     AccomplishmentReport, DocumentTemplate, DynamicFormTemplate, DynamicFormField,
     DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig, RoleCapability,
 )
 
 
+@admin.register(Institution)
+class InstitutionAdmin(admin.ModelAdmin):
+    list_display = ("name", "short_name", "slug", "is_active", "onboarding_completed_at", "updated_at")
+    list_filter = ("is_active",)
+    search_fields = ("name", "short_name", "slug", "contact_email", "email_domain")
+    prepopulated_fields = {"slug": ("name",)}
+    readonly_fields = ("created_at", "updated_at", "onboarding_completed_at")
+
+
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("display_name", "user", "role", "campus", "email_verified", "updated_at")
-    list_filter = ("role", "campus", "email_verified")
+    list_display = ("display_name", "user", "institution", "role", "campus", "email_verified", "updated_at")
+    list_filter = ("institution", "role", "campus", "email_verified")
     search_fields = ("full_name", "user__username", "user__email", "campus", "college", "department")
 
 

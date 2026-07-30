@@ -34,6 +34,7 @@ from ..campus_data import get_college_choices
 from ..campus_data import get_department_choices
 from ..forms import ProfileUpdateForm
 from ..forms import RegisterForm
+from ..models import Institution
 from ..models import Profile
 from ..models import SiteConfiguration
 from ..tokens import email_verification_token
@@ -42,11 +43,34 @@ logger = logging.getLogger(__name__)
 from .helpers import User, _get_client_ip, _get_or_create_profile, _get_role_dashboard_name, _increment_failed, _is_blocked, _normalize_role, _reset_failed
 
 
+def _institution_from_request_or_query(request):
+    institution_id = (request.GET.get("institution") or "").strip()
+    if institution_id:
+        institution = Institution.objects.filter(pk=institution_id, is_active=True).first()
+        if institution:
+            return institution
+    try:
+        return getattr(request.user.profile, "institution", None)
+    except Exception:
+        return None
+
+
+def get_campuses_ajax(request):
+    institution = _institution_from_request_or_query(request)
+    from ..campus_data import get_campus_choices
+    campuses = [
+        {"value": value, "label": label}
+        for value, label in get_campus_choices(institution)
+    ]
+    return JsonResponse({"campuses": campuses})
+
+
 def get_colleges_ajax(request):
     campus = (request.GET.get("campus") or "").strip()
+    institution = _institution_from_request_or_query(request)
     colleges = [
         {"value": value, "label": label}
-        for value, label in get_college_choices(campus)
+        for value, label in get_college_choices(campus, institution)
     ]
     return JsonResponse({"colleges": colleges})
 
@@ -54,9 +78,10 @@ def get_colleges_ajax(request):
 def get_departments_ajax(request):
     campus = (request.GET.get("campus") or "").strip()
     college = (request.GET.get("college") or "").strip()
+    institution = _institution_from_request_or_query(request)
     departments = [
         {"value": value, "label": label}
-        for value, label in get_department_choices(campus, college)
+        for value, label in get_department_choices(campus, college, institution)
     ]
     return JsonResponse({"departments": departments})
 
@@ -85,6 +110,7 @@ def register_view(request):
                     or form.cleaned_data.get("password1")
                 )
                 full_name = form.cleaned_data.get("full_name") or username
+                institution = form.cleaned_data.get("institution")
                 campus = form.cleaned_data.get("campus", "")
                 college = form.cleaned_data.get("college", "")
                 department = form.cleaned_data.get("department", "")
@@ -102,6 +128,7 @@ def register_view(request):
                         user=user,
                         defaults={
                             "full_name": full_name,
+                            "institution": institution,
                             "campus": campus,
                             "college": college,
                             "department": department,
@@ -239,6 +266,8 @@ def login_view(request):
 
             profile, _ = _get_or_create_profile(request.user)
             role = _normalize_role(profile.role)
+            if role == Profile.ROLE_ADMIN and profile.institution and not profile.institution.onboarding_complete:
+                return redirect("institution_onboarding")
             return redirect(_get_role_dashboard_name(role))
 
         for key in identifiers:

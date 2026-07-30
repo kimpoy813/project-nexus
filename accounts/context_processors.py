@@ -60,12 +60,14 @@ def _resolve_capabilities(request):
         return set()
 
     try:
-        role = (getattr(getattr(user, "profile", None), "role", "") or "").upper()
+        profile = getattr(user, "profile", None)
+        role = (getattr(profile, "role", "") or "").upper()
+        institution = getattr(profile, "institution", None)
 
         if role == "ADMIN" or getattr(user, "is_superuser", False):
             return {"ALL"}
 
-        queryset = RoleCapability.objects.filter(role=role)
+        queryset = RoleCapability.objects.filter(institution=institution, role=role)
         capabilities = set(
             queryset.filter(enabled=True).values_list("capability", flat=True)
         )

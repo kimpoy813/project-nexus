@@ -5,12 +5,96 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
+from django.utils.text import slugify
 
 from .campus_data import (
-    get_campus_choices,
+    get_default_structure_json,
     is_valid_college_for_campus,
     is_valid_department_for_selection,
 )
+
+
+class Institution(models.Model):
+    """
+    A tenant/organization that owns its own NExUS structure and configuration.
+
+    Platform super admins create one institution record and one institution admin
+    account. On the admin's first login, they complete ``structure`` so campuses,
+    colleges, departments, forms, templates, and workflow settings are no longer
+    tied to ISPSC only.
+    """
+
+    name = models.CharField(max_length=180, unique=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    short_name = models.CharField(max_length=60, blank=True, default="")
+    contact_email = models.EmailField(blank=True, default="")
+    email_domain = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Optional domain hint for public registrations, e.g. ispsc.edu.ph.",
+    )
+    is_active = models.BooleanField(default=True)
+    structure = models.JSONField(default=dict, blank=True)
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
+    onboarding_completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="completed_institution_onboardings",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_institutions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.short_name or self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.short_name or self.name) or "institution"
+            candidate = base
+            counter = 2
+            while Institution.objects.filter(slug=candidate).exclude(pk=self.pk).exists():
+                candidate = f"{base}-{counter}"
+                counter += 1
+            self.slug = candidate
+        super().save(*args, **kwargs)
+
+    @property
+    def onboarding_complete(self):
+        campuses = (self.structure or {}).get("campuses") or []
+        return bool(self.onboarding_completed_at and campuses)
+
+    def mark_onboarding_complete(self, user=None):
+        self.onboarding_completed_at = timezone.now()
+        self.onboarding_completed_by = user if getattr(user, "is_authenticated", False) else None
+        self.save(update_fields=["onboarding_completed_at", "onboarding_completed_by", "updated_at"])
+
+    @classmethod
+    def get_default(cls):
+        obj, created = cls.objects.get_or_create(
+            slug="ispsc",
+            defaults={
+                "name": "Ilocos Sur Polytechnic State College",
+                "short_name": "ISPSC",
+                "contact_email": "ispsc.nexus@gmail.com",
+                "structure": get_default_structure_json(),
+                "onboarding_completed_at": timezone.now(),
+            },
+        )
+        return obj
 
 
 class EmailOTP(models.Model):
@@ -114,12 +198,18 @@ class Profile(models.Model):
         on_delete=models.CASCADE,
         related_name="profile",
     )
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="profiles",
+    )
 
     full_name = models.CharField(max_length=150, blank=True, default="")
 
     campus = models.CharField(
         max_length=150,
-        choices=get_campus_choices(),
         blank=True,
         default="",
     )
@@ -157,7 +247,7 @@ class Profile(models.Model):
 
         # Only validate college if both campus and college are provided
         if self.campus and self.college:
-            if not is_valid_college_for_campus(self.campus, self.college):
+            if not is_valid_college_for_campus(self.campus, self.college, self.institution):
                 raise ValidationError(
                     {"college": "Selected college does not belong to the selected campus."}
                 )
@@ -168,6 +258,7 @@ class Profile(models.Model):
                 self.campus,
                 self.college,
                 self.department,
+                self.institution,
             ):
                 raise ValidationError(
                     {"department": "Selected department does not belong to the selected campus/college."}
@@ -344,6 +435,13 @@ class Signatory(models.Model):
         VPRDE = "VPRDE", "Vice President for Research Development and Extension"
         SUC_PRESIDENT_III = "SUC_PRESIDENT_III", "SUC President III"
 
+    institution = models.ForeignKey(
+        Institution,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="signatories",
+    )
     position_title = models.CharField(
         max_length=80,
         choices=Position.choices,
@@ -352,7 +450,6 @@ class Signatory(models.Model):
 
     campus = models.CharField(
         max_length=150,
-        choices=get_campus_choices(),
         blank=True,
         default="",
     )
@@ -369,8 +466,8 @@ class Signatory(models.Model):
         ordering = ["position_title", "campus", "college", "department", "full_name"]
         constraints = [
             models.UniqueConstraint(
-                fields=["position_title", "campus", "college", "department"],
-                name="unique_signatory_per_position_scope",
+                fields=["institution", "position_title", "campus", "college", "department"],
+                name="unique_signatory_per_institution_position_scope",
             ),
         ]
 
@@ -436,7 +533,7 @@ class Signatory(models.Model):
                 raise ValidationError({"college": "College is required for Dean signatory."})
             if self.department:
                 raise ValidationError("College-scoped positions must not set department.")
-            if not is_valid_college_for_campus(self.campus, self.college):
+            if not is_valid_college_for_campus(self.campus, self.college, self.institution):
                 raise ValidationError({"college": "Selected college does not belong to the selected campus."})
 
         # Department scope: campus+college+department required
@@ -447,7 +544,7 @@ class Signatory(models.Model):
                 raise ValidationError({"college": "College is required for Department Extension Coordinator."})
             if not self.department:
                 raise ValidationError({"department": "Department is required for Department Extension Coordinator."})
-            if not is_valid_college_for_campus(self.campus, self.college):
+            if not is_valid_college_for_campus(self.campus, self.college, self.institution):
                 raise ValidationError({"college": "Selected college does not belong to the selected campus."})
-            if not is_valid_department_for_selection(self.campus, self.college, self.department):
+            if not is_valid_department_for_selection(self.campus, self.college, self.department, self.institution):
                 raise ValidationError({"department": "Selected department does not belong to the selected campus/college."})

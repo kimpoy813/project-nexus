@@ -66,13 +66,21 @@ def unmark_step_completed(proposal, step_no):
     proposal.completed_steps = sorted(completed)
 
 
-def _wizard_step_config_map():
-    configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+def _proposal_institution(proposal):
+    try:
+        return proposal.created_by.profile.institution
+    except Exception:
+        return None
+
+
+def _wizard_step_config_map(institution=None):
+    configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.filter(institution=institution)}
     missing = []
     for item in STEP_LABELS:
         if item["no"] not in configs:
             missing.append(
                 ProposalWizardStepConfig(
+                    institution=institution,
                     step_no=item["no"],
                     title=item["title"],
                     description=item["desc"],
@@ -82,18 +90,18 @@ def _wizard_step_config_map():
             )
     if missing:
         ProposalWizardStepConfig.objects.bulk_create(missing)
-        configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+        configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.filter(institution=institution)}
     return configs
 
 
-def get_visible_wizard_step_numbers():
-    configs = _wizard_step_config_map()
+def get_visible_wizard_step_numbers(institution=None):
+    configs = _wizard_step_config_map(institution)
     visible = [item["no"] for item in STEP_LABELS if configs.get(item["no"]).is_visible]
     return visible or [item["no"] for item in STEP_LABELS]
 
 
-def get_required_wizard_step_numbers():
-    configs = _wizard_step_config_map()
+def get_required_wizard_step_numbers(institution=None):
+    configs = _wizard_step_config_map(institution)
     return [
         item["no"]
         for item in STEP_LABELS
@@ -101,8 +109,8 @@ def get_required_wizard_step_numbers():
     ]
 
 
-def normalize_wizard_step(step):
-    visible = get_visible_wizard_step_numbers()
+def normalize_wizard_step(step, institution=None):
+    visible = get_visible_wizard_step_numbers(institution)
     if step in visible:
         return step
     for no in visible:
@@ -111,16 +119,16 @@ def normalize_wizard_step(step):
     return visible[-1]
 
 
-def next_visible_wizard_step(step):
-    visible = get_visible_wizard_step_numbers()
+def next_visible_wizard_step(step, institution=None):
+    visible = get_visible_wizard_step_numbers(institution)
     for no in visible:
         if no > step:
             return no
     return None
 
 
-def previous_visible_wizard_step(step):
-    visible = list(reversed(get_visible_wizard_step_numbers()))
+def previous_visible_wizard_step(step, institution=None):
+    visible = list(reversed(get_visible_wizard_step_numbers(institution)))
     for no in visible:
         if no < step:
             return no
@@ -227,11 +235,11 @@ def is_step_complete(proposal, step):
     return False
 
 
-def build_wizard_steps(proposal, current_step, comment_counts=None):
+def build_wizard_steps(proposal, current_step, comment_counts=None, institution=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
-    configs = _wizard_step_config_map()
+    configs = _wizard_step_config_map(institution)
 
     steps = []
     for item in STEP_LABELS:
@@ -278,10 +286,11 @@ def _update_creator_role(proposal):
 
 
 def _build_wizard_context(proposal, step, request_user, comment_counts=None):
-    required_steps = set(get_required_wizard_step_numbers())
+    institution = _proposal_institution(proposal)
+    required_steps = set(get_required_wizard_step_numbers(institution))
     completed_required = required_steps.intersection(set(proposal.completed_steps or []))
     progress = int((len(completed_required) / len(required_steps)) * 100) if required_steps else 100
-    configs = _wizard_step_config_map()
+    configs = _wizard_step_config_map(institution)
     step_config = configs.get(step)
 
     ctx = {
@@ -289,7 +298,7 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
         "step": step,
         "total_steps": TOTAL_STEPS,
         "progress": progress,
-        "wizard_steps": build_wizard_steps(proposal, step, comment_counts=comment_counts),
+        "wizard_steps": build_wizard_steps(proposal, step, comment_counts=comment_counts, institution=institution),
         "wizard_step_config": step_config,
     }
 
@@ -304,9 +313,10 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
     return ctx
 
 
-def _dynamic_forms_for_proposal_step(step):
+def _dynamic_forms_for_proposal_step(step, institution=None):
     return (
         DynamicFormTemplate.objects.filter(
+            institution=institution,
             is_active=True,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
             proposal_wizard_step=step,
@@ -317,7 +327,7 @@ def _dynamic_forms_for_proposal_step(step):
 
 
 def _attach_dynamic_forms_to_context(ctx, proposal, step):
-    forms = list(_dynamic_forms_for_proposal_step(step))
+    forms = list(_dynamic_forms_for_proposal_step(step, _proposal_institution(proposal)))
     if not forms:
         ctx["dynamic_forms"] = []
         return []
@@ -352,7 +362,7 @@ def _save_dynamic_form_answers(proposal, step, user, request):
     Returns a list of missing required field labels. Values are saved even when
     some required fields are still empty so proponents can draft gradually.
     """
-    forms = list(_dynamic_forms_for_proposal_step(step))
+    forms = list(_dynamic_forms_for_proposal_step(step, _proposal_institution(proposal)))
     missing = []
 
     for form in forms:
@@ -395,6 +405,7 @@ def _proposal_dynamic_requirements_missing(proposal):
     """Return missing required admin-built proposal fields across all wizard steps."""
     forms = list(
         DynamicFormTemplate.objects.filter(
+            institution=_proposal_institution(proposal),
             is_active=True,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
             blocks_proposal_submission=True,
@@ -442,6 +453,7 @@ def proposal_create(request):
 
     proposal = Proposal.objects.create(
         created_by=request.user,
+        institution=getattr(profile, "institution", None),
         campus=getattr(profile, "campus", "") or "",
         college=getattr(profile, "college", "") or "",
         department=getattr(profile, "department", "") or "",
@@ -671,7 +683,8 @@ def proposal_wizard(request, proposal_id, step):
         messages.error(request, "You don't have access to this proposal.")
         return redirect("dashboard_redirect")
 
-    step = normalize_wizard_step(max(1, min(step, TOTAL_STEPS)))
+    institution = _proposal_institution(proposal)
+    step = normalize_wizard_step(max(1, min(step, TOTAL_STEPS)), institution)
     can_edit = _can_edit(request.user, proposal)
     can_review = _can_review(request.user, proposal)
 
@@ -1110,13 +1123,13 @@ def proposal_wizard(request, proposal_id, step):
         return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
 
     if action == "back":
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=previous_visible_wizard_step(step) or step)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=previous_visible_wizard_step(step, institution) or step)
 
     if action == "skip":
         mark_step_skipped(proposal, step)
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
         messages.info(request, "Skipped.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step) or step)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step, institution) or step)
 
     if is_step_complete(proposal, step):
         mark_step_completed(proposal, step)
@@ -1125,7 +1138,7 @@ def proposal_wizard(request, proposal_id, step):
 
     proposal.save(update_fields=["completed_steps", "skipped_steps"])
 
-    next_step = next_visible_wizard_step(step)
+    next_step = next_visible_wizard_step(step, institution)
     if not next_step:
         messages.success(request, "All visible required steps completed.")
         return redirect("proposal_submit", proposal_id=proposal.id)
@@ -1151,7 +1164,7 @@ def proposal_submit(request, proposal_id):
         messages.warning(request, "This proposal has already been submitted or is not editable.")
         return redirect("services_home")
 
-    all_required_steps = set(get_required_wizard_step_numbers())
+    all_required_steps = set(get_required_wizard_step_numbers(_proposal_institution(proposal)))
     completed_steps = set(proposal.completed_steps or [])
 
     if not all_required_steps.issubset(completed_steps):
@@ -1287,6 +1300,9 @@ def proponent_search(request):
 
     users = (
         User.objects.select_related("profile")
+        .filter(
+            profile__institution=getattr(getattr(request.user, "profile", None), "institution", None),
+        )
         .filter(
             Q(username__icontains=query)
             | Q(email__icontains=query)

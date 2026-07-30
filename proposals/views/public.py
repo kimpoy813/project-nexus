@@ -29,10 +29,12 @@ def _build_status_flow(choices, progress_map):
 
 
 def services_home(request):
+    page = SitePage.get_for(SitePage.Slug.SERVICES)
+    institution = page.institution
     sdgs = SDG.objects.all().order_by("code")
     thrusts = ExtensionThrust.objects.all().order_by("name")
     process_records = (
-        ExtensionProcess.objects
+        ExtensionProcess.objects.filter(institution=institution)
         .prefetch_related(
             Prefetch(
                 "steps",
@@ -41,8 +43,8 @@ def services_home(request):
         )
         .order_by("order", "id")
     )
-    office_templates = DocumentTemplate.objects.filter(is_active=True).order_by("category", "title")
-    dynamic_form_templates = DynamicFormTemplate.objects.filter(is_active=True).prefetch_related("fields").order_by("applies_to", "name")
+    office_templates = DocumentTemplate.objects.filter(institution=institution, is_active=True).order_by("category", "title")
+    dynamic_form_templates = DynamicFormTemplate.objects.filter(institution=institution, is_active=True).prefetch_related("fields").order_by("applies_to", "name")
 
     # Status codes and progress maps stay in the model because they drive real
     # permissions; only the public presentation is admin-editable.
@@ -53,7 +55,7 @@ def services_home(request):
     }
 
     workflow_phases = []
-    for phase in WorkflowPhase.ordered_visible():
+    for phase in WorkflowPhase.ordered_visible(institution):
         choices_map = status_flows.get(phase.key)
         workflow_phases.append({
             "key": phase.key,
@@ -75,6 +77,6 @@ def services_home(request):
         "total_wizard_steps": TOTAL_STEPS,
         "office_templates": office_templates,
         "dynamic_form_templates": dynamic_form_templates,
-        "page": SitePage.get_for(SitePage.Slug.SERVICES),
+        "page": page,
     }
     return render(request, "services/services_home.html", context)

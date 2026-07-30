@@ -16,20 +16,22 @@ from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from ..decorators import admin_required
+from ..tenancy import get_user_institution
 from .helpers import _safe_int
 from .reports import ACCOMPLISHMENT_REPORT_ROLES
 
 
-def _sync_default_wizard_step_configs():
+def _sync_default_wizard_step_configs(institution=None):
     # Import here to avoid circular import at module load time.
     from proposals.views import STEP_LABELS
 
-    existing = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+    existing = {item.step_no: item for item in ProposalWizardStepConfig.objects.filter(institution=institution)}
     to_create = []
     for item in STEP_LABELS:
         if item["no"] not in existing:
             to_create.append(
                 ProposalWizardStepConfig(
+                    institution=institution,
                     step_no=item["no"],
                     title=item["title"],
                     description=item["desc"],
@@ -41,7 +43,7 @@ def _sync_default_wizard_step_configs():
         ProposalWizardStepConfig.objects.bulk_create(to_create)
 
 
-def _sync_default_role_capabilities():
+def _sync_default_role_capabilities(institution=None):
     default_enabled = {
         (RoleCapability.Role.FACULTY, RoleCapability.Capability.CREATE_PROPOSAL),
         (RoleCapability.Role.EVALUATOR, RoleCapability.Capability.CREATE_PROPOSAL),
@@ -63,6 +65,7 @@ def _sync_default_role_capabilities():
     for role, _label in RoleCapability.Role.choices:
         for capability, _cap_label in RoleCapability.Capability.choices:
             RoleCapability.objects.get_or_create(
+                institution=institution,
                 role=role,
                 capability=capability,
                 defaults={"enabled": (role, capability) in default_enabled},
@@ -72,7 +75,8 @@ def _sync_default_role_capabilities():
 @login_required
 @admin_required
 def document_templates_list(request):
-    templates_qs = DocumentTemplate.objects.all().order_by("category", "title")
+    institution = get_user_institution(request.user)
+    templates_qs = DocumentTemplate.objects.filter(institution=institution).order_by("category", "title")
     return render(
         request,
         "dashboard/admin/document_templates_list.html",
@@ -98,6 +102,7 @@ def document_template_create(request):
             messages.error(request, "Title and template file are required.")
         else:
             DocumentTemplate.objects.create(
+                institution=get_user_institution(request.user),
                 title=title,
                 category=category,
                 description=description,
@@ -121,7 +126,8 @@ def document_template_create(request):
 @login_required
 @admin_required
 def document_template_edit(request, pk):
-    template = get_object_or_404(DocumentTemplate, pk=pk)
+    institution = get_user_institution(request.user)
+    template = get_object_or_404(DocumentTemplate, pk=pk, institution=institution)
 
     if request.method == "POST":
         template.title = (request.POST.get("title") or template.title).strip()
@@ -150,7 +156,8 @@ def document_template_edit(request, pk):
 @admin_required
 @require_POST
 def document_template_delete(request, pk):
-    template = get_object_or_404(DocumentTemplate, pk=pk)
+    institution = get_user_institution(request.user)
+    template = get_object_or_404(DocumentTemplate, pk=pk, institution=institution)
     title = template.title
     template.delete()
     messages.success(request, f'Template "{title}" deleted successfully.')
@@ -160,7 +167,8 @@ def document_template_delete(request, pk):
 @login_required
 @admin_required
 def dynamic_forms_list(request):
-    forms_qs = DynamicFormTemplate.objects.prefetch_related("fields").order_by("applies_to", "name")
+    institution = get_user_institution(request.user)
+    forms_qs = DynamicFormTemplate.objects.filter(institution=institution).prefetch_related("fields").order_by("applies_to", "name")
     return render(
         request,
         "dashboard/admin/dynamic_forms_list.html",
@@ -171,11 +179,11 @@ def dynamic_forms_list(request):
     )
 
 
-def _unique_dynamic_form_slug(name, existing=None):
+def _unique_dynamic_form_slug(name, existing=None, institution=None):
     base = slugify(name) or "form"
     candidate = base
     i = 2
-    qs = DynamicFormTemplate.objects.all()
+    qs = DynamicFormTemplate.objects.filter(institution=institution)
     if existing:
         qs = qs.exclude(pk=existing.pk)
     while qs.filter(slug=candidate).exists():
@@ -251,9 +259,11 @@ def dynamic_form_create(request):
         if not name:
             messages.error(request, "Form name is required.")
         else:
+            institution = get_user_institution(request.user)
             form_obj = DynamicFormTemplate.objects.create(
+                institution=institution,
                 name=name,
-                slug=_unique_dynamic_form_slug(name),
+                slug=_unique_dynamic_form_slug(name, institution=institution),
                 applies_to=(request.POST.get("applies_to") or DynamicFormTemplate.AppliesTo.GENERAL).strip(),
                 proposal_wizard_step=_safe_int(request.POST.get("proposal_wizard_step"), 0) or None,
                 blocks_proposal_submission=request.POST.get("blocks_proposal_submission") == "on",
@@ -279,12 +289,13 @@ def dynamic_form_create(request):
 @login_required
 @admin_required
 def dynamic_form_edit(request, pk):
-    form_obj = get_object_or_404(DynamicFormTemplate.objects.prefetch_related("fields"), pk=pk)
+    institution = get_user_institution(request.user)
+    form_obj = get_object_or_404(DynamicFormTemplate.objects.filter(institution=institution).prefetch_related("fields"), pk=pk)
 
     if request.method == "POST":
         name = (request.POST.get("name") or form_obj.name).strip()
         form_obj.name = name
-        form_obj.slug = _unique_dynamic_form_slug(name, existing=form_obj)
+        form_obj.slug = _unique_dynamic_form_slug(name, existing=form_obj, institution=institution)
         form_obj.applies_to = (request.POST.get("applies_to") or form_obj.applies_to).strip()
         form_obj.proposal_wizard_step = _safe_int(request.POST.get("proposal_wizard_step"), 0) or None
         form_obj.blocks_proposal_submission = request.POST.get("blocks_proposal_submission") == "on"
@@ -312,7 +323,8 @@ def dynamic_form_edit(request, pk):
 @admin_required
 @require_POST
 def dynamic_form_delete(request, pk):
-    form_obj = get_object_or_404(DynamicFormTemplate, pk=pk)
+    institution = get_user_institution(request.user)
+    form_obj = get_object_or_404(DynamicFormTemplate, pk=pk, institution=institution)
     name = form_obj.name
     form_obj.delete()
     messages.success(request, f'Form "{name}" deleted successfully.')
@@ -322,16 +334,18 @@ def dynamic_form_delete(request, pk):
 @login_required
 @admin_required
 def wizard_steps_manager(request):
-    _sync_default_wizard_step_configs()
-    steps = ProposalWizardStepConfig.objects.all().order_by("step_no")
+    institution = get_user_institution(request.user)
+    _sync_default_wizard_step_configs(institution)
+    steps = ProposalWizardStepConfig.objects.filter(institution=institution).order_by("step_no")
     return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
 
 
 @login_required
 @admin_required
 def wizard_step_edit(request, step_no):
-    _sync_default_wizard_step_configs()
-    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
+    institution = get_user_institution(request.user)
+    _sync_default_wizard_step_configs(institution)
+    step_config = get_object_or_404(ProposalWizardStepConfig, institution=institution, step_no=step_no)
 
     if request.method == "POST":
         step_config.title = (request.POST.get("title") or step_config.title).strip()
@@ -353,18 +367,19 @@ def wizard_step_edit(request, step_no):
 @login_required
 @admin_required
 def role_capabilities_manager(request):
-    _sync_default_role_capabilities()
+    institution = get_user_institution(request.user)
+    _sync_default_role_capabilities(institution)
 
     if request.method == "POST":
         enabled_ids = set(request.POST.getlist("enabled_capabilities"))
-        for item in RoleCapability.objects.all():
+        for item in RoleCapability.objects.filter(institution=institution):
             item.enabled = str(item.id) in enabled_ids
             item.notes = (request.POST.get(f"notes_{item.id}") or "").strip()
             item.save(update_fields=["enabled", "notes", "updated_at"])
         messages.success(request, "Role capability matrix updated.")
         return redirect("role_capabilities_manager")
 
-    capabilities = RoleCapability.objects.all().order_by("role", "capability")
+    capabilities = RoleCapability.objects.filter(institution=institution).order_by("role", "capability")
     grouped = []
     by_role = OrderedDict()
     for item in capabilities:

@@ -111,23 +111,84 @@ CAMPUS_STRUCTURE = {
 }
 
 
-def get_campus_choices():
-    return [(campus, campus) for campus in CAMPUS_STRUCTURE.keys()]
+def structure_dict_to_json(structure=None):
+    """Convert the legacy nested dict into the editable institution JSON shape."""
+    source = structure or CAMPUS_STRUCTURE
+    return {
+        "campuses": [
+            {
+                "name": campus,
+                "colleges": [
+                    {
+                        "name": college,
+                        "departments": list(departments or []),
+                    }
+                    for college, departments in colleges.items()
+                ],
+            }
+            for campus, colleges in source.items()
+        ]
+    }
 
 
-def get_college_choices(campus=None):
-    if not campus or campus not in CAMPUS_STRUCTURE:
+def structure_json_to_dict(structure):
+    """Normalize an institution JSON structure into {campus: {college: [departments]}}."""
+    campuses = (structure or {}).get("campuses") or []
+    normalized = {}
+    for campus_row in campuses:
+        campus_name = (campus_row.get("name") or "").strip()
+        if not campus_name:
+            continue
+
+        colleges = {}
+        for college_row in campus_row.get("colleges") or []:
+            college_name = (college_row.get("name") or "").strip()
+            departments = []
+            for department in college_row.get("departments") or []:
+                department_name = (department or "").strip()
+                if department_name and department_name not in departments:
+                    departments.append(department_name)
+            colleges[college_name] = departments
+
+        if not colleges:
+            colleges[""] = []
+        normalized[campus_name] = colleges
+    return normalized
+
+
+def get_structure_for_institution(institution=None):
+    if institution is not None:
+        structure = getattr(institution, "structure", None)
+        normalized = structure_json_to_dict(structure)
+        if normalized:
+            return normalized
+    return CAMPUS_STRUCTURE
+
+
+def get_default_structure_json():
+    return structure_dict_to_json(CAMPUS_STRUCTURE)
+
+
+def get_campus_choices(institution=None):
+    structure = get_structure_for_institution(institution)
+    return [(campus, campus) for campus in structure.keys()]
+
+
+def get_college_choices(campus=None, institution=None):
+    structure = get_structure_for_institution(institution)
+    if not campus or campus not in structure:
         return []
 
     choices = []
-    for college in CAMPUS_STRUCTURE[campus].keys():
+    for college in structure[campus].keys():
         if college:
             choices.append((college, college))
     return choices
 
 
-def get_department_choices(campus=None, college=None):
-    if not campus or campus not in CAMPUS_STRUCTURE:
+def get_department_choices(campus=None, college=None, institution=None):
+    structure = get_structure_for_institution(institution)
+    if not campus or campus not in structure:
         return []
 
     departments = []
@@ -135,25 +196,28 @@ def get_department_choices(campus=None, college=None):
     if college is None:
         college = ""
 
-    if college in CAMPUS_STRUCTURE[campus]:
-        departments.extend(CAMPUS_STRUCTURE[campus][college])
+    if college in structure[campus]:
+        departments.extend(structure[campus][college])
 
     return [(dept, dept) for dept in departments]
 
 
-def is_valid_college_for_campus(campus, college):
+def is_valid_college_for_campus(campus, college, institution=None):
     if not college:
         return True
-    return campus in CAMPUS_STRUCTURE and college in CAMPUS_STRUCTURE[campus]
+    structure = get_structure_for_institution(institution)
+    return campus in structure and college in structure[campus]
 
 
-def is_valid_department_for_selection(campus, college, department):
+def is_valid_department_for_selection(campus, college, department, institution=None):
     if not department:
         return True
 
-    if campus not in CAMPUS_STRUCTURE:
+    structure = get_structure_for_institution(institution)
+
+    if campus not in structure:
         return False
 
     college = college or ""
-    allowed = CAMPUS_STRUCTURE[campus].get(college, [])
+    allowed = structure[campus].get(college, [])
     return department in allowed

@@ -40,7 +40,8 @@ def accomplishment_reports_list(request):
 
     profile = getattr(request.user, "profile", None)
     role = _user_role(request.user)
-    reports = AccomplishmentReport.objects.select_related("submitted_by", "submitted_by__profile")
+    institution = getattr(profile, "institution", None)
+    reports = AccomplishmentReport.objects.filter(institution=institution).select_related("submitted_by", "submitted_by__profile")
 
     # Coordinators only see their own scope; Staff and Director see everything.
     if role == Profile.ROLE_DEPARTMENT_COORDINATOR:
@@ -76,6 +77,7 @@ def accomplishment_report_create(request):
             messages.error(request, "Title and quarter are required.")
         else:
             AccomplishmentReport.objects.create(
+                institution=getattr(profile, "institution", None),
                 title=title,
                 year=year,
                 quarter=quarter,

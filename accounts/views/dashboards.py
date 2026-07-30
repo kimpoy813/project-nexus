@@ -40,6 +40,7 @@ from ..models import Profile
 from ..models import Signatory
 from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
+from ..tenancy import get_user_institution
 from .helpers import User, _get_or_create_profile, _get_role_dashboard_name
 from .proposal_queries import _build_proposal_dashboard_item, _get_assignable_evaluators_for_proposal, _get_assigned_evaluators_for_proposal, _get_campus_review_queue, _get_department_review_queue, _get_director_monitored_proposals, _get_evaluator_review_queue, _get_open_review_round, _get_or_create_open_review_round, _get_proposal_prohibited_evaluator_ids, _get_user_proposals_context
 
@@ -70,6 +71,7 @@ def faculty_dashboard(request):
     printing_ready_count = (
         Proposal.objects.filter(
             Q(created_by=request.user) | Q(proponents__user=request.user),
+            institution=get_user_institution(request.user),
             proposal_status=Proposal.ProposalStatus.READY_FOR_PRINTING,
         )
         .distinct()
@@ -81,6 +83,7 @@ def faculty_dashboard(request):
     upload_required_count = (
         Proposal.objects.filter(
             Q(created_by=request.user) | Q(proponents__user=request.user),
+            institution=get_user_institution(request.user),
             proposal_status=Proposal.ProposalStatus.FOR_SUBMISSION_AND_UPLOAD,
         )
         .distinct()
@@ -99,6 +102,7 @@ def faculty_dashboard(request):
             Q(created_by=request.user)
             | Q(proponents__user=request.user)
             | Q(collaborators__user=request.user),
+            institution=get_user_institution(request.user),
             proposal_status__in=revision_statuses,
         )
         .distinct()
@@ -157,7 +161,7 @@ def director_dashboard(request):
         | Q(proposal_status=Proposal.ProposalStatus.FOR_SUBMISSION_AND_UPLOAD)
         | Q(proposal_status=Proposal.ProposalStatus.APPROVED)
         | Q(proposal_status=Proposal.ProposalStatus.COMPLETED)
-    ).order_by("-submitted_at")
+    ).filter(institution=get_user_institution(request.user)).order_by("-submitted_at")
 
     # Count only items that still require director-side workflow attention (exclude Approved/Completed)
     action_queue_count = review_queue.exclude(
@@ -347,7 +351,7 @@ def director_dashboard(request):
     monitored_page = paginator.get_page(page_number)
 
     campuses = (
-        Proposal.objects.exclude(campus__isnull=True)
+        Proposal.objects.filter(institution=get_user_institution(request.user)).exclude(campus__isnull=True)
         .exclude(campus__exact="")
         .values_list("campus", flat=True)
         .distinct()
@@ -683,7 +687,7 @@ def staff_dashboard(request):
     # Pull ALL review rounds flagged as ready (latest first).
     # Do NOT filter by is_closed here — some workflows may close the round when marking ready.
     ready_rounds = (
-        ProposalReviewRound.objects.filter(ready_for_staff_summary=True)
+        ProposalReviewRound.objects.filter(proposal__institution=get_user_institution(request.user), ready_for_staff_summary=True)
         .select_related("proposal", "proposal__created_by", "proposal__created_by__profile")
         .order_by("-id")
     )
@@ -741,6 +745,7 @@ def staff_dashboard(request):
 
     # --- Signed Proposal Verification queue (uploaded but not yet verified) ---
     signed_queue = ProposalFinalDocument.objects.filter(
+        proposal__institution=get_user_institution(request.user),
         document_type=ProposalFinalDocument.DocumentType.SIGNED_PROPOSAL,
         is_verified=False,
         proposal__proposal_status=Proposal.ProposalStatus.FOR_SUBMISSION_AND_UPLOAD,
@@ -770,6 +775,7 @@ def staff_dashboard(request):
 
     moa_proposals = list(
         Proposal.objects.filter(
+            institution=get_user_institution(request.user),
             requires_moa=True,
             moa_status__in=active_moa_statuses,
         )
@@ -910,6 +916,7 @@ def department_coordinator_dashboard(request):
     proposals_ctx = _get_user_proposals_context(request.user)
 
     pending_review = Proposal.objects.filter(
+        institution=get_user_institution(request.user),
         proposal_status=Proposal.ProposalStatus.IN_REVIEW,
         review_level=Proposal.ReviewLevel.DEPARTMENT,
         # Only proposals the coordinator's campus/dept can see
@@ -937,6 +944,7 @@ def campus_coordinator_dashboard(request):
     proposals_ctx = _get_user_proposals_context(request.user)
 
     pending_review = Proposal.objects.filter(
+        institution=get_user_institution(request.user),
         proposal_status=Proposal.ProposalStatus.IN_REVIEW,
         review_level=Proposal.ReviewLevel.CAMPUS,
         # Only proposals the coordinator's campus/dept can see
@@ -960,54 +968,62 @@ def admin_dashboard(request):
     now = timezone.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_ago = now - timedelta(days=7)
+    institution = None if request.user.is_superuser else get_user_institution(request.user)
 
-    profiles = Profile.objects.select_related("user").all().order_by("-user__date_joined")
+    profiles_qs = Profile.objects.select_related("user", "institution")
+    if institution is not None:
+        profiles_qs = profiles_qs.filter(institution=institution)
+
+    users_qs = User.objects.filter(profile__in=profiles_qs)
+
+    def content_count(model, **filters):
+        qs = model.objects.filter(**filters) if filters else model.objects.all()
+        if institution is not None and hasattr(model, "institution"):
+            qs = qs.filter(institution=institution)
+        return qs.count()
+
+    profiles = profiles_qs.order_by("-user__date_joined")
 
     site_control = SiteConfiguration.get_solo()
     site_logs = SiteConfigurationLog.objects.select_related("changed_by", "changed_by__profile")[:5]
 
     context = {
         "profiles": profiles,
+        "current_institution": institution,
         "site_control": site_control,
         "site_logs": site_logs,
-        "nav_notif_count": Profile.objects.filter(email_verified=False).count(),
-        "total_users": User.objects.count(),
-        "verified_users": Profile.objects.filter(email_verified=True).count(),
-        "unverified_users": Profile.objects.filter(email_verified=False).count(),
-        "active_today": User.objects.filter(last_login__gte=today_start).count(),
-        "faculty_count": Profile.objects.filter(role=Profile.ROLE_FACULTY).count(),
-        "evaluator_count": Profile.objects.filter(role=Profile.ROLE_EVALUATOR).count(),
-        "department_coordinator_count": Profile.objects.filter(
-            role=Profile.ROLE_DEPARTMENT_COORDINATOR
-        ).count(),
-        "campus_coordinator_count": Profile.objects.filter(
-            role=Profile.ROLE_CAMPUS_COORDINATOR
-        ).count(),
-        "director_count": Profile.objects.filter(role=Profile.ROLE_DIRECTOR).count(),
-        "staff_count": Profile.objects.filter(role=Profile.ROLE_STAFF).count(),
-        "admin_count": Profile.objects.filter(role=Profile.ROLE_ADMIN).count(),
-        "personnel_count": Personnel.objects.count(),
-        "activities_count": Activity.objects.count(),
-        "processes_count": ExtensionProcess.objects.count(),
-        "targets_count": Target.objects.count(),
-        "signatories_count": Signatory.objects.count(),
-        "document_template_count": DocumentTemplate.objects.count(),
-        "dynamic_form_count": DynamicFormTemplate.objects.count(),
-        "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
-        "role_capability_count": RoleCapability.objects.filter(enabled=True).count(),
+        "nav_notif_count": profiles_qs.filter(email_verified=False).count(),
+        "total_users": users_qs.count(),
+        "verified_users": profiles_qs.filter(email_verified=True).count(),
+        "unverified_users": profiles_qs.filter(email_verified=False).count(),
+        "active_today": users_qs.filter(last_login__gte=today_start).count(),
+        "faculty_count": profiles_qs.filter(role=Profile.ROLE_FACULTY).count(),
+        "evaluator_count": profiles_qs.filter(role=Profile.ROLE_EVALUATOR).count(),
+        "department_coordinator_count": profiles_qs.filter(role=Profile.ROLE_DEPARTMENT_COORDINATOR).count(),
+        "campus_coordinator_count": profiles_qs.filter(role=Profile.ROLE_CAMPUS_COORDINATOR).count(),
+        "director_count": profiles_qs.filter(role=Profile.ROLE_DIRECTOR).count(),
+        "staff_count": profiles_qs.filter(role=Profile.ROLE_STAFF).count(),
+        "admin_count": profiles_qs.filter(role=Profile.ROLE_ADMIN).count(),
+        "personnel_count": content_count(Personnel),
+        "activities_count": content_count(Activity),
+        "processes_count": content_count(ExtensionProcess),
+        "targets_count": content_count(Target),
+        "signatories_count": content_count(Signatory),
+        "document_template_count": content_count(DocumentTemplate),
+        "dynamic_form_count": content_count(DynamicFormTemplate),
+        "wizard_step_config_count": content_count(ProposalWizardStepConfig),
+        "role_capability_count": content_count(RoleCapability, enabled=True),
         "total_content": (
-            Personnel.objects.count()
-            + Activity.objects.count()
-            + ExtensionProcess.objects.count()
-            + Target.objects.count()
-            + Signatory.objects.count()
-            + DocumentTemplate.objects.count()
-            + DynamicFormTemplate.objects.count()
-            + ProposalWizardStepConfig.objects.count()
+            content_count(Personnel)
+            + content_count(Activity)
+            + content_count(ExtensionProcess)
+            + content_count(Target)
+            + content_count(Signatory)
+            + content_count(DocumentTemplate)
+            + content_count(DynamicFormTemplate)
+            + content_count(ProposalWizardStepConfig)
         ),
-        "recent_users": Profile.objects.select_related("user").filter(
-            user__date_joined__gte=week_ago
-        ).order_by("-user__date_joined")[:5],
+        "recent_users": profiles_qs.filter(user__date_joined__gte=week_ago).order_by("-user__date_joined")[:5],
         "editable_pages": [
             {
                 "slug": page.slug,
@@ -1015,10 +1031,11 @@ def admin_dashboard(request):
                 "is_published": page.is_published,
                 "visible_count": page.sections.filter(is_visible=True).count(),
             }
-            for page in (SitePage.get_for(slug) for slug, _ in SitePage.Slug.choices)
+            for page in (SitePage.get_for(slug, institution=institution) for slug, _ in SitePage.Slug.choices)
         ],
     }
     return render(request, "dashboard/admin_dashboard.html", context)
+
 
 
 @login_required
@@ -1026,6 +1043,7 @@ def admin_dashboard(request):
 @require_POST
 def faculty_delete_draft(request, proposal_id):
     draft = Proposal.objects.filter(
+        institution=get_user_institution(request.user),
         id=proposal_id,
         status=Proposal.OverallStatus.DRAFT,
         proposal_status=Proposal.ProposalStatus.DRAFTING,
@@ -1056,6 +1074,7 @@ def faculty_delete_draft(request, proposal_id):
         Q(created_by=request.user)
         | Q(proponents__user=request.user)
         | Q(collaborators__user=request.user),
+        institution=get_user_institution(request.user),
         status=Proposal.OverallStatus.DRAFT,
         proposal_status=Proposal.ProposalStatus.DRAFTING,
     ).distinct().count()

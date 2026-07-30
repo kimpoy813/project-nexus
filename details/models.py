@@ -1,7 +1,23 @@
+from django.conf import settings
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
 
+
+def _default_institution():
+    try:
+        from accounts.models import Institution
+        return Institution.get_default()
+    except Exception:
+        return None
+
 class Personnel(models.Model):
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="personnel",
+    )
     name = models.CharField(max_length=150)
     position = models.CharField(max_length=150)
     email = models.EmailField(blank=True, null=True)
@@ -11,6 +27,13 @@ class Personnel(models.Model):
         return self.name
 
 class Activity(models.Model):
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="activities",
+    )
     title = models.CharField(max_length=255)
     description = models.TextField()
     # REMOVE/STOP using single "date" if you have it, or keep it but it becomes legacy
@@ -41,13 +64,23 @@ from django.db import models
 from django.db.models import Max
 
 class ExtensionProcess(models.Model):
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="extension_processes",
+    )
     title = models.CharField(max_length=255)
     order = models.PositiveIntegerField(blank=True, null=True)  # IMPORTANT: no default=1
 
     def save(self, *args, **kwargs):
         # Auto-increment ONLY when creating a new process
         if self._state.adding:
-            max_order = ExtensionProcess.objects.aggregate(m=Max("order"))["m"] or 0
+            qs = ExtensionProcess.objects.all()
+            if self.institution_id:
+                qs = qs.filter(institution=self.institution)
+            max_order = qs.aggregate(m=Max("order"))["m"] or 0
             self.order = max_order + 1
         super().save(*args, **kwargs)
 
@@ -65,6 +98,13 @@ class ProcessStep(models.Model):
         super().save(*args, **kwargs)
 
 class Target(models.Model):
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="targets",
+    )
     METRIC_CHOICES = [
         ('programs', 'Programs'),
         ('participants', 'Participants'),
@@ -93,7 +133,7 @@ class Target(models.Model):
     actual_total = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = ('year', 'campus', 'metric')
+        unique_together = ('institution', 'year', 'campus', 'metric')
         ordering = ['campus', 'metric']
 
     def save(self, *args, **kwargs):
@@ -122,7 +162,15 @@ class Target(models.Model):
 # ==============================
 
 class DocumentTemplate(models.Model):
-    """Admin-managed downloadable files used by the Extension Office."""
+    """Institution-admin-managed downloadable files used by the Extension Office."""
+
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="document_templates",
+    )
 
     class Category(models.TextChoices):
         PROPOSAL = "PROPOSAL", "Proposal"
@@ -149,7 +197,15 @@ class DocumentTemplate(models.Model):
 
 
 class DynamicFormTemplate(models.Model):
-    """Admin-defined form blueprint for office checklists/intake forms."""
+    """Institution-admin-defined form blueprint for office checklists/intake forms."""
+
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="dynamic_form_templates",
+    )
 
     class AppliesTo(models.TextChoices):
         PROPOSAL = "PROPOSAL", "Proposal"
@@ -159,7 +215,7 @@ class DynamicFormTemplate(models.Model):
         GENERAL = "GENERAL", "General"
 
     name = models.CharField(max_length=180)
-    slug = models.SlugField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200)
     applies_to = models.CharField(max_length=30, choices=AppliesTo.choices, default=AppliesTo.GENERAL)
     proposal_wizard_step = models.PositiveSmallIntegerField(
         null=True,
@@ -178,6 +234,12 @@ class DynamicFormTemplate(models.Model):
 
     class Meta:
         ordering = ["applies_to", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "slug"],
+                name="unique_dynamic_form_slug_per_institution",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -278,9 +340,16 @@ class DynamicFormAnswer(models.Model):
 
 
 class ProposalWizardStepConfig(models.Model):
-    """Admin overrides for the built-in 19 proposal wizard steps."""
+    """Institution-admin overrides for the built-in proposal wizard steps."""
 
-    step_no = models.PositiveSmallIntegerField(unique=True)
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="proposal_wizard_steps",
+    )
+    step_no = models.PositiveSmallIntegerField()
     title = models.CharField(max_length=160)
     description = models.CharField(max_length=255, blank=True, default="")
     instructions = models.TextField(blank=True, default="")
@@ -290,13 +359,27 @@ class ProposalWizardStepConfig(models.Model):
 
     class Meta:
         ordering = ["step_no"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "step_no"],
+                name="unique_wizard_step_per_institution",
+            ),
+        ]
 
     def __str__(self):
         return f"Step {self.step_no}: {self.title}"
 
 
 class RoleCapability(models.Model):
-    """Admin-managed feature switches for each account role."""
+    """Institution-admin-managed feature switches for each account role."""
+
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="role_capabilities",
+    )
 
     class Role(models.TextChoices):
         FACULTY = "FACULTY", "Faculty"
@@ -324,7 +407,7 @@ class RoleCapability(models.Model):
     class Meta:
         ordering = ["role", "capability"]
         constraints = [
-            models.UniqueConstraint(fields=["role", "capability"], name="unique_role_capability"),
+            models.UniqueConstraint(fields=["institution", "role", "capability"], name="unique_role_capability_per_institution"),
         ]
 
     def __str__(self):
@@ -333,6 +416,14 @@ class RoleCapability(models.Model):
 
 class AccomplishmentReport(models.Model):
     """Quarterly accomplishment report submitted by roles with the capability."""
+
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="accomplishment_reports",
+    )
 
     class Quarter(models.TextChoices):
         Q1 = "Q1", "1st Quarter"
@@ -387,7 +478,14 @@ class SitePage(models.Model):
         REPORTS = "reports", "Reports"
         ACHIEVEMENTS = "achievements", "Achievements"
 
-    slug = models.SlugField(max_length=40, unique=True, choices=Slug.choices)
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="site_pages",
+    )
+    slug = models.SlugField(max_length=40, choices=Slug.choices)
     title = models.CharField(max_length=150)
 
     # Hero / masthead
@@ -416,15 +514,27 @@ class SitePage(models.Model):
     class Meta:
         ordering = ["slug"]
         verbose_name = "Site Page"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "slug"],
+                name="unique_site_page_per_institution",
+            ),
+        ]
 
     def __str__(self):
         return self.title or self.get_slug_display()
 
     @classmethod
-    def get_for(cls, slug):
-        """Fetch a page by slug, creating a sensible default row if missing."""
+    def get_for(cls, slug, institution=None):
+        """Fetch a page by slug for an institution, creating a sensible default row if missing."""
+        if institution is None:
+            institution = _default_institution()
         defaults = {"title": dict(cls.Slug.choices).get(slug, slug.title())}
-        obj, _ = cls.objects.get_or_create(slug=slug, defaults=defaults)
+        obj, _ = cls.objects.get_or_create(
+            institution=institution,
+            slug=slug,
+            defaults=defaults,
+        )
         return obj
 
     @property
@@ -495,7 +605,14 @@ class HomeSectionHeading(models.Model):
         SDG = "sdg", "Sustainable Development Goals"
         ACTIVITIES = "activities", "Extension Activities"
 
-    section = models.SlugField(max_length=40, unique=True, choices=Section.choices)
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="home_section_headings",
+    )
+    section = models.SlugField(max_length=40, choices=Section.choices)
     heading = models.CharField(max_length=200, blank=True, default="")
     subtitle = models.CharField(
         max_length=200,
@@ -526,22 +643,33 @@ class HomeSectionHeading(models.Model):
     class Meta:
         ordering = ["order", "id"]
         verbose_name = "Home Section Heading"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "section"],
+                name="unique_home_heading_per_institution",
+            ),
+        ]
 
     def __str__(self):
         return self.heading or self.get_section_display()
 
     @classmethod
-    def get_for(cls, section):
+    def get_for(cls, section, institution=None):
+        if institution is None:
+            institution = _default_institution()
         obj, _ = cls.objects.get_or_create(
+            institution=institution,
             section=section,
             defaults={"heading": dict(cls.Section.choices).get(section, section.title())},
         )
         return obj
 
     @classmethod
-    def as_map(cls):
+    def as_map(cls, institution=None):
         """All headings keyed by section, for cheap template lookup."""
-        return {row.section: row for row in cls.objects.all()}
+        if institution is None:
+            institution = _default_institution()
+        return {row.section: row for row in cls.objects.filter(institution=institution)}
 
 
 class HomeThrust(models.Model):
@@ -572,6 +700,13 @@ class HomeThrust(models.Model):
         ("text-gray-700", "Gray"),
     ]
 
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="home_thrusts",
+    )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True, default="")
     color_class = models.CharField(
@@ -595,7 +730,10 @@ class HomeThrust(models.Model):
 
     def save(self, *args, **kwargs):
         if self.order is None or self.order == 0:
-            last = HomeThrust.objects.aggregate(Max("order"))["order__max"]
+            qs = HomeThrust.objects.all()
+            if self.institution_id:
+                qs = qs.filter(institution=self.institution)
+            last = qs.aggregate(Max("order"))["order__max"]
             self.order = (last or 0) + 1
         super().save(*args, **kwargs)
 
@@ -618,9 +756,15 @@ class WorkflowPhase(models.Model):
         MOA = "moa", "MOA"
         IMPLEMENTATION = "implementation", "Implementation"
 
+    institution = models.ForeignKey(
+        "accounts.Institution",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="workflow_phases",
+    )
     key = models.SlugField(
         max_length=30,
-        unique=True,
         choices=Key.choices,
         help_text="Identifies which set of model statuses this phase displays.",
     )
@@ -644,6 +788,12 @@ class WorkflowPhase(models.Model):
     class Meta:
         ordering = ["order", "id"]
         verbose_name = "Workflow Phase"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["institution", "key"],
+                name="unique_workflow_phase_per_institution",
+            ),
+        ]
 
     def __str__(self):
         return self.label or self.get_key_display()
@@ -655,5 +805,7 @@ class WorkflowPhase(models.Model):
         super().save(*args, **kwargs)
 
     @classmethod
-    def ordered_visible(cls):
-        return cls.objects.filter(is_visible=True)
+    def ordered_visible(cls, institution=None):
+        if institution is None:
+            institution = _default_institution()
+        return cls.objects.filter(institution=institution, is_visible=True)

@@ -25,6 +25,7 @@ from ..campus_data import get_department_choices
 from ..decorators import admin_required
 from ..models import Profile
 from ..models import Signatory
+from ..tenancy import get_user_institution
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +33,11 @@ logger = logging.getLogger(__name__)
 @admin_required
 def admin_content_dashboard(request):
     context = {
-        "personnel_count": Personnel.objects.count(),
-        "activities_count": Activity.objects.count(),
-        "processes_count": ExtensionProcess.objects.count(),
-        "targets_count": Target.objects.count(),
-        "signatories_count": Signatory.objects.count(),
+        "personnel_count": Personnel.objects.filter(institution=get_user_institution(request.user)).count(),
+        "activities_count": Activity.objects.filter(institution=get_user_institution(request.user)).count(),
+        "processes_count": ExtensionProcess.objects.filter(institution=get_user_institution(request.user)).count(),
+        "targets_count": Target.objects.filter(institution=get_user_institution(request.user)).count(),
+        "signatories_count": Signatory.objects.filter(institution=get_user_institution(request.user)).count(),
     }
     return render(request, "dashboard/admin/content_dashboard.html", context)
 
@@ -44,7 +45,7 @@ def admin_content_dashboard(request):
 @login_required
 @admin_required
 def signatories_list(request):
-    signatories = Signatory.objects.all().order_by(
+    signatories = Signatory.objects.filter(institution=get_user_institution(request.user)).order_by(
         "position_title",
         "campus",
         "college",
@@ -81,7 +82,7 @@ def _signatory_scope_meta(position_title):
     return "global", "Set the scope fields as needed."
 
 
-def _build_scope_choices(campus_value, college_value):
+def _build_scope_choices(campus_value, college_value, institution=None):
     campus_value = (campus_value or "").strip()
     college_value = (college_value or "").strip()
 
@@ -89,9 +90,9 @@ def _build_scope_choices(campus_value, college_value):
     dept_choices = []
 
     if campus_value:
-        college_choices = [c[0] for c in get_college_choices(campus_value)]
+        college_choices = [c[0] for c in get_college_choices(campus_value, institution)]
         if college_value:
-            dept_choices = [d[0] for d in get_department_choices(campus_value, college_value)]
+            dept_choices = [d[0] for d in get_department_choices(campus_value, college_value, institution)]
 
     return college_choices, dept_choices
 
@@ -109,6 +110,7 @@ def signatory_create(request):
         credentials = (request.POST.get("credentials") or "").strip()
 
         signatory = Signatory(
+            institution=get_user_institution(request.user),
             position_title=position_title,
             campus=campus,
             college=college,
@@ -129,7 +131,7 @@ def signatory_create(request):
             logger.exception("Failed to create signatory.")
             messages.error(request, "Could not save this signatory. The error has been logged.")
 
-        college_choices, dept_choices = _build_scope_choices(campus, college)
+        college_choices, dept_choices = _build_scope_choices(campus, college, get_user_institution(request.user))
         scope_level, scope_help = _signatory_scope_meta(position_title)
 
         return render(
@@ -138,7 +140,7 @@ def signatory_create(request):
             {
                 "mode": "create",
                 "position_choices": Signatory.Position.choices,
-                "campus_choices": [c[0] for c in get_campus_choices()],
+                "campus_choices": [c[0] for c in get_campus_choices(get_user_institution(request.user))],
                 "college_choices": college_choices,
                 "department_choices": dept_choices,
                 "scope_level": scope_level,
@@ -154,7 +156,7 @@ def signatory_create(request):
         {
             "mode": "create",
             "position_choices": Signatory.Position.choices,
-            "campus_choices": [c[0] for c in get_campus_choices()],
+            "campus_choices": [c[0] for c in get_campus_choices(get_user_institution(request.user))],
             "college_choices": [],
             "department_choices": [],
             "scope_level": scope_level,
@@ -167,7 +169,7 @@ def signatory_create(request):
 @login_required
 @admin_required
 def signatory_edit(request, pk):
-    signatory = get_object_or_404(Signatory, pk=pk)
+    signatory = get_object_or_404(Signatory, pk=pk, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         signatory.position_title = (request.POST.get("position_title") or signatory.position_title).strip()
@@ -189,7 +191,7 @@ def signatory_edit(request, pk):
             logger.exception("Failed to update signatory %s.", signatory.pk)
             messages.error(request, "Could not save this signatory. The error has been logged.")
 
-    college_choices, dept_choices = _build_scope_choices(signatory.campus, signatory.college)
+    college_choices, dept_choices = _build_scope_choices(signatory.campus, signatory.college, get_user_institution(request.user))
     scope_level, scope_help = _signatory_scope_meta(signatory.position_title)
 
     return render(
@@ -199,7 +201,7 @@ def signatory_edit(request, pk):
             "mode": "edit",
             "signatory": signatory,
             "position_choices": Signatory.Position.choices,
-            "campus_choices": [c[0] for c in get_campus_choices()],
+            "campus_choices": [c[0] for c in get_campus_choices(get_user_institution(request.user))],
             "college_choices": college_choices,
             "department_choices": dept_choices,
             "scope_level": scope_level,
@@ -220,7 +222,7 @@ def signatory_edit(request, pk):
 @admin_required
 @require_POST
 def signatory_delete(request, pk):
-    signatory = get_object_or_404(Signatory, pk=pk)
+    signatory = get_object_or_404(Signatory, pk=pk, institution=get_user_institution(request.user))
     name = signatory.display_name
     signatory.delete()
     messages.success(request, f'Signatory "{name}" deleted successfully.')
@@ -230,7 +232,7 @@ def signatory_delete(request, pk):
 @login_required
 @admin_required
 def personnel_list(request):
-    personnel = Personnel.objects.all().order_by("name")
+    personnel = Personnel.objects.filter(institution=get_user_institution(request.user)).order_by("name")
     return render(request, "dashboard/admin/personnel_list.html", {"personnel": personnel})
 
 
@@ -244,7 +246,7 @@ def personnel_create(request):
         photo = request.FILES.get("photo")
 
         if name and position and photo:
-            Personnel.objects.create(name=name, position=position, email=email, photo=photo)
+            Personnel.objects.create(institution=get_user_institution(request.user), name=name, position=position, email=email, photo=photo)
             messages.success(request, f'Personnel "{name}" added successfully!')
             return redirect("personnel_list")
 
@@ -256,7 +258,7 @@ def personnel_create(request):
 @login_required
 @admin_required
 def personnel_edit(request, pk):
-    person = get_object_or_404(Personnel, pk=pk)
+    person = get_object_or_404(Personnel, pk=pk, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         person.name = (request.POST.get("name") or "").strip()
@@ -274,7 +276,7 @@ def personnel_edit(request, pk):
 @login_required
 @admin_required
 def personnel_delete(request, pk):
-    person = get_object_or_404(Personnel, pk=pk)
+    person = get_object_or_404(Personnel, pk=pk, institution=get_user_institution(request.user))
     name = person.name
     person.delete()
     messages.success(request, f'"{name}" deleted successfully!')
@@ -284,7 +286,7 @@ def personnel_delete(request, pk):
 @login_required
 @admin_required
 def activities_list(request):
-    activities = Activity.objects.all().annotate(first_date=Min("dates__date")).order_by("-first_date", "-id")
+    activities = Activity.objects.filter(institution=get_user_institution(request.user)).annotate(first_date=Min("dates__date")).order_by("-first_date", "-id")
     return render(request, "dashboard/admin/activities_list.html", {"activities": activities})
 
 
@@ -302,6 +304,7 @@ def activity_create(request):
 
         if title and description and cleaned_dates:
             activity = Activity.objects.create(
+                institution=get_user_institution(request.user),
                 title=title,
                 description=description,
                 image=image,
@@ -321,7 +324,7 @@ def activity_create(request):
 @login_required
 @admin_required
 def activity_edit(request, pk):
-    activity = get_object_or_404(Activity, pk=pk)
+    activity = get_object_or_404(Activity, pk=pk, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         activity.title = (request.POST.get("title") or "").strip()
@@ -346,7 +349,7 @@ def activity_edit(request, pk):
 @login_required
 @admin_required
 def activity_delete(request, pk):
-    activity = get_object_or_404(Activity, pk=pk)
+    activity = get_object_or_404(Activity, pk=pk, institution=get_user_institution(request.user))
     title = activity.title
     activity.delete()
     messages.success(request, f'"{title}" deleted successfully!')
@@ -356,7 +359,7 @@ def activity_delete(request, pk):
 @login_required
 @admin_required
 def processes_list(request):
-    processes = ExtensionProcess.objects.all().prefetch_related("steps")
+    processes = ExtensionProcess.objects.filter(institution=get_user_institution(request.user)).prefetch_related("steps")
     return render(request, "dashboard/admin/processes_list.html", {"processes": processes})
 
 
@@ -369,7 +372,7 @@ def process_create(request):
             messages.error(request, "Title is required.")
             return redirect("processes_list")
 
-        process = ExtensionProcess.objects.create(title=title)
+        process = ExtensionProcess.objects.create(institution=get_user_institution(request.user), title=title)
 
         for desc in request.POST.getlist("step_description[]"):
             desc = (desc or "").strip()
@@ -385,7 +388,7 @@ def process_create(request):
 @login_required
 @admin_required
 def process_edit(request, pk):
-    process = get_object_or_404(ExtensionProcess, pk=pk)
+    process = get_object_or_404(ExtensionProcess, pk=pk, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         process.title = (request.POST.get("title") or "").strip()
@@ -438,7 +441,7 @@ def process_edit(request, pk):
 @login_required
 @admin_required
 def process_delete(request, pk):
-    process = get_object_or_404(ExtensionProcess, pk=pk)
+    process = get_object_or_404(ExtensionProcess, pk=pk, institution=get_user_institution(request.user))
     title = process.title
     process.delete()
     messages.success(request, f'Process "{title}" deleted successfully!')
@@ -449,7 +452,7 @@ def process_delete(request, pk):
 @admin_required
 @require_POST
 def reorder_process_steps(request, pk):
-    process = get_object_or_404(ExtensionProcess, pk=pk)
+    process = get_object_or_404(ExtensionProcess, pk=pk, institution=get_user_institution(request.user))
 
     try:
         data = json.loads(request.body.decode("utf-8"))
@@ -472,8 +475,8 @@ def reorder_process_steps(request, pk):
 @admin_required
 def targets_list(request):
     year = request.GET.get("year", 2026)
-    targets = Target.objects.filter(year=year).order_by("campus", "metric")
-    years = Target.objects.values_list("year", flat=True).distinct().order_by("-year")
+    targets = Target.objects.filter(institution=get_user_institution(request.user), year=year).order_by("campus", "metric")
+    years = Target.objects.filter(institution=get_user_institution(request.user)).values_list("year", flat=True).distinct().order_by("-year")
 
     if not years:
         years = [int(year)]
@@ -490,7 +493,7 @@ def targets_list(request):
 @admin_required
 def target_create(request):
     campuses = (
-        Profile.objects.exclude(campus__isnull=True)
+        Profile.objects.filter(institution=get_user_institution(request.user)).exclude(campus__isnull=True)
         .exclude(campus__exact="")
         .values_list("campus", flat=True)
         .distinct()
@@ -502,11 +505,12 @@ def target_create(request):
         campus = request.POST.get("campus")
         metric = request.POST.get("metric")
 
-        if Target.objects.filter(year=year, campus=campus, metric=metric).exists():
+        if Target.objects.filter(institution=get_user_institution(request.user), year=year, campus=campus, metric=metric).exists():
             messages.error(request, "Target already exists for this year, campus, and metric.")
             return redirect("targets_list")
 
         Target.objects.create(
+            institution=get_user_institution(request.user),
             year=year,
             campus=campus,
             metric=metric,
@@ -529,7 +533,7 @@ def target_create(request):
 @login_required
 @admin_required
 def target_edit(request, pk):
-    target = get_object_or_404(Target, pk=pk)
+    target = get_object_or_404(Target, pk=pk, institution=get_user_institution(request.user))
 
     if request.method == "POST":
         target.planned_q1 = request.POST.get("planned_q1", 0)
@@ -551,7 +555,7 @@ def target_edit(request, pk):
 @login_required
 @admin_required
 def target_delete(request, pk):
-    target = get_object_or_404(Target, pk=pk)
+    target = get_object_or_404(Target, pk=pk, institution=get_user_institution(request.user))
     campus = target.campus
     metric = target.get_metric_display()
     year = target.year

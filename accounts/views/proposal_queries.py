@@ -19,6 +19,17 @@ from .helpers import User, _safe_int
 logger = logging.getLogger(__name__)
 
 
+def _user_institution(user):
+    try:
+        return user.profile.institution
+    except Exception:
+        return None
+
+
+def _proposal_scope_for_user(user):
+    return Proposal.objects.filter(institution=_user_institution(user))
+
+
 def _get_total_proposal_steps():
     return 19
 
@@ -213,7 +224,7 @@ def _build_proposal_dashboard_item(proposal):
 
 def _get_user_proposals_context(user):
     my_proposals = (
-        Proposal.objects.filter(
+        _proposal_scope_for_user(user).filter(
             Q(created_by=user)
             | Q(proponents__user=user)
             | Q(collaborators__user=user)
@@ -353,7 +364,7 @@ def _get_department_review_queue(user):
     department = (getattr(profile, "department", "") or "").strip()
 
     return (
-        Proposal.objects.filter(
+        _proposal_scope_for_user(user).filter(
             department=department,
             proposal_status__in=_get_reviewable_proposal_statuses(),
         )
@@ -368,7 +379,7 @@ def _get_campus_review_queue(user):
     campus = (getattr(profile, "campus", "") or "").strip()
 
     return (
-        Proposal.objects.filter(
+        _proposal_scope_for_user(user).filter(
             campus=campus,
             proposal_status__in=_get_reviewable_proposal_statuses(),
         )
@@ -380,7 +391,7 @@ def _get_campus_review_queue(user):
 
 def _get_director_review_queue(user):
     return (
-        Proposal.objects.filter(
+        _proposal_scope_for_user(user).filter(
             proposal_status__in=[
                 Proposal.ProposalStatus.SUBMITTED_FOR_REVIEW,
                 Proposal.ProposalStatus.IN_REVIEW,
@@ -398,7 +409,7 @@ def _get_director_review_queue(user):
 
 def _get_evaluator_review_queue(user):
     return (
-        Proposal.objects.filter(
+        _proposal_scope_for_user(user).filter(
             evaluator_assignments__evaluator=user,
             evaluator_assignments__is_active=True,
             proposal_status__in=_get_reviewable_proposal_statuses(),
@@ -423,7 +434,7 @@ def _get_staff_summary_queue():
 
 def _get_director_monitored_proposals(request):
     qs = (
-        Proposal.objects.all()
+        Proposal.objects.filter(institution=_user_institution(request.user))
         .select_related("created_by", "created_by__profile")
         .prefetch_related("proponents__user", "collaborators__user")
         .distinct()
@@ -489,6 +500,7 @@ def _get_assignable_evaluators_for_proposal(proposal):
 
     return list(
         User.objects.filter(
+            profile__institution=proposal.institution,
             is_active=True,
             profile__role__in=[
                 Profile.ROLE_FACULTY,

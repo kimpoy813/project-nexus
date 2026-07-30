@@ -91,19 +91,38 @@ def admin_required(view_func):
             return redirect("login")
 
         profile = get_user_profile(request)
+        if not profile and request.user.is_superuser:
+            profile = Profile.objects.create(
+                user=request.user,
+                full_name=request.user.get_username(),
+                role=Profile.ROLE_ADMIN,
+                email_verified=True,
+            )
         if not profile:
             messages.error(request, "User profile not found.")
             return redirect("login")
 
         user_role = get_normalized_role(profile)
 
-        if user_role != "ADMIN":
+        if not request.user.is_superuser and user_role != "ADMIN":
             messages.error(request, "Admin access required.")
             return redirect("dashboard_redirect")
 
         if hasattr(profile, "email_verified") and not profile.email_verified:
             profile.email_verified = True
             profile.save(update_fields=["email_verified"])
+
+        onboarding_path_names = {"institution_onboarding", "logout", "logout_idle", "get_campuses_ajax", "get_colleges_ajax", "get_departments_ajax"}
+        current_url_name = getattr(getattr(request, "resolver_match", None), "url_name", "")
+        institution = getattr(profile, "institution", None)
+        if (
+            not request.user.is_superuser
+            and user_role == "ADMIN"
+            and institution is not None
+            and not institution.onboarding_complete
+            and current_url_name not in onboarding_path_names
+        ):
+            return redirect("institution_onboarding")
 
         return view_func(request, *args, **kwargs)
 

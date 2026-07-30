@@ -75,8 +75,18 @@
                 </div>
 
                 <div>
+                    <label for="{{ form.institution.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        Institution
+                    </label>
+                    {{ form.institution }}
+                    {% if form.institution.errors %}
+                        <p class="text-red-600 text-sm mt-1">{{ form.institution.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
                     <label for="{{ form.campus.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                        Campus
+                        Campus / Branch
                     </label>
                     {{ form.campus }}
                     {% if form.campus.errors %}
@@ -154,16 +164,42 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const institutionSelect = document.getElementById("id_institution");
     const campusSelect = document.getElementById("id_campus");
     const collegeSelect = document.getElementById("id_college");
     const departmentSelect = document.getElementById("id_department");
     const passwordInput = document.getElementById("id_password");
 
+    function institutionQuery() {
+        return institutionSelect && institutionSelect.value ? `&institution=${encodeURIComponent(institutionSelect.value)}` : "";
+    }
+
+    async function loadCampuses(selectedCampus = "") {
+        if (!institutionSelect || !campusSelect) return;
+        campusSelect.innerHTML = '<option value="">Select Campus / Branch</option>';
+        if (collegeSelect) collegeSelect.innerHTML = '<option value="">Select College / Unit (Optional)</option>';
+        if (departmentSelect) departmentSelect.innerHTML = '<option value="">Select Department / Program (Optional)</option>';
+        if (!institutionSelect.value) return;
+        try {
+            const response = await fetch(`{% url 'get_campuses_ajax' %}?institution=${encodeURIComponent(institutionSelect.value)}`);
+            const data = await response.json();
+            data.campuses.forEach(item => {
+                const option = document.createElement("option");
+                option.value = item.value;
+                option.textContent = item.label;
+                if (item.value === selectedCampus) option.selected = true;
+                campusSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Failed to load campuses:", error);
+        }
+    }
+
     async function loadColleges(selectedCollege = "") {
         if (!campusSelect || !collegeSelect) return;
 
         const campus = campusSelect.value;
-        collegeSelect.innerHTML = '<option value="">Select College (Optional)</option>';
+        collegeSelect.innerHTML = '<option value="">Select College / Unit (Optional)</option>';
 
         if (departmentSelect) {
             departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
@@ -172,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!campus) return;
 
         try {
-            const response = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}`);
+            const response = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}${institutionQuery()}`);
             const data = await response.json();
 
             data.colleges.forEach(item => {
@@ -197,13 +233,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const campus = campusSelect.value;
         const college = collegeSelect ? collegeSelect.value : "";
 
-        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
+        departmentSelect.innerHTML = '<option value="">Select Department / Program (Optional)</option>';
 
         if (!campus) return;
 
         try {
             const response = await fetch(
-                `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}`
+                `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}${institutionQuery()}`
             );
             const data = await response.json();
 
@@ -224,10 +260,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (campusSelect) {
+        const initialCampus = campusSelect.value;
         const initialCollege = collegeSelect ? collegeSelect.value : "";
         const initialDepartment = departmentSelect ? departmentSelect.value : "";
 
-        loadColleges(initialCollege).then(() => loadDepartments(initialDepartment));
+        if (institutionSelect) {
+            loadCampuses(initialCampus).then(() => loadColleges(initialCollege)).then(() => loadDepartments(initialDepartment));
+            institutionSelect.addEventListener("change", async function () {
+                await loadCampuses("");
+                await loadColleges("");
+                await loadDepartments("");
+            });
+        } else {
+            loadColleges(initialCollege).then(() => loadDepartments(initialDepartment));
+        }
 
         campusSelect.addEventListener("change", async function () {
             await loadColleges("");

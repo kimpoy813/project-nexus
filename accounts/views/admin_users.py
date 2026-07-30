@@ -14,8 +14,10 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from proposals.models import Proposal
+from ..campus_data import get_default_structure_json
 from ..decorators import admin_required
 from ..forms import AdminCreateUserForm
+from ..models import Institution
 from ..models import Profile
 from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
@@ -24,12 +26,84 @@ logger = logging.getLogger(__name__)
 from .helpers import User, _get_or_create_profile
 
 
+def _parse_structure_post(post_data):
+    campus_names = post_data.getlist("campus_name[]")
+    structure = {"campuses": []}
+    for campus_index, campus_name in enumerate(campus_names):
+        campus_name = (campus_name or "").strip()
+        if not campus_name:
+            continue
+
+        campus_key = str(campus_index)
+        college_names = post_data.getlist(f"college_name[{campus_key}][]")
+        campus_row = {"name": campus_name, "colleges": []}
+
+        for college_index, college_name in enumerate(college_names):
+            college_name = (college_name or "").strip()
+            departments = []
+            for department in post_data.getlist(f"department_name[{campus_key}][{college_index}][]"):
+                department = (department or "").strip()
+                if department and department not in departments:
+                    departments.append(department)
+            if college_name or departments:
+                campus_row["colleges"].append({"name": college_name, "departments": departments})
+
+        if not campus_row["colleges"]:
+            campus_row["colleges"].append({"name": "", "departments": []})
+
+        structure["campuses"].append(campus_row)
+    return structure
+
+
+@login_required
+@admin_required
+@require_http_methods(["GET", "POST"])
+def institution_onboarding(request):
+    profile, _ = _get_or_create_profile(request.user)
+    institution = profile.institution
+
+    if request.user.is_superuser and request.GET.get("institution"):
+        institution = get_object_or_404(Institution, pk=request.GET.get("institution"))
+
+    if institution is None:
+        messages.error(request, "Your admin account is not assigned to an institution yet.")
+        return redirect("admin_dashboard")
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "use_ispsc_template" and not (institution.structure or {}).get("campuses"):
+            institution.structure = get_default_structure_json()
+        else:
+            institution.structure = _parse_structure_post(request.POST)
+
+        if not (institution.structure or {}).get("campuses"):
+            messages.error(request, "Add at least one campus, branch, or unit before continuing.")
+        else:
+            institution.mark_onboarding_complete(request.user)
+            messages.success(
+                request,
+                "Institution structure saved. You can now build this institution's forms, templates, and workflows.",
+            )
+            return redirect("admin_dashboard")
+
+    return render(
+        request,
+        "dashboard/admin/institution_onboarding.html",
+        {
+            "institution": institution,
+            "structure": institution.structure or {"campuses": []},
+            "is_first_run": not institution.onboarding_complete,
+        },
+    )
+
+
 @login_required
 @admin_required
 @require_http_methods(["GET", "POST"])
 def admin_create_account(request):
+    current_institution = getattr(getattr(request.user, "profile", None), "institution", None)
     if request.method == "POST":
-        form = AdminCreateUserForm(request.POST)
+        form = AdminCreateUserForm(request.POST, request_user=request.user, institution=current_institution)
         if form.is_valid():
             try:
                 with transaction.atomic():
@@ -40,11 +114,13 @@ def admin_create_account(request):
                     )
 
                     full_name = form.cleaned_data.get("full_name") or user.username
+                    target_institution = form.cleaned_data.get("institution") or current_institution
 
                     Profile.objects.update_or_create(
                         user=user,
                         defaults={
                             "full_name": full_name,
+                            "institution": target_institution,
                             "campus": form.cleaned_data.get("campus", ""),
                             "college": form.cleaned_data.get("college", ""),
                             "department": form.cleaned_data.get("department", ""),
@@ -65,7 +141,7 @@ def admin_create_account(request):
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        form = AdminCreateUserForm()
+        form = AdminCreateUserForm(request_user=request.user, institution=current_institution)
 
     return render(request, "accounts/admin_create_account.html", {"form": form})
 

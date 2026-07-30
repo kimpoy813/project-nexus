@@ -13,6 +13,7 @@ from .campus_data import (
     is_valid_college_for_campus,
     is_valid_department_for_selection,
 )
+from .models import Institution
 from .models import Profile
 
 User = get_user_model()
@@ -62,9 +63,22 @@ class StyledFormMixin:
 
 
 class CampusStructureMixin:
+    def get_structure_institution(self):
+        institution = getattr(self, "institution", None)
+        if not institution and "institution" in getattr(self, "fields", {}):
+            institution = self.fields["institution"].initial
+        if not institution and getattr(self, "data", None):
+            institution_id = self.data.get("institution") or ""
+            if institution_id:
+                institution = Institution.objects.filter(pk=institution_id, is_active=True).first()
+        if not institution and getattr(self, "instance", None):
+            institution = getattr(self.instance, "institution", None)
+        return institution
+
     def setup_dependent_choices(self):
         campus = None
         college = None
+        institution = self.get_structure_institution()
 
         if hasattr(self, "data") and self.data:
             campus = self.data.get("campus") or ""
@@ -73,26 +87,27 @@ class CampusStructureMixin:
             campus = getattr(self.instance, "campus", "") or ""
             college = getattr(self.instance, "college", "") or ""
 
-        self.fields["campus"].choices = [("", "Select Campus")] + get_campus_choices()
-        self.fields["college"].choices = [("", "Select College (Optional)")] + get_college_choices(campus)
-        self.fields["department"].choices = [("", "Select Department (Optional)")] + get_department_choices(campus, college)
+        self.fields["campus"].choices = [("", "Select Campus / Branch")] + get_campus_choices(institution)
+        self.fields["college"].choices = [("", "Select College / Unit (Optional)")] + get_college_choices(campus, institution)
+        self.fields["department"].choices = [("", "Select Department / Program (Optional)")] + get_department_choices(campus, college, institution)
 
     def clean_campus_college_department(self):
         campus = self.cleaned_data.get("campus", "") or ""
         college = self.cleaned_data.get("college", "") or ""
         department = self.cleaned_data.get("department", "") or ""
+        institution = self.cleaned_data.get("institution") or self.get_structure_institution()
 
         if not campus:
-            raise ValidationError({"campus": "Campus is required."})
+            raise ValidationError({"campus": "Campus / branch is required."})
 
-        if not is_valid_college_for_campus(campus, college):
+        if not is_valid_college_for_campus(campus, college, institution):
             raise ValidationError({
-                "college": "Selected college does not belong to the selected campus."
+                "college": "Selected college/unit does not belong to the selected campus/branch."
             })
 
-        if not is_valid_department_for_selection(campus, college, department):
+        if not is_valid_department_for_selection(campus, college, department, institution):
             raise ValidationError({
-                "department": "Selected department does not belong to the selected campus/college."
+                "department": "Selected department/program does not belong to the selected campus/college."
             })
 
         return campus, college, department
@@ -101,6 +116,11 @@ class CampusStructureMixin:
 class RegisterForm(StyledFormMixin, CampusStructureMixin, forms.ModelForm):
     full_name = forms.CharField(max_length=150, required=True)
     email = forms.EmailField(required=True)
+    institution = forms.ModelChoiceField(
+        queryset=Institution.objects.filter(is_active=True),
+        required=True,
+        empty_label="Select Institution",
+    )
     campus = forms.ChoiceField(required=True)
     college = forms.ChoiceField(required=False)
     department = forms.ChoiceField(required=False)
@@ -120,6 +140,7 @@ class RegisterForm(StyledFormMixin, CampusStructureMixin, forms.ModelForm):
             "full_name",
             "username",
             "email",
+            "institution",
             "campus",
             "college",
             "department",
@@ -128,7 +149,9 @@ class RegisterForm(StyledFormMixin, CampusStructureMixin, forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        self.institution = kwargs.pop("institution", None)
         super().__init__(*args, **kwargs)
+        self.fields["institution"].queryset = Institution.objects.filter(is_active=True).order_by("name")
         self.setup_dependent_choices()
         self.apply_styled_widgets()
 
@@ -221,6 +244,11 @@ class ProfileUpdateForm(StyledFormMixin, CampusStructureMixin, forms.ModelForm):
 
 
 class AdminCreateUserForm(StyledFormMixin, CampusStructureMixin, forms.Form):
+    institution = forms.ModelChoiceField(
+        queryset=Institution.objects.filter(is_active=True),
+        required=False,
+        empty_label="Select Institution",
+    )
     username = forms.CharField(max_length=150, required=True)
     email = forms.EmailField(required=False)
     password = forms.CharField(
@@ -238,7 +266,17 @@ class AdminCreateUserForm(StyledFormMixin, CampusStructureMixin, forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
+        self.request_user = kwargs.pop("request_user", None)
+        self.institution = kwargs.pop("institution", None)
+        if self.institution is None and self.request_user and not self.request_user.is_superuser:
+            self.institution = getattr(getattr(self.request_user, "profile", None), "institution", None)
         super().__init__(*args, **kwargs)
+        self.fields["institution"].queryset = Institution.objects.filter(is_active=True).order_by("name")
+        if self.request_user and not self.request_user.is_superuser:
+            self.fields.pop("institution", None)
+        elif self.institution:
+            self.fields["institution"].initial = self.institution
+            self.fields["institution"].required = True
         self.setup_dependent_choices()
         self.apply_styled_widgets()
 
@@ -268,6 +306,9 @@ class AdminCreateUserForm(StyledFormMixin, CampusStructureMixin, forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+
+        if "institution" in self.fields and not cleaned_data.get("institution"):
+            self.add_error("institution", "Institution is required for this account.")
 
         try:
             self.clean_campus_college_department()
