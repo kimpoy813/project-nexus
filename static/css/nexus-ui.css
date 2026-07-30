@@ -35,23 +35,45 @@ body {
 .nexus-brand {
   display: inline-flex;
   align-items: center;
+  gap: .55rem;
   color: var(--nexus-primary);
   text-decoration: none;
 }
 .nexus-monogram {
+  position: relative;
   display: block;
   color: var(--nexus-primary);
   font-family: 'Manrope', 'DM Sans', sans-serif;
-  font-size: 2.65rem;
+  font-size: 2.55rem;
   font-weight: 800;
   letter-spacing: -.16em;
-  line-height: 1;
+  line-height: .86;
   transition: color .2s ease, transform .2s ease;
+}
+.nexus-monogram::after {
+  content: '';
+  position: absolute;
+  left: .16em;
+  bottom: -.22em;
+  width: .46em;
+  height: .1em;
+  border-radius: 999px;
+  background: var(--nexus-gold, #b88a3b);
+  transform: skewX(-28deg);
 }
 .nexus-brand:hover .nexus-monogram,
 .nexus-brand:focus-visible .nexus-monogram {
   color: var(--nexus-primary-2);
   transform: translateY(-1px);
+}
+
+.nexus-wordmark {
+  color: var(--nexus-primary);
+  font-family: 'Manrope', 'DM Sans', sans-serif;
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  line-height: 1;
 }
 
 .nexus-navbar {

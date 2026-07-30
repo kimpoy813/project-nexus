@@ -71,9 +71,10 @@
          @keydown.escape.window="mobileMenu = false"
          class="nexus-navbar fixed top-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex justify-between items-center">
-            <!-- Minimal N logo -->
+            <!-- Minimal N logo + wordmark -->
             <a href="/" class="nexus-brand group" aria-label="NExUS Home">
                 <span class="nexus-monogram" aria-hidden="true">N</span>
+                <span class="nexus-wordmark">{{ site_control.short_name|default:"NExUS" }}</span>
             </a>
 
             <!-- Main Menu -->
