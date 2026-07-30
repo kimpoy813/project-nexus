@@ -71,27 +71,9 @@
          @keydown.escape.window="mobileMenu = false"
          class="nexus-navbar fixed top-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex justify-between items-center">
-            <!-- Premium monogram logo -->
-            <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home">
-                <span class="nexus-monogram" aria-hidden="true">
-                    <svg viewBox="0 0 48 48" role="img" focusable="false">
-                        <defs>
-                            <linearGradient id="nexus-mark-bg" x1="5" y1="4" x2="43" y2="45" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#174b27"/>
-                                <stop offset="1" stop-color="#071b12"/>
-                            </linearGradient>
-                            <linearGradient id="nexus-mark-gold" x1="8" y1="7" x2="40" y2="42" gradientUnits="userSpaceOnUse"> x1="8" y1="7" x2="40" y2="42" gradientUnits="userSpaceOnUse">
-                                <stop offset="0" stop-color="#fff1a8"/>
-                                <stop offset=".45" stop-color="#d6ae55"/>
-                                <stop offset="1" stop-color="#9a6b24"/>
-                            </linearGradient>
-                        </defs>
-                        <rect x="1" y="1" width="46" height="46" rx="14" fill="url(#nexus-mark-bg)"/>
-                        <path d="M14 35V13h4.1l15.9 14.4V13H38v22h-4.1L18 20.6V35H14Z" fill="url(#nexus-mark-gold)"/>
-                        <path d="M10 9.5h28" stroke="#fff1a8" stroke-opacity=".24" stroke-width="1"/>
-                    </svg>
-                </span>
-                <span class="nexus-wordmark">{{ site_control.short_name|default:"NExUS" }}</span>
+            <!-- Minimal N logo -->
+            <a href="/" class="nexus-brand group" aria-label="NExUS Home">
+                <span class="nexus-monogram" aria-hidden="true">N</span>
             </a>
 
             <!-- Main Menu -->
