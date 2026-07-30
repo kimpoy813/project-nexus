@@ -1,0 +1,53 @@
+databases: []
+
+services:
+  - type: web
+    name: project-nexus
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn conf.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: USE_SUPABASE_STORAGE
+        value: "True"
+      - key: SUPABASE_STORAGE_BUCKET
+        sync: false
+      - key: SUPABASE_S3_ENDPOINT_URL
+        sync: false
+      - key: SUPABASE_S3_ACCESS_KEY_ID
+        sync: false
+      - key: SUPABASE_S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPABASE_S3_REGION_NAME
+        value: us-east-1
+      - key: SUPABASE_STORAGE_PUBLIC_URL
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
+      - key: WEB_CONCURRENCY
+        value: "2"
+      # First-admin bootstrap (see accounts/management/commands/bootstrap_admin.py).
+      # Set these once to get an initial login, then rotate the password via the
+      # admin dashboard or Django admin instead of leaving it in the environment.
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
