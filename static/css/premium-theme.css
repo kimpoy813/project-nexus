@@ -109,10 +109,9 @@ button:hover, .nx-btn:hover, .adm-btn-primary:hover, a[class*="btn"]:hover {
 
 /* Navigation, tabs and active states */
 .nexus-monogram {
-  width: auto;
-  height: auto;
+  width: 1.95rem;
+  height: 1.95rem;
   filter: none;
-  font-size: 2.55rem;
   color: var(--premium-forest) !important;
 }
 .nexus-wordmark {
@@ -152,6 +151,6 @@ table tbody tr:hover, .nx-table tbody tr:hover { background: rgba(241,225,182,.1
 hr { border-color: rgba(18,61,37,.12) !important; }
 
 @media (max-width: 640px) {
-  .nexus-monogram { font-size: 2.35rem; }
+  .nexus-monogram { width: 1.8rem; height: 1.8rem; }
   .nx-dash__title { font-size: 1.25rem; }
 }

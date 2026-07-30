@@ -40,26 +40,17 @@ body {
   text-decoration: none;
 }
 .nexus-monogram {
-  position: relative;
   display: block;
+  width: 1.95rem;
+  height: 1.95rem;
   color: var(--nexus-primary);
-  font-family: 'Manrope', 'DM Sans', sans-serif;
-  font-size: 2.55rem;
-  font-weight: 800;
-  letter-spacing: -.16em;
-  line-height: .86;
   transition: color .2s ease, transform .2s ease;
 }
-.nexus-monogram::after {
-  content: '';
-  position: absolute;
-  left: .16em;
-  bottom: -.22em;
-  width: .46em;
-  height: .1em;
-  border-radius: 999px;
-  background: var(--nexus-gold, #b88a3b);
-  transform: skewX(-28deg);
+.nexus-monogram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
 }
 .nexus-brand:hover .nexus-monogram,
 .nexus-brand:focus-visible .nexus-monogram {

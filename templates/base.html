@@ -73,7 +73,11 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex justify-between items-center">
             <!-- Minimal N logo + wordmark -->
             <a href="/" class="nexus-brand group" aria-label="NExUS Home">
-                <span class="nexus-monogram" aria-hidden="true">N</span>
+                <span class="nexus-monogram" aria-hidden="true">
+                    <svg viewBox="0 0 32 32" role="img" focusable="false">
+                        <path d="M5 27V5h4.2l13.6 14.2V5H27v22h-4.2L9.2 12.8V27H5Z"/>
+                    </svg>
+                </span>
                 <span class="nexus-wordmark">{{ site_control.short_name|default:"NExUS" }}</span>
             </a>
 
