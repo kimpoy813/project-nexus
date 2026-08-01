@@ -126,72 +126,63 @@ button:hover, .nx-btn:hover, .adm-btn-primary:hover, a[class*="btn"]:hover {
 }
  .nexus-navbar { border-bottom-color: rgba(182,138,61,.20) !important; }
 
-/* Light separators make menu groups scan like current SaaS navigation without
-   turning the interface into a heavy boxed tab bar. */
-.nexus-menu-link + .nexus-menu-link {
-  border-left: 1px solid rgba(18, 61, 37, .13);
-  border-radius: 0 999px 999px 0;
-  margin-left: .12rem;
-  padding-left: 1rem;
-}
-.nx-tab + .nx-tab,
-.adm-tab + .adm-tab,
-.quick-tab-btn + .quick-tab-btn {
-  border-left: 1px solid rgba(18, 61, 37, .13) !important;
-  padding-left: 1rem !important;
-}
-.nx-nav-btn + .nx-nav-btn,
-.dashboard-nav-btn + .dashboard-nav-btn {
-  border-top: 1px solid rgba(18, 61, 37, .09) !important;
-  border-radius: 0 !important;
-  padding-top: .85rem !important;
-}
-.nexus-menu-link.is-strong, .nx-tab.active, .dashboard-nav-btn.active {
-  color: var(--premium-forest) !important;
-  background: linear-gradient(135deg, rgba(18,61,37,.09), rgba(241,225,182,.34)) !important;
-}
-.nx-tab.active { border-bottom-color: var(--premium-gold) !important; }
-
-/* Tables and list rows */
-table thead, .nx-table thead tr { background: rgba(241,225,182,.16) !important; }
-table th, .nx-th, .adm-th { color: #64766a !important; letter-spacing: .09em; }
-table tbody tr, .nx-table tbody tr { border-color: rgba(18,61,37,.08) !important; }
-table tbody tr:hover, .nx-table tbody tr:hover { background: rgba(241,225,182,.12) !important; }
-
-/* Status accents */
-.nx-badge--ok, .adm-pill--ok { background: #e5f1e7 !important; color: #1e6139 !important; }
-.nx-badge--warn, .adm-pill--warn { background: #f8edcf !important; color: #8b6424 !important; }
-.nx-badge--info, .adm-pill--info { background: #e4edf0 !important; color: #28596a !important; }
-
-/* Rich content and public page hero areas */
-.nexus-richtext blockquote { border-left-color: var(--premium-gold) !important; background: rgba(241,225,182,.20); }
-.nexus-richtext a { color: var(--premium-forest) !important; text-decoration-color: rgba(182,138,61,.6); }
-
-/* Toasts, dropdowns and overlays */
-.nexus-dropdown, .nexus-mobile-panel {
-  border-color: rgba(182,138,61,.20) !important;
-  box-shadow: 0 22px 60px rgba(9,33,22,.16) !important;
-}
-#toast-container > div { border: 1px solid rgba(255,255,255,.18); box-shadow: 0 15px 38px rgba(9,33,22,.20) !important; }
-
-/* Premium divider detail */
-.nexus-footer { border-top: 1px solid rgba(241,225,182,.22); }
-hr { border-color: rgba(18,61,37,.12) !important; }
-
-@media (max-width: 640px) {
-  .nexus-monogram { width: 1.8rem; height: 1.8rem; }
-  .nx-dash__title { font-size: 1.25rem; }
+/* Component separators
+   Page sections use space, contrast, and a quiet rule instead of unrelated
+   floating cards. This applies to public pages, dashboards, builders, and
+   workflow screens without requiring every template to add a new class. */
+.nexus-page > section + section,
+.nexus-page > article + article,
+.nexus-shell section + section,
+.nexus-shell article + article,
+.nexus-card + .nexus-card,
+.nx-card + .nx-card,
+.adm-card + .adm-card,
+.section-block + .section-block,
+.dir-card + .dir-card,
+.ext-card + .ext-card,
+.mine-card + .mine-card {
+  position: relative;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(18, 61, 37, .12);
 }
 
-/* On compact screens a horizontal divider is easier to scan than a vertical
-   rule, while preserving the same separation between every menu item. */
-@media (max-width: 1023px) {
-  .nexus-mobile-panel .nexus-menu-link + .nexus-menu-link {
+/* When cards are siblings inside a grid, use a clean inset divider rather
+   than a full border around every item. */
+.nexus-component-grid > * + *,
+.nx-grid > * + *,
+.component-grid > * + * {
+  border-left: 1px solid rgba(18, 61, 37, .10);
+  padding-left: 1.25rem;
+}
+
+/* Explicit helper for templates that have a collection of page components. */
+.nexus-component {
+  position: relative;
+  padding-top: 1.75rem;
+  margin-top: 1.75rem;
+  border-top: 1px solid rgba(18, 61, 37, .12);
+}
+.nexus-component:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+@media (max-width: 767px) {
+  .nexus-component-grid > * + *,
+  .nx-grid > * + *,
+  .component-grid > * + * {
     border-left: 0;
     border-top: 1px solid rgba(18, 61, 37, .10);
-    border-radius: 0;
-    margin-left: 0;
-    padding-left: .85rem;
-    padding-top: .78rem;
+    padding-left: 0;
+    padding-top: 1rem;
+  }
+  .nexus-page > section + section,
+  .nexus-page > article + article,
+  .nexus-shell section + section,
+  .nexus-shell article + article {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
   }
 }
