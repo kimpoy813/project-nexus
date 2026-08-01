@@ -124,7 +124,28 @@ button:hover, .nx-btn:hover, .adm-btn-primary:hover, a[class*="btn"]:hover {
 .nexus-wordmark {
   color: var(--premium-forest) !important;
 }
-.nexus-navbar { border-bottom-color: rgba(182,138,61,.20) !important; }
+ .nexus-navbar { border-bottom-color: rgba(182,138,61,.20) !important; }
+
+/* Light separators make menu groups scan like current SaaS navigation without
+   turning the interface into a heavy boxed tab bar. */
+.nexus-menu-link + .nexus-menu-link {
+  border-left: 1px solid rgba(18, 61, 37, .13);
+  border-radius: 0 999px 999px 0;
+  margin-left: .12rem;
+  padding-left: 1rem;
+}
+.nx-tab + .nx-tab,
+.adm-tab + .adm-tab,
+.quick-tab-btn + .quick-tab-btn {
+  border-left: 1px solid rgba(18, 61, 37, .13) !important;
+  padding-left: 1rem !important;
+}
+.nx-nav-btn + .nx-nav-btn,
+.dashboard-nav-btn + .dashboard-nav-btn {
+  border-top: 1px solid rgba(18, 61, 37, .09) !important;
+  border-radius: 0 !important;
+  padding-top: .85rem !important;
+}
 .nexus-menu-link.is-strong, .nx-tab.active, .dashboard-nav-btn.active {
   color: var(--premium-forest) !important;
   background: linear-gradient(135deg, rgba(18,61,37,.09), rgba(241,225,182,.34)) !important;
@@ -160,4 +181,17 @@ hr { border-color: rgba(18,61,37,.12) !important; }
 @media (max-width: 640px) {
   .nexus-monogram { width: 1.8rem; height: 1.8rem; }
   .nx-dash__title { font-size: 1.25rem; }
+}
+
+/* On compact screens a horizontal divider is easier to scan than a vertical
+   rule, while preserving the same separation between every menu item. */
+@media (max-width: 1023px) {
+  .nexus-mobile-panel .nexus-menu-link + .nexus-menu-link {
+    border-left: 0;
+    border-top: 1px solid rgba(18, 61, 37, .10);
+    border-radius: 0;
+    margin-left: 0;
+    padding-left: .85rem;
+    padding-top: .78rem;
+  }
 }
