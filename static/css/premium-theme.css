@@ -18,6 +18,13 @@ body {
   font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
 }
 
+/* Keep Tailwind-heavy templates on the same small type system. Weight
+   utilities still work, but no page can silently switch to another family. */
+.font-sans, .font-serif, .font-mono,
+button, input, select, textarea {
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
+}
+
 h1, h2, h3, h4, h5, h6,
 .font-black, .font-extrabold {
   font-family: 'Manrope', 'DM Sans', ui-sans-serif, sans-serif;
