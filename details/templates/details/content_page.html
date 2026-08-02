@@ -45,7 +45,7 @@ Anchor navigation, shown only when sections define anchors.
 {% endcomment %}
 {% if sections %}
     {% with anchored=sections %}
-        <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
+        <section class="nexus-section-nav bg-white border-b border-gray-100 sticky top-20 z-40">
             <div class="max-w-6xl mx-auto px-6 py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
                 {% for section in anchored %}
                     {% if section.anchor and section.heading %}
@@ -60,7 +60,7 @@ Anchor navigation, shown only when sections define anchors.
 <!-- SECTIONS -->
 {% for section in sections %}
     <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-             class="scroll-mt-32 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
+             class="scroll-mt-40 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
         <div class="max-w-5xl mx-auto px-6">
 
             {% if section.layout == 'CALLOUT' %}

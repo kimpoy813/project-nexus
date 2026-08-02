@@ -186,3 +186,24 @@ button:hover, .nx-btn:hover, .adm-btn-primary:hover, a[class*="btn"]:hover {
     padding-top: 1.5rem;
   }
 }
+
+/* Keep the fixed navbar and homepage section navigator from covering anchored
+   headings. The combined offset includes both bars plus a small reading gap. */
+html {
+  scroll-padding-top: 10rem;
+}
+.nexus-section-nav {
+  top: 5rem !important;
+  min-height: 3.75rem;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 8px 22px rgba(18,61,37,.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.nexus-section-nav + section {
+  border-top: 0 !important;
+}
+@media (max-width: 767px) {
+  html { scroll-padding-top: 8.75rem; }
+  .nexus-section-nav { top: 4.5rem !important; }
+}
