@@ -207,3 +207,15 @@ html {
   html { scroll-padding-top: 8.75rem; }
   .nexus-section-nav { top: 4.5rem !important; }
 }
+
+/* Give the homepage section navigator its own breathing room. Sticky
+   positioning keeps it visible, but it must never sit directly on top of the
+   first section heading when the page enters or an anchor is selected. */
+.nexus-section-nav {
+  margin-bottom: 1.75rem !important;
+}
+@media (max-width: 767px) {
+  .nexus-section-nav {
+    margin-bottom: 1.25rem !important;
+  }
+}
