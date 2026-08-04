@@ -19,6 +19,7 @@ from django.middleware.csrf import get_token
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.template.loader import render_to_string
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.encoding import force_str
@@ -122,6 +123,9 @@ def register_view(request):
                         "user": user,
                         "full_name": full_name,
                         "verify_url": verify_url,
+                        "logo_url": request.build_absolute_uri(
+                            static("images/extension-logo-128.png")
+                        ),
                     },
                 )
                 plain_message = strip_tags(html_message)
@@ -311,6 +315,7 @@ def change_password_email_view(request):
             use_https=request.is_secure(),
             from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
             email_template_name="accounts/password_reset_email.html",
+            html_email_template_name="accounts/email/password_reset_email.html",
             subject_template_name="accounts/password_reset_subject.txt",
         )
         return render(

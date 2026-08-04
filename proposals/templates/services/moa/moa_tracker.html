@@ -118,7 +118,7 @@
                     <ul class="space-y-3">
                         {% for notif in notifications %}
                             <li class="rounded-xl p-3 text-xs
-                                {% if not notif.is_read %}bg-white border border-blue-200{% else %}bg-blue-50/60{% endif %}">
+                                {% if not notif.is_read %}bg-white border border-gold/50{% else %}bg-cream/60{% endif %}">
                                 <div class="flex items-start justify-between gap-2">
                                     <p class="text-gray-800 leading-relaxed whitespace-pre-line">{{ notif.message }}</p>
                                     {% if not notif.is_read %}
@@ -127,7 +127,7 @@
                                             <input type="hidden" name="action" value="mark_read">
                                             <input type="hidden" name="notification_id" value="{{ notif.id }}">
                                             <button type="submit"
-                                                    class="text-blue-400 hover:text-blue-600 transition text-[10px] font-semibold whitespace-nowrap">
+                                                    class="text-primary/60 hover:text-primary transition text-[10px] font-semibold whitespace-nowrap">
                                                 Mark read
                                             </button>
                                         </form>

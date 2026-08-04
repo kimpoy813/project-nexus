@@ -18,7 +18,7 @@
     padding: .42rem .7rem;
 }
 .dashboard-view-toggle:hover { background: #f8fafc; }
-.dashboard-view-toggle[aria-pressed="true"] { background: #166534; border-color: #166534; color: #fff; }
+.dashboard-view-toggle[aria-pressed="true"] { background: var(--nexus-primary, #103b07); border-color: var(--nexus-primary, #103b07); color: #fff; }
 
 /* The existing semantic table becomes a readable stack of cards in card view. */
 [data-dashboard-view] .dashboard-data-table.dashboard-cards-view,
