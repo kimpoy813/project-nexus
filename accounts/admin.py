@@ -1,6 +1,18 @@
 from django.contrib import admin
 
-from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
+from .models import EmailOTP, Profile, Signatory, SiteConfiguration, SiteConfigurationLog
+
+
+@admin.register(EmailOTP)
+class EmailOTPAdmin(admin.ModelAdmin):
+    """Expose verification state for support without exposing OTP editing."""
+    list_display = ("user", "is_verified", "created_at")
+    list_filter = ("is_verified",)
+    search_fields = ("user__username", "user__email")
+    readonly_fields = ("user", "otp", "created_at", "is_verified")
+
+    def has_add_permission(self, request):
+        return False
 from details.models import (
     AccomplishmentReport, DocumentTemplate, DynamicFormTemplate, DynamicFormField,
     DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig, RoleCapability,

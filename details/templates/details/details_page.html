@@ -24,7 +24,7 @@
 {% comment %}Admin-authored content blocks appear above the built-in sections.{% endcomment %}
 {% for section in page.visible_sections %}
     <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-             class="scroll-mt-32 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
+             class="scroll-mt-40 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
         <div class="max-w-5xl mx-auto px-6">
             {% if section.heading %}
                 <h2 class="text-3xl font-bold text-center text-gray-900">{{ section.heading }}</h2>
@@ -43,7 +43,7 @@
 {% endfor %}
 
 <!-- Section Navigation -->
-<section class="bg-white border-b border-gray-100 sticky top-20 z-40">
+<section class="nexus-section-nav bg-white border-b border-gray-100 sticky top-20 z-40">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
 
         {% for row in home_headings %}
@@ -57,7 +57,7 @@
 
 <!-- EXTENSION THRUST SECTION (admin-managed) -->
 {% if home_sections.thrust.is_visible %}
-<section id="thrust" class="py-24 bg-white scroll-mt-32">
+<section id="thrust" class="py-24 bg-white scroll-mt-40">
     <div class="max-w-7xl mx-auto px-6">
 
         {% if home_sections.thrust.heading %}
@@ -90,7 +90,7 @@
 
 
 {% if home_sections.process.is_visible %}
-<section class="py-20 bg-gray-50 scroll-mt-32" id="process">
+<section class="py-20 bg-gray-50 scroll-mt-40" id="process">
     <div class="max-w-6xl mx-auto px-6">
 
         {% if home_sections.process.heading %}
@@ -177,7 +177,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 {% load humanize %}
 <!-- EXTENSION TARGETS SECTION -->
 {% if home_sections.targets.is_visible %}
-<section id="targets" class="py-24 bg-white scroll-mt-32">
+<section id="targets" class="py-24 bg-white scroll-mt-40">
     <div class="max-w-7xl mx-auto px-6">
 
         {% if home_sections.targets.heading %}
@@ -307,7 +307,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
 <!-- PERSONNEL -->
 {% if home_sections.personnel.is_visible %}
-<section id="personnel" class="py-24 bg-gray-50 scroll-mt-32">
+<section id="personnel" class="py-24 bg-gray-50 scroll-mt-40">
     <div class="max-w-6xl mx-auto px-6">
         {% if home_sections.personnel.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.personnel.heading }}</h2>
@@ -361,7 +361,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 {% endif %}
 
 {% if home_sections.sdg.is_visible %}
-<section id="sdg" class="py-24 bg-white scroll-mt-32">
+<section id="sdg" class="py-24 bg-white scroll-mt-40">
     <div class="max-w-7xl mx-auto px-6">
         {% if home_sections.sdg.heading %}
             <h2 class="text-4xl font-bold text-center mb-16">{{ home_sections.sdg.heading }}</h2>
@@ -486,7 +486,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
 <!-- ACTIVITIES -->
 {% if home_sections.activities.is_visible %}
-<section id="activities" class="py-24 bg-gray-50 scroll-mt-32">
+<section id="activities" class="py-24 bg-gray-50 scroll-mt-40">
     <div class="max-w-6xl mx-auto px-6">
         {% if home_sections.activities.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.activities.heading }}</h2>

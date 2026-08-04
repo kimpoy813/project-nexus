@@ -101,6 +101,14 @@ def admin_required(view_func):
             messages.error(request, "Admin access required.")
             return redirect("dashboard_redirect")
 
+        # ADMIN is the platform-owner role. Synchronise Django's admin flags
+        # here as well as in account creation so legacy admin profiles and
+        # accounts promoted before this builder was enabled get full access.
+        if not request.user.is_staff or not request.user.is_superuser:
+            request.user.is_staff = True
+            request.user.is_superuser = True
+            request.user.save(update_fields=["is_staff", "is_superuser"])
+
         if hasattr(profile, "email_verified") and not profile.email_verified:
             profile.email_verified = True
             profile.save(update_fields=["email_verified"])

@@ -19,6 +19,10 @@
                         secondary: '#5a1113',
                         accent: '#f5e587',
                     },
+                    fontFamily: {
+                        sans: ['DM Sans', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        display: ['Manrope', 'DM Sans', 'ui-sans-serif', 'sans-serif'],
+                    },
                     boxShadow: {
                         nexus: '0 16px 40px rgba(15, 23, 42, 0.08)',
                     }
@@ -30,10 +34,17 @@
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
 
+    <!-- Premium editorial type pairing -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- NExUS UI Refresh -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
+    <!-- Loaded last so premium tokens override Tailwind utilities used by legacy templates. -->
+    <link href="{% static 'css/premium-theme.css' %}" rel="stylesheet">
     {% if site_control %}
     <style>
         :root {
@@ -64,14 +75,27 @@
          @keydown.escape.window="mobileMenu = false"
          class="nexus-navbar fixed top-0 w-full z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex justify-between items-center">
-            <!-- Logo + NEXUS Name -->
-            <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home">
-                <span class="grid h-11 w-11 place-items-center rounded-2xl bg-primary text-white shadow-sm ring-1 ring-primary/10">
-                    <span class="text-sm font-black tracking-tight">NX</span>
+            <!-- Minimal N logo + wordmark -->
+            <a href="/" class="nexus-brand group" aria-label="NExUS Home">
+                <span class="nexus-monogram" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" role="img" focusable="false">
+                        <defs>
+                            <linearGradient id="nexus-logo-green" x1="15" y1="10" x2="82" y2="92" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#246b0d"/>
+                                <stop offset="1" stop-color="#0d3b08"/>
+                            </linearGradient>
+                            <linearGradient id="nexus-logo-edge" x1="30" y1="20" x2="78" y2="82" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#4b922d"/>
+                                <stop offset="1" stop-color="#174d0c"/>
+                            </linearGradient>
+                        </defs>
+                        <path fill="#0b3107" d="M15 13h17l51 58v17H67L34 51v30L15 95V13Z"/>
+                        <path fill="url(#nexus-logo-green)" d="M15 13h17l53 59v16L32 46v35L15 95V13Z"/>
+                        <path fill="url(#nexus-logo-edge)" d="M32 13 85 72 68 88 32 48 15 31V13h17Z"/>
+                        <path fill="#0c3608" d="M68 29 85 13v58L68 56V29Z"/>
+                    </svg>
                 </span>
-                <span class="text-2xl font-black tracking-tight text-primary">
-                    {{ site_control.short_name|default:"NExUS" }}
-                </span>
+                <span class="nexus-wordmark">{{ site_control.short_name|default:"NExUS" }}</span>
             </a>
 
             <!-- Main Menu -->

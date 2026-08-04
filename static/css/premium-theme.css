@@ -1,0 +1,240 @@
+/* NExUS premium system theme
+   A final, global layer so every page shares the same elevated language. */
+:root {
+  --premium-ink: #102219;
+  --premium-forest: #123d25;
+  --premium-forest-deep: #092116;
+  --premium-gold: #b68a3d;
+  --premium-gold-light: #f1e1b6;
+  --premium-cream: #fbfaf6;
+  --premium-line: rgba(18, 61, 37, .12);
+  --premium-shadow: 0 18px 55px rgba(20, 38, 28, .09);
+  --premium-shadow-soft: 0 7px 24px rgba(20, 38, 28, .065);
+}
+
+body {
+  color: var(--premium-ink) !important;
+  background: var(--premium-cream) !important;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Keep Tailwind-heavy templates on the same small type system. Weight
+   utilities still work, but no page can silently switch to another family. */
+.font-sans, .font-serif, .font-mono,
+button, input, select, textarea {
+  font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-black, .font-extrabold {
+  font-family: 'Manrope', 'DM Sans', ui-sans-serif, sans-serif;
+  letter-spacing: -.035em;
+}
+
+/* Page rhythm and surfaces. These utility selectors deliberately cover the
+   older Tailwind-heavy templates too, so they do not feel like a separate app. */
+main.nexus-shell { background: transparent; }
+main > * { isolation: isolate; }
+.bg-gray-50, .bg-\[\#f6f7f5\], .bg-slate-50 { background-color: transparent !important; }
+.bg-white { background-color: rgba(255,255,255,.90) !important; }
+.border-gray-100, .border-gray-200, .border-gray-300, .border-slate-100, .border-slate-200 {
+  border-color: var(--premium-line) !important;
+}
+.shadow-sm { box-shadow: var(--premium-shadow-soft) !important; }
+
+.rounded-2xl.border,
+.rounded-3xl.border,
+.nexus-card,
+.adm-card,
+.nx-card,
+.auth-card,
+.section-block,
+.dir-card,
+.ext-card,
+.mine-card {
+  border: 1px solid var(--premium-line) !important;
+  border-radius: 1.15rem !important;
+  box-shadow: var(--premium-shadow-soft) !important;
+}
+
+.rounded-2xl.border:hover,
+.rounded-3xl.border:hover,
+.nexus-card:hover,
+.adm-card:hover,
+.nx-card:hover,
+.auth-card:hover {
+  border-color: rgba(182, 138, 61, .27) !important;
+  box-shadow: var(--premium-shadow) !important;
+}
+
+/* Make headings, labels and metadata feel deliberate */
+.nx-dash__title, .adm-card__title, .nx-card__title { color: var(--premium-forest-deep) !important; }
+.nx-dash__subtitle, .adm-card__sub, .nx-card__sub { color: #718076 !important; }
+.adm-kpi, .nx-kpi {
+  background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(249,247,239,.88)) !important;
+  border-color: var(--premium-line) !important;
+}
+.adm-kpi__value, .nx-kpi__value { color: var(--premium-forest-deep) !important; font-family: 'Manrope', sans-serif; }
+
+/* Inputs, selects and textareas across every form */
+input:not([type="checkbox"]):not([type="radio"]),
+select, textarea,
+.nx-input, .adm-input {
+  border: 1px solid rgba(18, 61, 37, .16) !important;
+  border-radius: .72rem !important;
+  background: rgba(255,255,255,.82) !important;
+  color: var(--premium-ink) !important;
+  box-shadow: inset 0 1px 1px rgba(18,61,37,.025) !important;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease !important;
+}
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus, textarea:focus,
+.nx-input:focus, .adm-input:focus {
+  border-color: var(--premium-gold) !important;
+  background: #fff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 4px rgba(182,138,61,.13), 0 7px 18px rgba(18,61,37,.06) !important;
+}
+label, .nx-label, .adm-label { letter-spacing: .025em; }
+
+/* Buttons: polished, tactile, consistent */
+button, .nx-btn, .adm-btn-primary, a[class*="btn"] {
+  transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease !important;
+}
+button:hover, .nx-btn:hover, .adm-btn-primary:hover, a[class*="btn"]:hover {
+  transform: translateY(-1px);
+}
+.nx-btn--primary, .adm-btn-primary, button.bg-primary {
+  background: linear-gradient(135deg, #164c2d, #0b2b1b) !important;
+  border-color: #164c2d !important;
+  box-shadow: 0 8px 20px rgba(9, 33, 22, .19) !important;
+}
+.nx-btn--primary:hover, .adm-btn-primary:hover, button.bg-primary:hover {
+  background: linear-gradient(135deg, #1b5a35, #0d3521) !important;
+  box-shadow: 0 12px 25px rgba(9, 33, 22, .24) !important;
+}
+
+/* Navigation, tabs and active states */
+.nexus-monogram {
+  width: 1.95rem;
+  height: 1.95rem;
+  filter: none;
+  color: var(--premium-forest) !important;
+}
+.nexus-wordmark {
+  color: var(--premium-forest) !important;
+}
+ .nexus-navbar { border-bottom-color: rgba(182,138,61,.20) !important; }
+
+/* Component separators
+   Page sections use space, contrast, and a quiet rule instead of unrelated
+   floating cards. This applies to public pages, dashboards, builders, and
+   workflow screens without requiring every template to add a new class. */
+.nexus-page > section + section,
+.nexus-page > article + article,
+.nexus-shell section + section,
+.nexus-shell article + article,
+.nexus-card + .nexus-card,
+.nx-card + .nx-card,
+.adm-card + .adm-card,
+.section-block + .section-block,
+.dir-card + .dir-card,
+.ext-card + .ext-card,
+.mine-card + .mine-card {
+  position: relative;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(18, 61, 37, .12);
+}
+
+/* When cards are siblings inside a grid, use a clean inset divider rather
+   than a full border around every item. */
+.nexus-component-grid > * + *,
+.nx-grid > * + *,
+.component-grid > * + * {
+  border-left: 1px solid rgba(18, 61, 37, .10);
+  padding-left: 1.25rem;
+}
+
+/* Explicit helper for templates that have a collection of page components. */
+.nexus-component {
+  position: relative;
+  padding-top: 1.75rem;
+  margin-top: 1.75rem;
+  border-top: 1px solid rgba(18, 61, 37, .12);
+}
+.nexus-component:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+@media (max-width: 767px) {
+  .nexus-component-grid > * + *,
+  .nx-grid > * + *,
+  .component-grid > * + * {
+    border-left: 0;
+    border-top: 1px solid rgba(18, 61, 37, .10);
+    padding-left: 0;
+    padding-top: 1rem;
+  }
+  .nexus-page > section + section,
+  .nexus-page > article + article,
+  .nexus-shell section + section,
+  .nexus-shell article + article {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+  }
+}
+
+/* Keep the fixed navbar and homepage section navigator from covering anchored
+   headings. The combined offset includes both bars plus a small reading gap. */
+html {
+  scroll-padding-top: 10rem;
+}
+.nexus-section-nav {
+  top: 5rem !important;
+  min-height: 3.75rem;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 8px 22px rgba(18,61,37,.07);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.nexus-section-nav + section {
+  border-top: 0 !important;
+}
+@media (max-width: 767px) {
+  html { scroll-padding-top: 8.75rem; }
+  .nexus-section-nav { top: 4.5rem !important; }
+}
+
+/* Give the homepage section navigator its own breathing room. Sticky
+   positioning keeps it visible, but it must never sit directly on top of the
+   first section heading when the page enters or an anchor is selected. */
+.nexus-section-nav {
+  margin-bottom: 1.75rem !important;
+}
+@media (max-width: 767px) {
+  .nexus-section-nav {
+    margin-bottom: 1.25rem !important;
+  }
+}
+
+/* A taller section-menu banner gives the homepage navigator a stronger,
+   calmer presence and keeps its labels comfortably separated from content. */
+.nexus-section-nav {
+  min-height: 5.5rem !important;
+  display: flex;
+  align-items: center;
+}
+.nexus-section-nav > div {
+  width: 100%;
+  min-height: 5.5rem;
+  align-items: center;
+}
+@media (max-width: 767px) {
+  .nexus-section-nav,
+  .nexus-section-nav > div {
+    min-height: 4.75rem;
+  }
+}
