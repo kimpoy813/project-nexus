@@ -1,43 +1,63 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Debug Login</title>
+    <title>Debug Login - NExUS</title>
+
+    <!-- Tailwind CDN + single institutional theme (logo palette + one font) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="{% static 'js/nexus-theme.js' %}"></script>
+
+    <!-- One typeface everywhere: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Institutional logo -->
+    <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
+
+    <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
 </head>
-<body class="bg-gray-100">
-    <div class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-md w-96">
-            <h2 class="text-2xl font-bold mb-6">Debug Login</h2>
-            
+<body class="bg-gray-50 text-gray-800 font-sans">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 w-full max-w-md">
+            <div class="flex flex-col items-center text-center mb-6">
+                <img src="{% static 'images/nexus-logo-128.png' %}"
+                     alt="NExUS logo"
+                     class="h-14 w-14 object-contain">
+                <h2 class="mt-3 text-2xl font-black tracking-tight text-primary">Debug Login</h2>
+                <p class="text-sm text-gray-500">Development sign-in helper</p>
+            </div>
+
             <!-- Debug Info -->
-            <div class="bg-blue-50 p-4 rounded-lg mb-6 text-sm">
-                <h3 class="font-semibold mb-2">Debug Info:</h3>
+            <div class="bg-accent/30 border border-gold/40 text-primary p-4 rounded-xl mb-6 text-sm">
+                <h3 class="font-bold mb-2">Debug Info:</h3>
                 <div id="debug-info"></div>
             </div>
 
-            <form method="POST" action="{% url 'login' %}" id="login-form">
+            <form method="POST" action="{% url 'login' %}" id="login-form" class="space-y-4">
                 {% csrf_token %}
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Username/Email</label>
-                    <input type="text" name="username" required 
-                           class="w-full px-3 py-2 border rounded-lg">
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-gray-700">Username/Email</label>
+                    <input type="text" name="username" required
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
                 </div>
-                
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Password</label>
-                    <input type="password" name="password" required 
-                           class="w-full px-3 py-2 border rounded-lg">
+
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-gray-700">Password</label>
+                    <input type="password" name="password" required
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
                 </div>
-                
-                <button type="submit" 
-                        class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+
+                <button type="submit"
+                        class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-secondary transition">
                     Login
                 </button>
             </form>
 
             <div class="mt-4 text-center">
-                <a href="{% url 'register' %}" class="text-sm text-blue-600">Register</a>
+                <a href="{% url 'register' %}" class="text-sm font-semibold text-primary hover:text-secondary transition">Register</a>
             </div>
         </div>
     </div>
@@ -45,29 +65,29 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const debugInfo = document.getElementById('debug-info');
-            
+
             // Check cookies
             const cookies = document.cookie.split(';').map(c => c.trim());
             const csrfCookie = cookies.find(c => c.startsWith('csrftoken='));
-            
+
             // Check form token
             const tokenInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-            
+
             let html = `
                 <p><strong>Cookies:</strong> ${cookies.length} found</p>
                 <p><strong>CSRF Cookie:</strong> ${csrfCookie ? 'Present ✓' : 'Missing ✗'}</p>
                 <p><strong>Form Token:</strong> ${tokenInput ? 'Present ✓' : 'Missing ✗'}</p>
             `;
-            
+
             if (csrfCookie) {
                 const tokenValue = csrfCookie.split('=')[1];
                 html += `<p><strong>Cookie token (first 10 chars):</strong> ${tokenValue.substring(0, 10)}...</p>`;
             }
-            
+
             if (tokenInput) {
                 html += `<p><strong>Form token (first 10 chars):</strong> ${tokenInput.value.substring(0, 10)}...</p>`;
             }
-            
+
             debugInfo.innerHTML = html;
         });
 

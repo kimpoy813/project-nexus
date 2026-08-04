@@ -34,7 +34,7 @@
             <td class="p-3">Q1 {{ t.planned_q1 }} | Q2 {{ t.planned_q2 }} | Q3 {{ t.planned_q3 }} | Q4 {{ t.planned_q4 }}</td>
             <td class="p-3">Q1 {{ t.actual_q1 }} | Q2 {{ t.actual_q2 }} | Q3 {{ t.actual_q3 }} | Q4 {{ t.actual_q4 }}</td>
             <td class="p-3 space-x-2">
-                <a class="text-blue-600" href="{% url 'target_edit' t.id %}">Edit</a>
+                <a class="text-primary font-semibold hover:text-secondary transition" href="{% url 'target_edit' t.id %}">Edit</a>
                 <a class="text-red-600" href="{% url 'target_delete' t.id %}">Delete</a>
             </td>
             </tr>

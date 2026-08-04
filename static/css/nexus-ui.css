@@ -3,10 +3,13 @@
    tables, cards, and admin pages. Uses plain CSS so it works with Tailwind CDN. */
 
 :root {
-  --nexus-primary: #103b07;
+  /* Brand palette sampled from the ISPSC-RDEI Extension Office logo.
+     Keep in sync with static/js/nexus-theme.js (Tailwind tokens). */
+  --nexus-primary: #103b07;   /* forest green  */
   --nexus-primary-2: #1f5b12;
-  --nexus-secondary: #5a1113;
-  --nexus-accent: #f5e587;
+  --nexus-secondary: #5a1113; /* maroon        */
+  --nexus-accent: #f5e587;    /* cream yellow  */
+  --nexus-gold: #e8c31e;      /* vivid gold    */
   --nexus-ink: #0f172a;
   --nexus-muted: #64748b;
   --nexus-subtle: #94a3b8;
@@ -27,6 +30,21 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ONE typeface for the entire system (paired with the Inter webfont loaded
+   in the page heads and the fontFamily tokens in nexus-theme.js). Applied
+   broadly so headings, buttons, inputs, tables, and badges never drift. */
+html,
+body,
+button,
+input,
+select,
+textarea,
+h1, h2, h3, h4, h5, h6,
+.nexus-richtext,
+.nexus-richtext * {
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
