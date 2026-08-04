@@ -219,3 +219,22 @@ html {
     margin-bottom: 1.25rem !important;
   }
 }
+
+/* A taller section-menu banner gives the homepage navigator a stronger,
+   calmer presence and keeps its labels comfortably separated from content. */
+.nexus-section-nav {
+  min-height: 5.5rem !important;
+  display: flex;
+  align-items: center;
+}
+.nexus-section-nav > div {
+  width: 100%;
+  min-height: 5.5rem;
+  align-items: center;
+}
+@media (max-width: 767px) {
+  .nexus-section-nav,
+  .nexus-section-nav > div {
+    min-height: 4.75rem;
+  }
+}
