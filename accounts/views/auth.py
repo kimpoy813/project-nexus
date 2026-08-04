@@ -124,7 +124,7 @@ def register_view(request):
                         "full_name": full_name,
                         "verify_url": verify_url,
                         "logo_url": request.build_absolute_uri(
-                            static("images/extension-logo-128.png")
+                            static("images/nexus-logo-128.png")
                         ),
                     },
                 )
