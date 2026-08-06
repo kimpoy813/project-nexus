@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog
+from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog, Campus, College, Department
 from details.models import (
     AccomplishmentReport, DocumentTemplate, DynamicFormTemplate, DynamicFormField,
     DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig, RoleCapability,
@@ -101,3 +101,23 @@ class AccomplishmentReportAdmin(admin.ModelAdmin):
     list_display = ("title", "year", "quarter", "campus", "department", "submitted_by", "submitted_at")
     list_filter = ("year", "quarter", "campus")
     search_fields = ("title", "narrative", "submitted_by__username", "submitted_by__profile__full_name")
+
+
+@admin.register(Campus)
+class CampusAdmin(admin.ModelAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)
+
+
+@admin.register(College)
+class CollegeAdmin(admin.ModelAdmin):
+    list_display = ("name", "campus")
+    list_filter = ("campus",)
+    search_fields = ("name", "campus__name")
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ("name", "college", "campus")
+    list_filter = ("campus", "college")
+    search_fields = ("name", "college__name", "campus__name")
