@@ -45,6 +45,13 @@ class Department(models.Model):
         unique_together = ("campus", "college", "name")
         ordering = ["campus", "college", "name"]
 
+    def clean(self):
+        super().clean()
+        if self.college and self.college.campus != self.campus:
+            raise ValidationError(
+                {"college": "Selected college must belong to the selected campus."}
+            )
+
     def __str__(self):
         if self.college:
             return f"{self.name} - {self.college.name} ({self.campus.name})"
