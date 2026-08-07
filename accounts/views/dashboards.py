@@ -36,7 +36,7 @@ from proposals.models import ProposalSectionComment
 from ..decorators import admin_required
 from ..decorators import faculty_like_required
 from ..decorators import role_required
-from ..models import Profile
+from ..models import Profile, Campus, College, Department
 from ..models import Signatory
 from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
@@ -994,6 +994,9 @@ def admin_dashboard(request):
         "document_template_count": DocumentTemplate.objects.count(),
         "dynamic_form_count": DynamicFormTemplate.objects.count(),
         "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
+        "campuses_count": Campus.objects.count(),
+        "colleges_count": College.objects.count(),
+        "departments_count": Department.objects.count(),
         "role_capability_count": RoleCapability.objects.filter(enabled=True).count(),
         "total_content": (
             Personnel.objects.count()

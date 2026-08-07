@@ -13,6 +13,51 @@ from .campus_data import (
 )
 
 
+class Campus(models.Model):
+    name = models.CharField(max_length=150, unique=True)
+
+    class Meta:
+        verbose_name_plural = "Campuses"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class College(models.Model):
+    campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="colleges")
+    name = models.CharField(max_length=150)
+
+    class Meta:
+        unique_together = ("campus", "name")
+        ordering = ["campus", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.campus.name})"
+
+
+class Department(models.Model):
+    campus = models.ForeignKey(Campus, on_delete=models.CASCADE, related_name="departments")
+    college = models.ForeignKey(College, on_delete=models.CASCADE, related_name="departments", null=True, blank=True)
+    name = models.CharField(max_length=150)
+
+    class Meta:
+        unique_together = ("campus", "college", "name")
+        ordering = ["campus", "college", "name"]
+
+    def clean(self):
+        super().clean()
+        if self.college and self.college.campus != self.campus:
+            raise ValidationError(
+                {"college": "Selected college must belong to the selected campus."}
+            )
+
+    def __str__(self):
+        if self.college:
+            return f"{self.name} - {self.college.name} ({self.campus.name})"
+        return f"{self.name} ({self.campus.name})"
+
+
 class EmailOTP(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,

@@ -1,5 +1,5 @@
 # Core framework
-Django==6.0.6
+Django>=5.1,<6.0
 
 # Production server and static files
 gunicorn>=22.0
