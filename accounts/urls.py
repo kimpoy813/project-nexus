@@ -127,6 +127,24 @@ urlpatterns = [
     path("admin/signatories/<int:pk>/edit/", views.signatory_edit, name="signatory_edit"),
     path("admin/signatories/<int:pk>/delete/", views.signatory_delete, name="signatory_delete"),
 
+    # Campuses management
+    path("admin/campuses/", views.campuses_list, name="campuses_list"),
+    path("admin/campuses/create/", views.campus_create, name="campus_create"),
+    path("admin/campuses/<int:pk>/edit/", views.campus_edit, name="campus_edit"),
+    path("admin/campuses/<int:pk>/delete/", views.campus_delete, name="campus_delete"),
+
+    # Colleges management
+    path("admin/colleges/", views.colleges_list, name="colleges_list"),
+    path("admin/colleges/create/", views.college_create, name="college_create"),
+    path("admin/colleges/<int:pk>/edit/", views.college_edit, name="college_edit"),
+    path("admin/colleges/<int:pk>/delete/", views.college_delete, name="college_delete"),
+
+    # Departments management
+    path("admin/departments/", views.departments_list, name="departments_list"),
+    path("admin/departments/create/", views.department_create, name="department_create"),
+    path("admin/departments/<int:pk>/edit/", views.department_edit, name="department_edit"),
+    path("admin/departments/<int:pk>/delete/", views.department_delete, name="department_delete"),
+
 
     # Personnel management
     path("admin/personnel/", views.personnel_list, name="personnel_list"),

@@ -1,0 +1,59 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}{% if mode == "edit" %}Edit Campus{% else %}Add Campus{% endif %} - NExUS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">
+        {% if mode == "edit" %}Edit Campus{% else %}Add Campus{% endif %}
+      </h1>
+      <p class="mt-1 text-sm text-gray-600">Configure a campus available across registration and reports.</p>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
+      {% if messages %}
+        <div class="space-y-3 mb-6">
+          {% for message in messages %}
+            <div class="rounded-lg px-4 py-3 text-sm border
+              {% if message.tags == 'success' %}
+                bg-green-50 text-green-700 border-green-200
+              {% elif message.tags == 'error' %}
+                bg-red-50 text-red-700 border-red-200
+              {% else %}
+                bg-blue-50 text-blue-700 border-blue-200
+              {% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Campus Name</label>
+          <input name="name"
+                 value="{% if mode == 'edit' %}{{ campus.name }}{% else %}{{ request.POST.name|default:'' }}{% endif %}"
+                 required
+                 class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                 placeholder="Main Campus">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <a href="{% url 'campuses_list' %}"
+             class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            Cancel
+          </a>
+          <button type="submit"
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+            {% if mode == "edit" %}Save Changes{% else %}Create Campus{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

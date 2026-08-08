@@ -249,26 +249,17 @@
                         <span class="adm-tile__top"><span class="adm-tile__name">Signatories</span><span class="adm-tile__count">{{ signatories_count|default:0 }}</span></span>
                         <span class="adm-tile__desc">Signatories for printed summaries and letters.</span>
                     </a>
-                </div>
-            </div>
-
-            <div class="adm-card mb-5">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">Registration Choices</h2>
-                    <p class="adm-card__sub">Manage the choices of campuses, colleges, and departments available to users on registration.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100">
-                    <a href="/admin/accounts/campus/" class="adm-tile" target="_blank">
+                    <a href="{% url 'campuses_list' %}" class="adm-tile">
                         <span class="adm-tile__top"><span class="adm-tile__name">Campuses</span><span class="adm-tile__count">{{ campuses_count|default:0 }}</span></span>
-                        <span class="adm-tile__desc">Edit available campus selections.</span>
+                        <span class="adm-tile__desc">Manage campuses available during registration.</span>
                     </a>
-                    <a href="/admin/accounts/college/" class="adm-tile" target="_blank">
+                    <a href="{% url 'colleges_list' %}" class="adm-tile">
                         <span class="adm-tile__top"><span class="adm-tile__name">Colleges</span><span class="adm-tile__count">{{ colleges_count|default:0 }}</span></span>
-                        <span class="adm-tile__desc">Edit available colleges and associate with campuses.</span>
+                        <span class="adm-tile__desc">Manage colleges and campus associations.</span>
                     </a>
-                    <a href="/admin/accounts/department/" class="adm-tile" target="_blank">
+                    <a href="{% url 'departments_list' %}" class="adm-tile">
                         <span class="adm-tile__top"><span class="adm-tile__name">Departments</span><span class="adm-tile__count">{{ departments_count|default:0 }}</span></span>
-                        <span class="adm-tile__desc">Edit available departments and associate with colleges/campuses.</span>
+                        <span class="adm-tile__desc">Manage departments and college/campus associations.</span>
                     </a>
                 </div>
             </div>

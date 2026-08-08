@@ -1,0 +1,126 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}{% if mode == "edit" %}Edit Department{% else %}Add Department{% endif %} - NExUS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">
+        {% if mode == "edit" %}Edit Department{% else %}Add Department{% endif %}
+      </h1>
+      <p class="mt-1 text-sm text-gray-600">Associate a department with a campus and optional college.</p>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
+      {% if messages %}
+        <div class="space-y-3 mb-6">
+          {% for message in messages %}
+            <div class="rounded-lg px-4 py-3 text-sm border
+              {% if message.tags == 'success' %}
+                bg-green-50 text-green-700 border-green-200
+              {% elif message.tags == 'error' %}
+                bg-red-50 text-red-700 border-red-200
+              {% else %}
+                bg-blue-50 text-blue-700 border-blue-200
+              {% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Campus</label>
+          <select name="campus" id="id_campus" required
+                  class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+            <option value="">Select Campus</option>
+            {% for c in campuses %}
+              <option value="{{ c.id }}" {% if mode == 'edit' and department.campus_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">College (Optional)</label>
+          <select name="college" id="id_college"
+                  class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+            <option value="">Select College</option>
+            {% for col in colleges %}
+              <option value="{{ col.id }}" {% if mode == 'edit' and department.college_id == col.id %}selected{% endif %}>{{ col.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Department Name</label>
+          <input name="name"
+                 value="{% if mode == 'edit' %}{{ department.name }}{% else %}{{ request.POST.name|default:'' }}{% endif %}"
+                 required
+                 class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                 placeholder="Department of Information Technology">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <a href="{% url 'departments_list' %}"
+             class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+            Cancel
+          </a>
+          <button type="submit"
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+            {% if mode == "edit" %}Save Changes{% else %}Create Department{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const collegesByCampus = {
+  {% for c in campuses %}
+    "{{ c.id }}": [
+      {% for col in c.colleges.all %}
+        {"id": "{{ col.id }}", "name": "{{ col.name|escapejs }}"},
+      {% endfor %}
+    ],
+  {% endfor %}
+};
+
+document.addEventListener("DOMContentLoaded", function () {
+  const campusSelect = document.getElementById("id_campus");
+  const collegeSelect = document.getElementById("id_college");
+
+  const initialCollegeId = "{% if mode == 'edit' %}{{ department.college_id|default:'' }}{% else %}{{ request.POST.college|default:'' }}{% endif %}";
+
+  function updateColleges() {
+    const campusId = campusSelect.value;
+    collegeSelect.innerHTML = '<option value="">Select College</option>';
+    if (!campusId || !collegesByCampus[campusId]) return;
+
+    collegesByCampus[campusId].forEach(col => {
+      const option = document.createElement("option");
+      option.value = col.id;
+      option.textContent = col.name;
+      if (col.id === initialCollegeId || col.id == initialCollegeId) {
+        option.selected = true;
+      }
+      collegeSelect.appendChild(option);
+    });
+  }
+
+  if (campusSelect) {
+    if (campusSelect.value && !initialCollegeId) {
+      updateColleges();
+    }
+    campusSelect.addEventListener("change", function () {
+      updateColleges();
+    });
+  }
+});
+</script>
+{% endblock %}
