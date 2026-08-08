@@ -1007,6 +1007,9 @@ def admin_dashboard(request):
             + DocumentTemplate.objects.count()
             + DynamicFormTemplate.objects.count()
             + ProposalWizardStepConfig.objects.count()
+            + Campus.objects.count()
+            + College.objects.count()
+            + Department.objects.count()
         ),
         "recent_users": Profile.objects.select_related("user").filter(
             user__date_joined__gte=week_ago

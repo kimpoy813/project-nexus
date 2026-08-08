@@ -25,6 +25,9 @@ from ..campus_data import get_department_choices
 from ..decorators import admin_required
 from ..models import Profile
 from ..models import Signatory
+from ..models import Campus
+from ..models import College
+from ..models import Department
 
 logger = logging.getLogger(__name__)
 
@@ -559,3 +562,234 @@ def target_delete(request, pk):
 
     messages.success(request, f"Target deleted: {campus} - {metric} ({year})")
     return redirect("targets_list")
+
+
+@login_required
+@admin_required
+def campuses_list(request):
+    campuses = Campus.objects.prefetch_related("colleges", "departments").all().order_by("name")
+    return render(request, "dashboard/admin/campuses_list.html", {"campuses": campuses})
+
+
+@login_required
+@admin_required
+def campus_create(request):
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, "Campus name is required.")
+        elif Campus.objects.filter(name__iexact=name).exists():
+            messages.error(request, "A campus with this name already exists.")
+        else:
+            try:
+                Campus.objects.create(name=name)
+                messages.success(request, f'Campus "{name}" created successfully.')
+                return redirect("campuses_list")
+            except Exception:
+                logger.exception("Failed to create campus.")
+                messages.error(request, "Could not save campus.")
+    return render(request, "dashboard/admin/campus_form.html", {"mode": "create"})
+
+
+@login_required
+@admin_required
+def campus_edit(request, pk):
+    campus = get_object_or_404(Campus, pk=pk)
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, "Campus name is required.")
+        elif Campus.objects.filter(name__iexact=name).exclude(pk=campus.pk).exists():
+            messages.error(request, "A campus with this name already exists.")
+        else:
+            try:
+                campus.name = name
+                campus.save()
+                messages.success(request, "Campus updated successfully.")
+                return redirect("campuses_list")
+            except Exception:
+                logger.exception("Failed to update campus %s.", pk)
+                messages.error(request, "Could not update campus.")
+    return render(request, "dashboard/admin/campus_form.html", {"mode": "edit", "campus": campus})
+
+
+@login_required
+@admin_required
+@require_POST
+def campus_delete(request, pk):
+    campus = get_object_or_404(Campus, pk=pk)
+    name = campus.name
+    try:
+        campus.delete()
+        messages.success(request, f'Campus "{name}" deleted successfully.')
+    except Exception:
+        logger.exception("Failed to delete campus %s.", pk)
+        messages.error(request, "Could not delete campus (it may have related colleges or departments).")
+    return redirect("campuses_list")
+
+
+@login_required
+@admin_required
+def colleges_list(request):
+    colleges = College.objects.select_related("campus").prefetch_related("departments").all().order_by("campus__name", "name")
+    return render(request, "dashboard/admin/colleges_list.html", {"colleges": colleges})
+
+
+@login_required
+@admin_required
+def college_create(request):
+    campuses = Campus.objects.all().order_by("name")
+    if request.method == "POST":
+        campus_id = request.POST.get("campus")
+        name = (request.POST.get("name") or "").strip()
+        campus = get_object_or_404(Campus, pk=campus_id) if campus_id else None
+
+        if not campus or not name:
+            messages.error(request, "Campus and college name are required.")
+        elif College.objects.filter(campus=campus, name__iexact=name).exists():
+            messages.error(request, "A college with this name already exists in this campus.")
+        else:
+            try:
+                College.objects.create(campus=campus, name=name)
+                messages.success(request, f'College "{name}" created successfully.')
+                return redirect("colleges_list")
+            except Exception:
+                logger.exception("Failed to create college.")
+                messages.error(request, "Could not save college.")
+    return render(request, "dashboard/admin/college_form.html", {"mode": "create", "campuses": campuses})
+
+
+@login_required
+@admin_required
+def college_edit(request, pk):
+    college = get_object_or_404(College, pk=pk)
+    campuses = Campus.objects.all().order_by("name")
+    if request.method == "POST":
+        campus_id = request.POST.get("campus")
+        name = (request.POST.get("name") or "").strip()
+        campus = get_object_or_404(Campus, pk=campus_id) if campus_id else None
+
+        if not campus or not name:
+            messages.error(request, "Campus and college name are required.")
+        elif College.objects.filter(campus=campus, name__iexact=name).exclude(pk=college.pk).exists():
+            messages.error(request, "A college with this name already exists in this campus.")
+        else:
+            try:
+                college.campus = campus
+                college.name = name
+                college.save()
+                messages.success(request, "College updated successfully.")
+                return redirect("colleges_list")
+            except Exception:
+                logger.exception("Failed to update college %s.", pk)
+                messages.error(request, "Could not update college.")
+    return render(request, "dashboard/admin/college_form.html", {"mode": "edit", "college": college, "campuses": campuses})
+
+
+@login_required
+@admin_required
+@require_POST
+def college_delete(request, pk):
+    college = get_object_or_404(College, pk=pk)
+    name = college.name
+    try:
+        college.delete()
+        messages.success(request, f'College "{name}" deleted successfully.')
+    except Exception:
+        logger.exception("Failed to delete college %s.", pk)
+        messages.error(request, "Could not delete college.")
+    return redirect("colleges_list")
+
+
+@login_required
+@admin_required
+def departments_list(request):
+    departments = Department.objects.select_related("campus", "college").all().order_by("campus__name", "college__name", "name")
+    return render(request, "dashboard/admin/departments_list.html", {"departments": departments})
+
+
+@login_required
+@admin_required
+def department_create(request):
+    campuses = Campus.objects.prefetch_related("colleges").all().order_by("name")
+    if request.method == "POST":
+        campus_id = request.POST.get("campus")
+        college_id = request.POST.get("college")
+        name = (request.POST.get("name") or "").strip()
+        campus = get_object_or_404(Campus, pk=campus_id) if campus_id else None
+        college = College.objects.filter(pk=college_id, campus=campus).first() if college_id else None
+
+        if not campus or not name:
+            messages.error(request, "Campus and department name are required.")
+        elif Department.objects.filter(campus=campus, college=college, name__iexact=name).exists():
+            messages.error(request, "A department with this name already exists in this college/campus.")
+        else:
+            try:
+                dept = Department(campus=campus, college=college, name=name)
+                dept.full_clean()
+                dept.save()
+                messages.success(request, f'Department "{name}" created successfully.')
+                return redirect("departments_list")
+            except ValidationError as exc:
+                messages.error(request, "; ".join(exc.messages))
+            except Exception:
+                logger.exception("Failed to create department.")
+                messages.error(request, "Could not save department.")
+    return render(request, "dashboard/admin/department_form.html", {"mode": "create", "campuses": campuses})
+
+
+@login_required
+@admin_required
+def department_edit(request, pk):
+    department = get_object_or_404(Department, pk=pk)
+    campuses = Campus.objects.prefetch_related("colleges").all().order_by("name")
+    colleges = College.objects.filter(campus=department.campus).order_by("name") if department.campus else []
+
+    if request.method == "POST":
+        campus_id = request.POST.get("campus")
+        college_id = request.POST.get("college")
+        name = (request.POST.get("name") or "").strip()
+        campus = get_object_or_404(Campus, pk=campus_id) if campus_id else None
+        college = College.objects.filter(pk=college_id, campus=campus).first() if college_id else None
+
+        if not campus or not name:
+            messages.error(request, "Campus and department name are required.")
+        elif Department.objects.filter(campus=campus, college=college, name__iexact=name).exclude(pk=department.pk).exists():
+            messages.error(request, "A department with this name already exists in this college/campus.")
+        else:
+            try:
+                department.campus = campus
+                department.college = college
+                department.name = name
+                department.full_clean()
+                department.save()
+                messages.success(request, "Department updated successfully.")
+                return redirect("departments_list")
+            except ValidationError as exc:
+                messages.error(request, "; ".join(exc.messages))
+            except Exception:
+                logger.exception("Failed to update department %s.", pk)
+                messages.error(request, "Could not update department.")
+
+    colleges = College.objects.filter(campus=department.campus).order_by("name") if department.campus else []
+    return render(request, "dashboard/admin/department_form.html", {
+        "mode": "edit",
+        "department": department,
+        "campuses": campuses,
+        "colleges": colleges,
+    })
+
+
+@login_required
+@admin_required
+@require_POST
+def department_delete(request, pk):
+    department = get_object_or_404(Department, pk=pk)
+    name = department.name
+    try:
+        department.delete()
+        messages.success(request, f'Department "{name}" deleted successfully.')
+    except Exception:
+        logger.exception("Failed to delete department %s.", pk)
+        messages.error(request, "Could not delete department.")
+    return redirect("departments_list")

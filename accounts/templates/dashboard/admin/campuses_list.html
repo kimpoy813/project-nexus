@@ -1,0 +1,67 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Manage Campuses - NExUS{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Campuses</h1>
+        <p class="mt-1 text-sm text-gray-600">Manage available campus selections for user registration and system scope.</p>
+      </div>
+
+      <a href="{% url 'campus_create' %}"
+         class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+        Add Campus
+      </a>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Campus Name</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Colleges</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Departments</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 bg-white">
+            {% for c in campuses %}
+              <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ c.name }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ c.colleges.count }}</td>
+                <td class="px-6 py-4 text-sm text-gray-700">{{ c.departments.count }}</td>
+                <td class="px-6 py-4 text-right">
+                  <div class="inline-flex gap-2">
+                    <a href="{% url 'campus_edit' c.id %}"
+                       class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary hover:text-white">
+                      Edit
+                    </a>
+                    <form method="post" action="{% url 'campus_delete' c.id %}" onsubmit="return confirm('Delete campus {{ c.name }}?');">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="inline-flex items-center rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-600 hover:text-white hover:border-red-600">
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                  No campuses yet. Click “Add Campus” to create one.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
