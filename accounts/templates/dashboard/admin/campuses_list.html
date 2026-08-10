@@ -11,9 +11,11 @@
         <p class="mt-1 text-sm text-gray-600">Manage available campus selections for user registration and system scope.</p>
       </div>
 
-      <a href="{% url 'campus_create' %}"
-         class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
-        Add Campus
+      <a href="{% url 'campus_create' %}" title="Add Campus"
+         class="inline-flex items-center justify-center rounded-xl bg-primary p-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+        </svg>
       </a>
     </div>
 
