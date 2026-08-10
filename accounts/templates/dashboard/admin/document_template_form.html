@@ -35,10 +35,13 @@
             {% if template_obj.file %}<p class="mb-2 text-xs text-gray-500">Current file: <a href="{{ template_obj.file.url }}" target="_blank" class="text-primary font-bold hover:underline">{{ template_obj.file.name }}</a></p>{% endif %}
             <input type="file" name="file" {% if mode == 'create' %}required{% endif %} class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
         </div>
-        <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-700">
-            <input type="checkbox" name="is_active" {% if mode == 'create' or template_obj.is_active %}checked{% endif %} class="rounded border-gray-300 text-primary focus:ring-primary">
-            Active / visible to users
-        </label>
+        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
+            <span class="text-sm font-bold text-gray-700">Active / visible to users</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="is_active" {% if mode == 'create' or template_obj.is_active %}checked{% endif %} class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+        </div>
         <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
             <a href="{% url 'document_templates_list' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
             <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Save Template</button>

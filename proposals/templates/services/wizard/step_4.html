@@ -2,9 +2,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl font-semibold text-gray-900">Implementing Agency / Unit</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Indicate the office, college, department, or unit that will take primary responsibility for implementation.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -71,9 +71,11 @@
         {% csrf_token %}
 
         <div>
-            <label class="block text-sm font-semibold text-gray-900">Implementing Agency / Unit</label>
+            <label class="block text-sm font-semibold text-gray-900">
+                {{ step_fields.implementing_agency.label|default:"Implementing Agency / Unit" }}{% if step_fields.implementing_agency.required %} <span class="text-red-600">*</span>{% endif %}
+            </label>
             <p class="text-xs text-gray-500 mt-1">
-                Enter the unit primarily responsible for implementing this extension (e.g., College/Department/Campus Unit).
+                {{ step_fields.implementing_agency.help_text|default:"Enter the unit primarily responsible for implementing this extension (e.g., College/Department/Campus Unit)." }}
             </p>
 
             <input
@@ -81,7 +83,7 @@
                 value="{{ proposal.implementing_agency|default:'' }}"
                 {% if not is_edit_mode %}readonly{% endif %}
                 class="mt-3 w-full px-3 py-2.5 rounded-xl border border-gray-300 outline-none {% if is_edit_mode %}bg-white focus:ring-2 focus:ring-primary focus:border-primary text-gray-900{% else %}bg-gray-50 text-gray-700{% endif %}"
-                placeholder="e.g., ISPSC - College of Computing / Extension Unit"
+                placeholder="{{ step_fields.implementing_agency.placeholder|default:'e.g., ISPSC - College of Computing / Extension Unit' }}"
             />
         </div>
 

@@ -20,25 +20,94 @@ from .helpers import _safe_int
 from .reports import ACCOMPLISHMENT_REPORT_ROLES
 
 
-def _sync_default_wizard_step_configs():
-    # Import here to avoid circular import at module load time.
-    from proposals.views import STEP_LABELS
+def _seed_default_fields():
+    from details.models import DynamicFormTemplate, DynamicFormField
+    
+    default_fields_map = {
+        1: [
+            {"key": "extension_type", "label": "Extension Type", "type": "SELECT", "choices": "RESEARCH_FACULTY|Research-based (Faculty)\nRESEARCH_STUDENT|Research-based (Student)\nREQUEST_BASED|Request-based\nCOMMUNITY_BASED|Community-based", "placeholder": "Choose extension type"},
+            {"key": "scope_type", "label": "Scope", "type": "SELECT", "choices": "PROGRAM|Program\nPROJECT|Project\nACTIVITY|Activity", "placeholder": "Choose scope"},
+            {"key": "research_title", "label": "Research Title", "type": "TEXT", "placeholder": "Enter research title if applicable", "required": False, "depends_on_key": "extension_type", "depends_on_value": "RESEARCH_FACULTY,RESEARCH_STUDENT"},
+        ],
+        2: [
+            {"key": "title", "label": "Title of the Program / Project / Activity", "type": "TEXT", "placeholder": "Enter official title"},
+        ],
+        4: [
+            {"key": "implementing_agency", "label": "Implementing Agency / Unit", "type": "TEXT", "placeholder": "Enter implementing agency"},
+        ],
+        5: [
+            {"key": "beneficiaries_count", "label": "Beneficiary Count", "type": "NUMBER", "placeholder": "Estimated count of beneficiaries"},
+            {"key": "beneficiaries_who", "label": "Target Group / Beneficiaries Description", "type": "TEXT", "placeholder": "Describe who they are"},
+        ],
+        7: [
+            {"key": "budgetary_requirement", "label": "Budgetary Requirement", "type": "TEXTAREA", "placeholder": "Describe budget details"},
+        ],
+        10: [
+            {"key": "extension_venue", "label": "Extension Venue / Site", "type": "TEXT", "placeholder": "Enter venue"},
+            {"key": "estimated_month", "label": "Estimated Month", "type": "SELECT", "choices": "January|January\nFebruary|February\nMarch|March\nApril|April\nMay|May\nJune|June\nJuly|July\nAugust|August\nSeptember|September\nOctober|October\nNovember|November\nDecember|December", "placeholder": "Choose month"},
+            {"key": "estimated_year", "label": "Estimated Year", "type": "NUMBER", "placeholder": "e.g., 2026"},
+        ],
+        11: [
+            {"key": "rationale_background", "label": "Rationale / Background", "type": "TEXTAREA", "placeholder": "Provide rationale background"},
+        ],
+        12: [
+            {"key": "significance", "label": "Significance", "type": "TEXTAREA", "placeholder": "Describe significance"},
+        ],
+        13: [
+            {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
+        ],
+    }
 
-    existing = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
-    to_create = []
-    for item in STEP_LABELS:
-        if item["no"] not in existing:
-            to_create.append(
-                ProposalWizardStepConfig(
-                    step_no=item["no"],
-                    title=item["title"],
-                    description=item["desc"],
-                    is_visible=True,
-                    is_required=True,
-                )
+    for step_no, fields in default_fields_map.items():
+        form_name = f"Fields for Step {step_no}"
+        form_obj, _ = DynamicFormTemplate.objects.get_or_create(
+            proposal_wizard_step=step_no,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            defaults={
+                "name": form_name,
+                "slug": f"step-{step_no}-fields",
+                "is_active": True,
+                "blocks_proposal_submission": True,
+            }
+        )
+        
+        for idx, f in enumerate(fields):
+            DynamicFormField.objects.get_or_create(
+                form=form_obj,
+                field_key=f["key"],
+                defaults={
+                    "label": f["label"],
+                    "field_type": f["type"],
+                    "choices_text": f.get("choices", ""),
+                    "placeholder": f.get("placeholder", ""),
+                    "required": f.get("required", True),
+                    "depends_on_key": f.get("depends_on_key", ""),
+                    "depends_on_value": f.get("depends_on_value", ""),
+                    "order": idx + 1,
+                }
             )
+
+
+def _sync_default_wizard_step_configs():
+    if ProposalWizardStepConfig.objects.exists():
+        return
+
+    from proposals.views.constants import INITIAL_STEP_LABELS
+    to_create = []
+    for item in INITIAL_STEP_LABELS:
+        to_create.append(
+            ProposalWizardStepConfig(
+                step_no=item["no"],
+                title=item["title"],
+                description=item["desc"],
+                is_visible=True,
+                is_required=True,
+            )
+        )
     if to_create:
         ProposalWizardStepConfig.objects.bulk_create(to_create)
+
+    _seed_default_fields()
 
 
 def _sync_default_role_capabilities():
@@ -193,10 +262,13 @@ def _save_dynamic_form_fields(form_obj, post_data):
     placeholders = post_data.getlist("field_placeholder[]")
     help_texts = post_data.getlist("field_help_text[]")
     choices_list = post_data.getlist("field_choices[]")
+    depends_on_keys = post_data.getlist("field_depends_on_key[]")
+    depends_on_values = post_data.getlist("field_depends_on_value[]")
 
     max_len = max(
         len(field_ids), len(labels), len(keys), len(types),
-        len(placeholders), len(help_texts), len(choices_list), 0,
+        len(placeholders), len(help_texts), len(choices_list),
+        len(depends_on_keys), len(depends_on_values), 0,
     )
 
     def at(values, index, default=""):
@@ -236,6 +308,8 @@ def _save_dynamic_form_fields(form_obj, post_data):
         obj.placeholder = (at(placeholders, idx) or "").strip()
         obj.help_text = (at(help_texts, idx) or "").strip()
         obj.choices_text = (at(choices_list, idx) or "").strip()
+        obj.depends_on_key = (at(depends_on_keys, idx) or "").strip()
+        obj.depends_on_value = (at(depends_on_values, idx) or "").strip()
         obj.order = idx + 1
         obj.save()
         kept_ids.append(obj.id)
@@ -333,6 +407,22 @@ def wizard_step_edit(request, step_no):
     _sync_default_wizard_step_configs()
     step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
 
+    form_obj = DynamicFormTemplate.objects.filter(
+        proposal_wizard_step=step_no,
+        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+    ).first()
+    if not form_obj:
+        name = f"Fields for Step {step_no}: {step_config.title}"
+        slug = _unique_dynamic_form_slug(name)
+        form_obj = DynamicFormTemplate.objects.create(
+            name=name,
+            slug=slug,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            proposal_wizard_step=step_no,
+            is_active=True,
+            blocks_proposal_submission=True,
+        )
+
     if request.method == "POST":
         step_config.title = (request.POST.get("title") or step_config.title).strip()
         step_config.description = (request.POST.get("description") or "").strip()
@@ -340,14 +430,101 @@ def wizard_step_edit(request, step_no):
         step_config.is_visible = request.POST.get("is_visible") == "on"
         step_config.is_required = request.POST.get("is_required") == "on"
         step_config.save()
-        messages.success(request, f"Wizard Step {step_config.step_no} updated.")
+
+        # Update the dynamic form template name just in case the title changed
+        form_obj.name = f"Fields for Step {step_no}: {step_config.title}"
+        form_obj.save(update_fields=["name"])
+
+        _save_dynamic_form_fields(form_obj, request.POST)
+
+        messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
         return redirect("wizard_steps_manager")
 
     return render(
         request,
         "dashboard/admin/wizard_step_form.html",
-        {"step_config": step_config},
+        {
+            "step_config": step_config,
+            "form_obj": form_obj,
+            "field_type_choices": DynamicFormField.FieldType.choices,
+        },
     )
+
+
+@login_required
+@admin_required
+def wizard_step_create(request):
+    _sync_default_wizard_step_configs()
+
+    max_step = ProposalWizardStepConfig.objects.order_by("-step_no").first()
+    next_step_no = (max_step.step_no + 1) if max_step else 1
+
+    if request.method == "POST":
+        step_no = _safe_int(request.POST.get("step_no"), 0)
+        title = (request.POST.get("title") or "").strip()
+        description = (request.POST.get("description") or "").strip()
+        instructions = (request.POST.get("instructions") or "").strip()
+        is_visible = request.POST.get("is_visible") == "on"
+        is_required = request.POST.get("is_required") == "on"
+
+        if step_no <= 0:
+            messages.error(request, "Step number must be a positive integer.")
+        elif ProposalWizardStepConfig.objects.filter(step_no=step_no).exists():
+            messages.error(request, f"Step number {step_no} already exists.")
+        elif not title:
+            messages.error(request, "Title is required.")
+        else:
+            step_config = ProposalWizardStepConfig.objects.create(
+                step_no=step_no,
+                title=title,
+                description=description,
+                instructions=instructions,
+                is_visible=is_visible,
+                is_required=is_required,
+            )
+
+            # Create the dynamic form template for this step
+            name = f"Fields for Step {step_no}: {title}"
+            slug = _unique_dynamic_form_slug(name)
+            form_obj = DynamicFormTemplate.objects.create(
+                name=name,
+                slug=slug,
+                applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+                proposal_wizard_step=step_no,
+                is_active=True,
+                blocks_proposal_submission=True,
+            )
+            _save_dynamic_form_fields(form_obj, request.POST)
+
+            messages.success(request, f"Wizard Step {step_no} and its fields created successfully.")
+            return redirect("wizard_steps_manager")
+
+    return render(
+        request,
+        "dashboard/admin/wizard_step_create_form.html",
+        {
+            "next_step_no": next_step_no,
+            "field_type_choices": DynamicFormField.FieldType.choices,
+        },
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def wizard_step_delete(request, step_no):
+    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
+    title = step_config.title
+    step_config.delete()
+
+    # Delete corresponding DynamicFormTemplate
+    DynamicFormTemplate.objects.filter(
+        proposal_wizard_step=step_no,
+        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+    ).delete()
+
+    messages.success(request, f"Wizard Step {step_no} ({title}) and its associated fields deleted successfully.")
+    return redirect("wizard_steps_manager")
 
 
 @login_required

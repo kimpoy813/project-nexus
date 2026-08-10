@@ -35,7 +35,7 @@ from ..models import ProposalSDG
 from ..models import ProposalSectionComment
 from ..models import ProposalSpecificObjective
 from ..models import ProposalThrust
-from accounts.decorators import faculty_like_required
+from accounts.decorators import faculty_like_required, admin_required
 from .constants import GENDER_ISSUE_LIST, SDG_LIST, STEP_LABELS, THRUST_LIST, TOTAL_STEPS, User
 from .helpers import _strip_phase_prefix, _to_int, _to_roman
 from .permissions import _can_edit, _can_review, _can_view_proposal, _ensure_open_review_round, _get_reviewer_role, _role_has_capability
@@ -67,11 +67,11 @@ def unmark_step_completed(proposal, step_no):
 
 
 def _wizard_step_config_map():
-    configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
-    missing = []
-    for item in STEP_LABELS:
-        if item["no"] not in configs:
-            missing.append(
+    if not ProposalWizardStepConfig.objects.exists():
+        from proposals.views.constants import INITIAL_STEP_LABELS
+        to_create = []
+        for item in INITIAL_STEP_LABELS:
+            to_create.append(
                 ProposalWizardStepConfig(
                     step_no=item["no"],
                     title=item["title"],
@@ -80,24 +80,27 @@ def _wizard_step_config_map():
                     is_required=True,
                 )
             )
-    if missing:
-        ProposalWizardStepConfig.objects.bulk_create(missing)
-        configs = {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
-    return configs
+        if to_create:
+            ProposalWizardStepConfig.objects.bulk_create(to_create)
+        from accounts.views.builders import _seed_default_fields
+        try:
+            _seed_default_fields()
+        except Exception:
+            pass
+    return {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
 
 
 def get_visible_wizard_step_numbers():
-    configs = _wizard_step_config_map()
-    visible = [item["no"] for item in STEP_LABELS if configs.get(item["no"]).is_visible]
-    return visible or [item["no"] for item in STEP_LABELS]
+    return [
+        item.step_no
+        for item in ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
+    ] or [1]
 
 
 def get_required_wizard_step_numbers():
-    configs = _wizard_step_config_map()
     return [
-        item["no"]
-        for item in STEP_LABELS
-        if configs.get(item["no"]).is_visible and configs.get(item["no"]).is_required
+        item.step_no
+        for item in ProposalWizardStepConfig.objects.filter(is_visible=True, is_required=True).order_by("step_no")
     ]
 
 
@@ -224,21 +227,54 @@ def is_step_complete(proposal, step):
             return bool(proposal.certificate_of_completion_file)
         return True
 
-    return False
+    return _is_dynamic_step_complete(proposal, step)
+
+
+def _is_dynamic_step_complete(proposal, step):
+    forms = DynamicFormTemplate.objects.filter(
+        is_active=True,
+        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+        proposal_wizard_step=step,
+        blocks_proposal_submission=True,
+    ).prefetch_related("fields")
+    
+    if not forms.exists():
+        return True
+
+    responses = {
+        res.form_id: res
+        for res in DynamicFormResponse.objects.filter(
+            proposal=proposal,
+            form__in=forms,
+        ).prefetch_related("answers")
+    }
+
+    for form in forms:
+        res = responses.get(form.id)
+        if not res:
+            for field in form.fields.all():
+                if field.required:
+                    return False
+            continue
+
+        answer_map = {ans.field_id: ans for ans in res.answers.all()}
+        for field in form.fields.all():
+            if field.required:
+                ans = answer_map.get(field.id)
+                if not ans or not ans.has_value:
+                    return False
+    return True
 
 
 def build_wizard_steps(proposal, current_step, comment_counts=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
-    configs = _wizard_step_config_map()
+    configs = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
 
     steps = []
-    for item in STEP_LABELS:
-        no = item["no"]
-        config = configs.get(no)
-        if config and not config.is_visible:
-            continue
+    for config in configs:
+        no = config.step_no
 
         if no == current_step:
             state = "current"
@@ -251,10 +287,10 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
 
         ccount = int(comment_counts.get(no, 0) or 0)
         steps.append({
-            **item,
-            "title": config.title if config else item["title"],
-            "desc": config.description if config else item["desc"],
-            "is_required": config.is_required if config else True,
+            "no": no,
+            "title": config.title,
+            "desc": config.description,
+            "is_required": config.is_required,
             "state": state,
             "comment_count": ccount,
             "has_comment": ccount > 0,
@@ -320,6 +356,7 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
     forms = list(_dynamic_forms_for_proposal_step(step))
     if not forms:
         ctx["dynamic_forms"] = []
+        ctx["step_fields"] = {}
         return []
 
     responses = {
@@ -330,17 +367,41 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
         ).prefetch_related("answers", "answers__field")
     }
 
+    step_fields = {}
+    for form in forms:
+        for field in form.fields.all():
+            step_fields[field.field_key] = field
+
+    ctx["step_fields"] = step_fields
+
+    hardcoded_keys_by_step = {
+        1: {"extension_type", "scope_type", "research_title"},
+        2: {"title"},
+        4: {"implementing_agency"},
+        5: {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
+        7: {"budgetary_requirement"},
+        10: {"extension_venue", "estimated_month", "estimated_year"},
+        11: {"rationale_background"},
+        12: {"significance"},
+        13: {"general_objective"},
+    }
+    exclude_keys = hardcoded_keys_by_step.get(step, set())
+
     for form in forms:
         response = responses.get(form.id)
         answer_by_field = {}
         if response:
             answer_by_field = {answer.field_id: answer for answer in response.answers.all()}
         form.response = response
-        for field in form.fields.all():
+        
+        all_fields = list(form.fields.all())
+        for field in all_fields:
             answer = answer_by_field.get(field.id)
             field.answer = answer
             field.answer_value = getattr(answer, "value", "") if answer else ""
             field.answer_file = getattr(answer, "file", None) if answer else None
+
+        form.fields_to_render = [f for f in all_fields if f.field_key not in exclude_keys]
 
     ctx["dynamic_forms"] = forms
     return forms
@@ -763,6 +824,11 @@ def proposal_wizard(request, proposal_id, step):
         ctx["step_comments"] = []
 
     template = f"services/wizard/step_{step}.html"
+    from django.template.loader import select_template
+    try:
+        select_template([template])
+    except Exception:
+        template = "services/wizard/step_dynamic.html"
 
     if request.method == "GET":
         _add_step_context_for_get(ctx, proposal, step)

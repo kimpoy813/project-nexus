@@ -1,10 +1,10 @@
 {% extends "services/wizard/_wizard_shell.html" %}
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-  <h2 class="text-xl font-semibold text-gray-900">Extension Type and Scope</h2>
+  <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
   <p class="text-sm leading-5 text-gray-600 mt-1">
-    Identify the nature of the proposal and specify whether it will be implemented as a program, project, or activity.
-  </p>
+        {{ wizard_step_config.description }}
+    </p>
 
   {% if is_edit_mode %}
     <div class="mt-6 flex flex-wrap items-center gap-2">
@@ -70,87 +70,71 @@
     {% csrf_token %}
 
     <div>
-      <label class="block text-sm font-semibold text-gray-900 mb-3">Extension Type</label>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+          {{ step_fields.extension_type.label|default:"Extension Type" }}{% if step_fields.extension_type.required %} <span class="text-red-600">*</span>{% endif %}
+      </label>
 
       <input type="hidden" name="extension_type" id="extensionTypeValue" value="{{ proposal.extension_type }}">
 
       <div class="flex flex-wrap gap-3">
-        {% for val,label in proposal.ExtensionType.choices %}
+        {% for item in step_fields.extension_type.parsed_choices|default:proposal.ExtensionType.choices %}
           <div
             class="ext-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
-              {% if proposal.extension_type == val %}
+              {% if proposal.extension_type == item.value or proposal.extension_type == item %}
                 bg-primary text-white border-primary
               {% else %}
                 bg-white text-gray-700 border-gray-300
               {% endif %}
               {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-            data-value="{{ val }}"
-            data-label="{{ label }}">
-            {{ label }}
+            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item }}{% endif %}"
+            data-label="{% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}">
+            {% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}
           </div>
         {% endfor %}
       </div>
 
       <p class="text-xs text-gray-500 mt-3">
-        Choose whether the proposal is research-based or request-based.
+          {{ step_fields.extension_type.help_text|default:"Choose whether the proposal is research-based or request-based." }}
       </p>
     </div>
 
     <div id="researchTitleWrap" class="{% if proposal.extension_type != 'RESEARCH_FACULTY' and proposal.extension_type != 'RESEARCH_STUDENT' %}hidden{% endif %}">
-      <label class="block text-sm font-semibold text-gray-900">Research Title</label>
+      <label class="block text-sm font-semibold text-gray-900">
+          {{ step_fields.research_title.label|default:"Research Title" }}{% if step_fields.research_title.required %} <span class="text-red-600">*</span>{% endif %}
+      </label>
       <input
         name="research_title"
         id="researchTitleInput"
         value="{{ proposal.research_title }}"
         {% if not is_edit_mode %}readonly{% endif %}
         class="mt-2 w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
-        placeholder="Enter the research title">
+        placeholder="{{ step_fields.research_title.placeholder|default:'Enter the research title' }}">
       <p class="text-xs text-gray-500 mt-2">
-        Required when Extension Type is Research-based.
+          {{ step_fields.research_title.help_text|default:"Required when Extension Type is Research-based." }}
       </p>
     </div>
 
     <div>
-      <label class="block text-sm font-semibold text-gray-900 mb-3">Scope</label>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+          {{ step_fields.scope_type.label|default:"Scope" }}{% if step_fields.scope_type.required %} <span class="text-red-600">*</span>{% endif %}
+      </label>
 
       <input type="hidden" name="scope_type" id="scopeTypeValue" value="{{ proposal.scope_type }}">
 
       <div class="flex flex-wrap gap-3">
-        <div
-          class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
-            {% if proposal.scope_type == 'PROGRAM' %}
-              bg-primary text-white border-primary
-            {% else %}
-              bg-white text-gray-700 border-gray-300
-            {% endif %}
-            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-          data-value="PROGRAM">
-          Program
-        </div>
-
-        <div
-          class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
-            {% if proposal.scope_type == 'PROJECT' %}
-              bg-primary text-white border-primary
-            {% else %}
-              bg-white text-gray-700 border-gray-300
-            {% endif %}
-            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-          data-value="PROJECT">
-          Project
-        </div>
-
-        <div
-          class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
-            {% if proposal.scope_type == 'ACTIVITY' %}
-              bg-primary text-white border-primary
-            {% else %}
-              bg-white text-gray-700 border-gray-300
-            {% endif %}
-            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-          data-value="ACTIVITY">
-          Activity
-        </div>
+        {% for item in step_fields.scope_type.parsed_choices|default:proposal.ScopeType.choices %}
+          <div
+            class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+              {% if proposal.scope_type == item.value or proposal.scope_type == item %}
+                bg-primary text-white border-primary
+              {% else %}
+                bg-white text-gray-700 border-gray-300
+              {% endif %}
+              {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item }}{% endif %}">
+            {% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}
+          </div>
+        {% endfor %}
       </div>
 
       <div id="scopeHelp" class="mt-4 p-4 rounded-xl border border-gray-100 bg-gray-50">

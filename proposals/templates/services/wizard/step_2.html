@@ -4,9 +4,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl font-semibold text-gray-900">Title of the Program / Project / Activity</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Provide the official title of the proposed extension initiative.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -74,13 +74,7 @@
 
         <div>
             <label class="block text-sm font-semibold text-gray-900">
-                {% if proposal.scope_type == "PROJECT" %}
-                    Project Title
-                {% elif proposal.scope_type == "ACTIVITY" %}
-                    Activity Title
-                {% else %}
-                    Program Title
-                {% endif %}
+                {{ step_fields.title.label|default:"Title" }}{% if step_fields.title.required %} <span class="text-red-600">*</span>{% endif %}
             </label>
 
             <input
@@ -88,12 +82,12 @@
                 value="{{ proposal.title|default:'' }}"
                 {% if not is_edit_mode %}readonly{% endif %}
                 class="mt-2 w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
-                placeholder="Enter a clear, specific title"
+                placeholder="{{ step_fields.title.placeholder|default:'Enter a clear, specific title' }}"
                 autocomplete="off"
             >
 
             <p class="text-xs text-gray-500 mt-2">
-                Keep it short, action-oriented, and aligned with your extension thrust/SDGs.
+                {{ step_fields.title.help_text|default:"Keep it short, action-oriented, and aligned with your extension thrust/SDGs." }}
             </p>
         </div>
 

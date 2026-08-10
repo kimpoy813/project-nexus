@@ -71,6 +71,9 @@ from .wizard import (  # noqa: F401
     _update_creator_role,
     _wizard_step_config_map,
 )
+from .legacy import (  # noqa: F401
+    admin_legacy_proposal_create,
+)
 from .public import (  # noqa: F401
     services_home,
     _build_status_flow,
@@ -177,6 +180,7 @@ __all__ = [
     "proposal_comment_summary",
     "proposal_complete_evaluation",
     "proposal_create",
+    "admin_legacy_proposal_create",
     "proposal_download_approval_document",
     "proposal_download_approved_docx",
     "proposal_editor_ping",

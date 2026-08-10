@@ -222,20 +222,20 @@
                         <input type="number" min="1" name="ip_license_years" value="{{ default_fields.ip_license_years }}"
                                class="mt-1 w-28 rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary">
                     </div>
-                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
-                        <input type="checkbox" name="ip_license_royalty_free" {% if default_fields.ip_license_royalty_free %}checked{% endif %}
-                               class="rounded border-gray-300 text-primary focus:ring-primary">
-                        Royalty-free
+                    <label class="relative inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="ip_license_royalty_free" {% if default_fields.ip_license_royalty_free %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-xs font-medium text-gray-700">Royalty-free</span>
                     </label>
-                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
-                        <input type="checkbox" name="ip_license_exclusive" {% if default_fields.ip_license_exclusive %}checked{% endif %}
-                               class="rounded border-gray-300 text-primary focus:ring-primary">
-                        Exclusive
+                    <label class="relative inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="ip_license_exclusive" {% if default_fields.ip_license_exclusive %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-xs font-medium text-gray-700">Exclusive</span>
                     </label>
-                    <label class="inline-flex items-center gap-2 text-xs font-medium text-gray-700">
-                        <input type="checkbox" name="ip_license_irrevocable" {% if default_fields.ip_license_irrevocable %}checked{% endif %}
-                               class="rounded border-gray-300 text-primary focus:ring-primary">
-                        Irrevocable
+                    <label class="relative inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="ip_license_irrevocable" {% if default_fields.ip_license_irrevocable %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-xs font-medium text-gray-700">Irrevocable</span>
                     </label>
                 </div>
             </div>

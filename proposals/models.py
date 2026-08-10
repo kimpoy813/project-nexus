@@ -107,6 +107,8 @@ class Proposal(models.Model):
     )
 
     current_step = models.PositiveSmallIntegerField(default=1)
+    is_legacy = models.BooleanField(default=False, help_text="True if this is a pre-website legacy proposal.")
+    legacy_proposal_file = models.FileField(upload_to="legacy_proposals/", blank=True, null=True, help_text="The original uploaded proposal document.")
     completed_steps = models.JSONField(default=list, blank=True)
     skipped_steps = models.JSONField(default=list, blank=True)
     last_saved_at = models.DateTimeField(auto_now=True)

@@ -77,10 +77,12 @@
             <div>
                 <label class="ps-label">Image <span class="text-slate-400">(optional)</span></label>
                 {% if section and section.image %}
-                    <div class="mb-3 flex items-center gap-4 rounded-lg border border-slate-200 p-3">
+                    <div class="mb-3 flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-3">
                         <img src="{{ section.image.url }}" alt="" class="h-16 w-24 rounded object-cover">
-                        <label class="flex items-center gap-2 text-sm text-slate-600">
-                            <input type="checkbox" name="remove_image"> Remove this image
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="remove_image" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                            <span class="ml-3 text-xs font-bold text-red-500">Remove this image</span>
                         </label>
                     </div>
                 {% endif %}
@@ -88,15 +90,16 @@
                 {% if form.image.errors %}<p class="ps-error">{{ form.image.errors.0 }}</p>{% endif %}
             </div>
 
-            <label class="flex items-start gap-3 rounded-lg border border-slate-200 p-4">
-                <input type="checkbox" name="is_visible"
-                       {% if is_create %}checked{% elif form.is_visible.value %}checked{% endif %}
-                       class="mt-0.5">
+            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
                 <span>
                     <span class="block text-sm font-medium text-slate-800">Visible on the page</span>
                     <span class="block text-xs text-slate-500">Uncheck to keep this section as a draft.</span>
                 </span>
-            </label>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" name="is_visible" {% if is_create %}checked{% elif form.is_visible.value %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+            </div>
 
         </div>
 

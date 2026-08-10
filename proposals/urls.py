@@ -5,6 +5,7 @@ urlpatterns = [
     # Services home / proposal creation
     path("proposals/", views.services_home, name="services_home"),
     path("proposals/new/", views.proposal_create, name="proposal_create"),
+    path("proposals/admin/new-legacy/", views.admin_legacy_proposal_create, name="admin_legacy_proposal_create"),
 
     # Proposal wizard flow
     path(

@@ -164,7 +164,7 @@ class DynamicFormTemplate(models.Model):
     proposal_wizard_step = models.PositiveSmallIntegerField(
         null=True,
         blank=True,
-        help_text="Optional: show this form inside proposal wizard step 1-19 when Applies To is Proposal.",
+        help_text="Optional: show this form inside proposal wizard step when Applies To is Proposal.",
     )
     blocks_proposal_submission = models.BooleanField(
         default=True,
@@ -204,6 +204,8 @@ class DynamicFormField(models.Model):
     placeholder = models.CharField(max_length=180, blank=True, default="")
     help_text = models.CharField(max_length=255, blank=True, default="")
     choices_text = models.TextField(blank=True, default="", help_text="One dropdown choice per line.")
+    depends_on_key = models.CharField(max_length=120, blank=True, default="", help_text="The key of the parent field this field depends on.")
+    depends_on_value = models.CharField(max_length=255, blank=True, default="", help_text="The parent field value(s), comma-separated, that make this field visible.")
     order = models.PositiveIntegerField(default=1)
 
     class Meta:
@@ -218,6 +220,17 @@ class DynamicFormField(models.Model):
     @property
     def choices_list(self):
         return [line.strip() for line in self.choices_text.splitlines() if line.strip()]
+
+    @property
+    def parsed_choices(self):
+        result = []
+        for line in self.choices_list:
+            if "|" in line:
+                val, label = line.split("|", 1)
+                result.append({"value": val.strip(), "label": label.strip()})
+            else:
+                result.append({"value": line, "label": line})
+        return result
 
 
 class DynamicFormResponse(models.Model):

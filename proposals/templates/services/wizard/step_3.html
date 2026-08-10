@@ -4,9 +4,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl font-semibold text-gray-900">Proponents</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        List the proponent or proponents and complete their required profile and role information.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -196,9 +196,10 @@
                         <div class="text-right">
                             {% if p.user_id != proposal.created_by_id %}
                                 {% if is_edit_mode %}
-                                <label class="inline-flex items-center gap-2 text-xs text-gray-600">
-                                    <input type="checkbox" name="remove_proponent_ids" value="{{ p.id }}">
-                                    Remove
+                                <label class="relative inline-flex items-center cursor-pointer select-none">
+                                    <input type="checkbox" name="remove_proponent_ids" value="{{ p.id }}" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                                    <span class="ml-3 text-xs font-bold text-red-500">Remove Proponent</span>
                                 </label>
                                 {% else %}
                                 <span class="text-xs text-gray-400">Member</span>

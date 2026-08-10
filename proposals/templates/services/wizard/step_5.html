@@ -2,9 +2,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl font-semibold text-gray-900">Collaborators / Beneficiaries</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Specify the intended beneficiaries and the estimated number of individuals or groups to be served.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -71,9 +71,11 @@
         {% csrf_token %}
 
         <div>
-            <label class="block text-sm font-semibold text-gray-900">Number of Beneficiaries</label>
+            <label class="block text-sm font-semibold text-gray-900">
+                {{ step_fields.beneficiaries_count.label|default:"Number of Beneficiaries" }}{% if step_fields.beneficiaries_count.required %} <span class="text-red-600">*</span>{% endif %}
+            </label>
             <p class="text-xs text-gray-500 mt-1">
-                Enter the estimated number of beneficiaries. (This should match your participant profiling later.)
+                {{ step_fields.beneficiaries_count.help_text|default:"Enter the estimated number of beneficiaries. (This should match your participant profiling later.)" }}
             </p>
 
             <input
@@ -83,14 +85,16 @@
                 value="{{ proposal.beneficiaries_count|default_if_none:'' }}"
                 {% if not is_edit_mode %}readonly{% endif %}
                 class="mt-3 w-full px-3 py-2.5 rounded-xl border border-gray-300 outline-none {% if is_edit_mode %}bg-white focus:ring-2 focus:ring-primary focus:border-primary text-gray-900{% else %}bg-gray-50 text-gray-700{% endif %}"
-                placeholder="e.g., 120"
+                placeholder="{{ step_fields.beneficiaries_count.placeholder|default:'e.g., 120' }}"
             />
         </div>
 
         <div>
-            <label class="block text-sm font-semibold text-gray-900">Who are the beneficiaries?</label>
+            <label class="block text-sm font-semibold text-gray-900">
+                {{ step_fields.beneficiaries_who.label|default:"Who are the beneficiaries?" }}{% if step_fields.beneficiaries_who.required %} <span class="text-red-600">*</span>{% endif %}
+            </label>
             <p class="text-xs text-gray-500 mt-1">
-                Briefly describe the intended beneficiaries (e.g., barangay residents, farmers, students, LGU staff, etc.).
+                {{ step_fields.beneficiaries_who.help_text|default:"Briefly describe the intended beneficiaries (e.g., barangay residents, farmers, students, LGU staff, etc.)." }}
             </p>
 
             <textarea
@@ -98,7 +102,7 @@
                 rows="5"
                 {% if not is_edit_mode %}readonly{% endif %}
                 class="mt-3 w-full px-3 py-2.5 rounded-xl border border-gray-300 outline-none {% if is_edit_mode %}bg-white focus:ring-2 focus:ring-primary focus:border-primary text-gray-900{% else %}bg-gray-50 text-gray-700{% endif %}"
-                placeholder="e.g., Barangay health workers and mothers with children (0–5 years old)…"
+                placeholder="{{ step_fields.beneficiaries_who.placeholder|default:'e.g., Barangay health workers and mothers with children (0–5 years old)…' }}"
             >{{ proposal.beneficiaries_who|default:'' }}</textarea>
         </div>
 
