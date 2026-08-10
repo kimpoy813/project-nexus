@@ -8,10 +8,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-TOTAL_STEPS = 19
-
-
-STEP_LABELS = [
+INITIAL_STEP_LABELS = [
     {"no": 1, "title": "Extension Type and Scope", "desc": "Type of extension and proposal scope"},
     {"no": 2, "title": "Title", "desc": "Program, project, or activity title"},
     {"no": 3, "title": "Proponents", "desc": "Proponent details and assigned roles"},
@@ -32,6 +29,109 @@ STEP_LABELS = [
     {"no": 18, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
     {"no": 19, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
 ]
+
+
+class _DynamicStepLabels:
+    def _get_steps(self):
+        try:
+            from details.models import ProposalWizardStepConfig
+            if not ProposalWizardStepConfig.objects.exists():
+                to_create = []
+                for item in INITIAL_STEP_LABELS:
+                    to_create.append(
+                        ProposalWizardStepConfig(
+                            step_no=item["no"],
+                            title=item["title"],
+                            description=item["desc"],
+                            is_visible=True,
+                            is_required=True,
+                        )
+                    )
+                ProposalWizardStepConfig.objects.bulk_create(to_create)
+            
+            return [
+                {"no": config.step_no, "title": config.title, "desc": config.description}
+                for config in ProposalWizardStepConfig.objects.all().order_by("step_no")
+            ]
+        except Exception:
+            return INITIAL_STEP_LABELS
+
+    def __iter__(self):
+        return iter(self._get_steps())
+
+    def __len__(self):
+        return len(self._get_steps())
+
+    def __getitem__(self, index):
+        return self._get_steps()[index]
+
+    def __setitem__(self, index, value):
+        pass
+
+    def __delitem__(self, index):
+        pass
+
+    def __contains__(self, item):
+        return item in self._get_steps()
+
+    def __repr__(self):
+        return repr(self._get_steps())
+
+    def __str__(self):
+        return str(self._get_steps())
+
+
+class _DynamicTotalSteps:
+    def __int__(self):
+        try:
+            from details.models import ProposalWizardStepConfig
+            max_step = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("-step_no").first()
+            return max_step.step_no if max_step else 19
+        except Exception:
+            return 19
+
+    def __index__(self):
+        return int(self)
+
+    def __str__(self):
+        return str(int(self))
+
+    def __repr__(self):
+        return repr(int(self))
+
+    def __eq__(self, other):
+        return int(self) == other
+
+    def __ne__(self, other):
+        return int(self) != other
+
+    def __lt__(self, other):
+        return int(self) < other
+
+    def __le__(self, other):
+        return int(self) <= other
+
+    def __gt__(self, other):
+        return int(self) > other
+
+    def __ge__(self, other):
+        return int(self) >= other
+
+    def __add__(self, other):
+        return int(self) + other
+
+    def __radd__(self, other):
+        return other + int(self)
+
+    def __sub__(self, other):
+        return int(self) - other
+
+    def __rsub__(self, other):
+        return other - int(self)
+
+
+STEP_LABELS = _DynamicStepLabels()
+TOTAL_STEPS = _DynamicTotalSteps()
 
 
 SDG_LIST = [

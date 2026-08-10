@@ -455,6 +455,9 @@ def proposal_download_approved_docx(request, proposal_id):
         id=proposal_id
     )
 
+    if proposal.is_legacy and proposal.legacy_proposal_file:
+        return redirect(proposal.legacy_proposal_file.url)
+
     # Permission check WITHOUT extra DB hits.
     is_proponent = (
         request.user.id == proposal.created_by_id

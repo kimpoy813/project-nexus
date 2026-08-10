@@ -435,6 +435,145 @@
     </div>
 
     <script src="{% static 'js/dashboard-views.js' %}"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        function enhanceDropdowns() {
+            document.querySelectorAll("select").forEach(select => {
+                try {
+                    // If it was marked as enhanced-done but the custom container is missing (e.g. due to cloning), re-enhance it!
+                    const prevSibling = select.previousElementSibling;
+                    const hasContainer = prevSibling && prevSibling.classList.contains("custom-dropdown-container");
+                    if (select.classList.contains("enhanced-done") && !hasContainer) {
+                        select.classList.remove("enhanced-done");
+                    }
+                    
+                    // Skip if it's already enhanced, or is hidden/ignored
+                    if (select.classList.contains("enhanced-done")) return;
+                    if (!select.parentNode || !document.body.contains(select)) return;
+                    // Ignore rich editor or simple selects we want to keep
+                    if (select.closest(".ck-editor") || select.classList.contains("flatpickr-monthDropdown-months")) return;
+                    
+                    select.classList.add("enhanced-done");
+                    
+                    // Create container
+                    const container = document.createElement("div");
+                    container.className = "relative inline-block w-full custom-dropdown-container";
+                    
+                    // Copy classes and build button
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-xl border border-gray-300 px-3 h-[38px] text-sm bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
+                    
+                    // Adjust if it is a small select input
+                    if (select.classList.contains("adm-input--sm")) {
+                        btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 h-[32px] text-xs bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
+                    }
+                    
+                    const selectedText = document.createElement("span");
+                    selectedText.className = "selected-text truncate";
+                    
+                    const activeOption = select.options[select.selectedIndex];
+                    selectedText.textContent = activeOption ? activeOption.text : "Select...";
+                    
+                    const arrowSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    arrowSvg.setAttribute("class", "h-4 w-4 text-gray-500 shrink-0");
+                    if (select.classList.contains("adm-input--sm")) {
+                        arrowSvg.setAttribute("class", "h-3 w-3 text-gray-500 shrink-0");
+                    }
+                    arrowSvg.setAttribute("viewBox", "0 0 20 20");
+                    arrowSvg.setAttribute("fill", "currentColor");
+                    arrowSvg.innerHTML = `<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />`;
+                    
+                    btn.appendChild(selectedText);
+                    btn.appendChild(arrowSvg);
+                    
+                    // Create options list
+                    const dropdown = document.createElement("div");
+                    dropdown.className = "hidden absolute bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-sm text-gray-700 font-medium max-h-[500px] overflow-y-auto";
+                    if (select.classList.contains("adm-input--sm")) {
+                        dropdown.className = "hidden absolute bg-white rounded-lg shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-xs text-gray-700 font-medium max-h-[500px] overflow-y-auto";
+                    }
+                    
+                    Array.from(select.options).forEach(opt => {
+                        const item = document.createElement("div");
+                        item.className = "px-4 py-2 cursor-pointer hover:bg-primary hover:text-white transition";
+                        if (select.classList.contains("adm-input--sm")) {
+                            item.className = "px-3 py-1.5 cursor-pointer hover:bg-primary hover:text-white transition";
+                        }
+                        item.textContent = opt.text;
+                        item.dataset.value = opt.value;
+                        
+                        item.addEventListener("click", (e) => {
+                            e.stopPropagation();
+                            select.value = opt.value;
+                            selectedText.textContent = opt.text;
+                            dropdown.classList.add("hidden");
+                            
+                            const changeEvent = new Event("change", { bubbles: true });
+                            select.dispatchEvent(changeEvent);
+                            
+                            const form = select.closest("form");
+                            if (form && select.getAttribute("onchange") && select.getAttribute("onchange").includes("submit")) {
+                                form.submit();
+                            }
+                        });
+                        
+                        dropdown.appendChild(item);
+                    });
+                    
+                    container.appendChild(btn);
+                    
+                    // Append directly to body to prevent clipping/cut-off!
+                    document.body.appendChild(dropdown);
+                    
+                    select.style.setProperty("display", "none", "important");
+                    select.style.visibility = "hidden";
+                    select.style.opacity = "0";
+                    select.style.position = "absolute";
+                    select.style.width = "0";
+                    select.style.height = "0";
+                    
+                    select.parentNode.insertBefore(container, select);
+                    
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        
+                        // Close all other dropdowns
+                        document.querySelectorAll("body > .z-\\[9999\\]").forEach(d => {
+                            if (d !== dropdown) d.classList.add("hidden");
+                        });
+                        
+                        const isHidden = dropdown.classList.contains("hidden");
+                        if (isHidden) {
+                            // Position dynamically relative to button
+                            const rect = btn.getBoundingClientRect();
+                            dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+                            dropdown.style.left = `${rect.left + window.scrollX}px`;
+                            dropdown.style.width = `${rect.width}px`;
+                            dropdown.classList.remove("hidden");
+                        } else {
+                            dropdown.classList.add("hidden");
+                        }
+                    });
+                    
+                    document.addEventListener("click", () => {
+                        dropdown.classList.add("hidden");
+                    });
+                    
+                    // Keep body-appended dropdown synchronized if scroll/resize occurs
+                    window.addEventListener("scroll", () => { dropdown.classList.add("hidden"); }, { passive: true });
+                    window.addEventListener("resize", () => { dropdown.classList.add("hidden"); }, { passive: true });
+                } catch (err) {
+                    console.error("Failed to enhance dropdown:", err);
+                }
+            });
+        }
+        
+        setTimeout(enhanceDropdowns, 100);
+        const observer = new MutationObserver(enhanceDropdowns);
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+    </script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

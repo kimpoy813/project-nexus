@@ -3,9 +3,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl font-semibold text-gray-900">SDGs Covered / Extension Agenda</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Select the Sustainable Development Goals and ISPSC Extension Thrusts that are addressed by the proposal.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}

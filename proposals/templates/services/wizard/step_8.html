@@ -2,9 +2,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl font-semibold text-gray-900">Participants / Proposed Number of Clients</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Enter the participant profiling by sex and gender classification.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}

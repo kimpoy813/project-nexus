@@ -43,10 +43,10 @@
             <div class="p-5 {% if not phase.is_visible %}bg-slate-50/60{% endif %}">
                 <div class="mb-3 flex items-center justify-between gap-3">
                     <span class="wf-pill">{{ phase.get_key_display }}</span>
-                    <label class="flex items-center gap-2 text-xs font-medium text-slate-600">
-                        <input type="checkbox" name="phase_{{ phase.id }}_is_visible"
-                               {% if phase.is_visible %}checked{% endif %}>
-                        Show on Services page
+                    <label class="relative inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="phase_{{ phase.id }}_is_visible" {% if phase.is_visible %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        <span class="ml-3 text-xs font-bold text-slate-700">Show on Services page</span>
                     </label>
                 </div>
 

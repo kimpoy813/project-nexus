@@ -2,9 +2,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl leading-6 font-semibold text-gray-900">Significance</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Explain the importance and expected contribution of the proposed extension initiative.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -72,17 +72,20 @@
 
         <div>
             <label for="significance" class="block text-sm font-semibold text-gray-900 mb-2">
-                Significance
+                {{ step_fields.significance.label|default:"Significance" }}{% if step_fields.significance.required %} <span class="text-red-600">*</span>{% endif %}
             </label>
             <textarea
-                name="rationale_background"
+                name="significance"
                 rows="8"
+                placeholder="{{ step_fields.significance.placeholder|default:'Explain the importance and expected contribution of the proposed extension initiative.' }}"
                 oninput="autoResize(this); updateWordCount(this, 'wc-rationale')"
                 class="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm
                         outline-none focus:ring-2 focus:ring-primary focus:border-primary
-                        resize-none overflow-hidden min-h-[200px]">
-                {{ proposal.rationale_background }}
-            </textarea>
+                        resize-none overflow-hidden min-h-[200px]"
+                {% if not is_edit_mode %}readonly{% endif %}>{{ proposal.significance }}</textarea>
+            {% if step_fields.significance.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ step_fields.significance.help_text }}</p>
+            {% endif %}
             <p class="text-xs text-gray-400 text-right mt-1">
                 <span id="wc-rationale">0</span> words
             </p>

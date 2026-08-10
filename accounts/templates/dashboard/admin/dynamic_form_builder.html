@@ -26,7 +26,7 @@
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Proposal Wizard Step</label>
-                <input type="number" min="1" max="19" name="proposal_wizard_step" value="{{ form_obj.proposal_wizard_step|default:'' }}" placeholder="1-19" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                <input type="number" min="1" name="proposal_wizard_step" value="{{ form_obj.proposal_wizard_step|default:'' }}" placeholder="e.g. 1" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
                 <p class="mt-1 text-xs text-gray-500">Only for Proposal forms.</p>
             </div>
             <div class="lg:col-span-4">
@@ -37,15 +37,21 @@
                 <label class="block text-sm font-bold text-gray-700 mb-1">Instructions</label>
                 <textarea name="instructions" rows="3" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ form_obj.instructions|default:'' }}</textarea>
             </div>
-            <div class="lg:col-span-4 flex flex-wrap gap-4">
-                <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-700">
-                    <input type="checkbox" name="is_active" {% if mode == 'create' or form_obj.is_active %}checked{% endif %} class="rounded border-gray-300 text-primary focus:ring-primary">
-                    Active / visible as an office-managed form
-                </label>
-                <label class="inline-flex items-center gap-2 text-sm font-bold text-gray-700">
-                    <input type="checkbox" name="blocks_proposal_submission" {% if mode == 'create' or form_obj.blocks_proposal_submission %}checked{% endif %} class="rounded border-gray-300 text-primary focus:ring-primary">
-                    Required fields block proposal submission
-                </label>
+            <div class="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
+                    <span class="text-sm font-bold text-gray-700">Active / visible as an office-managed form</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="is_active" {% if mode == 'create' or form_obj.is_active %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
+                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
+                    <span class="text-sm font-bold text-gray-700">Required fields block proposal submission</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="blocks_proposal_submission" {% if mode == 'create' or form_obj.blocks_proposal_submission %}checked{% endif %} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                </div>
             </div>
         </section>
 
@@ -63,13 +69,37 @@
                         <div class="field-row rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
                             <input type="hidden" name="field_id[]" value="{{ field.id }}">
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                                <div class="md:col-span-3"><label class="text-xs font-bold text-gray-600">Label</label><input name="field_label[]" value="{{ field.label }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
+                                <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Label</label><input name="field_label[]" value="{{ field.label }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
                                 <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Key</label><input name="field_key[]" value="{{ field.field_key }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
                                 <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Type</label><select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">{% for value,label in field_type_choices %}<option value="{{ value }}" {% if field.field_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
                                 <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Placeholder</label><input name="field_placeholder[]" value="{{ field.placeholder }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
                                 <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Help Text</label><input name="field_help_text[]" value="{{ field.help_text }}" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
-                                <div class="md:col-span-1 flex items-end justify-between gap-2"><label class="inline-flex items-center gap-1 text-xs font-bold text-gray-700 mb-2"><input type="checkbox" name="field_required[]" value="{{ field.id }}" {% if field.required %}checked{% endif %}> Req.</label><button type="button" onclick="this.closest('.field-row').remove()" class="mb-1 text-xs font-bold text-red-600">Remove</button></div>
-                                <div class="md:col-span-12"><label class="text-xs font-bold text-gray-600">Choices for dropdown fields</label><textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">{{ field.choices_text }}</textarea></div>
+                                <div class="md:col-span-2 flex items-end justify-between gap-2">
+                                  <label class="relative inline-flex items-center cursor-pointer select-none mb-1">
+                                    <input type="checkbox" name="field_required[]" value="{{ field.id }}" {% if field.required %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                    <span class="ml-2 text-xs font-bold text-gray-700">Req.</span>
+                                  </label>
+                                  <button type="button" onclick="this.closest('.field-row').remove()" title="Remove Field" class="mb-1 p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition flex items-center justify-center border border-red-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                  </button>
+                                </div>
+                                <div class="md:col-span-12">
+                                  <label class="text-xs font-bold text-gray-600">Choices for dropdown fields (one option per line)</label>
+                                  <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">{{ field.choices_text }}</textarea>
+                                </div>
+                                <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>
+                                    <input name="field_depends_on_key[]" value="{{ field.depends_on_key }}" placeholder="e.g. extension_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                                  </div>
+                                  <div>
+                                    <label class="text-xs font-bold text-gray-500">Depends On Value(s) (comma-separated)</label>
+                                    <input name="field_depends_on_value[]" value="{{ field.depends_on_value }}" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                                  </div>
+                                </div>
                             </div>
                         </div>
                     {% endfor %}
@@ -94,13 +124,37 @@ function addFieldRow() {
     div.innerHTML = `
         <input type="hidden" name="field_id[]" value="">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div class="md:col-span-3"><label class="text-xs font-bold text-gray-600">Label</label><input name="field_label[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Field label"></div>
+            <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Label</label><input name="field_label[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Field label"></div>
             <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Key</label><input name="field_key[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="auto if blank"></div>
             <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Type</label><select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">${fieldTypes}</select></div>
             <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Placeholder</label><input name="field_placeholder[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
             <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">Help Text</label><input name="field_help_text[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></div>
-            <div class="md:col-span-1 flex items-end justify-between gap-2"><label class="inline-flex items-center gap-1 text-xs font-bold text-gray-700 mb-2"><input type="checkbox" name="field_required[]" value="new_${idx}"> Req.</label><button type="button" onclick="this.closest('.field-row').remove()" class="mb-1 text-xs font-bold text-red-600">Remove</button></div>
-            <div class="md:col-span-12"><label class="text-xs font-bold text-gray-600">Choices for dropdown fields</label><textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea></div>
+            <div class="md:col-span-2 flex items-end justify-between gap-2">
+              <label class="relative inline-flex items-center cursor-pointer select-none mb-1">
+                <input type="checkbox" name="field_required[]" value="new_${idx}" class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                <span class="ml-2 text-xs font-bold text-gray-700">Req.</span>
+              </label>
+              <button type="button" onclick="this.closest('.field-row').remove()" title="Remove Field" class="mb-1 p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition flex items-center justify-center border border-red-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <div class="md:col-span-12">
+              <label class="text-xs font-bold text-gray-600">Choices for dropdown fields</label>
+              <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
+            </div>
+            <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>
+                <input name="field_depends_on_key[]" placeholder="e.g. extension_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-500">Depends On Value(s) (comma-separated)</label>
+                <input name="field_depends_on_value[]" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+              </div>
+            </div>
         </div>`;
     wrap.appendChild(div);
 }

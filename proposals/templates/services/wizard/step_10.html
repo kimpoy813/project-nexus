@@ -2,9 +2,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl leading-6 font-semibold text-gray-900">Date and Venue / Extension Site</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Enter the estimated month and year, and specify the venue or extension site.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -73,14 +73,14 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label for="estimated_month" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Estimated Month
+                    {{ step_fields.estimated_month.label|default:"Estimated Month" }}{% if step_fields.estimated_month.required %} <span class="text-red-600">*</span>{% endif %}
                 </label>
                 <select
                     id="estimated_month"
                     name="estimated_month"
                     {% if not is_edit_mode %}disabled{% endif %}
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}">
-                    <option value="">Select month</option>
+                    <option value="">{{ step_fields.estimated_month.placeholder|default:"Select month" }}</option>
                     {% for month in month_choices %}
                     <option value="{{ month }}" {% if estimated_month == month %}selected{% endif %}>
                         {{ month }}
@@ -91,11 +91,14 @@
                 {% if not is_edit_mode %}
                 <input type="hidden" name="estimated_month" value="{{ estimated_month }}">
                 {% endif %}
+                {% if step_fields.estimated_month.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ step_fields.estimated_month.help_text }}</p>
+                {% endif %}
             </div>
 
             <div>
                 <label for="estimated_year" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Estimated Year
+                    {{ step_fields.estimated_year.label|default:"Estimated Year" }}{% if step_fields.estimated_year.required %} <span class="text-red-600">*</span>{% endif %}
                 </label>
                 <input
                     type="number"
@@ -106,13 +109,16 @@
                     max="2100"
                     {% if not is_edit_mode %}readonly{% endif %}
                     class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
-                    placeholder="e.g. 2026">
+                    placeholder="{{ step_fields.estimated_year.placeholder|default:'e.g. 2026' }}">
+                {% if step_fields.estimated_year.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ step_fields.estimated_year.help_text }}</p>
+                {% endif %}
             </div>
         </div>
 
         <div>
             <label for="extension_venue" class="block text-sm font-semibold text-gray-900 mb-2">
-                Venue / Extension Site
+                {{ step_fields.extension_venue.label|default:"Venue / Extension Site" }}{% if step_fields.extension_venue.required %} <span class="text-red-600">*</span>{% endif %}
             </label>
             <input
                 type="text"
@@ -121,7 +127,10 @@
                 value="{{ extension_venue|default:'' }}"
                 {% if not is_edit_mode %}readonly{% endif %}
                 class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
-                placeholder="Enter venue or extension site">
+                placeholder="{{ step_fields.extension_venue.placeholder|default:'Enter venue or extension site' }}">
+            {% if step_fields.extension_venue.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ step_fields.extension_venue.help_text }}</p>
+            {% endif %}
         </div>
 
 

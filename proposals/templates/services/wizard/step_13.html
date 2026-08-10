@@ -3,9 +3,9 @@
 
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
-    <h2 class="text-xl leading-6 font-semibold text-gray-900">Objectives</h2>
+    <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
     <p class="text-sm leading-5 text-gray-600 mt-1">
-        Enter the general objective and the specific objectives of the proposed extension initiative.
+        {{ wizard_step_config.description }}
     </p>
 
     {% if is_edit_mode %}
@@ -73,7 +73,7 @@
 
         <div>
             <label for="general_objective" class="block text-sm font-semibold text-gray-900 mb-2">
-                General Objective
+                {{ step_fields.general_objective.label|default:"General Objective" }}{% if step_fields.general_objective.required %} <span class="text-red-600">*</span>{% endif %}
             </label>
             <textarea
                 id="general_objective"
@@ -81,7 +81,10 @@
                 rows="5"
                 {% if not is_edit_mode %}readonly{% endif %}
                 class="w-full min-h-[140px] rounded-2xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
-                placeholder="Enter the general objective...">{{ general_objective|default:'' }}</textarea>
+                placeholder="{{ step_fields.general_objective.placeholder|default:'Enter the general objective...' }}">{{ general_objective|default:'' }}</textarea>
+            {% if step_fields.general_objective.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ step_fields.general_objective.help_text }}</p>
+            {% endif %}
         </div>
 
         {% if proposal.scope_type == "PROGRAM" %}
