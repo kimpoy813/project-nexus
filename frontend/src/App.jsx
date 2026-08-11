@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import nexusLogo from '/logo-128.png'
+import nexusLogo from '/nexus-logo-new-128.png'
 import './App.css'
 
 function App() {
