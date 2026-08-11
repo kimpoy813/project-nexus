@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
+  <title>NExUS logo</title>
+  <desc>Rounded "Ni" monogram in the NExUS forest-green gradient.</desc>
+  <defs>
+    <linearGradient id="nexusGreen" gradientUnits="userSpaceOnUse"
+                    x1="860" y1="150" x2="240" y2="880">
+      <stop offset="0" stop-color="#43b81f"/>
+      <stop offset="0.45" stop-color="#2d9417"/>
+      <stop offset="1" stop-color="#11600a"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#nexusGreen)" stroke-width="172"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M278 722 L278 290 L712 722 L712 440"/>
+  </g>
+  <circle cx="712" cy="260" r="80" fill="url(#nexusGreen)"/>
+</svg>
