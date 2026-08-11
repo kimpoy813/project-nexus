@@ -18,6 +18,58 @@
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
+    <!-- Logo Loading Animation Styles -->
+    <style>
+        #nexus-loader {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            flex-direction: column;
+        }
+        #nexus-loader.hidden { display: none !important; }
+        .nexus-loader-logo {
+            width: 120px;
+            height: 120px;
+            animation: nexusLogoEnter 1.6s cubic-bezier(0.23,1,0.32,1) forwards,
+                       nexusLogoPulse 2.2s ease-in-out 1.4s infinite;
+            filter: drop-shadow(0 0 35px rgba(16,59,7,0.5));
+        }
+        .nexus-loader-text {
+            margin-top: 1.25rem;
+            color: #e2e8f0;
+            font-size: 1.35rem;
+            font-weight: 800;
+            letter-spacing: -.02em;
+        }
+        .nexus-loader-bar {
+            width: 180px;
+            height: 3px;
+            background: #334155;
+            border-radius: 999px;
+            margin-top: 1.75rem;
+            overflow: hidden;
+        }
+        .nexus-loader-progress {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(to right, #103b07, #5a1113);
+            animation: nexusProgress 2s cubic-bezier(0.23,1,0.32,1) forwards;
+        }
+        @keyframes nexusLogoEnter {
+            0% { opacity:0; transform: scale(0.4) rotate(-18deg); }
+            65% { opacity:1; transform: scale(1.12) rotate(6deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes nexusLogoPulse {
+            0%,100%{transform:scale(1)}50%{transform:scale(1.07)}
+        }
+        @keyframes nexusProgress { to { width: 100%; } }
+    </style>
+
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
 
@@ -45,6 +97,15 @@
 </head>
 
 <body class="bg-gray-50 text-gray-800 font-sans">
+    <!-- NExUS Logo Loading Screen -->
+    <div id="nexus-loader">
+        <img src="{% static 'images/nexus-logo-128.png' %}" 
+             alt="NExUS Logo" 
+             class="nexus-loader-logo">
+        <div class="nexus-loader-text">NExUS</div>
+        <div class="nexus-loader-bar"><div class="nexus-loader-progress"></div></div>
+    </div>
+
     <a href="#main-content" class="skip-link">Skip to content</a>
 
     <!-- Toast Container -->
@@ -86,10 +147,7 @@
                                     @keydown.escape.window="openNotif = false"
                                     class="nexus-icon-button relative"
                                     aria-label="Notifications">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M10 2a6 6 0 00-6 6v2.586l-.707.707A1 1 0 004 13h12a1 1 0 00.707-1.707L16 10.586V8a6 6 0 00-6-6z"/>
-                                    <path d="M10 18a3 3 0 01-2.995-2.824L7 15h6a3 3 0 01-3 3z"/>
-                                </svg>
+                                🔔
 
                                 {% if nav_notif_count %}
                                     <span class="absolute -top-1 -right-1 min-w-[19px] h-[19px] px-1 rounded-full bg-red-600 text-white text-[10px] font-black leading-[19px] text-center shadow-sm">
@@ -347,6 +405,12 @@
         });
 
         AOS.init({ duration: 700, once: true });
+
+        // Hide the logo loader after animation
+        setTimeout(() => {
+            const loader = document.getElementById('nexus-loader');
+            if (loader) loader.classList.add('hidden');
+        }, 2350);
 
         (function () {
             const IDLE_LIMIT_MS = 30 * 60 * 1000;
