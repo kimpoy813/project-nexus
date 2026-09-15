@@ -37,7 +37,7 @@
           <input name="name"
                  value="{% if mode == 'edit' %}{{ campus.name }}{% else %}{{ request.POST.name|default:'' }}{% endif %}"
                  required
-                 class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                 class="nx-input w-full"
                  placeholder="Main Campus">
         </div>
 

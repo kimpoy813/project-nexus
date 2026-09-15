@@ -85,7 +85,7 @@ body {
    so pages written with plain markup (or old Tailwind combos) still look
    native. Utility classes always beat these (higher specificity).
    -------------------------------------------------------------------------- */
-input[type="text"], input[type="email"], input[type="password"],
+input:not([type]), input[type="text"], input[type="email"], input[type="password"],
 input[type="number"], input[type="date"], input[type="datetime-local"],
 input[type="search"], input[type="tel"], input[type="url"],
 input[type="time"], select, textarea {

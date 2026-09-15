@@ -88,7 +88,7 @@
                         id="sex_male"
                         value="{{ proposal.sex_male|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -101,7 +101,7 @@
                         id="sex_female"
                         value="{{ proposal.sex_female|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -112,7 +112,7 @@
                         id="sex_total"
                         value="{{ sex_total }}"
                         readonly
-                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+                        class="nx-input w-full bg-gray-50">
                 </div>
             </div>
         </div>
@@ -135,7 +135,7 @@
                         id="g_lesbian"
                         value="{{ proposal.g_lesbian|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -148,7 +148,7 @@
                         id="g_gay"
                         value="{{ proposal.g_gay|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -161,7 +161,7 @@
                         id="g_bisexual"
                         value="{{ proposal.g_bisexual|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -174,7 +174,7 @@
                         id="g_transgender"
                         value="{{ proposal.g_transgender|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -187,7 +187,7 @@
                         id="g_straight"
                         value="{{ proposal.g_straight|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -200,7 +200,7 @@
                         id="g_others"
                         value="{{ proposal.g_others|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
             </div>
@@ -212,7 +212,7 @@
                     id="gender_total"
                     value="{{ gender_total }}"
                     readonly
-                    class="w-full md:w-64 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+                    class="nx-input w-full md:w-64 bg-gray-50">
             </div>
         </div>
 

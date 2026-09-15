@@ -85,7 +85,7 @@
                     name="budgetary_requirement"
                     value="{{ budgetary_requirement|default:'' }}"
                     {% if not is_edit_mode %}readonly{% endif %}
-                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                    class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                     placeholder="{{ step_fields.budgetary_requirement.placeholder|default:'e.g. Candon City LGU Fund or CTE Fund 30,000' }}"
                 >
             </div>

@@ -194,7 +194,7 @@
                             {% csrf_token %}
                             <input type="hidden" name="action" value="legal_review">
                             <textarea name="remarks" rows="2" placeholder="Optional remarks…"
-                                      class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary mb-3 resize-none"></textarea>
+                                      class="nx-input w-full mb-3 resize-none"></textarea>
                             <button type="submit"
                                     class="nx-btn nx-btn--primary nx-btn--sm w-full flex items-center justify-center gap-2">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -216,7 +216,7 @@
                                 <input type="hidden" name="action" value="for_revision">
                                 <textarea name="remarks" rows="3" required
                                           placeholder="Revision comments — required. The proponent will see this."
-                                          class="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-xs focus:border-orange-400 mb-2 resize-none"></textarea>
+                                          class="nx-input nx-input--sm w-full mb-2 resize-none"></textarea>
                                 <button type="submit"
                                         class="nx-btn nx-btn--warn nx-btn--sm w-full flex items-center justify-center gap-2">
                                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -233,7 +233,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="certification_ready">
                                 <textarea name="remarks" rows="2" placeholder="Optional remarks…"
-                                          class="w-full rounded-lg border border-green-200 bg-white px-3 py-2 text-xs focus:border-green-400 mb-2 resize-none"></textarea>
+                                          class="nx-input nx-input--sm w-full mb-2 resize-none"></textarea>
                                 <button type="submit"
                                         class="nx-btn nx-btn--primary nx-btn--sm w-full flex items-center justify-center gap-2">
                                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -260,7 +260,7 @@
                             {% csrf_token %}
                             <input type="hidden" name="action" value="agenda">
                             <textarea name="remarks" rows="2" placeholder="Optional remarks…"
-                                      class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary mb-3 resize-none"></textarea>
+                                      class="nx-input w-full mb-3 resize-none"></textarea>
                             <button type="submit"
                                     class="nx-btn nx-btn--primary nx-btn--sm w-full flex items-center justify-center gap-2">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -278,7 +278,7 @@
                             {% csrf_token %}
                             <input type="hidden" name="action" value="complete">
                             <textarea name="remarks" rows="2" placeholder="Optional remarks…"
-                                      class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:ring-primary mb-3 resize-none"></textarea>
+                                      class="nx-input w-full mb-3 resize-none"></textarea>
                             <button type="submit"
                                     class="nx-btn nx-btn--primary nx-btn--sm w-full flex items-center justify-center gap-2">
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">

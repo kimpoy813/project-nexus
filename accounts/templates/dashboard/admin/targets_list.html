@@ -11,7 +11,7 @@
     </div>
 
     <form method="GET" class="mb-4 flex gap-2 items-center">
-        <select name="year" class="nx-input bg-white">
+        <select name="year" class="nx-input">
         {% for y in years %}
             <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
         {% endfor %}

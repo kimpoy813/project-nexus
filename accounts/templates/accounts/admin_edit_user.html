@@ -42,7 +42,7 @@
                         id="username"
                         name="username"
                         value="{{ edit_user.username }}"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                 </div>
 
@@ -55,7 +55,7 @@
                         id="email"
                         name="email"
                         value="{{ edit_user.email }}"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                 </div>
 
@@ -68,7 +68,7 @@
                         id="full_name"
                         name="full_name"
                         value="{{ edit_profile.full_name }}"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                 </div>
 
@@ -79,7 +79,7 @@
                     <select
                         id="role"
                         name="role"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                         {% for value, label in role_choices %}
                             <option value="{{ value }}" {% if edit_profile.role == value %}selected{% endif %}>
@@ -96,7 +96,7 @@
                     <select
                         id="id_campus"
                         name="campus"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                         <option value="">Select Campus</option>
                         <option value="Candon" {% if edit_profile.campus == "Candon" %}selected{% endif %}>Candon</option>
@@ -116,7 +116,7 @@
                     <select
                         id="id_college"
                         name="college"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                         <option value="{{ edit_profile.college|default:'' }}" selected>
                             {% if edit_profile.college %}{{ edit_profile.college }}{% else %}Select College (Optional){% endif %}
@@ -132,7 +132,7 @@
                     <select
                         id="id_department"
                         name="department"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                         <option value="{{ edit_profile.department|default:'' }}" selected>
                             {% if edit_profile.department %}{{ edit_profile.department }}{% else %}Select Department (Optional){% endif %}
@@ -150,7 +150,7 @@
                         id="password"
                         name="password"
                         placeholder="Leave blank to keep current password"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        class="nx-input w-full"
                     >
                 </div>
             </div>

@@ -83,7 +83,7 @@
                             name="methodologies[]"
                             rows="2"
                             {% if not is_edit_mode %}readonly{% endif %}
-                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-methodology {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                            class="nx-input w-full resize-none overflow-hidden auto-resize-methodology {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                             placeholder="Enter a methodology item...">{{ item }}</textarea>
 
                         {% if is_edit_mode %}
@@ -101,7 +101,7 @@
                             name="methodologies[]"
                             rows="2"
                             {% if not is_edit_mode %}readonly{% endif %}
-                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-methodology {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                            class="nx-input w-full resize-none overflow-hidden auto-resize-methodology {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                             placeholder="Enter a methodology item..."></textarea>
 
                         {% if is_edit_mode %}
@@ -197,7 +197,7 @@
             <textarea
                 name="methodologies[]"
                 rows="2"
-                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden auto-resize-methodology"
+                class="nx-input w-full resize-none overflow-hidden auto-resize-methodology"
                 placeholder="Enter a methodology item..."></textarea>
             <button type="button"
                     class="nx-btn shrink-0 border-gray-300"

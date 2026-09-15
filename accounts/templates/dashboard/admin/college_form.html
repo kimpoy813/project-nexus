@@ -36,7 +36,7 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Campus</label>
           <select name="campus" required
-                  class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary">
+                  class="nx-input w-full">
             <option value="">Select Campus</option>
             {% for c in campuses %}
               <option value="{{ c.id }}" {% if mode == 'edit' and college.campus_id == c.id %}selected{% endif %}>{{ c.name }}</option>
@@ -49,7 +49,7 @@
           <input name="name"
                  value="{% if mode == 'edit' %}{{ college.name }}{% else %}{{ request.POST.name|default:'' }}{% endif %}"
                  required
-                 class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+                 class="nx-input w-full"
                  placeholder="College of Computing">
         </div>
 
