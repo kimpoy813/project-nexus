@@ -1,0 +1,16 @@
+{% comment %}
+  Compact horizontal lifecycle trail shown above the wizard.
+  Uses `wizard_steps` (a list of step dicts with .no, .short_label|.title, .state).
+{% endcomment %}
+<ol class="nx-trail" aria-label="Proposal progress">
+  {% for s in wizard_steps %}
+    <li class="nx-trail__step
+        {% if s.state == 'completed' %}is-done{% elif s.state == 'current' %}is-current{% else %}is-pending{% endif %}">
+      <span class="nx-dot
+        {% if s.state == 'completed' %}nx-dot--green
+        {% elif s.state == 'current' %}nx-dot--blue
+        {% else %}nx-dot--gray{% endif %}"></span>
+      <span>{% if s.short_label %}{{ s.short_label }}{% else %}Step {{ s.no }}{% endif %}</span>
+    </li>
+  {% endfor %}
+</ol>

@@ -1,146 +1,43 @@
 {% extends "dashboard/_base.html" %}
+{% load static %}
 
-{% block page_title %}Campus Coordinator{% endblock %}
-{% block page_subtitle %}Review campus-level proposals and submit quarterly accomplishment reports.{% endblock %}
+{% block breadcrumb_current %}Campus{% endblock %}
+{% block page_title %}Campus inbox{% endblock %}
+{% block page_subtitle %}{{ review_queue_count|default:"0" }} proposal{{ review_queue_count|pluralize }} awaiting campus review · {{ pending_review_count|default:"0" }} in active review{% endblock %}
 
-{% block rail_items %}
-<div class="nx-rail__section">Campus</div>
-<button class="nx-rail__item active" data-tab="overview">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></span>
-    Overview
-</button>
-<button class="nx-rail__item" data-tab="queue">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-    Review Queue
-    {% if review_queue_count %}<span class="nx-rail__badge">{{ review_queue_count }}</span>{% endif %}
-</button>
-
-<div class="nx-rail__section">My Proposals</div>
-<button class="nx-rail__item" data-tab="mine">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
-    My Portfolio
-</button>
-
-<div class="nx-rail__section">Reports</div>
-<a href="{% url 'accomplishment_reports_list' %}" class="nx-rail__item">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg></span>
-    Accomplishments
-</a>
-{% endblock %}
-
-{% block kpi_strip %}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 nx-fade">
-    <div class="nx-kpi nx-kpi--red"><p class="nx-kpi__label">Pending Review</p><p class="nx-kpi__value">{{ review_queue_count|default:0 }}</p><p class="nx-kpi__hint">Campus</p></div>
-    <div class="nx-kpi nx-kpi--gray"><p class="nx-kpi__label">Drafts</p><p id="draft-count" class="nx-kpi__value">{{ draft_count|default:0 }}</p></div>
-    <div class="nx-kpi nx-kpi--green"><p class="nx-kpi__label">Proposal Phase</p><p class="nx-kpi__value">{{ proposal_phase_count|default:0 }}</p></div>
-    <div class="nx-kpi nx-kpi--purple"><p class="nx-kpi__label">Completed</p><p class="nx-kpi__value">{{ completed_phase_count|default:0 }}</p></div>
-</div>
+{% block page_actions %}
+<a href="{% url 'proposal_create' %}" class="nx-btn nx-btn--primary">New proposal</a>
 {% endblock %}
 
 {% block dashboard_content %}
 
-<section class="dashboard-tab-panel" data-tab-panel="overview">
-<div class="space-y-5">
-    <div class="nx-card nx-fade a1">
-        <div class="nx-card__head">
-            <div>
-                <p class="nx-card__title">Campus Review Queue</p>
-                <p class="nx-card__sub">Proposals from your campus awaiting review.</p>
-            </div>
-            <button class="nx-btn nx-btn--sm" data-target-tab="queue">Open Queue →</button>
-        </div>
-        <div class="nx-card__body">
-            {% if review_queue %}
-            <div class="space-y-2">
-                {% for p in review_queue|slice:":6" %}
-                <div class="nx-prop-row">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">{{ p.title|default:p.research_title|default:"Untitled" }}</p>
-                        <p class="text-[11px] text-gray-500 mt-0.5">{{ p.created_by.profile.full_name|default:p.created_by.username }}</p>
-                    </div>
-                    <span class="nx-badge nx-badge--info">Review</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-center text-sm text-gray-500 py-4">No pending campus reviews.</p>
-            {% endif %}
-        </div>
-    </div>
+<div class="nx-bento">
+  <div class="nx-stat"><div class="nx-stat__label">For campus review</div><div class="nx-stat__value">{{ review_queue_count|default:"0" }}</div><div class="nx-stat__meta">Endorsed by departments</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">In active review</div><div class="nx-stat__value">{{ pending_review_count|default:"0" }}</div><div class="nx-stat__meta">At campus level</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">My drafts</div><div class="nx-stat__value">{{ draft_count|default:"0" }}</div><div class="nx-stat__meta">As proponent</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">Approved (mine)</div><div class="nx-stat__value">{{ approved_count|default:"0" }}</div><div class="nx-stat__meta">All time</div></div>
 </div>
-</section>
 
-<section class="dashboard-tab-panel hidden" data-tab-panel="queue">
-<div class="nx-card">
-    <div class="nx-card__head"><p class="nx-card__title">Campus Review Queue</p></div>
-    <div class="nx-card__body">
-        {% if review_queue %}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {% for p in review_queue %}
-            <article class="nx-ext-card">
-                <div class="flex items-start justify-between gap-2 mb-2">
-                    <h3 class="text-sm font-bold text-gray-900 line-clamp-2 flex-1">{{ p.title|default:p.research_title|default:"Untitled" }}</h3>
-                    <span class="nx-badge nx-badge--info shrink-0">Review</span>
-                </div>
-                <p class="text-xs text-gray-500 mb-2">{{ p.created_by.profile.full_name|default:p.created_by.username }}</p>
-                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div><p class="text-[10px] font-bold uppercase text-gray-400">Dept</p><p class="text-gray-700">{{ p.campus|default:"—" }}</p></div>
-                    <div><p class="text-[10px] font-bold uppercase text-gray-400">Submitted</p><p class="text-gray-700">{% if p.submitted_at %}{{ p.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p></div>
-                </div>
-                <div class="flex gap-2">
-                    <a href="{% url 'proposal_review_comments' p.id 1 %}" class="nx-btn nx-btn--sm flex-1">Comments</a>
-                    <a href="{% url 'proposal_wizard' p.id 1 %}" class="nx-btn nx-btn--sm nx-btn--primary flex-1">Review</a>
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="nx-empty"><p class="text-gray-500">Queue is clear.</p></div>
-        {% endif %}
-    </div>
+<div class="nx-panel" style="margin-top:1rem;">
+  <div class="nx-panel__head"><h2 class="nx-panel__title">Awaiting campus review</h2></div>
+  <div class="nx-table-wrap">
+    <table class="nx-table">
+      <thead><tr><th style="width:44%;">Proposal</th><th>Proponent</th><th>Status</th><th>Updated</th><th style="width:90px;text-align:right;"></th></tr></thead>
+      <tbody>
+        {% for p in review_queue|slice:":10" %}
+        <tr class="is-unread">
+          <td class="nx-line-clamp-1"><span class="font-medium">{{ p.title|default:"Untitled" }}</span></td>
+          <td class="text-sm">{{ p.created_by.profile.full_name|default:p.created_by.username }}</td>
+          <td>{% include "proposals/includes/status_pill.html" with status=p.proposal_status %}</td>
+          <td class="text-xs" style="color:var(--nx-muted);">{{ p.last_saved_at|timesince }} ago</td>
+          <td style="text-align:right;"><a href="{% url 'proposal_review_comments' p.id 1 %}" class="nx-btn nx-btn--ghost nx-btn--sm">Review</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center" style="padding:2rem;color:var(--nx-muted);">Nothing awaiting campus review.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-</section>
 
-<section class="dashboard-tab-panel hidden" data-tab-panel="mine">
-<div class="nx-card">
-    <div class="nx-card__head"><p class="nx-card__title">My Proposals</p></div>
-    <div class="nx-card__body">
-        {% if all_proposals %}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {% for item in all_proposals %}
-            <article class="nx-ext-card">
-                <div class="flex items-start justify-between gap-2 mb-2">
-                    <h3 class="text-sm font-bold text-gray-900 line-clamp-2 flex-1">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled" }}</h3>
-                    {% if item.is_draft %}<span class="nx-badge nx-badge--muted">Draft</span>
-                    {% elif item.process_label == 'MOA' %}<span class="nx-badge nx-badge--danger">MOA</span>
-                    {% elif item.process_label == 'Implementation' %}<span class="nx-badge nx-badge--info">Impl.</span>
-                    {% elif item.process_label == 'Completed' %}<span class="nx-badge nx-badge--purple">Done</span>
-                    {% else %}<span class="nx-badge nx-badge--ok">Proposal</span>{% endif %}
-                </div>
-                <p class="text-xs text-gray-500 mb-2">{{ item.status_label }}</p>
-                <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    {% if item.is_draft %}<a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="nx-btn nx-btn--sm nx-btn--primary">Continue</a>
-                    {% else %}<a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="nx-btn nx-btn--sm nx-btn--primary">View</a>{% endif %}
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="nx-empty"><p class="text-gray-500">No proposals yet.</p></div>
-        {% endif %}
-    </div>
-</div>
-</section>
-
-{% endblock %}
-
-{% block extra_dashboard_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded',()=>{
-  function a(n){document.querySelectorAll('.nx-rail__item[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));document.querySelectorAll('.dashboard-tab-panel').forEach(p=>p.classList.toggle('hidden',p.dataset.tabPanel!==n));localStorage.setItem('campusTab',n);}
-  const s=new URLSearchParams(window.location.search).get('tab')||localStorage.getItem('campusTab')||'overview';
-  a(s);document.querySelectorAll('.nx-rail__item[data-tab]').forEach(b=>b.addEventListener('click',()=>{a(b.dataset.tab);window.scrollTo({top:0,behavior:'smooth'});}));
-  document.querySelectorAll('[data-target-tab]').forEach(b=>b.addEventListener('click',()=>{a(b.dataset.targetTab);window.scrollTo({top:0,behavior:'smooth'});}));
-});
-</script>
 {% endblock %}

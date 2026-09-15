@@ -1,163 +1,44 @@
 {% extends "dashboard/_base.html" %}
+{% load static %}
 
-{% block page_title %}Evaluator Workspace{% endblock %}
-{% block page_subtitle %}Review proposals assigned to you for technical evaluation.{% endblock %}
+{% block breadcrumb_current %}Evaluations{% endblock %}
+{% block page_title %}Evaluation inbox{% endblock %}
+{% block page_subtitle %}{{ assigned_review_count|default:"0" }} active assignment{{ assigned_review_count|pluralize }} · {{ draft_count|default:"0" }} of your own draft{{ draft_count|pluralize }}{% endblock %}
 
-{% block rail_items %}
-<div class="nx-rail__section">Reviews</div>
-<button type="button" class="nx-rail__item active" data-tab="assigned">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-    Assigned to Me
-    {% if assigned_review_count %}<span class="nx-rail__badge">{{ assigned_review_count }}</span>{% endif %}
-</button>
-
-<div class="nx-rail__section">My Proposals</div>
-<button type="button" class="nx-rail__item" data-tab="mine">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-    My Submissions
-</button>
-<button type="button" class="nx-rail__item" data-tab="drafts">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
-    Drafts
-</button>
-{% endblock %}
-
-{% block kpi_strip %}
-<div class="grid grid-cols-2 md:grid-cols-5 gap-3 nx-fade">
-    <div class="nx-kpi nx-kpi--gray"><p class="nx-kpi__label">Drafts</p><p id="draft-count" class="nx-kpi__value">{{ draft_count|default:0 }}</p></div>
-    <div class="nx-kpi nx-kpi--green"><p class="nx-kpi__label">Submitted</p><p class="nx-kpi__value">{{ submitted_count|default:0 }}</p></div>
-    <div class="nx-kpi nx-kpi--blue"><p class="nx-kpi__label">Under Review</p><p class="nx-kpi__value">{{ under_review_count|default:0 }}</p></div>
-    <div class="nx-kpi nx-kpi--purple"><p class="nx-kpi__label">Approved</p><p class="nx-kpi__value">{{ approved_count|default:0 }}</p></div>
-    <div class="nx-kpi nx-kpi--red"><p class="nx-kpi__label">Assigned</p><p class="nx-kpi__value">{{ assigned_review_count|default:0 }}</p><p class="nx-kpi__hint">To evaluate</p></div>
-</div>
+{% block page_actions %}
+<a href="{% url 'proposal_create' %}" class="nx-btn nx-btn--primary">New proposal</a>
 {% endblock %}
 
 {% block dashboard_content %}
 
-<!-- Assigned tab -->
-<section class="dashboard-tab-panel" data-tab-panel="assigned">
-<div class="nx-card nx-fade a1">
-    <div class="nx-card__head">
-        <div>
-            <p class="nx-card__title">Assigned for Evaluation</p>
-            <p class="nx-card__sub">Proposals the Director has assigned you to review. Add your comments step-by-step.</p>
-        </div>
-    </div>
-    <div class="nx-card__body">
-        {% if assigned_review_queue %}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {% for p in assigned_review_queue %}
-            <article class="nx-ext-card">
-                <div class="flex items-start justify-between gap-2 mb-2">
-                    <h3 class="text-sm font-bold text-gray-900 line-clamp-2 flex-1">{{ p.title|default:p.research_title|default:"Untitled" }}</h3>
-                    {% if p.proposal_status == 'IN_REVIEW' %}<span class="nx-badge nx-badge--info shrink-0">In Review</span>
-                    {% elif p.proposal_status == 'FOR_REVISION' %}<span class="nx-badge nx-badge--danger shrink-0">Revision</span>
-                    {% else %}<span class="nx-badge nx-badge--ok shrink-0">Submitted</span>{% endif %}
-                </div>
-                <p class="text-xs text-gray-500 mb-3">{{ p.get_scope_type_display|default:"Proposal" }}</p>
-                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div><p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Proponent</p><p class="text-gray-700 mt-0.5 line-clamp-1">{{ p.created_by.profile.full_name|default:p.created_by.username }}</p></div>
-                    <div><p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Campus</p><p class="text-gray-700 mt-0.5">{{ p.campus|default:"—" }}</p></div>
-                </div>
-                <div class="flex gap-2">
-                    <a href="{% url 'proposal_review_comments' p.id 1 %}" class="nx-btn nx-btn--sm flex-1">Summary</a>
-                    <a href="{% url 'proposal_wizard' p.id 1 %}" class="nx-btn nx-btn--sm nx-btn--primary flex-1">Evaluate →</a>
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <div class="nx-empty">
-            <div class="nx-empty__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-            <p class="font-semibold text-gray-900">No assigned reviews</p>
-            <p class="text-sm text-gray-500 mt-1">The Director will assign proposals here.</p>
-        </div>
-        {% endif %}
-    </div>
+<div class="nx-bento">
+  <div class="nx-stat"><div class="nx-stat__label">To evaluate</div><div class="nx-stat__value">{{ assigned_review_count|default:"0" }}</div><div class="nx-stat__meta">Active assignments</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">My drafts</div><div class="nx-stat__value">{{ draft_count|default:"0" }}</div><div class="nx-stat__meta">As proponent</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">In review</div><div class="nx-stat__value">{{ under_review_count|default:"0" }}</div><div class="nx-stat__meta">My submissions</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">Approved</div><div class="nx-stat__value">{{ approved_count|default:"0" }}</div><div class="nx-stat__meta">My proposals</div></div>
 </div>
-</section>
 
-<!-- My Submissions -->
-<section class="dashboard-tab-panel hidden" data-tab-panel="mine">
-<div class="nx-card">
-    <div class="nx-card__head"><p class="nx-card__title">My Submitted Proposals</p></div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr><th>Title</th><th>Type</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody>
-                {% for p in submitted_proposals %}
-                <tr>
-                    <td><div class="font-semibold max-w-sm truncate">{{ p.title|default:p.research_title|default:"Untitled" }}</div></td>
-                    <td class="text-sm text-gray-700">{{ p.get_extension_type_display|default:"—" }}</td>
-                    <td class="text-sm text-gray-700">{% if p.submitted_at %}{{ p.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</td>
-                    <td><span class="nx-badge nx-badge--info">{{ p.current_status_label|default:p.get_proposal_status_display }}</span></td>
-                    <td><a href="{% url 'proposal_wizard' p.id 1 %}?readonly=1" class="nx-btn nx-btn--sm nx-btn--primary">View</a></td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="5" class="text-center py-8 text-gray-500">No submitted proposals.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="nx-panel" style="margin-top:1rem;">
+  <div class="nx-panel__head"><h2 class="nx-panel__title">Assigned for evaluation</h2></div>
+  <div class="nx-table-wrap">
+    <table class="nx-table">
+      <thead><tr><th style="width:44%;">Proposal</th><th>Proponent</th><th>Assigned</th><th style="width:110px;text-align:right;">Action</th></tr></thead>
+      <tbody>
+        {% for a in assigned_review_queue %}
+        <tr class="is-unread">
+          <td class="nx-line-clamp-1"><span class="font-medium">{{ a.proposal.title|default:"Proposal" }}</span></td>
+          <td class="text-sm">{{ a.proposal.created_by.profile.full_name|default:a.proposal.created_by.username }}</td>
+          <td class="text-xs" style="color:var(--nx-muted);">{{ a.assigned_at|timesince }} ago</td>
+          <td style="text-align:right;">
+            <a href="{% url 'proposal_review_comments' a.proposal.id 1 %}" class="nx-btn nx-btn--ghost nx-btn--sm">Review</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="text-center" style="padding:2rem;color:var(--nx-muted);">No assignments.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-</section>
 
-<!-- Drafts -->
-<section class="dashboard-tab-panel hidden" data-tab-panel="drafts">
-<div class="nx-card">
-    <div class="nx-card__head"><p class="nx-card__title">My Drafts</p></div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr><th>Title</th><th>Last Saved</th><th>Action</th></tr></thead>
-            <tbody id="drafts-tbody">
-                {% for p in drafts %}
-                <tr id="draft-row-{{ p.id }}">
-                    <td><div class="font-semibold max-w-sm truncate">{{ p.title|default:p.research_title|default:"Untitled Draft" }}</div></td>
-                    <td class="text-sm text-gray-700">{{ p.last_saved_at|date:"M d, Y h:i A" }}</td>
-                    <td class="flex gap-2">
-                        <a href="{% url 'proposal_wizard' p.id 1 %}" class="nx-btn nx-btn--sm nx-btn--primary">Continue</a>
-                        {% if p.created_by == request.user %}
-                        <button onclick="openDeleteModal('{{ p.id }}','{% url 'faculty_delete_draft' p.id %}','{{ p.title|default:p.research_title|default:'Untitled'|escapejs }}')" class="nx-btn nx-btn--sm nx-btn--danger">Delete</button>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr id="drafts-empty-row"><td colspan="3" class="text-center py-8 text-gray-500">No drafts.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-</section>
-
-{% endblock %}
-
-{% block extra_dashboard_scripts %}
-<div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
-    <div class="relative flex min-h-full items-center justify-center p-4">
-        <div class="w-full max-w-md nx-card overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100"><h3 class="text-base font-bold">Delete Draft</h3><p class="text-sm text-gray-500 mt-0.5">Cannot be undone.</p></div>
-            <div class="px-5 py-4"><p class="text-sm text-gray-600">Delete <span id="deleteDraftTitle" class="font-bold"></span>?</p></div>
-            <div class="flex justify-end gap-2 border-t border-gray-100 bg-gray-50 px-5 py-3">
-                <button onclick="closeDeleteModal()" class="nx-btn nx-btn--sm">Cancel</button>
-                <button id="confirmDeleteDraftBtn" class="nx-btn nx-btn--sm nx-btn--primary" style="background:var(--nx-danger);">Delete</button>
-            </div>
-        </div>
-    </div>
-</div>
-<script>
-function getCookie(n){let v=null;if(document.cookie)for(const c of document.cookie.split(';')){const t=c.trim();if(t.startsWith(n+'=')){v=decodeURIComponent(t.slice(n.length+1));break;}}return v;}
-let delState={};
-function openDeleteModal(id,u,t){delState={id,u};document.getElementById('deleteDraftTitle').textContent=`"${t}"`;document.getElementById('deleteDraftModal').classList.remove('hidden');document.body.classList.add('overflow-hidden');}
-function closeDeleteModal(){document.getElementById('deleteDraftModal').classList.add('hidden');document.body.classList.remove('overflow-hidden');delState={};}
-async function deleteDraft(){try{const r=await fetch(delState.u,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const d=await r.json();if(!d.ok){alert(d.message||'Failed');return;}document.getElementById('draft-row-'+delState.id)?.remove();const c=document.getElementById('draft-count');if(c)c.textContent=Math.max(0,(parseInt(c.textContent)||0)-1);closeDeleteModal();}catch(e){alert('Error.');}}
-document.getElementById('confirmDeleteDraftBtn')?.addEventListener('click',()=>{if(delState.id)deleteDraft();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDeleteModal();});
-document.addEventListener('DOMContentLoaded',()=>{
-  function a(n){document.querySelectorAll('.nx-rail__item[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));document.querySelectorAll('.dashboard-tab-panel').forEach(p=>p.classList.toggle('hidden',p.dataset.tabPanel!==n));localStorage.setItem('evalTab',n);}
-  const s=new URLSearchParams(window.location.search).get('tab')||localStorage.getItem('evalTab')||'assigned';
-  a(s);document.querySelectorAll('.nx-rail__item[data-tab]').forEach(b=>b.addEventListener('click',()=>{a(b.dataset.tab);window.scrollTo({top:0,behavior:'smooth'});}));
-});
-</script>
 {% endblock %}

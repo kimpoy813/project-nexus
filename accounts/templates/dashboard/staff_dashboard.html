@@ -1,259 +1,85 @@
 {% extends "dashboard/_base.html" %}
+{% load static %}
 
-{% block page_title %}Staff Operations{% endblock %}
-{% block page_subtitle %}Prepare summaries, verify signed proposals, and manage MOA processing.{% endblock %}
+{% block breadcrumb_current %}Staff{% endblock %}
+{% block page_title %}Staff operations{% endblock %}
+{% block page_subtitle %}{{ pending_count|default:"0" }} review summar{{ pending_count|pluralize:"y,ies" }} to draft · {{ signed_pending_count|default:"0" }} signed document{{ signed_pending_count|pluralize }} to verify · {{ moa_active_count|default:"0" }} MOA/MOU in progress{% endblock %}
 
-{% block rail_items %}
-<div class="nx-rail__section">Queues</div>
-<button type="button" class="nx-rail__item active" data-tab="overview">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg></span>
-    Overview
-</button>
-<button type="button" class="nx-rail__item" data-tab="summary">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></span>
-    Summaries
-    {% if pending_count or draft_count %}<span class="nx-rail__badge">{{ pending_count|add:draft_count }}</span>{% endif %}
-</button>
-<button type="button" class="nx-rail__item" data-tab="signed">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
-    Signed Docs
-    {% if signed_pending_count %}<span class="nx-rail__badge">{{ signed_pending_count }}</span>{% endif %}
-</button>
-<button type="button" class="nx-rail__item" data-tab="moa">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg></span>
-    MOA Workflow
-    {% if moa_active_count %}<span class="nx-rail__badge">{{ moa_active_count }}</span>{% endif %}
-</button>
-{% if can_view_accomplishment %}
-<div class="nx-rail__section">Reports</div>
-<a href="{% url 'accomplishment_reports_list' %}" class="nx-rail__item">
-    <span class="nx-rail__icon"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg></span>
-    Accomplishments
-</a>
-{% endif %}
-{% endblock %}
-
-{% block kpi_strip %}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 nx-fade">
-    <div class="nx-kpi nx-kpi--amber">
-        <p class="nx-kpi__label">Pending Summary</p>
-        <p class="nx-kpi__value">{{ pending_count|default:0 }}</p>
-        <p class="nx-kpi__hint">Not prepared yet</p>
-    </div>
-    <div class="nx-kpi nx-kpi--blue">
-        <p class="nx-kpi__label">Draft Summaries</p>
-        <p class="nx-kpi__value">{{ draft_count|default:0 }}</p>
-        <p class="nx-kpi__hint">Saved, not sent</p>
-    </div>
-    <div class="nx-kpi nx-kpi--green">
-        <p class="nx-kpi__label">Signed Docs</p>
-        <p class="nx-kpi__value">{{ signed_pending_count|default:0 }}</p>
-        <p class="nx-kpi__hint">Awaiting verification</p>
-    </div>
-    <div class="nx-kpi nx-kpi--purple">
-        <p class="nx-kpi__label">MOA Active</p>
-        <p class="nx-kpi__value">{{ moa_active_count|default:0 }}</p>
-        <p class="nx-kpi__hint">In MOA workflow</p>
-    </div>
-</div>
+{% block page_actions %}
+<a href="{% url 'proposal_create' %}" class="nx-btn nx-btn--primary">New proposal</a>
 {% endblock %}
 
 {% block dashboard_content %}
 
-<!-- Overview tab shows all queues stacked -->
-<section class="dashboard-tab-panel" data-tab-panel="overview">
-<div class="space-y-5">
-
-    <div class="nx-card nx-fade a1">
-        <div class="nx-card__head">
-            <div>
-                <p class="nx-card__title">Summary Preparation Queue</p>
-                <p class="nx-card__sub">Proposals marked ready for staff comment summary.</p>
-            </div>
-            <button type="button" class="nx-btn nx-btn--sm" data-target-tab="summary">View All →</button>
-        </div>
-        <div class="nx-card__body">
-            {% if summary_queue %}
-            <div class="space-y-2">
-                {% for p in summary_queue|slice:":5" %}
-                <div class="nx-prop-row">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900 truncate">{{ p.title|default:p.research_title|default:"Untitled" }}</p>
-                        <p class="text-[11px] text-gray-500 mt-0.5">{{ p.created_by.profile.full_name|default:p.created_by.username }} · {{ p.campus|default:"—" }}</p>
-                    </div>
-                    {% if p.has_draft_summary %}<span class="nx-badge nx-badge--info">Draft</span>{% else %}<span class="nx-badge nx-badge--warn">Pending</span>{% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="text-sm text-gray-500 text-center py-4">No proposals queued for summary.</p>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 nx-fade a2">
-        <div class="nx-card">
-            <div class="nx-card__head">
-                <div>
-                    <p class="nx-card__title">MOA Workflow</p>
-                    <p class="nx-card__sub">Active MOA items needing staff action.</p>
-                </div>
-                <button type="button" class="nx-btn nx-btn--sm" data-target-tab="moa">View All →</button>
-            </div>
-            <div class="nx-card__body">
-                {% if moa_queue %}
-                <div class="space-y-2">
-                    {% for s in moa_queue|slice:":5" %}
-                    <div class="nx-prop-row">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-900 truncate">{{ s.proposal.title|default:s.proposal.research_title|default:"Untitled" }}</p>
-                            <p class="text-[11px] text-gray-500 mt-0.5">{{ s.partner_name }}</p>
-                        </div>
-                        <a href="{% url 'proposal_moa_tracker' s.proposal.id %}" class="nx-btn nx-btn--sm">Open</a>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-sm text-gray-500 text-center py-4">No active MOA items.</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="nx-card">
-            <div class="nx-card__head">
-                <div>
-                    <p class="nx-card__title">Signed Proposals</p>
-                    <p class="nx-card__sub">Uploaded signed proposals awaiting verification.</p>
-                </div>
-                <button type="button" class="nx-btn nx-btn--sm" data-target-tab="signed">View All →</button>
-            </div>
-            <div class="nx-card__body">
-                {% if signed_queue %}
-                <div class="space-y-2">
-                    {% for d in signed_queue|slice:":5" %}
-                    <div class="nx-prop-row">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-semibold text-gray-900 truncate">{{ d.proposal.title|default:d.proposal.research_title|default:"Untitled" }}</p>
-                            <p class="text-[11px] text-gray-500 mt-0.5">{{ d.uploaded_at|date:"M d, Y" }}</p>
-                        </div>
-                        <a href="{% url 'staff_release_approval_documents' d.proposal.id %}" class="nx-btn nx-btn--sm">Review</a>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-sm text-gray-500 text-center py-4">No documents pending verification.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+<div class="nx-bento">
+  <div class="nx-stat"><div class="nx-stat__label">Summaries to draft</div><div class="nx-stat__value">{{ pending_count|default:"0" }}</div><div class="nx-stat__meta">No draft started</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">Summary drafts</div><div class="nx-stat__value">{{ draft_count|default:"0" }}</div><div class="nx-stat__meta">Ready to send</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">Signed uploads</div><div class="nx-stat__value">{{ signed_pending_count|default:"0" }}</div><div class="nx-stat__meta">Awaiting verification</div></div>
+  <div class="nx-stat"><div class="nx-stat__label">MOA / MOU</div><div class="nx-stat__value">{{ moa_active_count|default:"0" }}</div><div class="nx-stat__meta">{{ moa_draft_count|default:"0" }} in draft</div></div>
 </div>
-</section>
 
-<!-- Summary Queue tab -->
-<section class="dashboard-tab-panel hidden" data-tab-panel="summary">
-<div class="nx-card">
-    <div class="nx-card__head">
-        <p class="nx-card__title">Summary Preparation Queue</p>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr><th>Title</th><th>Proponent</th><th>Campus</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody>
-                {% for p in summary_queue %}
-                <tr>
-                    <td><div class="font-semibold max-w-sm truncate">{{ p.title|default:p.research_title|default:"Untitled" }}</div><div class="text-xs text-gray-400">Round {{ p.active_round_no|default:"1" }}</div></td>
-                    <td class="text-sm text-gray-700">{{ p.created_by.profile.full_name|default:p.created_by.username }}</td>
-                    <td class="text-sm text-gray-700">{{ p.campus|default:"—" }}</td>
-                    <td class="text-sm text-gray-700">{% if p.submitted_at %}{{ p.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</td>
-                    <td>{% if p.has_draft_summary %}<span class="nx-badge nx-badge--info">Draft</span>{% else %}<span class="nx-badge nx-badge--warn">Not Started</span>{% endif %}</td>
-                    <td><a href="{% url 'proposal_comment_summary' p.id %}" class="nx-btn nx-btn--sm nx-btn--primary">{% if p.has_draft_summary %}Edit{% else %}Prepare{% endif %}</a></td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center py-8 text-gray-500">Queue is clear.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<div class="nx-panel" style="margin-top:1rem;">
+  <div class="nx-panel__head"><h2 class="nx-panel__title">Review summary queue</h2></div>
+  <div class="nx-table-wrap">
+    <table class="nx-table">
+      <thead><tr><th style="width:44%;">Proposal</th><th>Proponent</th><th>Round</th><th>Status</th><th style="width:90px;text-align:right;"></th></tr></thead>
+      <tbody>
+        {% for p in summary_queue|slice:":10" %}
+        <tr class="{% if not p.has_draft_summary %}is-unread{% endif %}">
+          <td class="nx-line-clamp-1"><span class="font-medium">{{ p.title|default:"Untitled" }}</span></td>
+          <td class="text-sm">{{ p.created_by.profile.full_name|default:p.created_by.username }}</td>
+          <td class="text-xs" style="color:var(--nx-muted);">R{{ p.active_round_no|default:"1" }}</td>
+          <td>{% if p.has_draft_summary %}<span class="nx-pill nx-pill--warn">Draft ready</span>{% else %}<span class="nx-pill nx-pill--info">Pending</span>{% endif %}</td>
+          <td style="text-align:right;"><a href="{% url 'proposal_comment_summary' p.id %}" class="nx-btn nx-btn--ghost nx-btn--sm">Open</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center" style="padding:2rem;color:var(--nx-muted);">Inbox zero for summaries.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
-</section>
 
-<!-- Signed Docs tab -->
-<section class="dashboard-tab-panel hidden" data-tab-panel="signed">
-<div class="nx-card">
-    <div class="nx-card__head"><p class="nx-card__title">Signed Proposal Verification</p></div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr><th>Title</th><th>Proponent</th><th>Uploaded</th><th>Action</th></tr></thead>
-            <tbody>
-                {% for d in signed_queue %}
-                <tr>
-                    <td><div class="font-semibold max-w-sm truncate">{{ d.proposal.title|default:d.proposal.research_title|default:"Untitled" }}</div></td>
-                    <td class="text-sm text-gray-700">{{ d.proposal.created_by.profile.full_name|default:d.proposal.created_by.username }}</td>
-                    <td class="text-sm text-gray-700">{{ d.uploaded_at|date:"M d, Y" }}</td>
-                    <td class="flex gap-2">
-                        {% if d.file %}<a href="{{ d.file.url }}" target="_blank" class="nx-btn nx-btn--sm">View</a>{% endif %}
-                        <a href="{% url 'staff_release_approval_documents' d.proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">Review / Release</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="4" class="text-center py-8 text-gray-500">No documents pending.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="nx-grid nx-grid--2" style="margin-top:1rem;">
+  <div class="nx-panel">
+    <div class="nx-panel__head"><h2 class="nx-panel__title">Signed uploads to verify</h2></div>
+    <div class="nx-table-wrap">
+      <table class="nx-table">
+        <thead><tr><th>Proposal</th><th>Uploaded</th><th style="width:80px;text-align:right;"></th></tr></thead>
+        <tbody>
+          {% for d in signed_queue|slice:":6" %}
+          <tr>
+            <td class="nx-line-clamp-1 text-sm">{{ d.proposal.title|default:"Proposal" }}</td>
+            <td class="text-xs" style="color:var(--nx-muted);">{{ d.uploaded_at|timesince }} ago</td>
+            <td style="text-align:right;"><a href="{% url 'staff_release_approval_documents' d.proposal.id %}" class="nx-btn nx-btn--ghost nx-btn--sm">Verify</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center" style="padding:1.5rem;color:var(--nx-muted);">Nothing to verify.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-</div>
-</section>
+  </div>
 
-<!-- MOA tab -->
-<section class="dashboard-tab-panel hidden" data-tab-panel="moa">
-<div class="nx-card">
-    <div class="nx-card__head"><p class="nx-card__title">MOA Workflow Queue</p></div>
-    <div class="overflow-x-auto">
-        <table class="min-w-full">
-            <thead><tr><th>Title / Partner</th><th>Proponent</th><th>Uploaded</th><th>Stage</th><th>Next Action</th><th>Action</th></tr></thead>
-            <tbody>
-                {% for s in moa_queue %}
-                <tr>
-                    <td><div class="font-semibold max-w-xs truncate">{{ s.proposal.title|default:s.proposal.research_title|default:"Untitled" }}</div><div class="text-xs text-gray-500 truncate">{{ s.partner_name }}</div></td>
-                    <td class="text-sm text-gray-700">{{ s.proposal.created_by.profile.full_name|default:s.proposal.created_by.username }}</td>
-                    <td class="text-sm text-gray-700">{{ s.uploaded_at|date:"M d, Y" }}</td>
-                    <td>
-                        {% if s.proposal.moa_status == 'DRAFT' or s.proposal.moa_status == 'NOT_STARTED' %}<span class="nx-badge nx-badge--info">Draft</span>
-                        {% elif s.proposal.moa_status == 'LEGAL_REVIEW' %}<span class="nx-badge nx-badge--warn">Legal Review</span>
-                        {% elif s.proposal.moa_status == 'FOR_REVISION' %}<span class="nx-badge nx-badge--danger">Revision</span>
-                        {% elif s.proposal.moa_status == 'CERTIFICATION_READY' %}<span class="nx-badge nx-badge--ok">Cert Ready</span>
-                        {% elif s.proposal.moa_status == 'AGENDA_AND_PRESENTATION' %}<span class="nx-badge nx-badge--purple">Agenda</span>
-                        {% else %}<span class="nx-badge nx-badge--muted">{{ s.proposal.moa_status }}</span>{% endif %}
-                    </td>
-                    <td class="text-sm text-gray-600">{{ s.next_action_label }}</td>
-                    <td class="flex gap-1.5">
-                        {% if s.file_url %}<a href="{{ s.file_url }}" target="_blank" class="nx-btn nx-btn--sm">View</a>{% endif %}
-                        <a href="{% url 'proposal_moa_tracker' s.proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">Tracker</a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="6" class="text-center py-8 text-gray-500">No active MOA items.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+  <div class="nx-panel">
+    <div class="nx-panel__head"><h2 class="nx-panel__title">MOA / MOU queue</h2></div>
+    <div class="nx-table-wrap">
+      <table class="nx-table">
+        <thead><tr><th>Proposal</th><th>Partner</th><th style="width:80px;text-align:right;"></th></tr></thead>
+        <tbody>
+          {% for m in moa_queue|slice:":6" %}
+          <tr>
+            <td class="nx-line-clamp-1 text-sm">{{ m.proposal.title|default:"Proposal" }}</td>
+            <td class="text-xs" style="color:var(--nx-muted);">{{ m.partner_name|default:"—"|truncatechars:28 }}</td>
+            <td style="text-align:right;"><a href="{% url 'proposal_moa_tracker' m.proposal.id %}" class="nx-btn nx-btn--ghost nx-btn--sm">Open</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="text-center" style="padding:1.5rem;color:var(--nx-muted);">No active MOAs.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
 </div>
-</section>
 
-{% endblock %}
-
-{% block extra_dashboard_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded',()=>{
-  function activateTab(n){
-    document.querySelectorAll('.nx-rail__item[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===n));
-    document.querySelectorAll('.dashboard-tab-panel').forEach(p=>p.classList.toggle('hidden',p.dataset.tabPanel!==n));
-    localStorage.setItem('staffTab',n);
-  }
-  const saved=new URLSearchParams(window.location.search).get('tab')||localStorage.getItem('staffTab')||'overview';
-  activateTab(saved);
-  document.querySelectorAll('.nx-rail__item[data-tab]').forEach(b=>b.addEventListener('click',()=>{activateTab(b.dataset.tab);window.scrollTo({top:0,behavior:'smooth'});}));
-  document.querySelectorAll('[data-target-tab]').forEach(b=>b.addEventListener('click',()=>{activateTab(b.dataset.targetTab);window.scrollTo({top:0,behavior:'smooth'});}));
-});
-</script>
 {% endblock %}

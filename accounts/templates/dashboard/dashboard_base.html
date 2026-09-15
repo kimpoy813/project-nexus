@@ -1,8 +1,9 @@
-{% extends "base.html" %}
+{% extends "app_base.html" %}
 {% comment %}
-  Legacy dashboard base — kept so all admin/review/profile templates that
-  extend "dashboard/dashboard_base.html" keep working.  Those templates
-  provide their own full {% block content %} markup with inline shells,
-  so this base simply yields to whatever they define.
+  Thin shim kept for backwards compatibility with older templates that
+  extend "dashboard/dashboard_base.html" and define their own shell via
+  {% block content %}. Now extends the unified app shell and drops the
+  rendered content into {% block app_content %} so it picks up the sidebar
+  and topbar automatically.
 {% endcomment %}
-{% block content %}{% endblock %}
+{% block app_content %}{% block content %}{% endblock %}{% endblock %}

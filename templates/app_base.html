@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load static %}
+
+{# ──────────────────────────────────────────────────────────────────────
+   NExUS Authenticated App Shell
+   ────────────────────────────────────────────────────────────────────── #}
+
+{% block extra_head %}
+<style>
+  body { background: var(--nx-bg) !important; padding-top: 0 !important; }
+  .nexus-navbar, .nexus-footer { display: none !important; }
+  .nexus-shell { padding-top: 0 !important; min-height: 100vh; }
+  main#main-content { padding-top: 0 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nx-app-shell" data-nx-app>
+
+  {# ── SIDEBAR ─────────────────────────────────────────────────────── #}
+  <aside class="nx-sidebar" id="nx-sidebar">
+    <a href="/" class="nx-sidebar__brand" aria-label="NExUS Home">
+      <img src="{% static 'images/nexus-logo-128.png' %}" alt="NExUS">
+      <div>
+        <div class="nx-sidebar__brand-name">{{ site_control.short_name|default:"NExUS" }}</div>
+        <div class="nx-sidebar__brand-tag">Extension Office</div>
+      </div>
+    </a>
+
+    <nav class="flex-1 overflow-y-auto py-2 px-1.5">
+      {% block sidebar_items %}{% endblock %}
+    </nav>
+
+    <div class="nx-sidebar__footer">
+      {% if user.is_authenticated %}
+      <a href="{% url 'profile_view' %}" class="nx-user-chip" title="Profile">
+        <span class="nx-avatar">{{ request.user.username|first|upper }}</span>
+        <div class="min-w-0 flex-1">
+          <div class="nx-user-chip__name truncate">{{ request.user.profile.full_name|default:request.user.username }}</div>
+          <div class="nx-user-chip__role truncate">{{ request.user.profile.get_role_display|default:request.user.profile.role }}</div>
+        </div>
+      </a>
+      {% endif %}
+    </div>
+  </aside>
+
+  {# ── MAIN COLUMN ─────────────────────────────────────────────────── #}
+  <div class="nx-main">
+
+    <header class="nx-topbar">
+      {% block breadcrumbs %}
+      <nav class="nx-breadcrumb">
+        <a href="/" style="color:var(--nx-muted);text-decoration:none;">NExUS</a>
+        <span class="nx-breadcrumb__sep">/</span>
+        <strong>{% block breadcrumb_current %}Workspace{% endblock %}</strong>
+      </nav>
+      {% endblock %}
+
+      <div class="nx-cmdk" id="cmdk-trigger">
+        <svg class="nx-cmdk__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="nx-cmdk-input" placeholder="Search or jump to…" id="cmdk-input" readonly>
+        <kbd class="nx-cmdk__kbd">⌘K</kbd>
+      </div>
+
+      <div class="nx-topbar__actions">
+        <a href="{% url 'proposal_create' %}" class="nx-btn nx-btn--primary" style="height:30px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          New Proposal
+        </a>
+        <a href="{% url 'services_home' %}" class="nx-icon-btn" title="Services" aria-label="Services">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+        </a>
+        <div class="relative" data-menu="profile">
+          <button class="nx-icon-btn" title="Account" onclick="toggleMenu('profile')" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+          <div class="nx-popover hidden" data-menu-panel="profile">
+            <a href="{% url 'profile_view' %}" class="nx-menu-item">Profile</a>
+            <a href="{% url 'profile_edit' %}" class="nx-menu-item">Account settings</a>
+            {% if user.is_authenticated %}<a href="{% url 'accomplishment_reports_list' %}" class="nx-menu-item">Accomplishment reports</a>{% endif %}
+            <div class="nx-menu-divider"></div>
+            <a href="{% url 'logout' %}" class="nx-menu-item" style="color:var(--nx-danger);">Sign out</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="nx-page">
+      {% if messages %}
+      <div id="messages-data" style="display:none;">
+        {% for message in messages %}
+        <div data-message="{{ message }}" data-tags="{{ message.tags }}"></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block app_content %}{% endblock %}
+    </div>
+  </div>
+</div>
+
+<style>
+.nx-popover {
+  position: absolute; right: 0; top: calc(100% + 6px);
+  width: 200px; background: #fff;
+  border: 1px solid var(--nx-line);
+  border-radius: var(--nx-r); box-shadow: 0 12px 32px rgba(10,14,26,.12);
+  padding: .25rem; z-index: 60;
+}
+.nx-popover.hidden { display: none; }
+.nx-menu-item {
+  display: block; padding: .4rem .55rem; border-radius: var(--nx-r-sm);
+  font-size: .8rem; color: var(--nx-text); text-decoration: none; cursor: pointer;
+}
+.nx-menu-item:hover { background: var(--nx-line-2); }
+.nx-menu-divider { height: 1px; background: var(--nx-line); margin: .25rem 0; }
+#toast-container { top: 60px !important; right: 1rem !important; z-index: 200; }
+</style>
+
+<div id="toast-container" class="fixed top-16 right-4 z-[200] space-y-2"></div>
+
+{# Command palette #}
+<div class="nx-cmdk-modal" id="cmdk-modal">
+  <div class="nx-cmdk-box">
+    <div style="position:relative;">
+      <svg class="nx-cmdk__icon" style="left:.85rem;" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="cmdk-search" placeholder="Type a command or search…">
+    </div>
+    <div class="nx-cmdk-results" id="cmdk-results"></div>
+  </div>
+</div>
+
+<script>
+function toggleMenu(name){
+  document.querySelectorAll('[data-menu-panel]').forEach(p=>{
+    if(p.getAttribute('data-menu-panel')!==name) p.classList.add('hidden');
+  });
+  const panel=document.querySelector(`[data-menu-panel="${name}"]`);
+  if(panel) panel.classList.toggle('hidden');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[data-menu]')){
+    document.querySelectorAll('[data-menu-panel]').forEach(p=>p.classList.add('hidden'));
+  }
+});
+
+const CMDS=[
+  {label:'New proposal',action:()=>window.location.href="{% url 'proposal_create' %}"},
+  {label:'Services',action:()=>window.location.href="{% url 'services_home' %}"},
+  {label:'My dashboard',action:()=>window.location.href="{% url 'dashboard_redirect' %}"},
+  {label:'Profile',action:()=>window.location.href="{% url 'profile_view' %}"},
+  {label:'Accomplishment reports',action:()=>window.location.href="{% url 'accomplishment_reports_list' %}"},
+  {label:'Sign out',action:()=>window.location.href="{% url 'logout' %}"},
+];
+const modal=document.getElementById('cmdk-modal');
+const search=document.getElementById('cmdk-search');
+const results=document.getElementById('cmdk-results');
+const trigger=document.getElementById('cmdk-trigger');
+let activeIdx=0;
+function openCMDK(){modal.classList.add('is-open');setTimeout(()=>search&&search.focus(),10);renderCMDK('');}
+function closeCMDK(){modal.classList.remove('is-open');if(search)search.value='';}
+function renderCMDK(q){
+  const items=CMDS.filter(c=>c.label.toLowerCase().includes(q.toLowerCase()));
+  results.innerHTML=`<div class="nx-cmdk-section">Go to</div>`+
+    items.map((c,i)=>`<div class="nx-cmdk-item ${i===activeIdx?'is-active':''}" data-i="${i}"><span>${c.label}</span></div>`).join('');
+  results.querySelectorAll('.nx-cmdk-item').forEach(el=>{
+    el.addEventListener('click',()=>{CMDS[+el.dataset.i].action();closeCMDK();});
+  });
+}
+if(trigger)trigger.addEventListener('click',openCMDK);
+document.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openCMDK();}
+  if(e.key==='Escape')closeCMDK();
+});
+if(modal)modal.addEventListener('click',e=>{if(e.target===modal)closeCMDK();});
+if(search)search.addEventListener('input',()=>{activeIdx=0;renderCMDK(search.value);});
+document.addEventListener('DOMContentLoaded',()=>{
+  const kbd=document.querySelector('.nx-cmdk__kbd');
+  if(kbd)kbd.textContent=navigator.platform.toLowerCase().includes('mac')?'⌘K':'Ctrl+K';
+});
+</script>
+{% endblock %}

@@ -1,8 +1,15 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="nx-app">
-
-  {# ── STEP SIDEBAR ────────────────────────────────────────────────── #}
+{% extends "app_base.html" %}
+{% block breadcrumb_current %}Proposal editor{% endblock %}
+{% block app_content %}
+<div class="nx-wizard-layout">
+  {# ── PROGRESS TRAIL (top) ─────────────────────────────────────── #}
+  <div class="nx-panel" style="margin-bottom:1rem;">
+    <div style="padding:.75rem 1rem;overflow-x:auto;">
+      {% include "services/wizard/_trail.html" %}
+    </div>
+  </div>
+  {# ── STEP SIDEBAR + MAIN ─────────────────────────────────────── #}
+  <div class="nx-wizard-grid">
   {% include "services/wizard/_sidebar_stepper.html" %}
 
   {# ── MAIN FORM ──────────────────────────────────────────────────── #}
@@ -100,8 +107,8 @@
     </div>
   </aside>
   {% endif %}
-
-</div>
+  </div>{# /nx-wizard-grid #}
+</div>{# /nx-wizard-layout #}
 
 <script>
 (function(){
