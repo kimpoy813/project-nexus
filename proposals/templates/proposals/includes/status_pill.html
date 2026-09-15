@@ -1,0 +1,41 @@
+{% comment %}
+  Reusable status pill. Usage:
+    {% include "proposals/includes/status_pill.html" with status=p.status %}
+    {% include "proposals/includes/status_pill.html" with status=p.proposal_status prop="proposal" %}
+
+  Accepts:
+    status    — raw status string
+    label     — (optional) override label; if omitted we humanize
+    prop      — "proposal"|null (default null = treat as overall status)
+{% endcomment %}
+{% with s=status|default:"" %}
+  {% if s == "DRAFT" or s == "DRAFTING" %}
+    <span class="nx-pill nx-pill--muted">Draft</span>
+  {% elif s == "SUBMITTED_FOR_REVIEW" %}
+    <span class="nx-pill nx-pill--info">Submitted</span>
+  {% elif s == "IN_REVIEW" or s == "REVIEW_SUMMARY_ISSUED" %}
+    <span class="nx-pill nx-pill--info">In review</span>
+  {% elif s == "FOR_REVISION" %}
+    <span class="nx-pill nx-pill--warn">For revision</span>
+  {% elif s == "READY_FOR_PRINTING" or s == "FOR_SUBMISSION_AND_UPLOAD" %}
+    <span class="nx-pill nx-pill--primary">Preparing</span>
+  {% elif s == "ACTIVE" or s == "APPROVED" or s == "IMPLEMENTATION" or s == "PREPARATION" %}
+    <span class="nx-pill nx-pill--ok">Approved</span>
+  {% elif s == "COMPLETED" or s == "POST_ACTIVITY_REPORT" or s == "TERMINAL_REPORT" or s == "MONITORING" %}
+    <span class="nx-pill nx-pill--ok">Completed</span>
+  {% elif s == "REJECTED" or s == "CANCELLED" %}
+    <span class="nx-pill nx-pill--danger">Rejected</span>
+  {% elif s == "NOT_STARTED" or s == "NOT_REQUIRED" %}
+    <span class="nx-pill nx-pill--muted">Not started</span>
+  {% elif s == "LEGAL_REVIEW" %}
+    <span class="nx-pill nx-pill--info">Legal review</span>
+  {% elif s == "CERTIFICATION_READY" %}
+    <span class="nx-pill nx-pill--primary">Certification ready</span>
+  {% elif s == "AGENDA_AND_PRESENTATION" %}
+    <span class="nx-pill nx-pill--primary">For signing</span>
+  {% elif s == "REVISION" %}
+    <span class="nx-pill nx-pill--warn">Revision</span>
+  {% else %}
+    <span class="nx-pill nx-pill--muted">{{ label|default:s }}</span>
+  {% endif %}
+{% endwith %}

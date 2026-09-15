@@ -54,7 +54,7 @@
     <nav x-data="{ mobileMenu: false }"
          @keydown.escape.window="mobileMenu = false"
          class="nexus-navbar fixed top-0 w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex justify-between items-center">
+        <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 h-full flex justify-between items-center">
             <!-- Logo + NEXUS Name -->
             <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home">
                 <img src="{% static 'images/nexus-logo-128.png' %}"
@@ -235,7 +235,7 @@
     </div>
     {% endif %}
 
-    <main id="main-content" class="nexus-shell pt-24">
+    <main id="main-content" class="nexus-shell">
         {% block content %}{% endblock %}
     </main>
 
