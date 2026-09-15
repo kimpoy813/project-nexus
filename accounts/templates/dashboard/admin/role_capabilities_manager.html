@@ -1,14 +1,14 @@
-{% extends "base.html" %}
+{% extends "layouts/app.html" %}
 {% block title %}Role Capability Matrix - NExUS{% endblock %}
-{% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+{% block app_content %}
+<div class="space-y-5">
   <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
     <div>
       <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Admin Role Builder</p>
       <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Role Capability Matrix</h1>
       <p class="mt-2 text-sm text-gray-600">Turn capabilities on/off per role. This lets the office add functions like quarterly accomplishment reports to coordinators.</p>
     </div>
-    <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
+    <a href="{% url 'admin_dashboard' %}" class="nx-btn border-gray-200">Back to Admin</a>
   </div>
   <form method="post" class="space-y-6">
     {% csrf_token %}
@@ -27,14 +27,14 @@
               <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
             </label>
           </div>
-          <input type="text" name="notes_{{ item.id }}" value="{{ item.notes }}" placeholder="Optional note" class="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-xs bg-white focus:ring-1 focus:ring-primary focus:border-primary outline-none">
+          <input type="text" name="notes_{{ item.id }}" value="{{ item.notes }}" placeholder="Optional note" class="nx-input nx-input--sm mt-3">
         </div>
         {% endfor %}
       </div>
     </section>
     {% endfor %}
     <div class="sticky bottom-4 flex justify-end">
-      <button type="submit" class="rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-xl hover:bg-secondary">Save Capability Matrix</button>
+      <button type="submit" class="nx-btn nx-btn--primary nx-btn--lg">Save Capability Matrix</button>
     </div>
   </form>
 </div>

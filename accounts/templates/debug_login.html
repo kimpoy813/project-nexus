@@ -16,7 +16,7 @@
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
-    <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
+    <link href="{% static 'css/nexus.css' %}" rel="stylesheet">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
     <div class="min-h-screen flex items-center justify-center px-4">
@@ -41,17 +41,17 @@
                 <div>
                     <label class="block text-sm font-semibold mb-1 text-gray-700">Username/Email</label>
                     <input type="text" name="username" required
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                           class="nx-input w-full">
                 </div>
 
                 <div>
                     <label class="block text-sm font-semibold mb-1 text-gray-700">Password</label>
                     <input type="password" name="password" required
-                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                           class="nx-input w-full">
                 </div>
 
                 <button type="submit"
-                        class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-secondary transition">
+                        class="nx-btn nx-btn--primary w-full">
                     Login
                 </button>
             </form>

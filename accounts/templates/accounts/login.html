@@ -1,102 +1,56 @@
-{% extends 'base.html' %}
+{% extends 'layouts/auth.html' %}
 {% load static %}
-{% block content %}
-<section class="pt-24 pb-20">
-    <div class="max-w-7xl mx-auto px-6">
+{% block title %}Sign in - {{ site_control.site_name|default:"NExUS" }}{% endblock %}
+{% block auth_brand_heading %}Welcome back to the extension workspace.{% endblock %}
 
-        <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-100">
+{% block auth_content %}
+<div class="nx-auth__card">
+    <h1 class="text-xl font-extrabold m-0" style="color: var(--nx-text);">Sign in</h1>
+    <p class="text-sm mt-1 mb-6" style="color: var(--nx-muted);">Use your institutional account to continue.</p>
 
-            <!-- Header -->
-            <div class="bg-primary text-white rounded-t-2xl px-8 py-6 text-center">
-                <img src="{% static 'images/nexus-logo-128.png' %}"
-                     alt="NExUS logo"
-                     class="h-16 w-16 object-contain mx-auto mb-3 rounded-2xl bg-white p-2 shadow">
-                <h2 class="text-2xl font-bold">Welcome Back</h2>
-                <p class="text-sm opacity-80">Sign in to continue</p>
-            </div>
+    {% if error %}
+        <div class="nx-alert nx-alert--danger mb-5">{{ error }}</div>
+    {% endif %}
 
-            <!-- Body -->
-            <div class="p-8">
+    {% if request.GET.reason == 'idle' %}
+        <div class="nx-alert nx-alert--warn mb-5">You were signed out after a period of inactivity.</div>
+    {% endif %}
 
-                {% if error %}
-                <div class="bg-secondary/10 border border-secondary text-secondary p-3 rounded-lg mb-6 text-sm">
-                    {{ error }}
-                </div>
-                {% endif %}
+    <form method="POST" class="grid gap-4">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.GET.next }}">
 
-                <form method="POST" class="space-y-6">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ request.GET.next }}">
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Username/Email
-                        </label>
-                        <input name="username" required
-                            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Password
-                        </label>
-                        <input type="password" name="password" required
-                            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
-                    </div>
-
-                    <div class="text-right -mt-2">
-                        <a href="{% url 'password_reset' %}"
-                           class="text-sm text-primary font-medium hover:text-secondary transition">
-                            Forgot Password?
-                        </a>
-                    </div>
-
-                    <button type="submit"
-                        class="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary transition font-semibold">
-                        Login
-                    </button>
-                </form>
-
-                {% if not site_control or site_control.registration_enabled %}
-                <p class="text-center mt-6 text-sm text-gray-600">
-                    Don’t have an account?
-                    <a href="{% url 'register' %}" class="text-primary font-semibold hover:text-secondary transition">
-                        Register
-                    </a>
-                </p>
-                {% else %}
-                <p class="text-center mt-6 text-sm text-amber-700 rounded-xl bg-amber-50 px-4 py-3 border border-amber-200">
-                    Public registration is currently closed by the system administrator.
-                </p>
-                {% endif %}
-
-            </div>
+        <div>
+            <label for="id_username">Username or email</label>
+            <input id="id_username" type="text" name="username" required autocomplete="username" autofocus>
         </div>
 
-    </div>
-</section>
+        <div>
+            <label for="id_password">Password</label>
+            <input id="id_password" type="password" name="password" required autocomplete="current-password">
+        </div>
+
+        <div class="text-right -mt-1">
+            <a href="{% url 'password_reset' %}" class="text-sm font-semibold" style="color: var(--nx-green);">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="nx-btn nx-btn--primary nx-btn--lg nx-btn--block">Sign in</button>
+    </form>
+
+    {% if not site_control or site_control.registration_enabled %}
+        <p class="text-center mt-6 mb-0 text-sm" style="color: var(--nx-muted);">
+            No account yet?
+            <a href="{% url 'register' %}" class="font-bold" style="color: var(--nx-green);">Register</a>
+        </p>
+    {% else %}
+        <div class="nx-alert nx-alert--warn mt-6 mb-0">Public registration is currently closed by the administrator.</div>
+    {% endif %}
+</div>
 
 <script>
-function togglePassword(id, iconId) {
-    const input = document.getElementById(id);
-    const icon = document.getElementById(iconId);
-
-    if (input.type === "password") {
-        input.type = "text";
-        icon.innerText = "🙈";
-    } else {
-        input.type = "password";
-        icon.innerText = "👁";
-    }
-}
-
-document.querySelector('form').addEventListener('submit', function(e) {
-    const submitBtn = this.querySelector('button[type="submit"]');
-    if (submitBtn.disabled) {
-        e.preventDefault();
-    } else {
-        submitBtn.disabled = true;
-    }
+document.querySelector('form').addEventListener('submit', function () {
+    const btn = this.querySelector('button[type="submit"]');
+    if (btn) btn.disabled = true;
 });
 </script>
 {% endblock %}

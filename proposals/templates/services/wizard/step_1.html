@@ -107,7 +107,7 @@
         id="researchTitleInput"
         value="{{ proposal.research_title }}"
         {% if not is_edit_mode %}readonly{% endif %}
-        class="mt-2 w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+        class="nx-input mt-2 {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
         placeholder="{{ step_fields.research_title.placeholder|default:'Enter the research title' }}">
       <p class="text-xs text-gray-500 mt-2">
           {{ step_fields.research_title.help_text|default:"Required when Extension Type is Research-based." }}
@@ -153,19 +153,65 @@
       </div>
     </div>
 
+    <div>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+        MOA / Partnership Agreement
+      </label>
+
+      <input type="hidden" name="requires_moa" id="moaRequiredValue" value="{% if proposal.requires_moa %}1{% else %}0{% endif %}">
+
+      <div class="flex flex-wrap gap-3">
+        <div
+          class="moa-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+            {% if proposal.requires_moa %}bg-primary text-white border-primary{% else %}bg-white text-gray-700 border-gray-300{% endif %}
+            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+          data-value="1" data-label="Requires MOA">
+          Requires MOA
+        </div>
+        <div
+          class="moa-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+            {% if not proposal.requires_moa %}bg-primary text-white border-primary{% else %}bg-white text-gray-700 border-gray-300{% endif %}
+            {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+          data-value="0" data-label="No MOA needed">
+          No MOA needed
+        </div>
+      </div>
+
+      <div id="moaHelp" class="mt-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
+        <div class="flex items-start gap-3">
+          <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <span class="text-primary font-semibold">i</span>
+          </div>
+          <div>
+            <p id="moaHelpTitle" class="text-sm font-semibold text-gray-900">
+              {% if proposal.requires_moa %}MOA required{% else %}No MOA{% endif %}
+            </p>
+            <p id="moaHelpDesc" class="text-sm text-gray-600 mt-1">
+              {% if proposal.requires_moa %}
+                A Memorandum of Agreement (MOA) phase follows proposal approval. Any extension type — research-based, request-based, or community-based — may require one when a formal partner agreement is needed.
+              {% else %}
+                No MOA will be processed. After approval, this proposal moves straight to implementation.
+              {% endif %}
+            </p>
+            <p id="moaHelpNote" class="text-xs text-gray-500 mt-2">You can change this anytime before the MOA phase starts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     {% include "services/wizard/_dynamic_fields.html" %}
 
 {% if is_edit_mode %}
       <div class="flex flex-col sm:flex-row gap-2 pt-2">
         <button name="action" value="skip"
-                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                class="nx-btn border-gray-300"
                 type="submit">
           Skip
         </button>
 
         <button name="action" value="next"
-                class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                class="nx-btn nx-btn--primary sm:ml-auto"
                 type="submit">
           Save & Next
         </button>
@@ -176,7 +222,7 @@
     {% else %}
       <div class="flex justify-end pt-2">
         <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-           class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+           class="nx-btn border-gray-300">
           {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
         </a>
       </div>
@@ -247,6 +293,30 @@
 
   const extChips = document.querySelectorAll(".ext-chip");
   const scopeChips = document.querySelectorAll(".scope-chip");
+  const moaChips = document.querySelectorAll(".moa-chip");
+  const moaHidden = document.getElementById("moaRequiredValue");
+  const moaHelpTitle = document.getElementById("moaHelpTitle");
+  const moaHelpDesc = document.getElementById("moaHelpDesc");
+
+  function syncMoa(v) {
+    if (!moaHelpTitle || !moaHelpDesc) return;
+    if (v === "1") {
+      moaHelpTitle.textContent = "MOA required";
+      moaHelpDesc.textContent = "A Memorandum of Agreement (MOA) phase follows proposal approval. Any extension type — research-based, request-based, or community-based — may require one when a formal partner agreement is needed.";
+    } else {
+      moaHelpTitle.textContent = "No MOA";
+      moaHelpDesc.textContent = "No MOA will be processed. After approval, this proposal moves straight to implementation.";
+    }
+  }
+
+  moaChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      setActiveChip(moaChips, chip);
+      const v = chip.getAttribute("data-value");
+      if (moaHidden) moaHidden.value = v;
+      syncMoa(v);
+    });
+  });
 
   extChips.forEach(chip => {
     chip.addEventListener("click", () => {

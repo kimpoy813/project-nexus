@@ -1,7 +1,7 @@
-{% extends "base.html" %}
+{% extends "layouts/app.html" %}
 {% block title %}Add Wizard Step - NExUS{% endblock %}
-{% block content %}
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+{% block app_content %}
+<div class="space-y-5">
   <div class="mb-6">
     <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Wizard Manager</p>
     <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Add a New Step</h1>
@@ -12,21 +12,21 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-1">Step Number</label>
-        <input type="number" name="step_no" value="{{ next_step_no }}" min="1" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+        <input type="number" name="step_no" value="{{ next_step_no }}" min="1" required class="nx-input">
         <p class="mt-1 text-xs text-gray-500">A unique positive number determining the order.</p>
       </div>
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-1">Title</label>
-        <input type="text" name="title" required placeholder="Step Title" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+        <input type="text" name="title" required placeholder="Step Title" class="nx-input">
       </div>
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-1">Short Description</label>
-        <input type="text" name="description" placeholder="Short description shown in the sidebar" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+        <input type="text" name="description" placeholder="Short description shown in the sidebar" class="nx-input">
       </div>
     </div>
     <div>
       <label class="block text-sm font-bold text-gray-700 mb-1">Office Instructions</label>
-      <textarea name="instructions" rows="3" placeholder="Optional guidelines for the proponents..." class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></textarea>
+      <textarea name="instructions" rows="3" placeholder="Optional guidelines for the proponents..." class="nx-input"></textarea>
       <p class="mt-1 text-xs text-gray-500">Shown above the step form to guide proponents.</p>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -53,7 +53,7 @@
           <h2 class="text-lg font-black text-gray-900">Fields (Inputs / Elements)</h2>
           <p class="text-sm text-gray-500">Configure what custom data or inputs (text, text area, date picker, dropdown choices, etc.) proponents need to provide on this step.</p>
         </div>
-        <button type="button" onclick="addFieldRow()" class="rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white">+ Add Field</button>
+        <button type="button" onclick="addFieldRow()" class="nx-btn nx-btn--primary">+ Add Field</button>
       </div>
       <div id="fieldRows" class="space-y-4">
         <!-- Will start with one empty field row by default -->
@@ -61,8 +61,8 @@
     </section>
 
     <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
-      <a href="{% url 'wizard_steps_manager' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
-      <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Add Step</button>
+      <a href="{% url 'wizard_steps_manager' %}" class="nx-btn border-gray-200">Cancel</a>
+      <button type="submit" class="nx-btn nx-btn--primary">Add Step</button>
     </div>
   </form>
 </div>
@@ -79,23 +79,23 @@ function addFieldRow() {
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
             <div class="md:col-span-2">
               <label class="text-xs font-bold text-gray-600">Label</label>
-              <input name="field_label[]" required class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Field label">
+              <input name="field_label[]" required class="nx-input mt-1" placeholder="Field label">
             </div>
             <div class="md:col-span-2">
               <label class="text-xs font-bold text-gray-600">Key</label>
-              <input name="field_key[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="auto if blank">
+              <input name="field_key[]" class="nx-input mt-1" placeholder="auto if blank">
             </div>
             <div class="md:col-span-2">
               <label class="text-xs font-bold text-gray-600">Type</label>
-              <select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">${fieldTypes}</select>
+              <select name="field_type[]" class="nx-input mt-1">${fieldTypes}</select>
             </div>
             <div class="md:col-span-2">
               <label class="text-xs font-bold text-gray-600">Placeholder</label>
-              <input name="field_placeholder[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+              <input name="field_placeholder[]" class="nx-input mt-1">
             </div>
             <div class="md:col-span-2">
               <label class="text-xs font-bold text-gray-600">Help Text</label>
-              <input name="field_help_text[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+              <input name="field_help_text[]" class="nx-input mt-1">
             </div>
             <div class="md:col-span-2 flex items-end justify-between gap-2">
               <label class="relative inline-flex items-center cursor-pointer select-none mb-1">
@@ -103,7 +103,7 @@ function addFieldRow() {
                 <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                 <span class="ml-2 text-xs font-bold text-gray-700">Req.</span>
               </label>
-              <button type="button" onclick="this.closest('.field-row').remove()" title="Remove Field" class="mb-1 p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition flex items-center justify-center border border-red-200">
+              <button type="button" onclick="this.closest('.field-row').remove()" title="Remove Field" class="nx-btn nx-btn--danger nx-btn--sm mb-1 flex items-center justify-center border-red-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
@@ -111,16 +111,16 @@ function addFieldRow() {
             </div>
             <div class="md:col-span-12">
               <label class="text-xs font-bold text-gray-600">Choices for dropdown fields (one option per line)</label>
-              <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
+              <textarea name="field_choices[]" rows="2" class="nx-input mt-1"></textarea>
             </div>
             <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>
-                <input name="field_depends_on_key[]" placeholder="e.g. extension_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                <input name="field_depends_on_key[]" placeholder="e.g. extension_type" class="nx-input nx-input--sm mt-1">
               </div>
               <div>
                 <label class="text-xs font-bold text-gray-500">Depends On Value(s) (comma-separated)</label>
-                <input name="field_depends_on_value[]" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                <input name="field_depends_on_value[]" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="nx-input nx-input--sm mt-1">
               </div>
             </div>
         </div>`;

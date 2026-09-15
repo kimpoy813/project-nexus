@@ -1,9 +1,9 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "layouts/app.html" %}
 
 {% block title %}Home Sections - NExUS{% endblock %}
 
-{% block content %}
-<div class="max-w-5xl mx-auto p-6">
+{% block app_content %}
+<div class="space-y-5">
 
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -15,7 +15,7 @@
                 Edit the titles of the built-in Home sections and the Extension Thrust cards.
             </p>
         </div>
-        <a href="{% url 'details_page' %}" target="_blank" rel="noopener" class="hs-btn">View live page ↗</a>
+        <a href="{% url 'details_page' %}" target="_blank" rel="noopener" class="nx-btn">View live page ↗</a>
     </div>
 
     {% if messages %}
@@ -30,16 +30,16 @@
     {% endif %}
 
     <!-- ============ EXTENSION THRUST CARDS ============ -->
-    <div class="hs-card mb-6">
-        <div class="hs-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="nx-card mb-6">
+        <div class="nx-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 class="hs-card__title">Extension Thrust Cards</h2>
-                <p class="hs-card__sub">
+                <h2 class="nx-card__title">Extension Thrust Cards</h2>
+                <p class="nx-card__sub">
                     The grid under
                     "{{ thrust_heading.subtitle|default:'Isem Ni Aran' }}". Shown in this order.
                 </p>
             </div>
-            <a href="{% url 'home_thrust_create' %}" class="hs-btn hs-btn--primary">Add Thrust</a>
+            <a href="{% url 'home_thrust_create' %}" class="nx-btn nx-btn--primary">Add Thrust</a>
         </div>
 
         <ul class="divide-y divide-slate-100">
@@ -50,46 +50,46 @@
                         <form method="POST" action="{% url 'home_thrust_move' thrust.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="direction" value="up">
-                            <button type="submit" class="hs-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
+                            <button type="submit" class="nx-btn nx-btn--sm nx-btn--ghost" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
                         </form>
                         <form method="POST" action="{% url 'home_thrust_move' thrust.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="direction" value="down">
-                            <button type="submit" class="hs-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
+                            <button type="submit" class="nx-btn nx-btn--sm nx-btn--ghost" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
                         </form>
                     </div>
                     <div class="min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm font-semibold {{ thrust.color_class }}">{{ thrust.title }}</span>
-                            {% if not thrust.is_visible %}<span class="hs-pill hs-pill--warn">Hidden</span>{% endif %}
+                            {% if not thrust.is_visible %}<span class="nx-badge nx-badge--warn">Hidden</span>{% endif %}
                         </div>
                         <p class="mt-1 text-xs text-slate-500">{{ thrust.description|default:"No description." }}</p>
                     </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'home_thrust_edit' thrust.id %}" class="hs-btn">Edit</a>
+                    <a href="{% url 'home_thrust_edit' thrust.id %}" class="nx-btn">Edit</a>
                     <form method="POST" action="{% url 'home_thrust_delete' thrust.id %}"
                           onsubmit="return confirm('Delete this thrust? This cannot be undone.');">
                         {% csrf_token %}
-                        <button type="submit" class="hs-btn hs-btn--danger">Delete</button>
+                        <button type="submit" class="nx-btn nx-btn--danger">Delete</button>
                     </form>
                 </div>
             </li>
             {% empty %}
             <li class="p-10 text-center">
                 <p class="text-sm text-slate-500">No thrust cards yet.</p>
-                <a href="{% url 'home_thrust_create' %}" class="mt-4 inline-flex hs-btn hs-btn--primary">Add the first thrust</a>
+                <a href="{% url 'home_thrust_create' %}" class="mt-4 inline-flex nx-btn nx-btn--primary">Add the first thrust</a>
             </li>
             {% endfor %}
         </ul>
     </div>
 
     <!-- ============ SECTION HEADINGS ============ -->
-    <form method="POST" class="hs-card">
+    <form method="POST" class="nx-card">
         {% csrf_token %}
-        <div class="hs-card__head">
-            <h2 class="hs-card__title">Section Titles</h2>
-            <p class="hs-card__sub">
+        <div class="nx-card__head">
+            <h2 class="nx-card__title">Section Titles</h2>
+            <p class="nx-card__sub">
                 Headings for each built-in Home section. The content itself is managed elsewhere.
             </p>
         </div>
@@ -98,7 +98,7 @@
             {% for row in headings %}
             <div class="p-5">
                 <div class="mb-3 flex items-center justify-between gap-3">
-                    <span class="hs-pill hs-pill--muted">{{ row.get_section_display }}</span>
+                    <span class="nx-badge nx-badge--muted">{{ row.get_section_display }}</span>
                     <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" name="section_{{ row.section }}_is_visible" {% if row.is_visible %}checked{% endif %} class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
@@ -108,34 +108,34 @@
 
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                        <label class="hs-label">Heading</label>
+                        <label class="nx-label">Heading</label>
                         <input type="text" name="section_{{ row.section }}_heading"
-                               value="{{ row.heading }}" class="hs-input">
+                               value="{{ row.heading }}" class="nx-input">
                     </div>
                     <div>
-                        <label class="hs-label">Nav label</label>
+                        <label class="nx-label">Nav label</label>
                         <input type="text" name="section_{{ row.section }}_nav_label"
-                               value="{{ row.nav_label }}" class="hs-input">
+                               value="{{ row.nav_label }}" class="nx-input">
                     </div>
                     <div>
-                        <label class="hs-label">
+                        <label class="nx-label">
                             Subtitle
                             {% if row.section == 'thrust' %}
                                 <span class="text-slate-400">(e.g. Isem Ni Aran)</span>
                             {% endif %}
                         </label>
                         <input type="text" name="section_{{ row.section }}_subtitle"
-                               value="{{ row.subtitle }}" class="hs-input">
+                               value="{{ row.subtitle }}" class="nx-input">
                     </div>
                     <div>
-                        <label class="hs-label">
+                        <label class="nx-label">
                             Caption
                             {% if row.section == 'thrust' %}
                                 <span class="text-slate-400">(e.g. Approved BR No. …)</span>
                             {% endif %}
                         </label>
                         <input type="text" name="section_{{ row.section }}_caption"
-                               value="{{ row.caption }}" class="hs-input">
+                               value="{{ row.caption }}" class="nx-input">
                     </div>
                 </div>
             </div>
@@ -143,47 +143,10 @@
         </div>
 
         <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" class="hs-btn hs-btn--primary">Save Section Titles</button>
+            <button type="submit" class="nx-btn nx-btn--primary">Save Section Titles</button>
         </div>
     </form>
 
 </div>
 
-<style>
-.hs-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
-.hs-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
-.hs-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
-.hs-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }
-
-.hs-label { display:block; margin-bottom:.3rem; font-size:.73rem; font-weight:500; color:#64748b; }
-.hs-input {
-    display:block; width:100%; padding:.5rem .7rem; border-radius:8px;
-    font-size:.82rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
-    outline:none; transition:border-color .15s;
-}
-.hs-input:focus { border-color:#103b07; }
-
-.hs-btn {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
-    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
-}
-.hs-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.hs-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.hs-btn--primary:hover { opacity:.85; background:#103b07; }
-.hs-btn--danger { color:#b91c1c; border-color:#fecaca; }
-.hs-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
-
-.hs-move {
-    display:grid; place-items:center; height:1.4rem; width:1.4rem;
-    border-radius:6px; border:1px solid #e2e8f0; background:#fff;
-    font-size:.7rem; color:#64748b; cursor:pointer; transition:all .15s;
-}
-.hs-move:hover:not(:disabled) { background:#f1f5f9; color:#0f172a; }
-.hs-move:disabled { opacity:.35; cursor:not-allowed; }
-
-.hs-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
-.hs-pill--warn { background:#fef3c7; color:#92400e; }
-.hs-pill--muted { background:#f1f5f9; color:#475569; }
-</style>
 {% endblock %}

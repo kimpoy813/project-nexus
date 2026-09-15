@@ -84,7 +84,7 @@
                 type="file"
                 id="certificate_of_completion_file"
                 name="certificate_of_completion_file"
-                class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                class="nx-input block w-full">
             {% endif %}
 
             {% if proposal.certificate_of_completion_file %}
@@ -120,19 +120,19 @@
         {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
             <button name="action" value="back"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="nx-btn border-gray-300"
                     type="submit">
                 Back
             </button>
 
             <button name="action" value="skip"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="nx-btn border-gray-300"
                     type="submit">
                 Skip
             </button>
 
             <button name="action" value="next"
-                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    class="nx-btn nx-btn--primary sm:ml-auto"
                     type="submit">
                 Save
             </button>
@@ -143,7 +143,7 @@
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+               class="nx-btn border-gray-300">
                 {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>

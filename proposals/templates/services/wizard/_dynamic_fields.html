@@ -30,19 +30,19 @@
             {% if field.field_type == 'TEXTAREA' %}
               <textarea name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" rows="3" {% if not is_edit_mode %}readonly{% endif %}
                         placeholder="{{ field.placeholder }}"
-                        class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-150 ease-in-out shadow-sm {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">{{ field.answer_value }}</textarea>
+                        class="nx-input w-full duration-150 ease-in-out {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">{{ field.answer_value }}</textarea>
             {% elif field.field_type == 'NUMBER' %}
               <input type="number" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
-                     placeholder="{{ field.placeholder }}" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-150 ease-in-out shadow-sm {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
+                     placeholder="{{ field.placeholder }}" class="nx-input w-full duration-150 ease-in-out {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
             {% elif field.field_type == 'DATE' %}
               <input type="date" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
-                     class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-150 ease-in-out shadow-sm {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
+                     class="nx-input w-full duration-150 ease-in-out {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
             {% elif field.field_type == 'EMAIL' %}
               <input type="email" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
-                     placeholder="{{ field.placeholder }}" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-150 ease-in-out shadow-sm {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
+                     placeholder="{{ field.placeholder }}" class="nx-input w-full duration-150 ease-in-out {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
             {% elif field.field_type == 'SELECT' %}
               <select name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" {% if not is_edit_mode %}disabled{% endif %}
-                      class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-150 ease-in-out shadow-sm bg-white {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
+                      class="nx-input w-full duration-150 ease-in-out {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
                 <option value="">Select...</option>
                 {% for choice in field.parsed_choices %}
                   <option value="{{ choice.value }}" {% if field.answer_value == choice.value %}selected{% endif %}>{{ choice.label }}</option>
@@ -65,11 +65,11 @@
                 </p>
               {% endif %}
               {% if is_edit_mode %}
-                <input type="file" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" class="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white">
+                <input type="file" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" class="nx-input mt-2">
               {% endif %}
             {% else %}
               <input type="text" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
-                     placeholder="{{ field.placeholder }}" class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-150 ease-in-out shadow-sm {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
+                     placeholder="{{ field.placeholder }}" class="nx-input w-full duration-150 ease-in-out {% if not is_edit_mode %}bg-gray-50 text-gray-700{% endif %}">
             {% endif %}
 
             {% if field.help_text %}<p class="mt-1.5 text-xs leading-5 text-gray-500">{{ field.help_text }}</p>{% endif %}

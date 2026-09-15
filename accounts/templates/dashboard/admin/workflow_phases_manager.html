@@ -1,9 +1,9 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "layouts/app.html" %}
 
 {% block title %}Workflow Phases - NExUS{% endblock %}
 
-{% block content %}
-<div class="max-w-4xl mx-auto p-6">
+{% block app_content %}
+<div class="space-y-5">
 
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -15,7 +15,7 @@
                 The Proposal, MOA, and Implementation cards shown on the Services page.
             </p>
         </div>
-        <a href="{% url 'services_home' %}" target="_blank" rel="noopener" class="wf-btn">View live page ↗</a>
+        <a href="{% url 'services_home' %}" target="_blank" rel="noopener" class="nx-btn">View live page ↗</a>
     </div>
 
     {% if messages %}
@@ -35,14 +35,14 @@
         editable here — changing them would affect approvals and permissions.
     </div>
 
-    <form method="POST" class="wf-card">
+    <form method="POST" class="nx-card">
         {% csrf_token %}
 
         <div class="divide-y divide-slate-100">
             {% for phase in phases %}
             <div class="p-5 {% if not phase.is_visible %}bg-slate-50/60{% endif %}">
                 <div class="mb-3 flex items-center justify-between gap-3">
-                    <span class="wf-pill">{{ phase.get_key_display }}</span>
+                    <span class="nx-badge">{{ phase.get_key_display }}</span>
                     <label class="relative inline-flex items-center cursor-pointer select-none">
                         <input type="checkbox" name="phase_{{ phase.id }}_is_visible" {% if phase.is_visible %}checked{% endif %} class="sr-only peer">
                         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
@@ -52,27 +52,27 @@
 
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
-                        <label class="wf-label">Label</label>
+                        <label class="nx-label">Label</label>
                         <input type="text" name="phase_{{ phase.id }}_label"
-                               value="{{ phase.label }}" class="wf-input">
+                               value="{{ phase.label }}" class="nx-input">
                     </div>
                     <div>
-                        <label class="wf-label">Progress weight (%)</label>
+                        <label class="nx-label">Progress weight (%)</label>
                         <input type="number" name="phase_{{ phase.id }}_weight_percent"
-                               value="{{ phase.weight_percent }}" min="0" max="100" class="wf-input">
+                               value="{{ phase.weight_percent }}" min="0" max="100" class="nx-input">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="wf-label">
+                        <label class="nx-label">
                             Weight caption
                             <span class="text-slate-400">(text beside the bar)</span>
                         </label>
                         <input type="text" name="phase_{{ phase.id }}_weight_label"
-                               value="{{ phase.weight_label }}" class="wf-input"
+                               value="{{ phase.weight_label }}" class="nx-input"
                                placeholder="e.g. 40% of overall progress when MOA is required">
                     </div>
                     <div class="md:col-span-2">
-                        <label class="wf-label">Summary</label>
-                        <textarea name="phase_{{ phase.id }}_summary" rows="2" class="wf-input">{{ phase.summary }}</textarea>
+                        <label class="nx-label">Summary</label>
+                        <textarea name="phase_{{ phase.id }}_summary" rows="2" class="nx-input">{{ phase.summary }}</textarea>
                     </div>
                 </div>
             </div>
@@ -82,29 +82,10 @@
         </div>
 
         <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" class="wf-btn wf-btn--primary">Save Phases</button>
+            <button type="submit" class="nx-btn nx-btn--primary">Save Phases</button>
         </div>
     </form>
 
 </div>
 
-<style>
-.wf-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
-.wf-label { display:block; margin-bottom:.3rem; font-size:.73rem; font-weight:500; color:#64748b; }
-.wf-input {
-    display:block; width:100%; padding:.5rem .7rem; border-radius:8px;
-    font-size:.82rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
-    outline:none; transition:border-color .15s;
-}
-.wf-input:focus { border-color:#103b07; }
-.wf-btn {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
-    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
-}
-.wf-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.wf-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.wf-btn--primary:hover { opacity:.85; background:#103b07; }
-.wf-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; background:#f1f5f9; color:#475569; }
-</style>
 {% endblock %}

@@ -1,9 +1,9 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "layouts/app.html" %}
 
 {% block title %}Edit {{ page.title }} - NExUS{% endblock %}
 
-{% block content %}
-<div class="max-w-5xl mx-auto p-6">
+{% block app_content %}
+<div class="space-y-5">
 
     <!-- Header -->
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -13,7 +13,7 @@
             <p class="mt-0.5 text-sm text-slate-500">Edit the hero, sections, and search metadata.</p>
         </div>
         {% if public_url_name %}
-            <a href="{% url public_url_name %}" target="_blank" rel="noopener" class="pc-btn">View live page ↗</a>
+            <a href="{% url public_url_name %}" target="_blank" rel="noopener" class="nx-btn">View live page ↗</a>
         {% endif %}
     </div>
 
@@ -29,41 +29,41 @@
     {% endif %}
 
     <!-- ============ HERO / META ============ -->
-    <form method="POST" class="pc-card mb-6">
+    <form method="POST" class="nx-card mb-6">
         {% csrf_token %}
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Page Header</h2>
-            <p class="pc-card__sub">The banner shown at the top of the page.</p>
+        <div class="nx-card__head">
+            <h2 class="nx-card__title">Page Header</h2>
+            <p class="nx-card__sub">The banner shown at the top of the page.</p>
         </div>
 
         <div class="space-y-4 p-5">
             <div>
-                <label class="pc-label">Page Title <span class="text-slate-400">(used in the admin and browser tab)</span></label>
-                <input type="text" name="title" value="{{ page.title }}" class="pc-input" required>
+                <label class="nx-label">Page Title <span class="text-slate-400">(used in the admin and browser tab)</span></label>
+                <input type="text" name="title" value="{{ page.title }}" class="nx-input" required>
             </div>
             <div>
-                <label class="pc-label">Eyebrow <span class="text-slate-400">(small label above the heading)</span></label>
-                <input type="text" name="hero_eyebrow" value="{{ page.hero_eyebrow }}" class="pc-input" placeholder="e.g. Extension Services">
+                <label class="nx-label">Eyebrow <span class="text-slate-400">(small label above the heading)</span></label>
+                <input type="text" name="hero_eyebrow" value="{{ page.hero_eyebrow }}" class="nx-input" placeholder="e.g. Extension Services">
             </div>
             <div>
-                <label class="pc-label">Hero Heading</label>
-                <input type="text" name="hero_heading" value="{{ page.hero_heading }}" class="pc-input">
+                <label class="nx-label">Hero Heading</label>
+                <input type="text" name="hero_heading" value="{{ page.hero_heading }}" class="nx-input">
             </div>
             <div>
-                <label class="pc-label">Hero Subheading</label>
-                <textarea name="hero_subheading" rows="3" class="pc-input">{{ page.hero_subheading }}</textarea>
+                <label class="nx-label">Hero Subheading</label>
+                <textarea name="hero_subheading" rows="3" class="nx-input">{{ page.hero_subheading }}</textarea>
             </div>
 
             <details class="rounded-lg border border-slate-200 bg-slate-50/60 p-4">
                 <summary class="cursor-pointer text-sm font-medium text-slate-700">Search engine settings</summary>
                 <div class="mt-4 space-y-4">
                     <div>
-                        <label class="pc-label">Meta Title <span class="text-slate-400">(defaults to page title)</span></label>
-                        <input type="text" name="meta_title" value="{{ page.meta_title }}" class="pc-input">
+                        <label class="nx-label">Meta Title <span class="text-slate-400">(defaults to page title)</span></label>
+                        <input type="text" name="meta_title" value="{{ page.meta_title }}" class="nx-input">
                     </div>
                     <div>
-                        <label class="pc-label">Meta Description</label>
-                        <textarea name="meta_description" rows="2" class="pc-input">{{ page.meta_description }}</textarea>
+                        <label class="nx-label">Meta Description</label>
+                        <textarea name="meta_description" rows="2" class="nx-input">{{ page.meta_description }}</textarea>
                     </div>
                 </div>
             </details>
@@ -87,18 +87,18 @@
         </div>
 
         <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" class="pc-btn pc-btn--primary">Save Header</button>
+            <button type="submit" class="nx-btn nx-btn--primary">Save Header</button>
         </div>
     </form>
 
     <!-- ============ SECTIONS ============ -->
-    <div class="pc-card mb-6">
-        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="nx-card mb-6">
+        <div class="nx-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 class="pc-card__title">Content Sections</h2>
-                <p class="pc-card__sub">Blocks of rich text shown down the page, in order.</p>
+                <h2 class="nx-card__title">Content Sections</h2>
+                <p class="nx-card__sub">Blocks of rich text shown down the page, in order.</p>
             </div>
-            <a href="{% url 'page_section_create' page.slug %}" class="pc-btn pc-btn--primary">Add Section</a>
+            <a href="{% url 'page_section_create' page.slug %}" class="nx-btn nx-btn--primary">Add Section</a>
         </div>
 
         <ul class="divide-y divide-slate-100">
@@ -110,12 +110,12 @@
                         <form method="POST" action="{% url 'page_section_move' section.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="direction" value="up">
-                            <button type="submit" class="pc-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
+                            <button type="submit" class="nx-btn nx-btn--sm nx-btn--ghost" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
                         </form>
                         <form method="POST" action="{% url 'page_section_move' section.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="direction" value="down">
-                            <button type="submit" class="pc-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
+                            <button type="submit" class="nx-btn nx-btn--sm nx-btn--ghost" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
                         </form>
                     </div>
 
@@ -124,9 +124,9 @@
                             <span class="text-sm font-semibold text-slate-900">
                                 {{ section.heading|default:"Untitled section" }}
                             </span>
-                            <span class="pc-pill pc-pill--muted">{{ section.get_layout_display }}</span>
-                            {% if not section.is_visible %}<span class="pc-pill pc-pill--warn">Hidden</span>{% endif %}
-                            {% if section.anchor %}<span class="pc-pill pc-pill--muted">#{{ section.anchor }}</span>{% endif %}
+                            <span class="nx-badge nx-badge--muted">{{ section.get_layout_display }}</span>
+                            {% if not section.is_visible %}<span class="nx-badge nx-badge--warn">Hidden</span>{% endif %}
+                            {% if section.anchor %}<span class="nx-badge nx-badge--muted">#{{ section.anchor }}</span>{% endif %}
                         </div>
                         {% if section.subheading %}
                             <p class="mt-1 truncate text-sm text-slate-500">{{ section.subheading }}</p>
@@ -138,18 +138,18 @@
                 </div>
 
                 <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'page_section_edit' section.id %}" class="pc-btn">Edit</a>
+                    <a href="{% url 'page_section_edit' section.id %}" class="nx-btn">Edit</a>
                     <form method="POST" action="{% url 'page_section_delete' section.id %}"
                           onsubmit="return confirm('Delete this section? This cannot be undone.');">
                         {% csrf_token %}
-                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                        <button type="submit" class="nx-btn nx-btn--danger">Delete</button>
                     </form>
                 </div>
             </li>
             {% empty %}
             <li class="p-10 text-center">
                 <p class="text-sm text-slate-500">No sections yet.</p>
-                <a href="{% url 'page_section_create' page.slug %}" class="mt-4 inline-flex pc-btn pc-btn--primary">
+                <a href="{% url 'page_section_create' page.slug %}" class="mt-4 inline-flex nx-btn nx-btn--primary">
                     Add the first section
                 </a>
             </li>
@@ -159,10 +159,10 @@
 
     <!-- ============ LINKED DATA ============ -->
     {% if linked_data %}
-    <div class="pc-card">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Linked Data on This Page</h2>
-            <p class="pc-card__sub">
+    <div class="nx-card">
+        <div class="nx-card__head">
+            <h2 class="nx-card__title">Linked Data on This Page</h2>
+            <p class="nx-card__sub">
                 These parts of the page come from their own managers rather than the sections above.
             </p>
         </div>
@@ -173,7 +173,7 @@
                     <p class="text-sm font-medium text-slate-800">{{ item.label }}</p>
                     <p class="text-xs text-slate-500">{{ item.hint }}</p>
                 </div>
-                <a href="{% url item.url_name %}" class="pc-btn shrink-0">Manage →</a>
+                <a href="{% url item.url_name %}" class="nx-btn shrink-0">Manage →</a>
             </li>
             {% endfor %}
         </ul>
@@ -182,46 +182,4 @@
 
 </div>
 
-<style>
-.pc-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
-.pc-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
-.pc-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
-.pc-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }
-
-.pc-label { display:block; margin-bottom:.3rem; font-size:.75rem; font-weight:500; color:#64748b; }
-.pc-input {
-    display:block; width:100%; padding:.55rem .75rem; border-radius:8px;
-    font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
-    outline:none; transition:border-color .15s;
-}
-.pc-input:focus { border-color:#103b07; }
-
-.pc-btn {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
-    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
-}
-.pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.pc-btn--primary:hover { opacity:.85; background:#103b07; }
-.pc-btn--danger { color:#b91c1c; border-color:#fecaca; }
-.pc-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
-
-.pc-move {
-    display:grid; place-items:center; height:1.4rem; width:1.4rem;
-    border-radius:6px; border:1px solid #e2e8f0; background:#fff;
-    font-size:.7rem; color:#64748b; cursor:pointer; transition:all .15s;
-}
-.pc-move:hover:not(:disabled) { background:#f1f5f9; color:#0f172a; }
-.pc-move:disabled { opacity:.35; cursor:not-allowed; }
-
-.pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
-.pc-pill--ok { background:#dcfce7; color:#166534; }
-.pc-pill--warn { background:#fef3c7; color:#92400e; }
-.pc-pill--muted { background:#f1f5f9; color:#475569; }
-
-.line-clamp-2 {
-    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-}
-</style>
 {% endblock %}

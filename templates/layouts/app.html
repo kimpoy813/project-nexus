@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% comment %}
+    Workspace shell — the standard full-screen layout for every authenticated
+    page. Left sidebar (role-aware navigation) + fluid main column. Pages can:
+
+      • override {% block app_sidebar %}   — replace the nav (e.g. tab filters)
+      • add to    {% block sidebar_extra %} — append panels under the nav
+      • set       {% block page_title / page_subtitle / page_actions %}
+      • put content in {% block app_content %} (or plain {% block content %})
+{% endcomment %}
+
+{% block topbar_prepend %}
+    <button type="button" id="nx-sidebar-toggle" class="nx-icon-btn lg:hidden" aria-label="Toggle navigation">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+    </button>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="nx-app">
+    <div class="nx-app__scrim hidden" id="nx-sidebar-scrim"></div>
+
+    <aside class="nx-app__sidebar" id="nx-app-sidebar" aria-label="Workspace navigation">
+        {% block app_sidebar %}
+            <nav class="nx-sidenav">
+                {% block app_nav %}{% include "layouts/_app_nav.html" %}{% endblock %}
+            </nav>
+            {% block sidebar_extra %}{% endblock %}
+            <div class="nx-app__sidebar-foot">
+                <a href="{% url 'logout' %}" class="nx-sidenav__link" style="color:#b42323;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    Logout
+                </a>
+            </div>
+        {% endblock %}
+    </aside>
+
+    <div class="nx-app__main">
+        {% block page_header_wrap %}
+            {% if page_title or page_subtitle %}
+                <div class="nx-page-head">
+                    <div>
+                        <h1 class="nx-page-head__title m-0">{{ page_title }}</h1>
+                        {% if page_subtitle %}<p class="nx-page-head__sub m-0">{{ page_subtitle }}</p>{% endif %}
+                    </div>
+                    <div class="nx-page-head__actions">{% block page_actions %}{% endblock %}</div>
+                </div>
+            {% endif %}
+        {% endblock %}
+        {% block app_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

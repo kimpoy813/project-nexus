@@ -37,7 +37,7 @@ from ..models import ProposalSpecificObjective
 from ..models import ProposalThrust
 from accounts.decorators import faculty_like_required, admin_required
 from .constants import GENDER_ISSUE_LIST, SDG_LIST, STEP_LABELS, THRUST_LIST, TOTAL_STEPS, User
-from .helpers import _strip_phase_prefix, _to_int, _to_roman
+from .helpers import _strip_phase_prefix, _to_int, _to_roman, _apply_moa_requirement_choice
 from .permissions import _can_edit, _can_review, _can_view_proposal, _ensure_open_review_round, _get_reviewer_role, _role_has_capability
 
 
@@ -48,7 +48,9 @@ def mark_step_completed(proposal, step_no):
     skipped.discard(step_no)
     proposal.completed_steps = sorted(completed)
     proposal.skipped_steps = sorted(skipped)
-    messages.success(request, "Step saved successfully.")
+    # Callers emit their own success message (this helper has no request
+    # scope; the old messages.success(request, ...) line crashed on the
+    # module-level `from urllib3 import request` shadowing).
 
 
 def mark_step_skipped(proposal, step_no):
@@ -855,6 +857,7 @@ def proposal_wizard(request, proposal_id, step):
 
         proposal.save(update_fields=["extension_type", "scope_type", "research_title"])
         _update_creator_role(proposal)
+        _apply_moa_requirement_choice(request, proposal)
 
     elif step == 2:
         proposal.title = (request.POST.get("title") or "").strip()

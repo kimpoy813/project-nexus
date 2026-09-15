@@ -1,650 +1,443 @@
-{% extends "base.html" %}
-{% load static %}
-
+{% extends "layouts/app.html" %}
 {% block title %}Admin Dashboard - NExUS{% endblock %}
 
-{% block content %}
-<div class="min-h-screen bg-[#f6f7f5] py-8" data-dashboard-view>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+{% block app_content %}
+<div data-dashboard-view>
+    <!-- Header -->
+    <div class="nx-page-head">
+        <div>
+            <h1 class="nx-page-head__title m-0">Admin Dashboard</h1>
+            <p class="nx-page-head__sub m-0">Manage accounts, site content, and global settings.</p>
+        </div>
+        <div class="nx-page-head__actions">
+            {% if site_control.maintenance_mode %}
+                <span class="nx-badge nx-badge--danger">Maintenance on</span>
+            {% else %}
+                <span class="nx-badge nx-badge--green">Site online</span>
+            {% endif %}
+            <a href="{% url 'admin_create_account' %}" class="nx-btn nx-btn--primary">Create Account</a>
+        </div>
+    </div>
 
-        <!-- ============ HEADER ============ -->
-        <header class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-                <h1 class="nx-dash__title">Admin Dashboard</h1>
-                <p class="nx-dash__subtitle">Manage accounts, site content, and global settings.</p>
-            </div>
-            <div class="flex items-center gap-2">
-                {% if site_control.maintenance_mode %}
-                    <span class="adm-pill adm-pill--danger">Maintenance on</span>
-                {% else %}
-                    <span class="adm-pill adm-pill--ok">Site online</span>
-                {% endif %}
-                <a href="{% url 'admin_create_account' %}" class="adm-btn-primary">Create Account</a>
-            </div>
-        </header>
+    <!-- KPIs -->
+    <div class="nx-kpi-grid" style="--nx-kpi-cols: 4;">
+        <div class="nx-kpi nx-kpi--green">
+            <p class="nx-kpi__label">Total Users</p>
+            <p class="nx-kpi__value">{{ total_users|default:"0" }}</p>
+            <p class="nx-kpi__hint">{{ active_today|default:"0" }} active today</p>
+        </div>
+        <div class="nx-kpi nx-kpi--blue">
+            <p class="nx-kpi__label">Verified</p>
+            <p class="nx-kpi__value">{{ verified_users|default:"0" }}</p>
+            <p class="nx-kpi__hint">{{ unverified_users|default:"0" }} pending</p>
+        </div>
+        <div class="nx-kpi nx-kpi--purple">
+            <p class="nx-kpi__label">Content Items</p>
+            <p class="nx-kpi__value">{{ total_content|default:"0" }}</p>
+            <p class="nx-kpi__hint">across all libraries</p>
+        </div>
+        <div class="nx-kpi nx-kpi--gold">
+            <p class="nx-kpi__label">Configurations</p>
+            <p class="nx-kpi__value">{{ dynamic_form_count|default:"0" }}</p>
+            <p class="nx-kpi__hint">{{ document_template_count|default:"0" }} templates</p>
+        </div>
+    </div>
 
-        <!-- ============ KPIs ============ -->
-        <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-            <div class="adm-kpi">
-                <p class="adm-kpi__label">Total Users</p>
-                <p class="adm-kpi__value">{{ total_users|default:"0" }}</p>
-                <p class="adm-kpi__hint">{{ active_today|default:"0" }} active today</p>
+    <!-- Tabs -->
+    <nav class="nx-tabs" role="tablist" aria-label="Admin sections">
+        <button type="button" class="nx-tab active" data-tab="overview" role="tab">Overview</button>
+        <button type="button" class="nx-tab" data-tab="users" role="tab">
+            Users
+            {% if unverified_users %}<span class="nx-tab__count">{{ unverified_users }}</span>{% endif %}
+        </button>
+        <button type="button" class="nx-tab" data-tab="content" role="tab">Content &amp; Builders</button>
+        <button type="button" class="nx-tab" data-tab="settings" role="tab">Site Settings</button>
+    </nav>
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="adm-panel" data-tab-panel="overview">
+        <div class="nx-card mb-5">
+            <div class="nx-card__head">
+                <div>
+                    <h2 class="nx-card__title m-0">Role Distribution</h2>
+                    <p class="nx-card__sub m-0">User access levels across the system.</p>
+                </div>
             </div>
-            <div class="adm-kpi">
-                <p class="adm-kpi__label">Verified</p>
-                <p class="adm-kpi__value">{{ verified_users|default:"0" }}</p>
-                <p class="adm-kpi__hint">{{ unverified_users|default:"0" }} pending</p>
-            </div>
-            <div class="adm-kpi">
-                <p class="adm-kpi__label">Content Items</p>
-                <p class="adm-kpi__value">{{ total_content|default:"0" }}</p>
-                <p class="adm-kpi__hint">across all libraries</p>
-            </div>
-            <div class="adm-kpi">
-                <p class="adm-kpi__label">Configurations</p>
-                <p class="adm-kpi__value">{{ dynamic_form_count|default:"0" }}</p>
-                <p class="adm-kpi__hint">{{ document_template_count|default:"0" }} templates</p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-px" style="background: var(--nx-line);">
+                <div class="nx-stat"><span class="nx-stat__label">Faculty</span><span class="nx-stat__value">{{ faculty_count|default:"0" }}</span></div>
+                <div class="nx-stat"><span class="nx-stat__label">Staff</span><span class="nx-stat__value">{{ staff_count|default:"0" }}</span></div>
+                <div class="nx-stat"><span class="nx-stat__label">Evaluators</span><span class="nx-stat__value">{{ evaluator_count|default:"0" }}</span></div>
+                <div class="nx-stat"><span class="nx-stat__label">Dept. Coord.</span><span class="nx-stat__value">{{ department_coordinator_count|default:"0" }}</span></div>
+                <div class="nx-stat"><span class="nx-stat__label">Campus Coord.</span><span class="nx-stat__value">{{ campus_coordinator_count|default:"0" }}</span></div>
+                <div class="nx-stat"><span class="nx-stat__label">Director</span><span class="nx-stat__value">{{ director_count|default:"0" }}</span></div>
+                <div class="nx-stat"><span class="nx-stat__label">Admin</span><span class="nx-stat__value">{{ admin_count|default:"0" }}</span></div>
             </div>
         </div>
 
-        <!-- ============ TABS ============ -->
-        <nav class="adm-tabs mb-5 flex flex-wrap gap-2" role="tablist" aria-label="Admin sections">
-            <button type="button" class="adm-tab active flex items-center gap-1.5" data-tab="overview" role="tab">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.003 9.003 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
-                Overview
-            </button>
-            <button type="button" class="adm-tab flex items-center gap-1.5" data-tab="users" role="tab">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                Users
-                {% if unverified_users %}<span class="adm-tab__count">{{ unverified_users }}</span>{% endif %}
-            </button>
-            <button type="button" class="adm-tab flex items-center gap-1.5" data-tab="content" role="tab">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                Content &amp; Builders
-            </button>
-            <button type="button" class="adm-tab flex items-center gap-1.5" data-tab="settings" role="tab">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-                Site Settings
-            </button>
-        </nav>
-
-        <!-- ================================================================
-             OVERVIEW
-        ================================================================ -->
-        <section class="adm-panel" data-tab-panel="overview">
-
-            <div class="adm-card mb-5">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">Role Distribution</h2>
-                    <p class="adm-card__sub">User access levels across the system.</p>
-                </div>
-                <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-px bg-slate-100">
-                    <div class="adm-stat"><span class="adm-stat__label">Faculty</span><span class="adm-stat__value">{{ faculty_count|default:"0" }}</span></div>
-                    <div class="adm-stat"><span class="adm-stat__label">Staff</span><span class="adm-stat__value">{{ staff_count|default:"0" }}</span></div>
-                    <div class="adm-stat"><span class="adm-stat__label">Evaluators</span><span class="adm-stat__value">{{ evaluator_count|default:"0" }}</span></div>
-                    <div class="adm-stat"><span class="adm-stat__label">Dept. Coord.</span><span class="adm-stat__value">{{ department_coordinator_count|default:"0" }}</span></div>
-                    <div class="adm-stat"><span class="adm-stat__label">Campus Coord.</span><span class="adm-stat__value">{{ campus_coordinator_count|default:"0" }}</span></div>
-                    <div class="adm-stat"><span class="adm-stat__label">Director</span><span class="adm-stat__value">{{ director_count|default:"0" }}</span></div>
-                    <div class="adm-stat"><span class="adm-stat__label">Admin</span><span class="adm-stat__value">{{ admin_count|default:"0" }}</span></div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div class="adm-card">
-                    <div class="adm-card__head flex items-center justify-between">
-                        <div>
-                            <h2 class="adm-card__title">Recent Sign-ups</h2>
-                            <p class="adm-card__sub">Joined in the last 7 days.</p>
-                        </div>
-                        <button type="button" class="adm-link" data-goto-tab="users">View all →</button>
-                    </div>
-                    <ul class="divide-y divide-slate-100">
-                        {% for profile in recent_users %}
-                        <li class="flex items-center gap-3 px-5 py-3">
-                            <span class="adm-avatar">{{ profile.full_name|default:profile.user.username|first|upper }}</span>
-                            <span class="min-w-0 flex-1">
-                                <span class="block truncate text-sm font-medium text-slate-800">{{ profile.full_name|default:profile.user.username }}</span>
-                                <span class="block truncate text-xs text-slate-500">{{ profile.user.email|default:"No email" }}</span>
-                            </span>
-                            <span class="adm-pill {% if profile.email_verified %}adm-pill--ok{% else %}adm-pill--warn{% endif %}">
-                                {% if profile.email_verified %}Verified{% else %}Pending{% endif %}
-                            </span>
-                        </li>
-                        {% empty %}
-                        <li class="px-5 py-8 text-center text-sm text-slate-400">No new users this week.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-
-                <div class="adm-card">
-                    <div class="adm-card__head">
-                        <h2 class="adm-card__title">Recent Global Changes</h2>
-                        <p class="adm-card__sub">Latest site-wide setting updates.</p>
-                    </div>
-                    <ul class="divide-y divide-slate-100">
-                        {% for log in site_logs %}
-                        <li class="px-5 py-3">
-                            <p class="text-sm text-slate-800">{{ log.summary }}</p>
-                            <p class="mt-0.5 text-xs text-slate-400">
-                                {{ log.created_at|date:"M d, Y h:i A" }}{% if log.changed_by %} · {{ log.changed_by.profile.full_name|default:log.changed_by.username }}{% endif %}
-                            </p>
-                        </li>
-                        {% empty %}
-                        <li class="px-5 py-8 text-center text-sm text-slate-400">No global changes logged yet.</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================================================================
-             USERS
-        ================================================================ -->
-        <section class="adm-panel hidden" data-tab-panel="users">
-            <div class="adm-card">
-                <div class="adm-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="nx-card">
+                <div class="nx-card__head">
                     <div>
-                        <h2 class="adm-card__title">Account Management</h2>
-                        <p class="adm-card__sub">Assign roles and review user access.</p>
+                        <h2 class="nx-card__title m-0">Recent Sign-ups</h2>
+                        <p class="nx-card__sub m-0">Joined in the last 7 days.</p>
                     </div>
-                    <div class="flex flex-col gap-2 sm:flex-row">
-                        <input type="text" id="userSearch" placeholder="Search users…" class="adm-input w-full sm:w-56">
-                        <select id="roleFilter" class="adm-input w-full sm:w-44">
-                            <option value="">All roles</option>
-                            <option value="FACULTY">Faculty</option>
-                            <option value="STAFF">Staff</option>
-                            <option value="EVALUATOR">Evaluator</option>
-                            <option value="DEPARTMENT_COORDINATOR">Department Coordinator</option>
-                            <option value="CAMPUS_COORDINATOR">Campus Coordinator</option>
-                            <option value="DIRECTOR">Director</option>
-                            <option value="ADMIN">Admin</option>
-                        </select>
-                    </div>
+                    <button type="button" class="nx-link" data-goto-tab="users">View all →</button>
                 </div>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full" id="userTable">
-                        <thead>
-                            <tr class="border-b border-slate-100 bg-slate-50/70">
-                                <th class="adm-th">User</th>
-                                <th class="adm-th">Campus</th>
-                                <th class="adm-th">Role</th>
-                                <th class="adm-th">Status</th>
-                                <th class="adm-th text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            {% for profile in profiles %}
-                            <tr class="transition hover:bg-slate-50/70" data-role="{{ profile.role }}">
-                                <td class="adm-td">
-                                    <div class="flex items-center gap-3">
-                                        <span class="adm-avatar">{{ profile.full_name|default:profile.user.username|first|upper }}</span>
-                                        <span class="min-w-0">
-                                            <span class="block truncate text-sm font-medium text-slate-800">{{ profile.full_name|default:profile.user.username }}</span>
-                                            <span class="block truncate text-xs text-slate-500">{{ profile.user.email|default:"No email" }}</span>
-                                        </span>
-                                    </div>
-                                </td>
-                                <td class="adm-td text-sm text-slate-600">{{ profile.campus|default:"—" }}</td>
-                                <td class="adm-td">
-                                    <form method="POST" action="{% url 'manage_roles' %}">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="user_id" value="{{ profile.user.id }}">
-                                        <select name="role" onchange="this.form.submit()" class="adm-input adm-input--sm">
-                                            <option value="FACULTY" {% if profile.role == 'FACULTY' %}selected{% endif %}>Faculty</option>
-                                            <option value="STAFF" {% if profile.role == 'STAFF' %}selected{% endif %}>Staff</option>
-                                            <option value="EVALUATOR" {% if profile.role == 'EVALUATOR' %}selected{% endif %}>Evaluator</option>
-                                            <option value="DEPARTMENT_COORDINATOR" {% if profile.role == 'DEPARTMENT_COORDINATOR' %}selected{% endif %}>Department Coordinator</option>
-                                            <option value="CAMPUS_COORDINATOR" {% if profile.role == 'CAMPUS_COORDINATOR' %}selected{% endif %}>Campus Coordinator</option>
-                                            <option value="DIRECTOR" {% if profile.role == 'DIRECTOR' %}selected{% endif %}>Director</option>
-                                            <option value="ADMIN" {% if profile.role == 'ADMIN' %}selected{% endif %}>Admin</option>
-                                        </select>
-                                    </form>
-                                </td>
-                                <td class="adm-td">
-                                    <span class="adm-pill {% if profile.email_verified %}adm-pill--ok{% else %}adm-pill--warn{% endif %}">
-                                        {% if profile.email_verified %}Verified{% else %}Pending{% endif %}
-                                    </span>
-                                </td>
-                                <td class="adm-td text-right whitespace-nowrap">
-                                    <a href="{% url 'admin_user_detail' profile.user.id %}" class="adm-link">View</a>
-                                    <span class="mx-1.5 text-slate-200">|</span>
-                                    <a href="{% url 'admin_edit_user' profile.user.id %}" class="adm-link">Edit</a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="5" class="px-5 py-12 text-center text-sm text-slate-400">No users found.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <div id="userEmptyState" class="hidden px-5 py-12 text-center text-sm text-slate-400">
-                    No users match your filters.
-                </div>
-            </div>
-        </section>
-
-        <!-- ================================================================
-             CONTENT & BUILDERS
-        ================================================================ -->
-        <section class="adm-panel hidden" data-tab-panel="content">
-
-            <div class="adm-card mb-5">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">No-Code Builders</h2>
-                    <p class="adm-card__sub">Update processes, forms, and templates without editing source files.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px bg-slate-100">
-                    <a href="{% url 'processes_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                                <span class="adm-tile__name">Process Builder</span>
-                            </span>
-                            <span class="adm-tile__count">{{ processes_count|default:0 }}</span>
+                <ul class="m-0 p-0 list-none" style="border-top: 0;">
+                    {% for profile in recent_users %}
+                    <li class="flex items-center gap-3 px-5 py-3" style="border-top: 1px solid var(--nx-line);">
+                        <span class="nx-avatar">{{ profile.full_name|default:profile.user.username|first|upper }}</span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-semibold">{{ profile.full_name|default:profile.user.username }}</span>
+                            <span class="block truncate text-xs" style="color: var(--nx-subtle);">{{ profile.user.email|default:"No email" }}</span>
                         </span>
-                        <span class="adm-tile__desc">Public process flows and office procedures.</span>
-                    </a>
-                    <a href="{% url 'wizard_steps_manager' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 9.172V5L8 4z" /></svg>
-                                <span class="adm-tile__name">Wizard Steps</span>
-                            </span>
-                            <span class="adm-tile__count">{{ wizard_step_config_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Rename, hide, or make proposal steps optional.</span>
-                    </a>
-                    <a href="{% url 'dynamic_forms_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.582z" /></svg>
-                                <span class="adm-tile__name">Form Builder</span>
-                            </span>
-                            <span class="adm-tile__count">{{ dynamic_form_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Configurable forms and checklists.</span>
-                    </a>
-                    <a href="{% url 'document_templates_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
-                                <span class="adm-tile__name">Template Library</span>
-                            </span>
-                            <span class="adm-tile__count">{{ document_template_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Official DOCX/XLSX/PDF templates.</span>
-                    </a>
-                    <a href="{% url 'role_capabilities_manager' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                                <span class="adm-tile__name">Role Capabilities</span>
-                            </span>
-                            <span class="adm-tile__count">{{ role_capability_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Turn role functions on or off.</span>
-                    </a>
-                    <a href="{% url 'signatories_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                <span class="adm-tile__name">Signatories</span>
-                            </span>
-                            <span class="adm-tile__count">{{ signatories_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Signatories for printed summaries and letters.</span>
-                    </a>
-                    <a href="{% url 'campuses_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                                <span class="adm-tile__name">Campuses</span>
-                            </span>
-                            <span class="adm-tile__count">{{ campuses_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Manage campuses available during registration.</span>
-                    </a>
-                    <a href="{% url 'colleges_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.02 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
-                                <span class="adm-tile__name">Colleges</span>
-                            </span>
-                            <span class="adm-tile__count">{{ colleges_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Manage colleges and campus associations.</span>
-                    </a>
-                    <a href="{% url 'departments_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                <span class="adm-tile__name">Departments</span>
-                            </span>
-                            <span class="adm-tile__count">{{ departments_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Manage departments and college/campus associations.</span>
-                    </a>
-                    <a href="{% url 'admin_legacy_proposal_create' %}" class="adm-tile col-span-full sm:col-span-1">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                                <span class="adm-tile__name">Legacy Proposals</span>
-                            </span>
-                        </span>
-                        <span class="adm-tile__desc">Upload pre-website proposals with their original formats and attachments.</span>
-                    </a>
-                </div>
-            </div>
-
-            <div class="adm-card mb-5">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">Page Content</h2>
-                    <p class="adm-card__sub">Edit the text and sections shown on each public page.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100">
-                    {% for item in editable_pages %}
-                    <a href="{% url 'page_content_edit' item.slug %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                {% if item.slug == 'home' %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                                {% elif item.slug == 'services' %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                {% elif item.slug == 'reports' %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                {% else %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-                                {% endif %}
-                                <span class="adm-tile__name">{{ item.title }}</span>
-                            </span>
-                            <span class="adm-tile__count">{{ item.visible_count }}</span>
-                        </span>
-                        <span class="adm-tile__desc">
-                            {% if item.is_published %}
-                                {{ item.visible_count }} visible section{{ item.visible_count|pluralize }}
-                            {% else %}
-                                Draft — hidden from visitors
-                            {% endif %}
-                        </span>
-                    </a>
+                        {% if profile.email_verified %}<span class="nx-badge nx-badge--green">Verified</span>{% else %}<span class="nx-badge nx-badge--gold">Pending</span>{% endif %}
+                    </li>
+                    {% empty %}
+                    <li class="nx-empty">No new users this week.</li>
                     {% endfor %}
-                </div>
+                </ul>
             </div>
 
-            <div class="adm-card">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">Website Content</h2>
-                    <p class="adm-card__sub">Content shown across the public platform.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100">
-                    <a href="{% url 'personnel_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                <span class="adm-tile__name">Personnel</span>
-                            </span>
-                            <span class="adm-tile__count">{{ personnel_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Staff and faculty on the homepage.</span>
-                    </a>
-                    <a href="{% url 'activities_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <span class="adm-tile__name">Activities</span>
-                            </span>
-                            <span class="adm-tile__count">{{ activities_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Upcoming and past extension activities.</span>
-                    </a>
-                    <a href="{% url 'targets_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                <span class="adm-tile__name">Targets</span>
-                            </span>
-                            <span class="adm-tile__count">{{ targets_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Yearly targets and accomplishments.</span>
-                    </a>
-                </div>
-            </div>
-        </section>
-
-        <!-- ================================================================
-             SITE SETTINGS
-        ================================================================ -->
-        <section class="adm-panel hidden" data-tab-panel="settings">
-            <form method="POST" action="{% url 'admin_site_control' %}">
-                {% csrf_token %}
-
-                <div class="adm-card mb-5">
-                    <div class="adm-card__head flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                            <h2 class="adm-card__title">Website Controls</h2>
-                            <p class="adm-card__sub">Changes here affect the whole website immediately.</p>
-                        </div>
-                        <div class="flex flex-wrap gap-1.5">
-                            {% if site_control.announcement_enabled %}<span class="adm-pill adm-pill--info">Announcement live</span>{% endif %}
-                            {% if not site_control.registration_enabled %}<span class="adm-pill adm-pill--warn">Registration closed</span>{% endif %}
-                        </div>
+            <div class="nx-card">
+                <div class="nx-card__head">
+                    <div>
+                        <h2 class="nx-card__title m-0">Recent Global Changes</h2>
+                        <p class="nx-card__sub m-0">Latest site-wide setting updates.</p>
                     </div>
+                </div>
+                <ul class="m-0 p-0 list-none">
+                    {% for log in site_logs %}
+                    <li class="px-5 py-3" style="border-top: 1px solid var(--nx-line);">
+                        <p class="text-sm m-0">{{ log.summary }}</p>
+                        <p class="mt-1 mb-0 text-xs" style="color: var(--nx-subtle);">
+                            {{ log.created_at|date:"M d, Y h:i A" }}{% if log.changed_by %} · {{ log.changed_by.profile.full_name|default:log.changed_by.username }}{% endif %}
+                        </p>
+                    </li>
+                    {% empty %}
+                    <li class="nx-empty">No global changes logged yet.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </section>
 
-                    <div class="p-5 space-y-6">
-                        <!-- Branding -->
-                        <fieldset>
-                            <legend class="adm-legend">Branding</legend>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="adm-label">Site Name</label>
-                                    <input type="text" name="site_name" value="{{ site_control.site_name }}" class="adm-input">
-                                </div>
-                                <div>
-                                    <label class="adm-label">Short Name</label>
-                                    <input type="text" name="short_name" value="{{ site_control.short_name }}" class="adm-input">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="adm-label">Tagline</label>
-                                    <input type="text" name="tagline" value="{{ site_control.tagline }}" class="adm-input">
-                                </div>
-                                <div>
-                                    <label class="adm-label">Contact Email</label>
-                                    <input type="email" name="contact_email" value="{{ site_control.contact_email }}" class="adm-input">
-                                </div>
-                                <div>
-                                    <label class="adm-label">Facebook URL</label>
-                                    <input type="url" name="facebook_url" value="{{ site_control.facebook_url }}" class="adm-input">
-                                </div>
-                            </div>
-                            <div class="mt-4 grid grid-cols-3 gap-4">
-                                <div>
-                                    <label class="adm-label">Primary</label>
-                                    <input type="color" name="primary_color" value="{{ site_control.primary_color }}" class="adm-color">
-                                </div>
-                                <div>
-                                    <label class="adm-label">Secondary</label>
-                                    <input type="color" name="secondary_color" value="{{ site_control.secondary_color }}" class="adm-color">
-                                </div>
-                                <div>
-                                    <label class="adm-label">Accent</label>
-                                    <input type="color" name="accent_color" value="{{ site_control.accent_color }}" class="adm-color">
-                                </div>
-                            </div>
-                        </fieldset>
+    <!-- ============ USERS ============ -->
+    <section class="adm-panel hidden" data-tab-panel="users">
+        <div class="nx-card">
+            <div class="nx-card__head" style="flex-wrap: wrap;">
+                <div>
+                    <h2 class="nx-card__title m-0">Account Management</h2>
+                    <p class="nx-card__sub m-0">Assign roles and review user access.</p>
+                </div>
+                <div class="flex flex-col gap-2 sm:flex-row">
+                    <input type="text" id="userSearch" placeholder="Search users…" style="min-width: 13rem;">
+                    <select id="roleFilter" style="min-width: 11rem;">
+                        <option value="">All roles</option>
+                        <option value="FACULTY">Faculty</option>
+                        <option value="STAFF">Staff</option>
+                        <option value="EVALUATOR">Evaluator</option>
+                        <option value="DEPARTMENT_COORDINATOR">Department Coordinator</option>
+                        <option value="CAMPUS_COORDINATOR">Campus Coordinator</option>
+                        <option value="DIRECTOR">Director</option>
+                        <option value="ADMIN">Admin</option>
+                    </select>
+                </div>
+            </div>
 
-                        <!-- Announcement -->
-                        <fieldset class="border-t border-slate-100 pt-5">
-                            <div class="flex items-center justify-between gap-3 mb-4">
-                                <legend class="adm-legend">Global Announcement</legend>
-                                <label class="relative inline-flex items-center cursor-pointer select-none">
-                                    <input type="checkbox" name="announcement_enabled" {% if site_control.announcement_enabled %}checked{% endif %} class="sr-only peer">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    <span class="ml-3 text-sm font-bold text-slate-700">Publish banner</span>
+            <div class="overflow-x-auto">
+                <table id="userTable">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Campus</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th class="!text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in profiles %}
+                        <tr data-role="{{ profile.role }}">
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <span class="nx-avatar">{{ profile.full_name|default:profile.user.username|first|upper }}</span>
+                                    <span class="min-w-0">
+                                        <span class="block truncate text-sm font-semibold">{{ profile.full_name|default:profile.user.username }}</span>
+                                        <span class="block truncate text-xs" style="color: var(--nx-subtle);">{{ profile.user.email|default:"No email" }}</span>
+                                    </span>
+                                </div>
+                            </td>
+                            <td>{{ profile.campus|default:"—" }}</td>
+                            <td>
+                                <form method="POST" action="{% url 'manage_roles' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                                    <select name="role" onchange="this.form.submit()" class="nx-input nx-input--sm" style="min-width: 12rem;">
+                                        <option value="FACULTY" {% if profile.role == 'FACULTY' %}selected{% endif %}>Faculty</option>
+                                        <option value="STAFF" {% if profile.role == 'STAFF' %}selected{% endif %}>Staff</option>
+                                        <option value="EVALUATOR" {% if profile.role == 'EVALUATOR' %}selected{% endif %}>Evaluator</option>
+                                        <option value="DEPARTMENT_COORDINATOR" {% if profile.role == 'DEPARTMENT_COORDINATOR' %}selected{% endif %}>Department Coordinator</option>
+                                        <option value="CAMPUS_COORDINATOR" {% if profile.role == 'CAMPUS_COORDINATOR' %}selected{% endif %}>Campus Coordinator</option>
+                                        <option value="DIRECTOR" {% if profile.role == 'DIRECTOR' %}selected{% endif %}>Director</option>
+                                        <option value="ADMIN" {% if profile.role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                {% if profile.email_verified %}<span class="nx-badge nx-badge--green">Verified</span>{% else %}<span class="nx-badge nx-badge--gold">Pending</span>{% endif %}
+                            </td>
+                            <td class="text-right whitespace-nowrap">
+                                <a href="{% url 'admin_user_detail' profile.user.id %}" class="nx-link">View</a>
+                                <span class="mx-1.5" style="color: var(--nx-line-strong);">|</span>
+                                <a href="{% url 'admin_edit_user' profile.user.id %}" class="nx-link">Edit</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="nx-empty">No users found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="userEmptyState" class="hidden nx-empty">No users match your filters.</div>
+        </div>
+    </section>
+
+    <!-- ============ CONTENT & BUILDERS ============ -->
+    <section class="adm-panel hidden" data-tab-panel="content">
+        <div class="nx-card mb-5">
+            <div class="nx-card__head">
+                <div>
+                    <h2 class="nx-card__title m-0">No-Code Builders</h2>
+                    <p class="nx-card__sub m-0">Update processes, forms, and templates without editing source files.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px" style="background: var(--nx-line);">
+                <a href="{% url 'processes_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Process Builder</span><span class="nx-tile__count">{{ processes_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Public process flows and office procedures.</span>
+                </a>
+                <a href="{% url 'wizard_steps_manager' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Wizard Steps</span><span class="nx-tile__count">{{ wizard_step_config_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Rename, hide, or make proposal steps optional.</span>
+                </a>
+                <a href="{% url 'dynamic_forms_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Form Builder</span><span class="nx-tile__count">{{ dynamic_form_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Configurable forms and checklists.</span>
+                </a>
+                <a href="{% url 'document_templates_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Template Library</span><span class="nx-tile__count">{{ document_template_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Official DOCX/XLSX/PDF templates.</span>
+                </a>
+                <a href="{% url 'role_capabilities_manager' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Role Capabilities</span><span class="nx-tile__count">{{ role_capability_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Turn role functions on or off.</span>
+                </a>
+                <a href="{% url 'signatories_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Signatories</span><span class="nx-tile__count">{{ signatories_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Signatories for printed summaries and letters.</span>
+                </a>
+                <a href="{% url 'campuses_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Campuses</span><span class="nx-tile__count">{{ campuses_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Manage campuses available during registration.</span>
+                </a>
+                <a href="{% url 'colleges_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Colleges</span><span class="nx-tile__count">{{ colleges_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Manage colleges and campus associations.</span>
+                </a>
+                <a href="{% url 'departments_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Departments</span><span class="nx-tile__count">{{ departments_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Manage departments and college/campus associations.</span>
+                </a>
+                <a href="{% url 'admin_legacy_proposal_create' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Legacy Proposals</span></span>
+                    <span class="nx-tile__desc">Upload pre-website proposals with their original formats and attachments.</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="nx-card mb-5">
+            <div class="nx-card__head">
+                <div>
+                    <h2 class="nx-card__title m-0">Page Content</h2>
+                    <p class="nx-card__sub m-0">Edit the text and sections shown on each public page.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px" style="background: var(--nx-line);">
+                {% for item in editable_pages %}
+                <a href="{% url 'page_content_edit' item.slug %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">{{ item.title }}</span><span class="nx-tile__count">{{ item.visible_count }}</span></span>
+                    <span class="nx-tile__desc">
+                        {% if item.is_published %}
+                            {{ item.visible_count }} visible section{{ item.visible_count|pluralize }}
+                        {% else %}
+                            Draft — hidden from visitors
+                        {% endif %}
+                    </span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="nx-card">
+            <div class="nx-card__head">
+                <div>
+                    <h2 class="nx-card__title m-0">Website Content</h2>
+                    <p class="nx-card__sub m-0">Content shown across the public platform.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-px" style="background: var(--nx-line);">
+                <a href="{% url 'personnel_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Personnel</span><span class="nx-tile__count">{{ personnel_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Staff and faculty on the homepage.</span>
+                </a>
+                <a href="{% url 'activities_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Activities</span><span class="nx-tile__count">{{ activities_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Upcoming and past extension activities.</span>
+                </a>
+                <a href="{% url 'targets_list' %}" class="nx-tile">
+                    <span class="nx-tile__top"><span class="nx-tile__name">Targets</span><span class="nx-tile__count">{{ targets_count|default:0 }}</span></span>
+                    <span class="nx-tile__desc">Yearly targets and accomplishments.</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SITE SETTINGS ============ -->
+    <section class="adm-panel hidden" data-tab-panel="settings">
+        <form method="POST" action="{% url 'admin_site_control' %}">
+            {% csrf_token %}
+            <div class="nx-card">
+                <div class="nx-card__head" style="flex-wrap: wrap;">
+                    <div>
+                        <h2 class="nx-card__title m-0">Website Controls</h2>
+                        <p class="nx-card__sub m-0">Changes here affect the whole website immediately.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        {% if site_control.announcement_enabled %}<span class="nx-badge nx-badge--blue">Announcement live</span>{% endif %}
+                        {% if not site_control.registration_enabled %}<span class="nx-badge nx-badge--gold">Registration closed</span>{% endif %}
+                    </div>
+                </div>
+
+                <div class="nx-card__body grid gap-6">
+                    <!-- Branding -->
+                    <fieldset>
+                        <legend class="nx-eyebrow mb-3">Branding</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="nx-label">Site Name</label>
+                                <input type="text" name="site_name" value="{{ site_control.site_name }}">
+                            </div>
+                            <div>
+                                <label class="nx-label">Short Name</label>
+                                <input type="text" name="short_name" value="{{ site_control.short_name }}">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="nx-label">Tagline</label>
+                                <input type="text" name="tagline" value="{{ site_control.tagline }}">
+                            </div>
+                            <div>
+                                <label class="nx-label">Contact Email</label>
+                                <input type="email" name="contact_email" value="{{ site_control.contact_email }}">
+                            </div>
+                            <div>
+                                <label class="nx-label">Facebook URL</label>
+                                <input type="url" name="facebook_url" value="{{ site_control.facebook_url }}">
+                            </div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="nx-label">Primary</label>
+                                <input type="color" name="primary_color" value="{{ site_control.primary_color }}" class="nx-color-input">
+                            </div>
+                            <div>
+                                <label class="nx-label">Secondary</label>
+                                <input type="color" name="secondary_color" value="{{ site_control.secondary_color }}" class="nx-color-input">
+                            </div>
+                            <div>
+                                <label class="nx-label">Accent</label>
+                                <input type="color" name="accent_color" value="{{ site_control.accent_color }}" class="nx-color-input">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Announcement -->
+                    <fieldset class="pt-5" style="border-top: 1px solid var(--nx-line);">
+                        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                            <legend class="nx-eyebrow">Global Announcement</legend>
+                            <label class="relative inline-flex items-center cursor-pointer select-none">
+                                <input type="checkbox" name="announcement_enabled" {% if site_control.announcement_enabled %}checked{% endif %} class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                <span class="ml-3 nx-switch-label">Publish banner</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="nx-label">Title</label>
+                                <input type="text" name="announcement_title" value="{{ site_control.announcement_title }}">
+                            </div>
+                            <div>
+                                <label class="nx-label">Tone</label>
+                                <select name="announcement_tone">
+                                    <option value="INFO" {% if site_control.announcement_tone == 'INFO' %}selected{% endif %}>Info</option>
+                                    <option value="SUCCESS" {% if site_control.announcement_tone == 'SUCCESS' %}selected{% endif %}>Success</option>
+                                    <option value="WARNING" {% if site_control.announcement_tone == 'WARNING' %}selected{% endif %}>Warning</option>
+                                    <option value="DANGER" {% if site_control.announcement_tone == 'DANGER' %}selected{% endif %}>Critical</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-3">
+                                <label class="nx-label">Message</label>
+                                <textarea name="announcement_message" rows="3">{{ site_control.announcement_message }}</textarea>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- System access -->
+                    <fieldset class="pt-5" style="border-top: 1px solid var(--nx-line);">
+                        <legend class="nx-eyebrow mb-3">System Access</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="nx-alert flex items-center justify-between gap-4 select-none">
+                                <span>
+                                    <span class="block text-sm font-bold">Maintenance mode</span>
+                                    <span class="block text-xs" style="color: var(--nx-subtle);">Locks the site for non-admin users.</span>
+                                </span>
+                                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                    <input type="checkbox" name="maintenance_mode" {% if site_control.maintenance_mode %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                 </label>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="md:col-span-2">
-                                    <label class="adm-label">Title</label>
-                                    <input type="text" name="announcement_title" value="{{ site_control.announcement_title }}" class="adm-input">
-                                </div>
-                                <div>
-                                    <label class="adm-label">Tone</label>
-                                    <select name="announcement_tone" class="adm-input">
-                                        <option value="INFO" {% if site_control.announcement_tone == 'INFO' %}selected{% endif %}>Info</option>
-                                        <option value="SUCCESS" {% if site_control.announcement_tone == 'SUCCESS' %}selected{% endif %}>Success</option>
-                                        <option value="WARNING" {% if site_control.announcement_tone == 'WARNING' %}selected{% endif %}>Warning</option>
-                                        <option value="DANGER" {% if site_control.announcement_tone == 'DANGER' %}selected{% endif %}>Critical</option>
-                                    </select>
-                                </div>
-                                <div class="md:col-span-3">
-                                    <label class="adm-label">Message</label>
-                                    <textarea name="announcement_message" rows="3" class="adm-input">{{ site_control.announcement_message }}</textarea>
-                                </div>
+                            <div class="nx-alert flex items-center justify-between gap-4 select-none">
+                                <span>
+                                    <span class="block text-sm font-bold">Allow public registration</span>
+                                    <span class="block text-xs" style="color: var(--nx-subtle);">Turn off to stop new sign-ups.</span>
+                                </span>
+                                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                    <input type="checkbox" name="registration_enabled" {% if site_control.registration_enabled %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
                             </div>
-                        </fieldset>
-
-                        <!-- System access -->
-                        <fieldset class="border-t border-slate-100 pt-5">
-                            <legend class="adm-legend">System Access</legend>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
-                                    <span>
-                                        <span class="block text-sm font-bold text-slate-800">Maintenance mode</span>
-                                        <span class="block text-xs text-slate-500">Locks the site for non-admin users.</span>
-                                    </span>
-                                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                                        <input type="checkbox" name="maintenance_mode" {% if site_control.maintenance_mode %}checked{% endif %} class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
-                                </div>
-                                <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
-                                    <span>
-                                        <span class="block text-sm font-bold text-slate-800">Allow public registration</span>
-                                        <span class="block text-xs text-slate-500">Turn off to stop new sign-ups.</span>
-                                    </span>
-                                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
-                                        <input type="checkbox" name="registration_enabled" {% if site_control.registration_enabled %}checked{% endif %} class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="adm-label">Maintenance Message</label>
-                                    <textarea name="maintenance_message" rows="3" class="adm-input">{{ site_control.maintenance_message }}</textarea>
-                                </div>
+                            <div class="md:col-span-2">
+                                <label class="nx-label">Maintenance Message</label>
+                                <textarea name="maintenance_message" rows="3">{{ site_control.maintenance_message }}</textarea>
                             </div>
-                        </fieldset>
-                    </div>
-
-                    <div class="flex items-center justify-end border-t border-slate-100 px-5 py-4">
-                        <button type="submit" class="adm-btn-primary">Save Settings</button>
-                    </div>
+                        </div>
+                    </fieldset>
                 </div>
-            </form>
-        </section>
 
-    </div>
+                <div class="nx-card__foot">
+                    <button type="submit" class="nx-btn nx-btn--primary">Save Settings</button>
+                </div>
+            </div>
+        </form>
+    </section>
 </div>
-
-<style>
-/* Aliases onto the shared tokens in css/dashboard-views.css. */
-:root { --adm-green:var(--nx-green, #103b07); --adm-green-l:var(--nx-green-soft, #eaf3de); }
-
-/* Cards */
-.adm-card { background:var(--nx-surface, #fff); border:1px solid var(--nx-border, #e2e8f0); border-radius:var(--nx-radius, 14px); overflow:hidden; }
-.adm-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
-.adm-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
-.adm-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }
-
-/* KPI */
-.adm-kpi { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:12px; padding:1rem 1.15rem; }
-.adm-kpi__label { font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; }
-.adm-kpi__value { margin-top:.35rem; font-size:1.6rem; font-weight:600; line-height:1.1; color:#0f172a; }
-.adm-kpi__hint { margin-top:.15rem; font-size:.72rem; color:#94a3b8; }
-
-/* Tabs */
-.adm-tabs { display:flex; flex-wrap:wrap; gap:.25rem; border-bottom:1px solid #e2e8f0; }
-.adm-tab {
-    position:relative; padding:.6rem .9rem; margin-bottom:-1px;
-    font-size:.83rem; font-weight:500; color:#64748b;
-    background:transparent; border:none; border-bottom:2px solid transparent;
-    transition:color .15s, border-color .15s; cursor:pointer;
-}
-.adm-tab:hover { color:#0f172a; }
-.adm-tab.active { color:var(--adm-green); border-bottom-color:var(--adm-green); font-weight:600; }
-.adm-tab__count {
-    display:inline-block; margin-left:.35rem; padding:.05rem .4rem;
-    border-radius:999px; background:#fef3c7; color:#92400e; font-size:.68rem; font-weight:600;
-}
-
-/* Stats strip */
-.adm-stat { display:flex; flex-direction:column; gap:.25rem; background:#fff; padding:.9rem 1.1rem; }
-.adm-stat__label { font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; }
-.adm-stat__value { font-size:1.25rem; font-weight:600; color:#0f172a; }
-
-/* Tiles */
-.adm-tile { display:flex; flex-direction:column; gap:.3rem; background:#fff; padding:1rem 1.15rem; transition:background .15s; }
-.adm-tile:hover { background:#f8fafc; }
-.adm-tile__top { display:flex; align-items:baseline; justify-content:space-between; gap:.5rem; }
-.adm-tile__name { font-size:.85rem; font-weight:600; color:#0f172a; }
-.adm-tile__count { font-size:1.1rem; font-weight:600; color:var(--adm-green); }
-.adm-tile__desc { font-size:.75rem; line-height:1.4; color:#94a3b8; }
-
-/* Table */
-.adm-th { padding:.7rem 1.25rem; text-align:left; font-size:.7rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#94a3b8; }
-.adm-td { padding:.75rem 1.25rem; vertical-align:middle; }
-
-/* Avatar */
-.adm-avatar {
-    display:grid; place-items:center; flex:none; height:2.1rem; width:2.1rem;
-    border-radius:999px; background:var(--adm-green-l); color:var(--adm-green);
-    font-size:.78rem; font-weight:600;
-}
-
-/* Pills */
-.adm-pill { display:inline-flex; align-items:center; padding:.15rem .55rem; border-radius:999px; font-size:.7rem; font-weight:600; white-space:nowrap; }
-.adm-pill--ok { background:#dcfce7; color:#166534; }
-.adm-pill--warn { background:#fef3c7; color:#92400e; }
-.adm-pill--danger { background:#fee2e2; color:#991b1b; }
-.adm-pill--info { background:#dbeafe; color:#1e40af; }
-
-/* Buttons & links */
-.adm-btn-primary {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:.5rem 1rem; border-radius:8px; background:var(--adm-green); color:#fff;
-    font-size:.8rem; font-weight:600; border:none; transition:opacity .15s; cursor:pointer;
-}
-.adm-btn-primary:hover { opacity:.85; }
-.adm-link { font-size:.78rem; font-weight:500; color:var(--adm-green); background:none; border:none; padding:0; cursor:pointer; }
-.adm-link:hover { text-decoration:underline; }
-
-/* Forms */
-.adm-legend { display:block; margin-bottom:.75rem; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#64748b; }
-.adm-label { display:block; margin-bottom:.3rem; font-size:.73rem; font-weight:500; color:#64748b; }
-.adm-input {
-    display:block; width:100%; padding:.55rem .8rem; border-radius:12px;
-    font-size:.85rem; color:#1e293b; background:#fff; border:1px solid #cbd5e1;
-    outline:none; transition: all .15s ease-in-out;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-}
-.adm-input:focus { 
-    border-color: var(--nexus-primary, #103b07); 
-    box-shadow: 0 0 0 3px rgba(16, 59, 7, 0.15); 
-}
-.adm-input--sm { padding:.4rem .6rem; font-size:.8rem; border-radius:10px; }
-.adm-color { height:2.35rem; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:.15rem; background:#fff; cursor:pointer; }
-.adm-check { display:inline-flex; align-items:center; gap:.45rem; font-size:.78rem; font-weight:500; color:#475569; }
-.adm-toggle { display:flex; align-items:flex-start; gap:.6rem; padding:.75rem .9rem; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:border-color .15s; }
-.adm-toggle:hover { border-color:#cbd5e1; }
-.adm-toggle input { margin-top:.15rem; }
-</style>
 
 <script>
 (function () {
     const STORAGE_KEY = 'adminDashboardTab';
 
     function activateTab(name) {
-        const tabs = document.querySelectorAll('.adm-tab');
+        const tabs = document.querySelectorAll('.nx-tab[data-tab]');
         const valid = Array.from(tabs).some(t => t.dataset.tab === name);
         if (!valid) name = 'overview';
 
@@ -663,7 +456,6 @@
         window.history.replaceState({}, '', url);
     }
 
-    // Filtering for the users table
     function filterUsers() {
         const q = (document.getElementById('userSearch')?.value || '').toLowerCase().trim();
         const role = document.getElementById('roleFilter')?.value || '';
@@ -671,9 +463,7 @@
         let shown = 0;
 
         rows.forEach(row => {
-            const matchesText = !q || row.textContent.toLowerCase().includes(q);
-            const matchesRole = !role || row.dataset.role === role;
-            const visible = matchesText && matchesRole;
+            const visible = (!q || row.textContent.toLowerCase().includes(q)) && (!role || row.dataset.role === role);
             row.classList.toggle('hidden', !visible);
             if (visible) shown++;
         });
@@ -683,7 +473,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        document.querySelectorAll('.adm-tab').forEach(btn => {
+        document.querySelectorAll('.nx-tab[data-tab]').forEach(btn => {
             btn.addEventListener('click', () => activateTab(btn.dataset.tab));
         });
         document.querySelectorAll('[data-goto-tab]').forEach(btn => {

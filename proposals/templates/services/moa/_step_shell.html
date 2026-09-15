@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% comment %}
+  Shared chrome for the 4-step MOA wizard. Each step_N.html only fills:
+    moa_step_label, moa_guidance_title, moa_guidance_text, moa_fields,
+    moa_back (optional), moa_submit_label, moa_form_attrs
+{% endcomment %}
+{% block content %}
+<div style="padding: 1.5rem 2.5rem 3rem;">
+
+  <div class="nx-page-head">
+    <div>
+      <p class="nx-eyebrow" style="color: var(--nx-green);">MOA Wizard</p>
+      <h1 class="nx-page-head__title m-0" style="margin-top: .25rem;">{{ proposal.title|default:"MOA Draft" }}</h1>
+      <p class="nx-page-head__sub m-0">Step {{ step }} of {{ total_steps }} — {% block moa_step_label %}{% endblock %}</p>
+    </div>
+  </div>
+
+  <div class="nx-progress mb-5" style="--nx-progress-h: .55rem;">
+    <div class="nx-progress__fill" style="width: {{ progress }}%;"></div>
+  </div>
+
+  <!-- Step navigator -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    {% for s in wizard_steps %}
+    <a href="{% url 'proposal_moa_step' proposal.id s.no %}"
+       style="display: flex; flex-direction: column; gap: .3rem; text-decoration: none; padding: .8rem 1rem; border-radius: var(--nx-radius-sm); transition: border-color .15s;
+         {% if s.state == 'current' %}
+           border: 2px solid var(--nx-green); background: rgba(16,59,7,.05);
+         {% elif s.state == 'completed' %}
+           border: 1px solid var(--nx-line); background: #f2f6ef;
+         {% else %}
+           border: 1px solid var(--nx-line); background: var(--nx-card);
+         {% endif %}">
+      <p class="nx-eyebrow m-0" {% if s.state == 'current' %}style="color: var(--nx-green);"{% endif %}>Step {{ s.no }}</p>
+      <p class="text-sm font-bold m-0" style="color: {% if s.state == 'current' %}var(--nx-green){% else %}var(--nx-text){% endif %};">{{ s.title }}</p>
+      <p class="text-xs leading-5 m-0" style="color: var(--nx-subtle);">{{ s.desc }}</p>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[290px_minmax(0,1fr)] gap-5 items-start">
+    <aside class="grid gap-4 self-start">
+      <div class="nx-card">
+        <div class="nx-card__head"><h2 class="nx-card__title m-0" style="font-size: .95rem;">What to place here</h2></div>
+        <div class="nx-card__body grid gap-2 text-sm" style="color: var(--nx-muted);">
+          {% for item in step_help %}
+            <div style="background: #f5f8f2; border: 1px solid var(--nx-line); border-radius: var(--nx-radius-sm); padding: .55rem .8rem;">{{ item }}</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="nx-alert nx-alert--ok">
+        <h3 class="text-sm font-bold m-0">{% block moa_guidance_title %}Guided input{% endblock %}</h3>
+        <p class="text-sm m-0 mt-1" style="color: var(--nx-muted);">{% block moa_guidance_text %}{% endblock %}</p>
+      </div>
+    </aside>
+
+    <section class="nx-card">
+      <form method="post" class="nx-card__body grid gap-5" {% block moa_form_attrs %}{% endblock %}>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="nx-alert nx-alert--danger">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% block moa_fields %}{% endblock %}
+
+        <div class="flex items-center justify-between pt-4" style="border-top: 1px solid var(--nx-line);">
+          {% block moa_back %}{% endblock %}
+          <button type="submit" class="nx-btn nx-btn--primary">{% block moa_submit_label %}Save and continue{% endblock %}</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

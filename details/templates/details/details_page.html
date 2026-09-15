@@ -44,7 +44,7 @@
 
 <!-- Section Navigation -->
 <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
+    <div class="w-full px-6 lg:px-10 py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
 
         {% for row in home_headings %}
             {% if row.is_visible and row.nav_label %}
@@ -58,27 +58,27 @@
 <!-- EXTENSION THRUST SECTION (admin-managed) -->
 {% if home_sections.thrust.is_visible %}
 <section id="thrust" class="py-24 bg-white scroll-mt-32">
-    <div class="max-w-7xl mx-auto px-6">
+    <div class="w-full px-6 lg:px-10">
 
         {% if home_sections.thrust.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.thrust.heading }}</h2>
         {% endif %}
 
         {% if home_sections.thrust.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2" data-aos="fade-up">
+            <h3 class="text-xl font-semibold text-center text-secondary mb-2">
                 {{ home_sections.thrust.subtitle }}
             </h3>
         {% endif %}
 
         {% if home_sections.thrust.caption %}
-            <p class="text-base text-center text-gray-700 mb-12" data-aos="fade-up">
+            <p class="text-base text-center text-gray-700 mb-12">
                 {{ home_sections.thrust.caption }}
             </p>
         {% endif %}
 
         <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {% for thrust in home_thrusts %}
-            <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+            <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
                 <h4 class="font-semibold text-lg mb-2 {{ thrust.color_class }}">{{ thrust.title }}</h4>
                 <p class="text-gray-500 text-sm">{{ thrust.description }}</p>
             </div>
@@ -91,7 +91,7 @@
 
 {% if home_sections.process.is_visible %}
 <section class="py-20 bg-gray-50 scroll-mt-32" id="process">
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="w-full px-6 lg:px-10">
 
         {% if home_sections.process.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.process.heading }}</h2>
@@ -178,7 +178,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 <!-- EXTENSION TARGETS SECTION -->
 {% if home_sections.targets.is_visible %}
 <section id="targets" class="py-24 bg-white scroll-mt-32">
-    <div class="max-w-7xl mx-auto px-6">
+    <div class="w-full px-6 lg:px-10">
 
         {% if home_sections.targets.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.targets.heading }}</h2>
@@ -194,7 +194,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <div class="text-center mb-10">
         <form method="get" class="inline-block">
             <label class="mr-2 font-semibold text-primary">Select Year:</label>
-            <input type="number" name="year" value="{{ selected_year }}" class="border border-gray-300 rounded px-3 py-1">
+            <input type="number" name="year" value="{{ selected_year }}" class="nx-input nx-input--sm">
             <button type="submit" class="bg-primary text-white px-4 py-2 rounded ml-2">Go</button>
         </form>
         </div>
@@ -211,7 +211,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         </div>
 
         <!-- Campus Filter -->
-        <div class="mb-10" data-aos="fade-up">
+        <div class="mb-10">
             <h3 class="text-2xl font-semibold text-primary mb-4">Select Campuses to View</h3>
 
             <!-- Campus Chips -->
@@ -229,7 +229,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
         <!-- Campus Targets -->
         {% for campus, campus_targets in targets_by_campus.items %}
-        <div class="mb-10 campus-{{ forloop.counter }}" data-aos="fade-up">
+        <div class="mb-10 campus-{{ forloop.counter }}">
             <h3 class="text-2xl font-semibold text-primary mb-4">{{ campus }}</h3>
             <div class="overflow-x-auto bg-white rounded-xl shadow-md">
                 <table class="min-w-full text-sm text-left">
@@ -308,7 +308,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 <!-- PERSONNEL -->
 {% if home_sections.personnel.is_visible %}
 <section id="personnel" class="py-24 bg-gray-50 scroll-mt-32">
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="w-full px-6 lg:px-10">
         {% if home_sections.personnel.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.personnel.heading }}</h2>
         {% endif %}
@@ -362,7 +362,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
 {% if home_sections.sdg.is_visible %}
 <section id="sdg" class="py-24 bg-white scroll-mt-32">
-    <div class="max-w-7xl mx-auto px-6">
+    <div class="w-full px-6 lg:px-10">
         {% if home_sections.sdg.heading %}
             <h2 class="text-4xl font-bold text-center mb-16">{{ home_sections.sdg.heading }}</h2>
         {% endif %}
@@ -376,103 +376,103 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
 
         <!-- SDG 1 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/01.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#E5243B;">No Poverty</h4>
         </div>
 
         <!-- SDG 2 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/02.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#DDA63A;">Zero Hunger</h4>
         </div>
 
         <!-- SDG 3 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/03.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#4C9F38;">Good Health and Well-being</h4>
         </div>
 
         <!-- SDG 4 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/04.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#C5192D;">Quality Education</h4>
         </div>
 
         <!-- SDG 5 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/05.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#FF3A21;">Gender Equality</h4>
         </div>
 
         <!-- SDG 6 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/06.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#26BDE2;">Clean Water and Sanitation</h4>
         </div>
 
         <!-- SDG 7 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/07.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#FCC30B;">Affordable and Clean Energy</h4>
         </div>
 
         <!-- SDG 8 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/08.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#A21942;">Decent Work and Economic Growth</h4>
         </div>
 
         <!-- SDG 9 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/09.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#FD6925;">Industry, Innovation and Infrastructure</h4>
         </div>
 
         <!-- SDG 10 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/10.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#DD1367;">Reduced Inequalities</h4>
         </div>
 
         <!-- SDG 11 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/11.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#FD9D24;">Sustainable Cities and Communities</h4>
         </div>
 
         <!-- SDG 12 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/12.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#BF8B2E;">Responsible Consumption and Production</h4>
         </div>
 
         <!-- SDG 13 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/13.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#3F7E44;">Climate Action</h4>
         </div>
 
         <!-- SDG 14 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/14.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#0A97D9;">Life Below Water</h4>
         </div>
 
         <!-- SDG 15 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/15.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#56C02B;">Life on Land</h4>
         </div>
 
         <!-- SDG 16 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/16.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#00689D;">Peace, Justice and Strong Institutions</h4>
         </div>
 
         <!-- SDG 17 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center">
             <img src="{% static 'sdg/17.png' %}" class="w-28 mx-auto mb-4">
             <h4 class="font-semibold" style="color:#19486A;">Partnerships for the Goals</h4>
         </div>
@@ -487,7 +487,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 <!-- ACTIVITIES -->
 {% if home_sections.activities.is_visible %}
 <section id="activities" class="py-24 bg-gray-50 scroll-mt-32">
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="w-full px-6 lg:px-10">
         {% if home_sections.activities.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.activities.heading }}</h2>
         {% endif %}
@@ -500,7 +500,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
         <div class="grid md:grid-cols-3 gap-10">
             {% for activity in activities %}
-            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300" data-aos="fade-up">
+            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300">
 
                 {% if activity.image %}
                 <img src="{{ activity.image.url }}"

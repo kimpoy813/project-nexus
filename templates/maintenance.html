@@ -18,7 +18,7 @@
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
-    <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
+    <link href="{% static 'css/nexus.css' %}" rel="stylesheet">
 </head>
 <body class="min-h-screen bg-gray-50 text-gray-900 font-sans">
     <main class="min-h-screen flex items-center justify-center px-4 py-12">
@@ -31,10 +31,10 @@
                 {{ site_control.maintenance_message|default:"NExUS is temporarily under maintenance. Please check back soon." }}
             </p>
             <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                <a href="{% url 'login' %}" class="rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white shadow-sm hover:bg-secondary">
+                <a href="{% url 'login' %}" class="nx-btn nx-btn--primary nx-btn--lg">
                     Admin Login
                 </a>
-                <a href="mailto:{{ site_control.contact_email|default:'ispsc.nexus@gmail.com' }}" class="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50">
+                <a href="mailto:{{ site_control.contact_email|default:'ispsc.nexus@gmail.com' }}" class="nx-btn nx-btn--lg border-gray-200">
                     Contact Support
                 </a>
             </div>

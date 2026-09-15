@@ -88,7 +88,7 @@
                         id="sex_male"
                         value="{{ proposal.sex_male|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -101,7 +101,7 @@
                         id="sex_female"
                         value="{{ proposal.sex_female|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -112,7 +112,7 @@
                         id="sex_total"
                         value="{{ sex_total }}"
                         readonly
-                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+                        class="nx-input w-full bg-gray-50">
                 </div>
             </div>
         </div>
@@ -135,7 +135,7 @@
                         id="g_lesbian"
                         value="{{ proposal.g_lesbian|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -148,7 +148,7 @@
                         id="g_gay"
                         value="{{ proposal.g_gay|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -161,7 +161,7 @@
                         id="g_bisexual"
                         value="{{ proposal.g_bisexual|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -174,7 +174,7 @@
                         id="g_transgender"
                         value="{{ proposal.g_transgender|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -187,7 +187,7 @@
                         id="g_straight"
                         value="{{ proposal.g_straight|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
 
@@ -200,7 +200,7 @@
                         id="g_others"
                         value="{{ proposal.g_others|default:0 }}"
                         {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        class="nx-input w-full {% if is_edit_mode %}{% else %}bg-gray-50 text-gray-700{% endif %}"
                         placeholder="0">
                 </div>
             </div>
@@ -212,7 +212,7 @@
                     id="gender_total"
                     value="{{ gender_total }}"
                     readonly
-                    class="w-full md:w-64 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+                    class="nx-input w-full md:w-64 bg-gray-50">
             </div>
         </div>
 
@@ -226,19 +226,19 @@
 {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
             <button name="action" value="back"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="nx-btn border-gray-300"
                     type="submit">
                 Back
             </button>
 
             <button name="action" value="skip"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="nx-btn border-gray-300"
                     type="submit">
                 Skip
             </button>
 
             <button name="action" value="next"
-                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    class="nx-btn nx-btn--primary sm:ml-auto"
                     type="submit">
                 Save & Next
             </button>
@@ -249,7 +249,7 @@
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+               class="nx-btn border-gray-300">
                 {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>

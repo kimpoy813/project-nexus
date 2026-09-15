@@ -1,7 +1,7 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "layouts/app.html" %}
 
-{% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8">
+{% block app_content %}
+<div class="space-y-5">
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="border-b border-gray-100 px-6 py-4">
             <h1 class="text-xl font-bold text-gray-900">Create Account</h1>
@@ -142,14 +142,14 @@
             <div class="flex gap-3 pt-2">
                 <button
                     type="submit"
-                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary"
+                    class="nx-btn nx-btn--primary inline-flex items-center"
                 >
                     Create Account
                 </button>
 
                 <a
                     href="{% url 'admin_dashboard' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    class="nx-btn inline-flex items-center border-gray-300"
                 >
                     Cancel
                 </a>

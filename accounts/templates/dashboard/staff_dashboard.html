@@ -1,190 +1,103 @@
-{% extends "base.html" %}
+{% extends "layouts/app.html" %}
+{% block title %}Staff Dashboard - NExUS{% endblock %}
 
-{% block content %}
-<div class="nx-dash" data-dashboard-view>
-<div class="nx-dash__inner">
-
+{% block app_content %}
+<div data-dashboard-view>
     <!-- Header -->
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+    <div class="nx-page-head">
         <div>
-            <h1 class="nx-dash__title">Staff Dashboard</h1>
-            <p class="nx-dash__subtitle">
-                Prepare proposal summaries, verify signed proposals, and manage submitted MOA drafts through the MOA workflow.
-            </p>
+            <h1 class="nx-page-head__title m-0">Staff Dashboard</h1>
+            <p class="nx-page-head__sub m-0">Prepare proposal summaries, verify signed proposals, and manage MOA drafts.</p>
         </div>
+        {% if can_view_accomplishment %}
+        <div class="nx-page-head__actions">
+            <a href="{% url 'accomplishment_reports_list' %}" class="nx-btn">Accomplishment Reports</a>
+        </div>
+        {% endif %}
     </div>
 
-    {% if can_view_accomplishment %}
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <p class="text-sm font-bold text-gray-900">Quarterly accomplishment reports</p>
-            <p class="text-sm text-gray-600">Review reports submitted by department and campus coordinators.</p>
+    <!-- KPIs -->
+    <div class="nx-kpi-grid" style="--nx-kpi-cols: 4;">
+        <div class="nx-kpi nx-kpi--gold">
+            <p class="nx-kpi__label">Pending Summary</p>
+            <p class="nx-kpi__value">{{ pending_count|default:0 }}</p>
+            <p class="nx-kpi__hint">No summary prepared yet</p>
         </div>
-        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-primary bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50">
-            View Reports
-        </a>
-    </div>
-    {% endif %}
-
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <!-- Pending -->
-        <div class="nx-card" style="padding:1.25rem">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Pending Summary</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ pending_count|default:0 }}</p>
-                    <p class="mt-1 text-xs text-gray-400">No summary prepared yet</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-amber-50 flex items-center justify-center">
-                    <svg class="h-6 w-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
+        <div class="nx-kpi nx-kpi--blue">
+            <p class="nx-kpi__label">Draft Summaries</p>
+            <p class="nx-kpi__value">{{ draft_count|default:0 }}</p>
+            <p class="nx-kpi__hint">Saved but not yet sent</p>
         </div>
-
-        <!-- Draft -->
-        <div class="nx-card" style="padding:1.25rem">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Draft Summaries</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ draft_count|default:0 }}</p>
-                    <p class="mt-1 text-xs text-gray-400">Saved but not yet sent</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                    <svg class="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586l5.414 5.414V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-            </div>
+        <div class="nx-kpi nx-kpi--green">
+            <p class="nx-kpi__label">Signed Proposals</p>
+            <p class="nx-kpi__value">{{ signed_pending_count|default:0 }}</p>
+            <p class="nx-kpi__hint">Awaiting verification</p>
         </div>
-
-        <!-- Signed Pending -->
-        <div class="nx-card" style="padding:1.25rem">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">Signed Proposals</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ signed_pending_count|default:0 }}</p>
-                    <p class="mt-1 text-xs text-gray-400">Awaiting verification</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-                    <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
-        </div>
-
-        <!-- MOA Drafts -->
-        <div class="nx-card" style="padding:1.25rem">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm text-gray-500">MOA Drafts</p>
-                    <p class="mt-2 text-3xl font-bold text-gray-900">{{ moa_draft_count|default:0 }}</p>
-                    <p class="mt-1 text-xs text-gray-400">Uploaded drafts for Legal Review</p>
-                </div>
-                <div class="h-12 w-12 rounded-xl bg-purple-50 flex items-center justify-center">
-                    <svg class="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0117 9.414V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-            </div>
+        <div class="nx-kpi nx-kpi--purple">
+            <p class="nx-kpi__label">MOA Drafts</p>
+            <p class="nx-kpi__value">{{ moa_draft_count|default:0 }}</p>
+            <p class="nx-kpi__hint">Uploaded for Legal Review</p>
         </div>
     </div>
 
     <!-- MOA Draft Workflow Queue -->
-    <div class="nx-card mb-8">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-start sm:items-center justify-between gap-4">
+    <div class="nx-card mb-6">
+        <div class="nx-card__head">
             <div>
-                <h2 class="text-lg font-semibold text-gray-900">MOA Draft Workflow Queue</h2>
-                <p class="text-sm text-gray-600 mt-1">
-                    Submitted or generated MOA drafts that Staff or the Director can prepare for Legal Review, revision, certification, agenda, and completion.
-                </p>
+                <h2 class="nx-card__title m-0">MOA Draft Workflow Queue</h2>
+                <p class="nx-card__sub m-0">MOA drafts that need Legal Review, revision, certification, agenda, or completion.</p>
             </div>
-            <span class="shrink-0 inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-sm font-medium text-purple-700">
-                {{ moa_active_count|default:0 }} active
-            </span>
+            <span class="nx-badge nx-badge--purple">{{ moa_active_count|default:0 }} active</span>
         </div>
-
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50">
+            <table>
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Title / Partner</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Proponent</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Uploaded</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">MOA Stage</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Next Staff Action</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Action</th>
+                        <th>Title / Partner</th>
+                        <th>Proponent</th>
+                        <th>Uploaded</th>
+                        <th>MOA Stage</th>
+                        <th>Next Staff Action</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
+                <tbody>
                     {% for sub in moa_queue %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="max-w-[22rem]">
-                                <p class="font-medium text-gray-900 truncate">
-                                    {{ sub.proposal.title|default:sub.proposal.research_title|default:"Untitled Proposal" }}
-                                </p>
-                                <p class="text-xs text-gray-500 truncate">
-                                    {{ sub.partner_name }}
-                                </p>
-                                <p class="text-xs text-gray-400 truncate">
-                                    {{ sub.proposal.campus|default:"—" }} • {{ sub.proposal.department|default:"—" }} • {{ sub.source_label }}
-                                </p>
+                    <tr>
+                        <td>
+                            <div style="max-width: 22rem;">
+                                <p class="font-semibold m-0 truncate">{{ sub.proposal.title|default:sub.proposal.research_title|default:"Untitled Proposal" }}</p>
+                                <p class="text-xs m-0 truncate" style="color: var(--nx-muted);">{{ sub.partner_name }}</p>
+                                <p class="text-xs m-0 truncate" style="color: var(--nx-subtle);">{{ sub.proposal.campus|default:"—" }} · {{ sub.proposal.department|default:"—" }} · {{ sub.source_label }}</p>
                             </div>
                         </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ sub.proposal.created_by.profile.full_name|default:sub.proposal.created_by.username }}
-                        </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ sub.uploaded_at|date:"M d, Y" }}
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="whitespace-nowrap">{{ sub.proposal.created_by.profile.full_name|default:sub.proposal.created_by.username }}</td>
+                        <td class="whitespace-nowrap">{{ sub.uploaded_at|date:"M d, Y" }}</td>
+                        <td class="whitespace-nowrap">
                             {% if sub.proposal.moa_status == 'DRAFT' or sub.proposal.moa_status == 'NOT_STARTED' %}
-                                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">Draft Uploaded</span>
+                                <span class="nx-badge nx-badge--blue">Draft Uploaded</span>
                             {% elif sub.proposal.moa_status == 'LEGAL_REVIEW' %}
-                                <span class="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">Legal Review</span>
+                                <span class="nx-badge nx-badge--gold">Legal Review</span>
                             {% elif sub.proposal.moa_status == 'FOR_REVISION' %}
-                                <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">For Revision</span>
+                                <span class="nx-badge nx-badge--danger">For Revision</span>
                             {% elif sub.proposal.moa_status == 'CERTIFICATION_READY' %}
-                                <span class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Certification Ready</span>
+                                <span class="nx-badge nx-badge--green">Certification Ready</span>
                             {% elif sub.proposal.moa_status == 'AGENDA_AND_PRESENTATION' %}
-                                <span class="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">Agenda Brief</span>
+                                <span class="nx-badge nx-badge--purple">Agenda Brief</span>
                             {% else %}
-                                <span class="bg-gray-50 text-gray-700 px-3 py-1 rounded-full text-xs font-semibold">{{ sub.proposal.get_moa_status_display }}</span>
+                                <span class="nx-badge">{{ sub.proposal.get_moa_status_display }}</span>
                             {% endif %}
                         </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ sub.next_action_label }}
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="whitespace-nowrap">{{ sub.next_action_label }}</td>
+                        <td class="whitespace-nowrap">
                             <div class="flex gap-2">
-                                {% if sub.file_url %}
-                                <a href="{{ sub.file_url }}" target="_blank"
-                                   class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-                                    View Draft
-                                </a>
-                                {% endif %}
-                                <a href="{% url 'proposal_moa_tracker' sub.proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-secondary">
-                                    Open Tracker
-                                </a>
+                                {% if sub.file_url %}<a href="{{ sub.file_url }}" target="_blank" class="nx-btn nx-btn--sm">View Draft</a>{% endif %}
+                                <a href="{% url 'proposal_moa_tracker' sub.proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">Open Tracker</a>
                             </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-10 text-gray-500">
-                            No submitted or generated MOA drafts awaiting Staff action.
-                        </td>
-                    </tr>
+                    <tr><td colspan="6" class="nx-empty"><strong>Queue is clear</strong>No submitted or generated MOA drafts awaiting Staff action.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -192,180 +105,110 @@
     </div>
 
     <!-- Signed Proposal Verification -->
-    <div class="nx-card mb-8">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-start sm:items-center justify-between gap-4">
+    <div class="nx-card mb-6">
+        <div class="nx-card__head">
             <div>
-                <h2 class="text-lg font-semibold text-gray-900">Signed Proposal Verification</h2>
-                <p class="text-sm text-gray-600 mt-1">
-                    Review signed proposals uploaded by proponents, then proceed to release approval documents.
-                </p>
+                <h2 class="nx-card__title m-0">Signed Proposal Verification</h2>
+                <p class="nx-card__sub m-0">Review signed proposals uploaded by proponents, then release approval documents.</p>
             </div>
-            <span class="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                {{ signed_pending_count|default:0 }} pending
-            </span>
+            <span class="nx-badge nx-badge--green">{{ signed_pending_count|default:0 }} pending</span>
         </div>
-
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50">
+            <table>
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Proponent</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Uploaded</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Action</th>
+                        <th>Title</th>
+                        <th>Proponent</th>
+                        <th>Uploaded</th>
+                        <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
+                <tbody>
                     {% for doc in signed_queue %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="max-w-[20rem]">
-                                <p class="font-medium text-gray-900 truncate">
-                                    {{ doc.proposal.title|default:doc.proposal.research_title|default:"Untitled Proposal" }}
-                                </p>
-                                <p class="text-xs text-gray-400 truncate">
-                                    {{ doc.proposal.campus|default:"—" }} • {{ doc.proposal.department|default:"—" }}
-                                </p>
+                    <tr>
+                        <td>
+                            <div style="max-width: 20rem;">
+                                <p class="font-semibold m-0 truncate">{{ doc.proposal.title|default:doc.proposal.research_title|default:"Untitled Proposal" }}</p>
+                                <p class="text-xs m-0 truncate" style="color: var(--nx-subtle);">{{ doc.proposal.campus|default:"—" }} · {{ doc.proposal.department|default:"—" }}</p>
                             </div>
                         </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ doc.proposal.created_by.profile.full_name|default:doc.proposal.created_by.username }}
-                        </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ doc.uploaded_at|date:"M d, Y" }}
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold">
-                                Needs Verification
-                            </span>
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="whitespace-nowrap">{{ doc.proposal.created_by.profile.full_name|default:doc.proposal.created_by.username }}</td>
+                        <td class="whitespace-nowrap">{{ doc.uploaded_at|date:"M d, Y" }}</td>
+                        <td class="whitespace-nowrap"><span class="nx-badge nx-badge--gold">Needs Verification</span></td>
+                        <td class="whitespace-nowrap">
                             <div class="flex gap-2">
-                                {% if doc.file %}
-                                <a href="{{ doc.file.url }}" target="_blank"
-                                   class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
-                                    View Signed
-                                </a>
-                                {% endif %}
-                                <a href="{% url 'staff_release_approval_documents' doc.proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-secondary">
-                                    Review / Release
-                                </a>
+                                {% if doc.file %}<a href="{{ doc.file.url }}" target="_blank" class="nx-btn nx-btn--sm">View Signed</a>{% endif %}
+                                <a href="{% url 'staff_release_approval_documents' doc.proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">Review / Release</a>
                             </div>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-10 text-gray-500">
-                            No signed proposals awaiting verification.
-                        </td>
-                    </tr>
+                    <tr><td colspan="5" class="nx-empty"><strong>No signed proposals</strong>Signed proposals awaiting verification appear here.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Summary Queue -->
+    <!-- Summary Preparation Queue -->
     <div class="nx-card">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-start sm:items-center justify-between gap-4">
+        <div class="nx-card__head">
             <div>
-                <h2 class="text-lg font-semibold text-gray-900">Summary Preparation Queue</h2>
-                <p class="text-sm text-gray-600 mt-1">
-                    Proposals marked by the Director as ready for comment summary preparation.
-                </p>
+                <h2 class="nx-card__title m-0">Summary Preparation Queue</h2>
+                <p class="nx-card__sub m-0">Proposals marked by the Director as ready for comment summary preparation.</p>
             </div>
             {% if summary_queue %}
-            <span class="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                {{ summary_queue|length }} proposal{{ summary_queue|length|pluralize }}
-            </span>
+            <span class="nx-badge nx-badge--green">{{ summary_queue|length }} proposal{{ summary_queue|length|pluralize }}</span>
             {% endif %}
         </div>
-
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100">
-                <thead class="bg-gray-50">
+            <table>
+                <thead>
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Title</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Proponent</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Campus</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Department</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Submitted</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 whitespace-nowrap">Action</th>
+                        <th>Title</th>
+                        <th>Proponent</th>
+                        <th>Campus</th>
+                        <th>Department</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
-
-                <tbody class="divide-y divide-gray-100 bg-white">
+                <tbody>
                     {% for proposal in summary_queue %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="max-w-[20rem]">
-                                <p class="font-medium text-gray-900 truncate">
-                                    {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
-                                </p>
-                                <p class="text-xs text-gray-400">Round {{ proposal.active_round_no|default:"1" }}</p>
+                    <tr>
+                        <td>
+                            <div style="max-width: 20rem;">
+                                <p class="font-semibold m-0 truncate">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</p>
+                                <p class="text-xs m-0" style="color: var(--nx-subtle);">Round {{ proposal.active_round_no|default:"1" }}</p>
                             </div>
                         </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ proposal.created_by.profile.full_name|default:proposal.created_by.username }}
-                        </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {{ proposal.campus|default:"—" }}
-                        </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600">
-                            <span class="block max-w-[18rem] truncate">{{ proposal.department|default:"—" }}</span>
-                        </td>
-
-                        <td class="px-6 py-4 text-sm text-gray-600 whitespace-nowrap">
-                            {% if proposal.submitted_at %}
-                                {{ proposal.submitted_at|date:"M d, Y" }}
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="whitespace-nowrap">{{ proposal.created_by.profile.full_name|default:proposal.created_by.username }}</td>
+                        <td class="whitespace-nowrap">{{ proposal.campus|default:"—" }}</td>
+                        <td><span class="block truncate" style="max-width: 18rem;">{{ proposal.department|default:"—" }}</span></td>
+                        <td class="whitespace-nowrap">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</td>
+                        <td class="whitespace-nowrap">
                             {% if proposal.summary_sent %}
-                                <span class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Sent</span>
+                                <span class="nx-badge nx-badge--green">Sent</span>
                             {% elif proposal.has_draft_summary %}
-                                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">Draft</span>
+                                <span class="nx-badge nx-badge--blue">Draft</span>
                             {% else %}
-                                <span class="bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-semibold">Not Started</span>
+                                <span class="nx-badge nx-badge--gold">Not Started</span>
                             {% endif %}
                         </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <a href="{% url 'proposal_comment_summary' proposal.id %}"
-                               class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-secondary">
-                                {% if proposal.has_draft_summary %}
-                                    Edit Draft
-                                {% else %}
-                                    Prepare
-                                {% endif %}
+                        <td class="whitespace-nowrap">
+                            <a href="{% url 'proposal_comment_summary' proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">
+                                {% if proposal.has_draft_summary %}Edit Draft{% else %}Prepare{% endif %}
                             </a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-10 text-gray-500">
-                            No proposals queued for summary.
-                        </td>
-                    </tr>
+                    <tr><td colspan="7" class="nx-empty"><strong>No proposals queued</strong>Proposals marked ready for summary appear here.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-
-</div>
 </div>
 {% endblock %}

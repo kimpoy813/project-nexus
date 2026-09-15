@@ -79,12 +79,12 @@
 
             <div class="mt-4 flex flex-col sm:flex-row gap-3">
                 <a href="{% url 'download_work_plan_template' proposal.id %}"
-                   class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
+                   class="nx-btn inline-flex items-center justify-center border-gray-300">
                     Download Work Plan Template
                 </a>
 
                 <a href="{% url 'download_gantt_chart_template' proposal.id %}"
-                   class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
+                   class="nx-btn inline-flex items-center justify-center border-gray-300">
                     Download Gantt Chart Template
                 </a>
             </div>
@@ -102,7 +102,7 @@
                     type="file"
                     id="work_plan_file"
                     name="work_plan_file"
-                    class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                    class="nx-input block w-full">
                 {% endif %}
 
                 {% if proposal.work_plan_file %}
@@ -131,7 +131,7 @@
                     type="file"
                     id="gantt_chart_file"
                     name="gantt_chart_file"
-                    class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                    class="nx-input block w-full">
                 {% endif %}
 
                 {% if proposal.gantt_chart_file %}
@@ -165,7 +165,7 @@
                 id="attachment_files"
                 name="attachment_files"
                 multiple
-                class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                class="nx-input block w-full">
             {% endif %}
 
             {% if existing_attachments %}
@@ -208,19 +208,19 @@
 {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
             <button name="action" value="back"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="nx-btn border-gray-300"
                     type="submit">
                 Back
             </button>
 
             <button name="action" value="skip"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="nx-btn border-gray-300"
                     type="submit">
                 Skip
             </button>
 
             <button name="action" value="next"
-                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    class="nx-btn nx-btn--primary sm:ml-auto"
                     type="submit">
                 Save & Next
             </button>
@@ -231,7 +231,7 @@
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+               class="nx-btn border-gray-300">
                 {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>
