@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static %}
+{% comment %}Split-screen auth layout: brand panel + form panel, full screen.{% endcomment %}
+
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="nx-auth">
+    <div class="nx-auth__brand">
+        <div class="nx-auth__brand-inner">
+            <div class="flex items-center gap-3">
+                <img src="{% static 'images/nexus-logo-128.png' %}" alt="" class="h-12 w-12 rounded-xl bg-white p-1.5 object-contain">
+                <div>
+                    <p class="text-xl font-extrabold m-0 tracking-tight">{{ site_control.site_name|default:"NExUS" }}</p>
+                    <p class="text-xs m-0" style="color: rgba(255,255,255,.65);">{{ site_control.short_name|default:"NExUS" }} · Extension Office</p>
+                </div>
+            </div>
+            <h2 class="mt-10 text-3xl font-extrabold leading-tight m-0" style="max-width: 22ch;">
+                {% block auth_brand_heading %}Manage extension work in one place.{% endblock %}
+            </h2>
+            <p class="mt-3 text-sm m-0" style="color: rgba(255,255,255,.75); max-width: 44ch;">
+                {{ site_control.tagline|default:"Networked Extension Unified System for monitoring and managing institutional extension initiatives." }}
+            </p>
+            <div class="nx-auth__points">
+                <div class="nx-auth__point">
+                    <span class="nx-auth__tick">✓</span>
+                    <div><b>Drafting to approval</b><p>Guided 19-section proposal wizard with autosaved drafts.</p></div>
+                </div>
+                <div class="nx-auth__point">
+                    <span class="nx-auth__tick">✓</span>
+                    <div><b>Review workflow</b><p>Coordinator comments, evaluator assignment, and summaries.</p></div>
+                </div>
+                <div class="nx-auth__point">
+                    <span class="nx-auth__tick">✓</span>
+                    <div><b>MOA &amp; implementation</b><p>Track agreements, releases, and accomplishment reports.</p></div>
+                </div>
+            </div>
+        </div>
+        <p class="text-xs m-0" style="color: rgba(255,255,255,.5); position: relative; z-index: 1;">
+            © {{ now|date:"Y" }} {{ site_control.short_name|default:"NExUS" }}
+        </p>
+    </div>
+
+    <div class="nx-auth__panel">
+        <div class="nx-auth__box">
+            {% block auth_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

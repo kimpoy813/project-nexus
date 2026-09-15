@@ -1,229 +1,178 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="nexus-page max-w-7xl mx-auto px-4 sm:px-6 py-8">
-  <div class="nexus-wizard-layout grid grid-cols-1 lg:grid-cols-12 gap-6">
+{% block footer %}{% endblock %}
 
-    <!-- SIDEBAR (3 cols) -->
+{% block content %}
+{% if proposal.proposal_status == "FOR_REVISION" or current_review_round and can_comment %}
+<div class="nx-wizard nx-wizard--review">
+{% else %}
+<div class="nx-wizard">
+{% endif %}
+
+    <!-- STEP RAIL -->
     {% include "services/wizard/_sidebar_stepper.html" %}
 
-    <!-- MAIN CONTENT (6 cols) -->
-    <section class="lg:col-span-6 xl:col-span-6 space-y-6">
-      {% if wizard_step_config and wizard_step_config.instructions %}
-        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900 shadow-sm">
-          <p class="mb-1 text-xs font-black uppercase tracking-[0.18em] text-blue-700">Office Instructions</p>
-          <div class="whitespace-pre-line">{{ wizard_step_config.instructions }}</div>
+    <!-- MAIN -->
+    <section class="min-w-0 grid gap-5 self-start">
+        {% if wizard_step_config and wizard_step_config.instructions %}
+        <div class="nx-alert nx-alert--info">
+            <p class="nx-eyebrow mb-1" style="color: var(--nx-blue);">Office Instructions</p>
+            <div class="whitespace-pre-line text-sm m-0">{{ wizard_step_config.instructions }}</div>
         </div>
-      {% endif %}
-      <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        {% block wizard_form %}{% endblock %}
-      </div>
+        {% endif %}
+        <div class="nx-card">
+            {% block wizard_form %}{% endblock %}
+        </div>
     </section>
 
-    <!-- RIGHT PANEL SLOT (3 cols total, only ONE of these renders) -->
+    <!-- RIGHT PANEL (only one variant renders) -->
     {% if proposal.proposal_status == "FOR_REVISION" %}
-      <!-- SUMMARY / COMMENTS (PROONENT REVISION VIEW) -->
-      <aside class="lg:col-span-3 xl:col-span-3 self-start">
-        <div class="sticky top-24 rounded-2xl border border-gray-200 bg-white shadow-sm p-6 space-y-4">
-
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900">Review Summary</h2>
-            <p class="text-sm text-gray-600">Read the official summary and comments.</p>
-          </div>
-
-          <!-- OFFICIAL SUMMARY -->
-          {% if review_summary %}
-            <div class="rounded-xl border border-green-200 bg-green-50 p-4">
-              <p class="text-sm font-semibold text-green-900 mb-2">Official Summary</p>
-              <p class="text-sm text-green-800 whitespace-pre-line">
-                {{ review_summary.summary_text }}
-              </p>
+    <aside class="self-start">
+        <div class="nx-card nx-wizard__rail" style="display: grid; gap: 1rem; padding: 1.25rem;">
+            <div>
+                <h2 class="nx-card__title m-0" style="font-size: 1rem;">Review Summary</h2>
+                <p class="nx-card__sub m-0">Read the official summary and comments.</p>
             </div>
-          {% else %}
-            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <p class="text-sm text-gray-600">No official summary found for this round.</p>
-            </div>
-          {% endif %}
 
-          <!-- STEP COMMENTS -->
-          {% if visible_comments %}
-            <div class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-              {% for item in visible_comments %}
-                <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  <div class="flex items-center justify-between gap-2">
-                    <div>
-                      <p class="text-sm font-semibold text-gray-900">Step {{ item.step_no }}</p>
-                      <p class="text-xs text-gray-500">
-                        {{ item.reviewer.profile.full_name|default:item.reviewer.username }}
-                        — {{ item.reviewer_role|title }}
-                      </p>
-                    </div>
-                    <p class="text-xs text-gray-400">
-                      {{ item.created_at|date:"M d, Y h:i A" }}
-                    </p>
-                  </div>
-                  <p class="mt-3 text-sm leading-6 text-gray-700 whitespace-pre-line">
-                    {{ item.comment }}
-                  </p>
+            {% if review_summary %}
+                <div class="nx-alert nx-alert--ok">
+                    <p class="text-sm font-bold m-0 mb-1.5">Official Summary</p>
+                    <p class="text-sm m-0 whitespace-pre-line">{{ review_summary.summary_text }}</p>
                 </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="text-sm text-gray-500">No comments available for this step.</p>
-          {% endif %}
+            {% else %}
+                <div class="nx-alert"><p class="text-sm m-0" style="color: var(--nx-muted);">No official summary found for this round.</p></div>
+            {% endif %}
 
+            {% if visible_comments %}
+                <div class="grid gap-3 overflow-y-auto pr-1" style="max-height: 600px;">
+                    {% for item in visible_comments %}
+                    <div class="nx-alert" style="background: #f9faf7;">
+                        <div class="flex items-center justify-between gap-2">
+                            <div>
+                                <p class="text-sm font-bold m-0">Step {{ item.step_no }}</p>
+                                <p class="text-xs m-0" style="color: var(--nx-subtle);">
+                                    {{ item.reviewer.profile.full_name|default:item.reviewer.username }} — {{ item.reviewer_role|title }}
+                                </p>
+                            </div>
+                            <p class="text-xs m-0" style="color: var(--nx-subtle);">{{ item.created_at|date:"M d, Y h:i A" }}</p>
+                        </div>
+                        <p class="mt-2 mb-0 text-sm whitespace-pre-line" style="color: var(--nx-text);">{{ item.comment }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-sm m-0" style="color: var(--nx-subtle);">No comments available for this step.</p>
+            {% endif %}
         </div>
-      </aside>
+    </aside>
 
     {% elif proposal.proposal_status == "IN_REVIEW" and current_review_round and can_comment or proposal.proposal_status == "SUBMITTED_FOR_REVIEW" and current_review_round and can_comment %}
-      <!-- REVIEWER COMMENT PANEL -->
-      <aside class="lg:col-span-3 xl:col-span-3 self-start">
-        <div class="sticky top-24 space-y-4">
-
-          <!-- COMMENT FORM -->
-          <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div class="border-b border-gray-100 px-4 py-3">
-              <h3 class="text-sm font-semibold text-gray-900">
-                Step {{ step }} Comments
-              </h3>
-              <p class="mt-1 text-xs text-gray-500">
-                Reviewer: {{ reviewer_role|default:"Reviewer" }}
-              </p>
-            </div>
-
-            <form method="POST"
-                  action="{% url 'proposal_wizard' proposal.id step %}"
-                  class="p-4 space-y-3">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="save_comment">
-
-              <textarea
-                name="comment"
-                rows="5"
-                class="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm text-gray-700 outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-                placeholder="Write your comment for this step...">{% if existing_step_comment %}{{ existing_step_comment.comment }}{% endif %}</textarea>
-
-              <button type="submit"
-                      class="inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-secondary">
-                Save Comment
-              </button>
-            </form>
-          </div>
-
-          <!-- COMMENT THREAD -->
-          <div class="rounded-2xl border border-gray-200 bg-gray-50 shadow-sm overflow-hidden">
-            <div class="border-b border-gray-200 bg-white px-4 py-3">
-              <h4 class="text-sm font-semibold text-gray-900">Comment Thread</h4>
-            </div>
-
-            <div class="max-h-[65vh] overflow-y-auto p-3 space-y-3">
-              {% if step_comments %}
-                {% for item in step_comments %}
-                  <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-sm font-semibold text-gray-900">
-                          {{ item.reviewer.profile.full_name|default:item.reviewer.username }}
-                        </p>
-                        <p class="text-xs text-gray-500">
-                          {{ item.get_reviewer_role_display }}
-                        </p>
-                      </div>
-                      <p class="text-[11px] text-gray-400 whitespace-nowrap">
-                        {{ item.created_at|date:"M d, h:i A" }}
-                      </p>
-                    </div>
-                    <p class="mt-3 text-sm leading-6 text-gray-700 whitespace-pre-line">
-                      {{ item.comment }}
-                    </p>
-                  </div>
-                {% endfor %}
-              {% else %}
-                <div class="rounded-xl border border-dashed border-gray-300 bg-white p-6 text-center">
-                  <p class="text-sm text-gray-500">No comments yet for this step.</p>
+    <aside class="self-start grid gap-4 nx-wizard__rail" style="position: sticky;">
+        <!-- Comment form -->
+        <div class="nx-card">
+            <div class="nx-card__head">
+                <div>
+                    <h3 class="nx-card__title m-0">Step {{ step }} Comments</h3>
+                    <p class="nx-card__sub m-0">Reviewer: {{ reviewer_role|default:"Reviewer" }}</p>
                 </div>
-              {% endif %}
             </div>
-          </div>
-
+            <form method="POST" action="{% url 'proposal_wizard' proposal.id step %}" class="nx-card__body grid gap-3">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_comment">
+                <textarea name="comment" rows="5"
+                          placeholder="Write your comment for this step...">{% if existing_step_comment %}{{ existing_step_comment.comment }}{% endif %}</textarea>
+                <button type="submit" class="nx-btn nx-btn--primary nx-btn--block">Save Comment</button>
+            </form>
         </div>
-      </aside>
 
-    {% else %}
-      <!-- KEEP GRID BALANCED (EMPTY RIGHT SLOT) -->
-      <div class="hidden lg:block lg:col-span-3 xl:col-span-3"></div>
+        <!-- Thread -->
+        <div class="nx-card">
+            <div class="nx-card__head">
+                <h4 class="nx-card__title m-0">Comment Thread</h4>
+            </div>
+            <div class="overflow-y-auto grid gap-3 p-3" style="max-height: 65vh; background: #f9faf7;">
+                {% if step_comments %}
+                    {% for item in step_comments %}
+                    <div class="nx-alert" style="background: #fff;">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-bold m-0">{{ item.reviewer.profile.full_name|default:item.reviewer.username }}</p>
+                                <p class="text-xs m-0" style="color: var(--nx-subtle);">{{ item.get_reviewer_role_display }}</p>
+                            </div>
+                            <p class="text-xs m-0 whitespace-nowrap" style="color: var(--nx-subtle);">{{ item.created_at|date:"M d, h:i A" }}</p>
+                        </div>
+                        <p class="mt-2 mb-0 text-sm whitespace-pre-line" style="color: var(--nx-text);">{{ item.comment }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="nx-empty"><strong>No comments yet</strong>Comments for this step appear here.</div>
+                {% endif %}
+            </div>
+        </div>
+    </aside>
     {% endif %}
-
-  </div>
 </div>
 
 <!-- STEP SCROLL FIX -->
 <script>
 (function () {
-  const STORAGE_KEY = "proposal_stepper_target_href";
+    const STORAGE_KEY = "proposal_stepper_target_href";
 
-  function moveStepToTop(target) {
-    const scrollBox = document.getElementById("wizard-stepper-scroll");
-    if (!scrollBox || !target) return;
-    const boxRect = scrollBox.getBoundingClientRect();
-    const stepRect = target.getBoundingClientRect();
-    scrollBox.scrollTop += stepRect.top - boxRect.top - 24;
-  }
-
-  function findTargetOnLoad() {
-    const savedHref = sessionStorage.getItem(STORAGE_KEY);
-    const scrollBox = document.getElementById("wizard-stepper-scroll");
-    if (!scrollBox) return null;
-
-    if (savedHref) {
-      const escaped = CSS.escape(savedHref);
-      const clickedLink = scrollBox.querySelector(`a[href="${escaped}"]`);
-      sessionStorage.removeItem(STORAGE_KEY);
-      if (clickedLink) return clickedLink;
+    function moveStepToTop(target) {
+        const scrollBox = document.getElementById("wizard-stepper-scroll");
+        if (!scrollBox || !target) return;
+        const boxRect = scrollBox.getBoundingClientRect();
+        const stepRect = target.getBoundingClientRect();
+        scrollBox.scrollTop += stepRect.top - boxRect.top - 24;
     }
 
-    return document.querySelector("[data-current-step='true']");
-  }
+    function findTargetOnLoad() {
+        const savedHref = sessionStorage.getItem(STORAGE_KEY);
+        const scrollBox = document.getElementById("wizard-stepper-scroll");
+        if (!scrollBox) return null;
 
-  window.addEventListener("load", function () {
-    requestAnimationFrame(() => {
-      const target = findTargetOnLoad();
-      moveStepToTop(target);
-      setTimeout(() => moveStepToTop(target), 50);
+        if (savedHref) {
+            const clickedLink = scrollBox.querySelector(`a[href="${CSS.escape(savedHref)}"]`);
+            sessionStorage.removeItem(STORAGE_KEY);
+            if (clickedLink) return clickedLink;
+        }
+
+        return document.querySelector("[data-current-step='true']");
+    }
+
+    window.addEventListener("load", function () {
+        requestAnimationFrame(() => {
+            const target = findTargetOnLoad();
+            moveStepToTop(target);
+            setTimeout(() => moveStepToTop(target), 50);
+        });
     });
-  });
 
-  document.addEventListener("click", function (e) {
-    const link = e.target.closest("#wizard-stepper-scroll a");
-    if (!link) return;
-    sessionStorage.setItem(STORAGE_KEY, link.getAttribute("href"));
-  });
+    document.addEventListener("click", function (e) {
+        const link = e.target.closest("#wizard-stepper-scroll a");
+        if (!link) return;
+        sessionStorage.setItem(STORAGE_KEY, link.getAttribute("href"));
+    });
 })();
 </script>
 
-<!-- EDITOR PRESENCE (ONLY WHEN EDITING) -->
+<!-- EDITOR PRESENCE (only when editing) -->
 {% if is_edit_mode %}
 <script>
 (function () {
-  const pingUrl = "{% url 'proposal_editor_ping' proposal.id %}?step={{ step }}";
+    const pingUrl = "{% url 'proposal_editor_ping' proposal.id %}?step={{ step }}";
 
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(";").shift();
-  }
+    function pingEditorPresence() {
+        fetch(pingUrl, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": window.nxGetCookie("csrftoken"),
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        }).catch(() => {});
+    }
 
-  function pingEditorPresence() {
-    fetch(pingUrl, {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": getCookie("csrftoken"),
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    }).catch(() => {});
-  }
-
-  pingEditorPresence();
-  setInterval(pingEditorPresence, 20000);
+    pingEditorPresence();
+    setInterval(pingEditorPresence, 20000);
 })();
 </script>
 {% endif %}

@@ -1,0 +1,85 @@
+{% comment %}
+    Shared "delete draft" confirmation modal.
+
+    Any dashboard that renders delete buttons can call:
+        openDeleteModal(proposalId, url, title)
+
+    On success the matching row/card is removed, #draft-count is updated,
+    and the page reloads so server-driven counters and empty states refresh.
+{% endcomment %}
+<div id="deleteDraftModal" class="fixed inset-0 z-[80] hidden">
+    <div class="absolute inset-0" style="background: rgba(20, 30, 20, .4);" onclick="closeDeleteModal()"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="nx-card w-full" style="max-width: 26rem;">
+            <div class="nx-card__head">
+                <div>
+                    <h3 class="nx-card__title m-0">Delete draft</h3>
+                    <p class="nx-card__sub m-0">This permanently removes the draft.</p>
+                </div>
+            </div>
+            <div class="nx-card__body">
+                <p class="text-sm m-0" style="color: var(--nx-muted);">
+                    You are about to delete <span id="deleteDraftTitle" class="font-bold" style="color: var(--nx-text);"></span>.
+                    This action cannot be undone.
+                </p>
+            </div>
+            <div class="nx-card__foot">
+                <button type="button" onclick="closeDeleteModal()" class="nx-btn">Cancel</button>
+                <button type="button" id="confirmDeleteDraftBtn" class="nx-btn nx-btn--danger">Delete draft</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    let state = { proposalId: null, url: null };
+
+    window.openDeleteModal = function (proposalId, url, title) {
+        state = { proposalId, url };
+        document.getElementById("deleteDraftTitle").textContent = `"${title}"`;
+        document.getElementById("deleteDraftModal").classList.remove("hidden");
+        document.body.classList.add("overflow-hidden");
+    };
+
+    window.closeDeleteModal = function () {
+        document.getElementById("deleteDraftModal").classList.add("hidden");
+        document.body.classList.remove("overflow-hidden");
+        state = { proposalId: null, url: null };
+    };
+
+    async function deleteDraft(proposalId, url) {
+        try {
+            const response = await fetch(url, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": window.nxGetCookie("csrftoken"),
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            });
+            const data = await response.json();
+            if (!data.ok) { alert(data.message || "Failed to delete draft."); return; }
+
+            document.getElementById(`draft-row-${proposalId}`)?.remove();
+            document.getElementById(`proposal-card-${proposalId}`)?.remove();
+
+            const countEl = document.getElementById("draft-count");
+            if (countEl) {
+                const current = parseInt(countEl.textContent.trim(), 10) || 0;
+                countEl.textContent = String(typeof data.draft_count !== "undefined" ? data.draft_count : Math.max(0, current - 1));
+            }
+
+            window.closeDeleteModal();
+            window.location.reload();
+        } catch (error) {
+            alert("Something went wrong while deleting the draft.");
+            console.error(error);
+        }
+    }
+
+    document.getElementById("confirmDeleteDraftBtn")?.addEventListener("click", () => {
+        if (state.proposalId && state.url) deleteDraft(state.proposalId, state.url);
+    });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closeDeleteModal(); });
+})();
+</script>

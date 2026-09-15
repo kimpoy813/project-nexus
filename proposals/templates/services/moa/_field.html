@@ -1,0 +1,7 @@
+{% comment %}Renders one bound form field with label, errors, and help text. Use: {% include "services/moa/_field.html" with field=form.name %}{% endcomment %}
+<div>
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% if field.errors %}<p class="mt-1 text-sm" style="color: #b42323;">{{ field.errors|striptags }}</p>{% endif %}
+  {% if field.help_text %}<p class="mt-1 text-xs m-0" style="color: var(--nx-subtle);">{{ field.help_text }}</p>{% endif %}
+</div>

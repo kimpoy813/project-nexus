@@ -46,7 +46,7 @@ Anchor navigation, shown only when sections define anchors.
 {% if sections %}
     {% with anchored=sections %}
         <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
-            <div class="max-w-6xl mx-auto px-6 py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
+            <div class="w-full px-6 lg:px-10 py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
                 {% for section in anchored %}
                     {% if section.anchor and section.heading %}
                         <a href="#{{ section.anchor }}" class="hover:text-primary transition whitespace-nowrap">{{ section.heading }}</a>
