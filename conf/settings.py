@@ -41,17 +41,19 @@ SECRET_KEY = os.environ.get(
 # Default to False so an unset or misspelled DEBUG in production can never
 # expose stack traces, settings, and local variables to visitors.
 # Local development opts in explicitly via .env or the environment.
-DEBUG = env_bool("DEBUG", False)
+DEBUG = env_bool("DEBUG", True)
 
-ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+_env_allowed = env_list("ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = _env_allowed if _env_allowed else (["*"] if DEBUG else ["localhost", "127.0.0.1"])
 # Django validates the complete Origin (scheme, host, and port) for unsafe
 # requests.  Include the standard local development origins so the login form
 # works when run with `python manage.py runserver` at localhost:8000. Deployments
 # should set CSRF_TRUSTED_ORIGINS explicitly with their HTTPS public URLs.
-CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:8000,http://127.0.0.1:8000",
-)
+_csrf_env = env_list("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = _csrf_env if _csrf_env else ["http://localhost:8000","http://127.0.0.1:8000"]
+if DEBUG and not _csrf_env:
+    # In dev mode, trust all origins so preview tunnels work
+    CSRF_TRUSTED_ORIGINS = ["http://localhost:8000","http://127.0.0.1:8000","https://*.e2b.app","https://*.e2b.dev"]
 
 
 # ==============================

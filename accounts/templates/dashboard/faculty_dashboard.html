@@ -1,561 +1,313 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="nx-dash" data-dashboard-view>
-<div class="nx-dash__inner">
+{% extends "dashboard/_base.html" %}
+{% load static %}
 
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+{% block page_title %}My Workspace{% endblock %}
+{% block page_subtitle %}Track your extension proposals from draft to completion.{% endblock %}
+
+{% block rail_items %}
+<div class="nx-rail__section">My Work</div>
+
+<a href="#all-proposals" class="nx-rail__item active" data-scroll="all-proposals">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+    </span>
+    All Proposals
+    {% if draft_count %}<span class="nx-rail__badge">{{ draft_count }}</span>{% endif %}
+</a>
+
+<a href="#drafts" class="nx-rail__item" data-scroll="drafts">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    </span>
+    Drafts
+</a>
+
+<a href="#active" class="nx-rail__item" data-scroll="active">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </span>
+    Active Pipeline
+</a>
+
+<a href="#completed" class="nx-rail__item" data-scroll="completed">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </span>
+    Completed
+</a>
+
+{% if has_evaluator_assignments %}
+<div class="nx-rail__section">Reviews</div>
+<a href="#assigned" class="nx-rail__item" data-scroll="assigned">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </span>
+    Assigned for Review
+    <span class="nx-rail__badge">{{ assigned_review_count }}</span>
+</a>
+{% endif %}
+
+<div class="nx-rail__section">Account</div>
+<a href="{% url 'profile_view' %}" class="nx-rail__item">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </span>
+    Profile
+</a>
+{% if can_view_accomplishment %}
+<a href="{% url 'accomplishment_reports_list' %}" class="nx-rail__item">
+    <span class="nx-rail__icon">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </span>
+    Accomplishment Reports
+</a>
+{% endif %}
+{% endblock %}
+
+{% block attention_banner %}
+{% if revision_proposals %}
+<div class="nx-notice nx-notice--warn nx-fade">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+    <div class="flex-1">
+        <p class="font-bold text-sm">{{ revision_count }} proposal{{ revision_count|pluralize }} need{{ revision_count|pluralize:"s," }} revision</p>
+        <p class="text-xs opacity-80 mt-0.5">Reviewers have returned {{ revision_count|pluralize:"a proposal,proposals" }} for updates. Review the comments and resubmit.</p>
+    </div>
+    {% for proposal in revision_proposals|slice:":1" %}
+    <a href="{% url 'proposal_review_summary' proposal.id %}" class="nx-btn nx-btn--sm" style="background:#fff;color:#92400e;border-color:#fcd34d;">Review Now →</a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block kpi_strip %}
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 nx-fade">
+    <div class="nx-kpi nx-kpi--gray">
+        <p class="nx-kpi__label">Drafts</p>
+        <p id="draft-count" class="nx-kpi__value">{{ draft_count|default:0 }}</p>
+        <p class="nx-kpi__hint">In progress</p>
+    </div>
+    <div class="nx-kpi nx-kpi--green">
+        <p class="nx-kpi__label">Proposal Phase</p>
+        <p class="nx-kpi__value">{{ proposal_phase_count|default:0 }}</p>
+        <p class="nx-kpi__hint">Under review</p>
+    </div>
+    <div class="nx-kpi nx-kpi--red">
+        <p class="nx-kpi__label">MOA Phase</p>
+        <p class="nx-kpi__value">{{ moa_phase_count|default:0 }}</p>
+        <p class="nx-kpi__hint">Agreement processing</p>
+    </div>
+    <div class="nx-kpi nx-kpi--blue">
+        <p class="nx-kpi__label">Implementation</p>
+        <p class="nx-kpi__value">{{ implementation_phase_count|default:0 }}</p>
+        <p class="nx-kpi__hint">Active field work</p>
+    </div>
+    <div class="nx-kpi nx-kpi--purple">
+        <p class="nx-kpi__label">Completed</p>
+        <p class="nx-kpi__value">{{ completed_phase_count|default:0 }}</p>
+        <p class="nx-kpi__hint">Closed out</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block dashboard_content %}
+
+{% if has_evaluator_assignments %}
+<section id="assigned" class="nx-card nx-fade a1">
+    <div class="nx-card__head">
         <div>
-            <h1 class="nx-dash__title">Faculty Dashboard</h1>
-            <p class="nx-dash__subtitle">Monitor your extension proposals from draft to completion.</p>
+            <p class="nx-card__title">Assigned for Evaluation</p>
+            <p class="nx-card__sub">Proposals assigned to you for technical review.</p>
         </div>
-
-        <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
-            Create Proposal
-        </a>
+        <span class="nx-badge nx-badge--info">{{ assigned_review_count }} active</span>
     </div>
-
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <div class="nx-card" style="padding:.75rem">
-            <p class="text-xs text-gray-500">Drafts</p>
-            <p id="draft-count" class="mt-1 text-2xl font-bold text-gray-900">{{ draft_count|default:0 }}</p>
-        </div>
-        <div class="nx-card" style="padding:.75rem">
-            <p class="text-xs text-gray-500">Proposal Phase</p>
-            <p class="mt-1 text-2xl font-bold text-gray-900">{{ proposal_phase_count|default:0 }}</p>
-        </div>
-        <div class="nx-card" style="padding:.75rem">
-            <p class="text-xs text-gray-500">MOA Phase</p>
-            <p class="mt-1 text-2xl font-bold text-gray-900">{{ moa_phase_count|default:0 }}</p>
-        </div>
-        <div class="nx-card" style="padding:.75rem">
-            <p class="text-xs text-gray-500">Implementation</p>
-            <p class="mt-1 text-2xl font-bold text-gray-900">{{ implementation_phase_count|default:0 }}</p>
-        </div>
-        <div class="nx-card" style="padding:.75rem">
-            <p class="text-xs text-gray-500">Completed</p>
-            <p class="mt-1 text-2xl font-bold text-gray-900">{{ completed_phase_count|default:0 }}</p>
-        </div>
-    </div>
-
-    {% if revision_proposals %}
-        <div class="mb-6 space-y-3">
-        <h2 class="text-sm font-semibold text-amber-900">
-            {{ revision_count }} proposal{{ revision_count|pluralize }} need{{ revision_count|pluralize:"s," }} your attention
-        </h2>
-        {% for proposal in revision_proposals %}
-        <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-4">
-            <div>
-            <p class="text-sm font-semibold text-amber-900">
-                {{ proposal.title|default:proposal.research_title|default:"Untitled" }}
-            </p>
-            <p class="text-xs text-amber-700 mt-0.5">Returned for revision — review the comments</p>
-            </div>
-            <a href="{% url 'proposal_review_summary' proposal.id %}"
-            class="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700">
-            Review Now
-            </a>
-        </div>
-        {% endfor %}
-        </div>
-    {% endif %}
-
-    {% if has_evaluator_assignments %}
-    <div class="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3">
-            <div>
-                <h2 class="text-base font-semibold text-gray-900">Assigned for Evaluation</h2>
-                <p class="mt-0.5 text-xs text-gray-600">Proposals currently assigned to you for review.</p>
-            </div>
-            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                {{ assigned_review_count|default:0 }} Assigned
-            </span>
-        </div>
-
-        <div class="p-5">
-            {% if assigned_review_queue %}
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {% for proposal in assigned_review_queue %}
-                <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                    <div class="mb-3 flex items-start justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                            <h3 class="line-clamp-2 text-sm font-bold leading-tight text-gray-900">
-                                {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
-                            </h3>
-                            <p class="mt-0.5 text-xs text-gray-500">{{ proposal.get_scope_type_display|default:"—" }}</p>
-                        </div>
-                        <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                            Assigned
-                        </span>
-                    </div>
-
-                    <div class="mb-4 space-y-2">
-                        <div>
-                            <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</p>
-                            <p class="text-xs font-semibold text-gray-900">{{ proposal.get_proposal_status_display }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Extension Type</p>
-                            <p class="text-xs text-gray-700">{{ proposal.get_extension_type_display|default:"—" }}</p>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-end gap-2">
-                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
-                           class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary hover:text-white">
-                            Summary
-                        </a>
-                        <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                           class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary">
-                            View
-                        </a>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
-                <h3 class="text-base font-semibold text-gray-900">No assigned proposals</h3>
-                <p class="mt-1 text-xs text-gray-500">Assigned evaluation work will appear here.</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div class="border-b border-gray-100 px-5 py-3">
-            <h2 class="text-base font-semibold text-gray-900">My Proposals</h2>
-            <p class="mt-0.5 text-xs text-gray-600">Track your proposals across the Proposal, MOA, and Implementation phases.</p>
-        </div>
-
-        <div class="p-5">
-            {% if all_proposals %}
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {% for item in all_proposals %}
-                <article class="group relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
-                    <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
-
-                    <div class="p-4">
-                        <div class="mb-3 flex items-start justify-between gap-3">
-                            <div class="min-w-0 flex-1">
-                                <h3 class="line-clamp-2 text-sm font-bold leading-tight text-gray-900">
-                                    {{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}
-                                </h3>
-                                <p class="mt-0.5 text-xs text-gray-500">{{ item.scope_label|default:"—" }}</p>
-                            </div>
-
-                            <span class="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
-                                {% if item.is_draft %}
-                                    bg-gray-100 text-gray-700
-                                {% elif item.progress_percent < 40 %}
-                                    bg-gray-100 text-gray-700
-                                {% elif item.progress_percent < 60 %}
-                                    bg-blue-100 text-blue-700
-                                {% elif item.progress_percent < 80 %}
-                                    bg-amber-100 text-amber-700
-                                {% elif item.progress_percent < 100 %}
-                                    bg-emerald-100 text-emerald-700
-                                {% else %}
-                                    bg-green-100 text-green-700
-                                {% endif %}
-                            ">
-                                {% if item.is_draft %}
-                                    Draft
-                                {% else %}
-                                    {{ item.status_stage|default:"Proposal" }}
-                                {% endif %}
-                            </span>
-                        </div>
-
-                        <div class="flex items-center gap-4">
-                            <div class="relative h-[102px] w-[102px] shrink-0">
-                                <canvas id="gaugeChart{{ item.proposal.id }}" class="h-full w-full"></canvas>
-                                <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                    <div class="text-center">
-                                        <div id="gaugeText{{ item.proposal.id }}" class="text-xl font-extrabold leading-none text-gray-900">0%</div>
-                                        <div class="mt-0.5 text-[8px] uppercase tracking-wider text-gray-400">Progress</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="min-w-0 flex-1 space-y-2">
-                                <div>
-                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</p>
-                                    <p class="line-clamp-2 text-xs font-semibold text-gray-900">{{ item.status_label|default:"—" }}</p>
-                                </div>
-
-                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[10px] text-gray-500">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="h-2 w-2 rounded-full bg-primary"></span>
-                                        <span>Proposal</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="h-2 w-2 rounded-full bg-secondary"></span>
-                                        <span>MOA</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
-                                        <span>Implementation</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-3 flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
-                            <div class="min-w-0">
-                                <p class="text-[10px] uppercase tracking-wide text-gray-400">
-                                    {% if item.is_draft %}Last Saved{% else %}Submitted{% endif %}
-                                </p>
-                                <p class="text-xs text-gray-700">
-                                    {% if item.is_draft %}
-                                        {% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}
-                                    {% else %}
-                                        {% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}
-                                    {% endif %}
-                                </p>
-                            </div>
-
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
-                                {% if item.is_draft %}
-                                    <button type="button"
-                                            onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|escapejs }}')"
-                                            class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
-                                        Delete Draft
-                                    </button>
-
-                                    <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                       class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary">
-                                        Continue
-                                    </a>
-                                {% else %}
-                                    <a href="{% url 'proposal_storage' item.proposal.id %}"
-                                       class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-primary hover:bg-gray-50 hover:text-primary"
-                                       title="Proposal storage"
-                                       aria-label="Proposal storage">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
-                                        </svg>
-                                    </a>
-
-                                    {% if item.process_label == "MOA" %}
-                                        <a href="{% url 'proposal_moa_tracker' item.proposal.id %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                            View MOA
-                                        </a>
-                                    {% elif item.process_label == "Implementation" %}
-                                        <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                            View Implementation
-                                        </a>
-                                    {% else %}
-                                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                            View
-                                        </a>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </article>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
-                <div class="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <svg class="h-5 w-5 text-primary"...></svg>
+    <div class="nx-card__body">
+        {% if assigned_review_queue %}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {% for proposal in assigned_review_queue %}
+            <article class="nx-ext-card">
+                <div class="flex items-start justify-between gap-2 mb-3">
+                    <h3 class="text-sm font-bold leading-snug text-gray-900 line-clamp-2 flex-1">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</h3>
+                    <span class="nx-badge nx-badge--info shrink-0">Review</span>
                 </div>
-                <h3 class="text-base font-semibold text-gray-900">No proposals yet</h3>
-                <p class="mt-2 text-sm text-gray-500 max-w-xs mx-auto">
-                    Start by creating your first extension proposal. It takes about 15–20 minutes to complete all 19 sections.
-                </p>
-                <div class="mt-6 flex justify-center gap-3">
-                    <a href="{% url 'proposal_create' %}"
-                    class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-secondary">
-                    Create Your First Proposal
-                    </a>
-                    <a href="{% url 'services_home' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm text-gray-700 hover:border-primary">
-                    How it works
-                    </a>
+                <p class="text-xs text-gray-500 mb-3">{{ proposal.get_scope_type_display|default:"Proposal" }}</p>
+                <div class="grid grid-cols-2 gap-2 mb-3 text-xs">
+                    <div><p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Status</p><p class="font-semibold text-gray-900 mt-0.5">{{ proposal.get_proposal_status_display }}</p></div>
+                    <div><p class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Type</p><p class="text-gray-700 mt-0.5">{{ proposal.get_extension_type_display|default:"—" }}</p></div>
                 </div>
+                <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="nx-btn nx-btn--sm flex-1">Summary</a>
+                    <a href="{% url 'proposal_wizard' proposal.id 1 %}" class="nx-btn nx-btn--sm nx-btn--primary flex-1">Review</a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="nx-empty">
+            <div class="nx-empty__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             </div>
-            {% endif %}
+            <p class="font-semibold text-gray-900">No assigned reviews</p>
+            <p class="text-sm text-gray-500 mt-1">Evaluation assignments from the Director will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endif %}
+
+<section id="all-proposals" class="nx-card nx-fade a2">
+    <div class="nx-card__head">
+        <div>
+            <p class="nx-card__title">My Proposals</p>
+            <p class="nx-card__sub">All your extension work across every phase.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="dashboard-view-toolbar" style="margin:0;">
+                <span class="dashboard-view-toolbar__label">View:</span>
+                <button type="button" class="dashboard-view-toggle" aria-pressed="true" data-view="grid">Grid</button>
+                <button type="button" class="dashboard-view-toggle" aria-pressed="false" data-view="cards">List</button>
+            </div>
         </div>
     </div>
-</div>
-
-<div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]" onclick="closeDeleteModal()"></div>
-
-    <div class="relative flex min-h-full items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-xl overflow-hidden">
-            <div class="px-5 py-4 border-b border-gray-100 bg-white">
-                <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-tertiary text-primary">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.742-2.98l5.58-9.921ZM11 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1-6a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-
+    <div class="nx-card__body">
+        {% if all_proposals %}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="proposal-grid">
+            {% for item in all_proposals %}
+            <article id="proposal-card-{{ item.proposal.id }}" class="nx-ext-card group relative overflow-hidden">
+                <div class="flex items-start justify-between gap-2 mb-3">
                     <div class="min-w-0 flex-1">
-                        <h3 class="text-lg font-semibold text-gray-900">Delete Draft</h3>
-                        <p class="mt-0.5 text-xs text-gray-500">This will permanently remove the draft from your dashboard.</p>
+                        <h3 class="text-sm font-bold leading-snug text-gray-900 line-clamp-2">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</h3>
+                        <p class="mt-1 text-xs text-gray-500">{{ item.scope_label|default:"—" }}</p>
+                    </div>
+                    {% if item.is_draft %}
+                        <span class="nx-badge nx-badge--muted shrink-0">Draft</span>
+                    {% elif item.process_label == 'MOA' %}
+                        <span class="nx-badge nx-badge--danger shrink-0">MOA</span>
+                    {% elif item.process_label == 'Implementation' %}
+                        <span class="nx-badge nx-badge--info shrink-0">Implementation</span>
+                    {% elif item.process_label == 'Completed' %}
+                        <span class="nx-badge nx-badge--purple shrink-0">Completed</span>
+                    {% else %}
+                        <span class="nx-badge nx-badge--ok shrink-0">Proposal</span>
+                    {% endif %}
+                </div>
+
+                {# Progress bar (replaces heavy gauge) #}
+                <div class="mb-3">
+                    <div class="flex justify-between items-baseline mb-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wide text-gray-400">Progress</span>
+                        <span class="text-xs font-bold text-gray-700">{{ item.progress_percent|default:0 }}%</span>
+                    </div>
+                    <div class="nx-progress-track">
+                        <div class="nx-progress-fill" style="background: linear-gradient(90deg, var(--nx-primary) 0%, var(--nx-primary) 40%, var(--nx-secondary) 40%, var(--nx-secondary) 60%, var(--nx-gold) 60%); width: {{ item.progress_percent|default:0 }}%;"></div>
+                    </div>
+                    <div class="flex items-center gap-3 mt-1.5 text-[10px] font-medium text-gray-500">
+                        <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full" style="background:var(--nx-primary);"></span>Proposal</span>
+                        <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full" style="background:var(--nx-secondary);"></span>MOA</span>
+                        <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full" style="background:var(--nx-gold);"></span>Impl.</span>
+                    </div>
+                </div>
+
+                <div class="text-xs text-gray-600 mb-3 line-clamp-2"><span class="font-semibold text-gray-900">{{ item.status_label }}</span></div>
+
+                <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div>
+                        <p class="text-[10px] uppercase tracking-wide text-gray-400 font-bold">{% if item.is_draft %}Last saved{% else %}Submitted{% endif %}</p>
+                        <p class="text-xs font-semibold text-gray-700">
+                            {% if item.is_draft %}
+                                {% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}
+                            {% else %}
+                                {% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        {% if item.is_draft %}
+                            <button type="button" onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|escapejs }}')" class="nx-btn nx-btn--sm nx-btn--danger">Delete</button>
+                            <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="nx-btn nx-btn--sm nx-btn--primary">Continue →</a>
+                        {% elif item.is_for_revision %}
+                            <a href="{% url 'proposal_wizard' item.proposal.id item.current_step %}" class="nx-btn nx-btn--sm nx-btn--primary">Revise</a>
+                        {% else %}
+                            <a href="{% url 'proposal_storage' item.proposal.id %}" class="nx-btn nx-btn--sm" title="Documents">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z"/></svg>
+                            </a>
+                            {% if item.process_label == "MOA" %}
+                                <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">View MOA</a>
+                            {% elif item.process_label == "Implementation" %}
+                                <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="nx-btn nx-btn--sm nx-btn--primary">Track</a>
+                            {% else %}
+                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="nx-btn nx-btn--sm nx-btn--primary">View</a>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="nx-empty">
+            <div class="nx-empty__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
+            </div>
+            <p class="font-semibold text-gray-900">No proposals yet</p>
+            <p class="text-sm text-gray-500 mt-1 max-w-sm mx-auto">Create your first extension proposal. The wizard takes about 15–20 minutes and saves automatically as you go.</p>
+            <div class="mt-5 flex justify-center gap-2">
+                <a href="{% url 'proposal_create' %}" class="nx-btn--primary">+ Create Your First Proposal</a>
+                <a href="{% url 'services_home' %}" class="nx-btn">How it works</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}
+
+{# ── Delete Draft Modal ────────────────────────────────────────────────── #}
+{% block extra_dashboard_scripts %}
+<div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
+    <div class="relative flex min-h-full items-center justify-center p-4">
+        <div class="w-full max-w-md nx-card overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100">
+                <div class="flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Delete Draft</h3>
+                        <p class="mt-0.5 text-sm text-gray-500">This permanently removes the draft. This action cannot be undone.</p>
                     </div>
                 </div>
             </div>
-
             <div class="px-5 py-4">
-                <p class="text-sm text-gray-600">
-                    You are about to delete
-                    <span id="deleteDraftTitle" class="font-semibold text-gray-900"></span>.
-                    This action cannot be undone.
-                </p>
+                <p class="text-sm text-gray-600">You are about to delete <span id="deleteDraftTitle" class="font-bold text-gray-900"></span>.</p>
             </div>
-
             <div class="flex items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-5 py-3">
-                <button type="button"
-                        onclick="closeDeleteModal()"
-                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-primary hover:text-primary">
-                    Cancel
-                </button>
-                <button type="button"
-                        id="confirmDeleteDraftBtn"
-                        class="inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary">
-                    Delete Draft
-                </button>
+                <button type="button" onclick="closeDeleteModal()" class="nx-btn nx-btn--sm">Cancel</button>
+                <button type="button" id="confirmDeleteDraftBtn" class="nx-btn nx-btn--sm nx-btn--primary" style="background:var(--nx-danger);">Delete Draft</button>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-.line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-</style>
 
 <script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+function getCookie(n){let v=null;if(document.cookie)for(const c of document.cookie.split(';')){const t=c.trim();if(t.startsWith(n+'=')){v=decodeURIComponent(t.slice(n.length+1));break;}}return v;}
+let delState={};
+function openDeleteModal(id,url,title){delState={id,url,title};document.getElementById('deleteDraftTitle').textContent=`"${title}"`;document.getElementById('deleteDraftModal').classList.remove('hidden');document.body.classList.add('overflow-hidden');}
+function closeDeleteModal(){document.getElementById('deleteDraftModal').classList.add('hidden');document.body.classList.remove('overflow-hidden');delState={};}
+async function deleteDraft(){try{const r=await fetch(delState.url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const d=await r.json();if(!d.ok){alert(d.message||'Failed.');return;}const c=document.getElementById('draft-count');if(c&&typeof d.draft_count!=='undefined')c.textContent=d.draft_count;document.getElementById('proposal-card-'+delState.id)?.remove();closeDeleteModal();}catch(e){alert('Something went wrong.');console.error(e);}}
+document.getElementById('confirmDeleteDraftBtn')?.addEventListener('click',()=>{if(delState.id)deleteDraft();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDeleteModal();});
 
-let deleteDraftState = { proposalId: null, url: null, title: null };
-
-function openDeleteModal(proposalId, url, title) {
-    deleteDraftState = { proposalId, url, title };
-    document.getElementById('deleteDraftTitle').textContent = `"${title}"`;
-    document.getElementById('deleteDraftModal').classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
-}
-
-function closeDeleteModal() {
-    document.getElementById('deleteDraftModal').classList.add('hidden');
-    document.body.classList.remove('overflow-hidden');
-    deleteDraftState = { proposalId: null, url: null, title: null };
-}
-
-async function deleteDraft(proposalId, url) {
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": getCookie("csrftoken"),
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        });
-
-        const data = await response.json();
-
-        if (!data.ok) {
-            alert(data.message || "Failed to delete draft.");
-            return;
-        }
-
-        const draftCountEl = document.getElementById("draft-count");
-        if (draftCountEl) {
-            if (typeof data.draft_count !== "undefined") {
-                draftCountEl.textContent = String(data.draft_count);
-            } else {
-                const currentCount = parseInt(draftCountEl.textContent.trim(), 10) || 0;
-                draftCountEl.textContent = String(Math.max(0, currentCount - 1));
-            }
-        }
-
-        closeDeleteModal();
-        window.location.reload();
-    } catch (error) {
-        alert("Something went wrong while deleting the draft.");
-        console.error(error);
-    }
-}
-
-document.getElementById('confirmDeleteDraftBtn')?.addEventListener('click', function () {
-    if (!deleteDraftState.proposalId || !deleteDraftState.url) return;
-    deleteDraft(deleteDraftState.proposalId, deleteDraftState.url);
-});
-
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-        closeDeleteModal();
-    }
-});
-
-function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-}
-
-function easeInOutCubic(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-function createDoughnutGauge(canvas, percentage) {
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-
-    ctx.clearRect(0, 0, width, height);
-
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const radius = Math.min(width, height) / 2 - 8;
-    const lineWidth = 12;
-
-    const startAngle = (-234 * Math.PI) / 180;
-    const totalAngle = (288 * Math.PI) / 180;
-    const endAngle = startAngle + totalAngle;
-
-    const proposalWeight = 0.40;
-    const moaWeight = 0.20;
-
-    const zone1End = startAngle + totalAngle * proposalWeight;
-    const zone2End = startAngle + totalAngle * (proposalWeight + moaWeight);
-    const progressEnd = startAngle + totalAngle * (Math.max(0, Math.min(percentage, 100)) / 100);
-
-    ctx.lineCap = 'butt';
-
-    ctx.beginPath();
-    ctx.strokeStyle = '#103b07';
-    ctx.lineWidth = lineWidth;
-    ctx.arc(centerX, centerY, radius, startAngle, zone1End, false);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.strokeStyle = '#5a1113';
-    ctx.lineWidth = lineWidth;
-    ctx.arc(centerX, centerY, radius, zone1End, zone2End, false);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.strokeStyle = '#facc15';
-    ctx.lineWidth = lineWidth;
-    ctx.arc(centerX, centerY, radius, zone2End, endAngle, false);
-    ctx.stroke();
-
-    if (progressEnd < endAngle) {
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-        ctx.lineWidth = lineWidth - 1;
-        ctx.arc(centerX, centerY, radius, progressEnd, endAngle, false);
-        ctx.stroke();
-    }
-}
-
-function animateDoughnutGauge(canvas, textEl, finalPercentage) {
-    if (!canvas) return;
-
-    const target = Math.max(0, Math.min(100, Number(finalPercentage) || 0));
-    const riseDuration = 1400;
-    const holdDuration = 260;
-    const fallDuration = 1400;
-    const totalDuration = riseDuration + holdDuration + fallDuration;
-    const startTime = performance.now();
-
-    function frame(now) {
-        const elapsed = now - startTime;
-        let current;
-
-        if (elapsed <= riseDuration) {
-            const t = easeOutCubic(elapsed / riseDuration);
-            current = 100 * t;
-        } else if (elapsed <= riseDuration + holdDuration) {
-            current = 100;
-        } else if (elapsed <= totalDuration) {
-            const t = easeInOutCubic((elapsed - riseDuration - holdDuration) / fallDuration);
-            current = 100 - ((100 - target) * t);
-        } else {
-            current = target;
-        }
-
-        createDoughnutGauge(canvas, current);
-
-        if (textEl) {
-            textEl.textContent = `${Math.round(current)}%`;
-        }
-
-        if (elapsed < totalDuration) {
-            requestAnimationFrame(frame);
-        } else {
-            createDoughnutGauge(canvas, target);
-            if (textEl) textEl.textContent = `${Math.round(target)}%`;
-        }
-    }
-
-    requestAnimationFrame(frame);
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    {% for item in all_proposals %}
-    (function () {
-        const canvas = document.getElementById("gaugeChart{{ item.proposal.id }}");
-        const textEl = document.getElementById("gaugeText{{ item.proposal.id }}");
-        if (!canvas) return;
-
-        canvas.width = 102;
-        canvas.height = 102;
-        canvas.style.width = '102px';
-        canvas.style.height = '102px';
-
-        animateDoughnutGauge(canvas, textEl, {{ item.progress_percent|default:0 }});
-    })();
-    {% endfor %}
-});
-
-document.addEventListener("submit", function () {
-    sessionStorage.setItem("scrollPosition", window.scrollY);
-});
-
-window.addEventListener("beforeunload", function () {
-    sessionStorage.setItem("scrollPosition", window.scrollY);
-});
-
-window.addEventListener("load", function () {
-    const scrollPosition = sessionStorage.getItem("scrollPosition");
-    if (scrollPosition !== null) {
-        window.scrollTo({
-            top: parseInt(scrollPosition, 10),
-            behavior: "auto"
-        });
-        sessionStorage.removeItem("scrollPosition");
-    }
+// Scroll-spy for rail links
+document.querySelectorAll('.nx-rail__item[data-scroll]').forEach(link=>{
+  link.addEventListener('click',e=>{
+    e.preventDefault();
+    const id=link.dataset.scroll;
+    const el=document.getElementById(id);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+    document.querySelectorAll('.nx-rail__item').forEach(l=>l.classList.remove('active'));
+    link.classList.add('active');
+  });
 });
 </script>
-</div>
 {% endblock %}

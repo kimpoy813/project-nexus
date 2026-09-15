@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="nx-app">
+
+    {# ── SIDEBAR RAIL ──────────────────────────────────────────────────── #}
+    {% block rail %}
+    <aside class="nx-rail" aria-label="Dashboard navigation">
+        {% block rail_items %}
+        <div class="nx-rail__section">Workspace</div>
+        <button type="button" class="nx-rail__item active" data-tab="overview">
+            <span class="nx-rail__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+            </span>
+            Overview
+        </button>
+        {% endblock %}
+    </aside>
+    {% endblock %}
+
+    {# ── MAIN CONTENT ─────────────────────────────────────────────────── #}
+    <main class="nx-main">
+
+        {# Page header #}
+        <header class="nx-page-header">
+            <div>
+                <h1 class="nx-page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <p class="nx-page-subtitle">{% block page_subtitle %}Monitor and manage your extension projects.{% endblock %}</p>
+            </div>
+            <div class="nx-page-actions">
+                {% block page_actions %}
+                <a href="{% url 'proposal_create' %}" class="nx-btn--primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                    Create Proposal
+                </a>
+                {% endblock %}
+            </div>
+        </header>
+
+        {# Attention banner slot #}
+        {% block attention_banner %}{% endblock %}
+
+        {# KPI strip #}
+        {% block kpi_strip %}{% endblock %}
+
+        {# Tabs (optional) #}
+        {% block tabs %}{% endblock %}
+
+        {# Main content area #}
+        <div class="space-y-5">
+            {% block dashboard_content %}{% endblock %}
+        </div>
+
+    </main>
+</div>
+
+{% block extra_dashboard_scripts %}{% endblock %}
+{% endblock %}
