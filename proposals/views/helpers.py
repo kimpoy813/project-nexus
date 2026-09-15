@@ -179,3 +179,34 @@ def _notify_proponent(proposal, sent_by, notification_type, message):
             notification_type=notification_type,
             message=message,
         )
+
+
+def _apply_moa_requirement_choice(request, proposal) -> None:
+    """Persist the proponent's MOA requirement choice from wizard step 1.
+
+    The MOA phase is optional for every extension type (not just
+    research-based ones). The choice can only change while the MOA phase
+    has not started yet.
+    """
+    from django.contrib import messages
+
+    raw = (request.POST.get("requires_moa") or "").strip()
+    if raw not in {"1", "0"}:
+        return
+    wants_moa = raw == "1"
+    moa_not_started = proposal.moa_status in {
+        Proposal.MOAStatus.NOT_STARTED,
+        Proposal.MOAStatus.NOT_REQUIRED,
+    }
+    if wants_moa and not proposal.requires_moa and moa_not_started:
+        proposal.requires_moa = True
+        proposal.moa_status = Proposal.MOAStatus.NOT_STARTED
+        proposal.save(update_fields=["requires_moa", "moa_status", "last_saved_at"])
+    elif not wants_moa and proposal.requires_moa:
+        if moa_not_started:
+            proposal.mark_moa_not_required()
+        else:
+            messages.warning(
+                request,
+                "The MOA requirement can no longer be changed because the MOA phase has already started for this proposal.",
+            )

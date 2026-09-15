@@ -375,6 +375,7 @@ tbody tr:hover { background: #f6f8f4; }
    Forms
    -------------------------------------------------------------------------- */
 .nx-label { display: block; margin: 0 0 .3rem; font-size: .78rem; font-weight: 600; color: var(--nx-muted); }
+.nx-field-error { margin-top: .3rem; font-size: .78rem; color: #b91c1c; }
 .nx-input {
     display: block; width: 100%; padding: .5rem .7rem;
     border: 1px solid var(--nx-line-strong); border-radius: var(--nx-radius-sm);

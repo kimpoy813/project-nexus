@@ -12,7 +12,7 @@
                 Edit the text and sections shown on each public page.
             </p>
         </div>
-        <a href="{% url 'admin_dashboard' %}?tab=content" class="pc-btn">← Back to dashboard</a>
+        <a href="{% url 'admin_dashboard' %}?tab=content" class="nx-btn">← Back to dashboard</a>
     </div>
 
     <div class="space-y-3">
@@ -22,9 +22,9 @@
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-semibold text-slate-900">{{ item.page.title }}</h2>
                     {% if item.page.is_published %}
-                        <span class="pc-pill pc-pill--ok">Published</span>
+                        <span class="nx-badge nx-badge--ok">Published</span>
                     {% else %}
-                        <span class="pc-pill pc-pill--warn">Draft</span>
+                        <span class="nx-badge nx-badge--warn">Draft</span>
                     {% endif %}
                 </div>
                 <p class="mt-1 truncate text-sm text-slate-500">
@@ -40,9 +40,9 @@
             </div>
             <div class="flex shrink-0 items-center gap-2">
                 {% if item.public_url_name %}
-                    <a href="{% url item.public_url_name %}" target="_blank" rel="noopener" class="pc-btn">View</a>
+                    <a href="{% url item.public_url_name %}" target="_blank" rel="noopener" class="nx-btn">View</a>
                 {% endif %}
-                <a href="{% url 'page_content_edit' item.page.slug %}" class="pc-btn pc-btn--primary">Edit</a>
+                <a href="{% url 'page_content_edit' item.page.slug %}" class="nx-btn nx-btn--primary">Edit</a>
             </div>
         </div>
         {% endfor %}
@@ -50,17 +50,4 @@
 
 </div>
 
-<style>
-.pc-btn {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
-    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s;
-}
-.pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.pc-btn--primary:hover { opacity:.85; background:#103b07; }
-.pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
-.pc-pill--ok { background:#dcfce7; color:#166534; }
-.pc-pill--warn { background:#fef3c7; color:#92400e; }
-</style>
 {% endblock %}

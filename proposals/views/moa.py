@@ -153,6 +153,10 @@ def _save_moa_step_4(proposal, request):
 def proposal_moa_step(request, proposal_id, step):
     proposal = get_object_or_404(Proposal, id=proposal_id)
 
+    if not proposal.requires_moa:
+        messages.info(request, "This proposal does not require a MOA.")
+        return redirect("proposal_storage", proposal_id=proposal.id)
+
     step = int(step)
     if step < 1:
         step = 1
@@ -256,6 +260,11 @@ def proposal_moa_step(request, proposal_id, step):
 @faculty_like_required
 def proposal_moa_summary(request, proposal_id):
     proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    if not proposal.requires_moa:
+        messages.info(request, "This proposal does not require a MOA.")
+        return redirect("proposal_storage", proposal_id=proposal.id)
+
     ctx = {
         "proposal": proposal,
     }
@@ -667,6 +676,10 @@ def proposal_moa_tracker(request, proposal_id):
 @login_required
 def moa_upload(request, proposal_id):
     proposal = get_object_or_404(Proposal, id=proposal_id)
+
+    if not proposal.requires_moa:
+        messages.info(request, "This proposal does not require a MOA.")
+        return redirect("proposal_storage", proposal_id=proposal.id)
 
     can_manage = _can_manage_phase(request.user, proposal)
     can_upload = can_manage or _can_edit(request.user, proposal)
