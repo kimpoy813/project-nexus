@@ -25,7 +25,7 @@
       <a href="{% url 'proposal_wizard' proposal.id s.no %}{% if request.GET.readonly %}?readonly=1{% endif %}"
          {% if s.state == 'current' %}data-current-step="true"{% endif %}
          {% if s.state == 'completed' %}data-step-state="completed"{% endif %}
-         class="relative px-4 {% if s.state == 'completed' %}done border-success border-success{% endif %}"
+         class="nx-btn relative {% if s.state == 'completed' %}done border-success{% endif %}"
          style="display: flex; align-items: flex-start; gap: .75rem; padding-top: .8rem; padding-bottom: .8rem; border-bottom: 1px solid var(--nx-line); text-decoration: none; {% if s.state == 'current' %}background: rgba(16,59,7,.06); box-shadow: inset 3px 0 0 var(--nx-green);{% endif %}">
 
         <!-- Connector + Circle -->

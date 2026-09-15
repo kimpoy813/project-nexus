@@ -190,6 +190,8 @@ tbody tr:hover { background: #f6f8f4; }
 .nx-btn--primary:hover { background: var(--nx-green-2); border-color: var(--nx-green-2); }
 .nx-btn--danger { color: #b91c1c; border-color: #f0caca; background: #fff; }
 .nx-btn--danger:hover { background: #fef2f2; border-color: #e5a8a8; }
+.nx-btn--warn { background: #b45309; border-color: #b45309; color: #fff; }
+.nx-btn--warn:hover { background: #92400e; border-color: #92400e; color: #fff; }
 .nx-btn--ghost { border-color: transparent; background: transparent; color: var(--nx-muted); }
 .nx-btn--ghost:hover { background: var(--nx-green-soft); color: var(--nx-green); border-color: transparent; }
 .nx-btn--sm { padding: .32rem .65rem; font-size: .76rem; border-radius: 7px; }
@@ -384,6 +386,14 @@ tbody tr:hover { background: #f6f8f4; }
 }
 .nx-input:focus { border-color: var(--nx-green); box-shadow: 0 0 0 3px rgba(16, 59, 7, .12); outline: none; }
 .nx-input--sm { padding: .32rem .55rem; font-size: .78rem; }
+select.nx-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%235d6b60' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.6' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .55rem center; background-size: 1rem;
+    padding-right: 2rem;
+}
+select.nx-input--sm { padding-right: 1.8rem; }
+textarea.nx-input { line-height: 1.55; }
 .nx-field { margin-bottom: 1rem; }
 .nx-field .helptext, .nx-help { display: block; margin-top: .3rem; font-size: .74rem; color: var(--nx-subtle); }
 .nx-field .errorlist { margin: .35rem 0 0; padding: 0; list-style: none; color: #b42323; font-size: .78rem; }

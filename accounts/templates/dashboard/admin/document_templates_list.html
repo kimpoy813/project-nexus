@@ -9,8 +9,8 @@
             <p class="mt-2 text-sm text-gray-600">Upload and replace the official forms/templates used by the Extension Office without changing code.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
-            <a href="{% url 'document_template_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Upload Template</a>
+            <a href="{% url 'admin_dashboard' %}" class="nx-btn border-gray-200">Back to Admin</a>
+            <a href="{% url 'document_template_create' %}" class="nx-btn nx-btn--primary">Upload Template</a>
         </div>
     </div>
 
@@ -40,9 +40,9 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex flex-wrap gap-2">
-                                {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>{% endif %}
-                                <a href="{% url 'document_template_edit' item.id %}" class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white">Edit</a>
-                                <form method="post" action="{% url 'document_template_delete' item.id %}" onsubmit="return confirm('Delete this template?');">{% csrf_token %}<button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50">Delete</button></form>
+                                {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="nx-btn nx-btn--sm border-gray-200">Download</a>{% endif %}
+                                <a href="{% url 'document_template_edit' item.id %}" class="nx-btn nx-btn--primary nx-btn--sm">Edit</a>
+                                <form method="post" action="{% url 'document_template_delete' item.id %}" onsubmit="return confirm('Delete this template?');">{% csrf_token %}<button type="submit" class="nx-btn nx-btn--danger nx-btn--sm border-red-200">Delete</button></form>
                             </div>
                         </td>
                     </tr>

@@ -48,6 +48,8 @@
             <span>{{ site_control.short_name|default:"NExUS" }}</span>
         </a>
 
+        <div class="nx-topbar__spacer"></div>
+
         <nav class="nx-topbar__nav hidden lg:flex" aria-label="Primary">
             <a href="/" class="nx-topbar__link {% if request.path == '/' %}is-active{% endif %}">Home</a>
             <a href="/proposals/" class="nx-topbar__link {% if request.resolver_match.url_name == 'services_home' %}is-active{% endif %}">Services</a>
@@ -57,8 +59,6 @@
                 <a href="{% url 'dashboard_redirect' %}" class="nx-topbar__link">Dashboard</a>
             {% endif %}
         </nav>
-
-        <div class="nx-topbar__spacer"></div>
 
         {% if user.is_authenticated %}
             <!-- Notifications -->
@@ -88,7 +88,7 @@
 
             <!-- Account -->
             <div x-data="{ open: false }" class="relative">
-                <button type="button" @click="open = !open" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition hover:bg-[var(--nx-green-soft)]" aria-label="Account menu">
+                <button type="button" @click="open = !open" class="nx-btn flex items-center gap-2 hover:bg-[var(--nx-green-soft)]" aria-label="Account menu">
                     <span class="nx-avatar" style="width:2rem;height:2rem;font-size:.75rem;">{{ request.user.username|first|upper }}</span>
                     <span class="hidden md:block max-w-[9rem] truncate text-sm font-semibold" style="color: var(--nx-text);">{{ request.user.profile.full_name|default:request.user.username }}</span>
                     <svg class="h-4 w-4 hidden md:block" style="color: var(--nx-subtle);" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>

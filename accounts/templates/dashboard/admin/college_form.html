@@ -55,11 +55,11 @@
 
         <div class="flex justify-end gap-3 pt-2">
           <a href="{% url 'colleges_list' %}"
-             class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+             class="nx-btn inline-flex items-center justify-center border-gray-300">
             Cancel
           </a>
           <button type="submit"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+                  class="nx-btn nx-btn--primary inline-flex items-center justify-center">
             {% if mode == "edit" %}Save Changes{% else %}Create College{% endif %}
           </button>
         </div>

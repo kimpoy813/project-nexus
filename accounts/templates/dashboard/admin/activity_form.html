@@ -8,12 +8,12 @@
 
         <div>
         <label class="block text-sm font-medium mb-1">Title</label>
-        <input name="title" value="{{ activity.title|default:'' }}" class="w-full border rounded-lg p-2" required>
+        <input name="title" value="{{ activity.title|default:'' }}" class="nx-input" required>
         </div>
 
         <div>
         <label class="block text-sm font-medium mb-1">Description</label>
-        <textarea name="description" class="w-full border rounded-lg p-2" rows="4" required>{{ activity.description|default:'' }}</textarea>
+        <textarea name="description" class="nx-input" rows="4" required>{{ activity.description|default:'' }}</textarea>
         </div>
 
         <div>
@@ -23,21 +23,21 @@
                 {% if activity %}
                 {% for d in activity.dates.all %}
                     <div class="flex gap-2">
-                    <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="flex-1 border rounded p-2" required>
-                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                    <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="nx-input flex-1" required>
+                    <button type="button" class="nx-btn" onclick="this.parentElement.remove()">Remove</button>
                     </div>
                 {% endfor %}
                 {% endif %}
 
                 {% if not activity or activity.dates.count == 0 %}
                 <div class="flex gap-2">
-                    <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
-                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                    <input type="date" name="dates[]" class="nx-input flex-1" required>
+                    <button type="button" class="nx-btn" onclick="this.parentElement.remove()">Remove</button>
                 </div>
                 {% endif %}
             </div>
 
-            <button type="button" class="mt-2 px-3 py-2 border rounded" onclick="addDate()">+ Add another date</button>
+            <button type="button" class="nx-btn mt-2" onclick="addDate()">+ Add another date</button>
         </div>
 
         <script>
@@ -46,8 +46,8 @@
             const row = document.createElement('div');
             row.className = 'flex gap-2';
             row.innerHTML = `
-                <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
-                <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                <input type="date" name="dates[]" class="nx-input flex-1" required>
+                <button type="button" class="nx-btn" onclick="this.parentElement.remove()">Remove</button>
             `;
             wrap.appendChild(row);
             }
@@ -67,8 +67,8 @@
         </div>
 
         <div class="flex gap-3">
-        <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
-        <a class="px-4 py-2 rounded-lg border" href="{% url 'activities_list' %}">Cancel</a>
+        <button class="nx-btn nx-btn--primary" type="submit">Save</button>
+        <a class="nx-btn" href="{% url 'activities_list' %}">Cancel</a>
         </div>
     </form>
 </div>

@@ -8,17 +8,17 @@
 
         <div>
         <label class="block text-sm font-medium mb-1">Name</label>
-        <input name="name" value="{{ person.name|default:'' }}" class="w-full border rounded-lg p-2" required>
+        <input name="name" value="{{ person.name|default:'' }}" class="nx-input" required>
         </div>
 
         <div>
         <label class="block text-sm font-medium mb-1">Position</label>
-        <input name="position" value="{{ person.position|default:'' }}" class="w-full border rounded-lg p-2" required>
+        <input name="position" value="{{ person.position|default:'' }}" class="nx-input" required>
         </div>
 
         <div>
         <label class="block text-sm font-medium mb-1">Email</label>
-        <input name="email" value="{{ person.email|default:'' }}" class="w-full border rounded-lg p-2">
+        <input name="email" value="{{ person.email|default:'' }}" class="nx-input">
         </div>
 
         <div>
@@ -30,8 +30,8 @@
         </div>
 
         <div class="flex gap-3">
-        <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
-        <a class="px-4 py-2 rounded-lg border" href="{% url 'personnel_list' %}">Cancel</a>
+        <button class="nx-btn nx-btn--primary" type="submit">Save</button>
+        <a class="nx-btn" href="{% url 'personnel_list' %}">Cancel</a>
         </div>
     </form>
 </div>

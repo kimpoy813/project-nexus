@@ -17,11 +17,11 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
           <label class="block text-sm font-bold text-gray-700 mb-1">Proposal Title *</label>
-          <input type="text" name="title" required placeholder="Enter historical proposal title" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <input type="text" name="title" required placeholder="Enter historical proposal title" class="nx-input">
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Extension Type</label>
-          <select name="extension_type" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <select name="extension_type" class="nx-input">
             {% for val, label in extension_type_choices %}
               <option value="{{ val }}">{{ label }}</option>
             {% endfor %}
@@ -29,7 +29,7 @@
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Scope</label>
-          <select name="scope_type" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <select name="scope_type" class="nx-input">
             {% for val, label in scope_type_choices %}
               <option value="{{ val }}">{{ label }}</option>
             {% endfor %}
@@ -44,7 +44,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Campus</label>
-          <select name="campus" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <select name="campus" class="nx-input">
             <option value="">Choose Campus</option>
             {% for c in campuses %}
               <option value="{{ c.name }}">{{ c.name }}</option>
@@ -53,7 +53,7 @@
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">College</label>
-          <select name="college" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <select name="college" class="nx-input">
             <option value="">Choose College</option>
             {% for c in colleges %}
               <option value="{{ c.name }}">{{ c.name }}</option>
@@ -62,7 +62,7 @@
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Department</label>
-          <select name="department" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <select name="department" class="nx-input">
             <option value="">Choose Department</option>
             {% for d in departments %}
               <option value="{{ d.name }}">{{ d.name }}</option>
@@ -71,7 +71,7 @@
         </div>
         <div class="md:col-span-3">
           <label class="block text-sm font-bold text-gray-700 mb-1">Implementing Agency / Unit</label>
-          <input type="text" name="implementing_agency" placeholder="e.g. ISPSC - College of Computing" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <input type="text" name="implementing_agency" placeholder="e.g. ISPSC - College of Computing" class="nx-input">
         </div>
       </div>
     </div>
@@ -82,19 +82,19 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Beneficiaries Count</label>
-          <input type="number" name="beneficiaries_count" min="0" placeholder="e.g. 150" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <input type="number" name="beneficiaries_count" min="0" placeholder="e.g. 150" class="nx-input">
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Extension Venue / Site</label>
-          <input type="text" name="extension_venue" placeholder="e.g. Barangay Hall, San Juan" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <input type="text" name="extension_venue" placeholder="e.g. Barangay Hall, San Juan" class="nx-input">
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-bold text-gray-700 mb-1">Who are the beneficiaries?</label>
-          <textarea name="beneficiaries_who" rows="2" placeholder="Describe the target audience..." class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></textarea>
+          <textarea name="beneficiaries_who" rows="2" placeholder="Describe the target audience..." class="nx-input"></textarea>
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Month</label>
-          <select name="estimated_month" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <select name="estimated_month" class="nx-input">
             <option value="">Choose Month</option>
             {% for m in month_choices %}
               <option value="{{ m }}">{{ m }}</option>
@@ -103,7 +103,7 @@
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Year</label>
-          <input type="number" name="estimated_year" min="1990" max="2100" placeholder="e.g. 2023" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+          <input type="number" name="estimated_year" min="1990" max="2100" placeholder="e.g. 2023" class="nx-input">
         </div>
       </div>
     </div>
@@ -115,7 +115,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">Proposal Status</label>
-            <select name="proposal_status" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+            <select name="proposal_status" class="nx-input">
               {% for val, label in proposal_status_choices %}
                 <option value="{{ val }}" {% if val == "APPROVED" %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
@@ -123,20 +123,20 @@
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">Original Proposal Document (.pdf / .docx)</label>
-            <input type="file" name="legacy_proposal_file" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
+            <input type="file" name="legacy_proposal_file" class="nx-input bg-gray-50">
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">Signed MOA / Agreement Document</label>
-            <input type="file" name="moa_draft_file" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
+            <input type="file" name="moa_draft_file" class="nx-input bg-gray-50">
           </div>
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">Certificate of Completion / Reports</label>
-            <input type="file" name="certificate_of_completion_file" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
+            <input type="file" name="certificate_of_completion_file" class="nx-input bg-gray-50">
           </div>
         </div>
         <div>
           <label class="block text-sm font-bold text-gray-700 mb-1">Additional Attachments / Supporting Documents (multiple)</label>
-          <input type="file" name="attachments[]" multiple class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
+          <input type="file" name="attachments[]" multiple class="nx-input bg-gray-50">
           <p class="mt-1 text-xs text-gray-500">Hold Ctrl or Shift to select multiple files.</p>
         </div>
       </div>
@@ -144,8 +144,8 @@
 
     <!-- Buttons -->
     <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
-      <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
-      <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Upload Legacy Proposal</button>
+      <a href="{% url 'admin_dashboard' %}" class="nx-btn border-gray-200">Cancel</a>
+      <button type="submit" class="nx-btn nx-btn--primary">Upload Legacy Proposal</button>
     </div>
   </form>
 </div>

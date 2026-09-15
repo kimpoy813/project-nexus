@@ -65,7 +65,7 @@
                 </p>
               {% endif %}
               {% if is_edit_mode %}
-                <input type="file" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" class="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-white">
+                <input type="file" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" class="nx-input mt-2 bg-white">
               {% endif %}
             {% else %}
               <input type="text" name="dynamic_field_{{ field.id }}" data-field-key="{{ field.field_key }}" value="{{ field.answer_value }}" {% if not is_edit_mode %}readonly{% endif %}
