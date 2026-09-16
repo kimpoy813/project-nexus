@@ -106,7 +106,7 @@
                                     {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
                                 </span>
                             {% elif proposal.proposal_status == "APPROVED" %}
-                                <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
                                     {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
                                 </span>
                             {% else %}
@@ -284,11 +284,11 @@
                                     {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
                                 </span>
                             {% elif proposal.proposal_status == "APPROVED" %}
-                                <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
                                     {{ proposal.current_status_label|default:proposal.get_proposal_status_display }}
                                 </span>
                             {% elif proposal.status == "COMPLETED" %}
-                                <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                                <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
                                     {{ proposal.current_status_label|default:"Extension Finished" }}
                                 </span>
                             {% else %}

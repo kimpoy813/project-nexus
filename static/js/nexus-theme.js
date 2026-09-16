@@ -5,9 +5,10 @@
    CDN script, so all HTML files (base template, maintenance, debug login,
    standalone pages) share the exact same brand tokens:
 
-     • Logo-derived palette (ISPSC-RDEI Extension Office emblem):
-         forest green  #103b07   maroon  #5a1113
-         gold          #e8c31e   cream   #f5e587
+     • Institutional palette:
+         deep gold     #a16207   vivid gold  #ca8a04
+         gold          #e8c31e   cream       #f5e587
+         maroon        #5a1113
      • One typeface everywhere: Inter (weights 400–900).
 
    Keep this file in sync with the CSS custom properties in
@@ -18,14 +19,14 @@
     theme: {
       extend: {
         colors: {
-          /* Institutional brand — sampled from the Extension Office logo */
-          primary: '#103b07',   /* forest green  (logo gear greens)   */
-          secondary: '#5a1113', /* maroon        (logo gear / hands)  */
-          accent: '#f5e587',    /* cream yellow  (logo inner quadrants) */
-          gold: '#e8c31e',      /* vivid gold    (logo rim outline)   */
-          cream: '#fdf9e3',     /* soft paper tint of the accent      */
-          maroon: '#5a1113',    /* alias of secondary for clarity     */
-          forest: '#103b07',    /* alias of primary for clarity       */
+          /* Institutional brand — golden yellow primary */
+          primary: '#a16207',   /* deep gold     (headings, fills, focus) */
+          secondary: '#5a1113', /* maroon        (accent / MOA stage)     */
+          accent: '#f5e587',    /* cream yellow  (soft highlights)        */
+          gold: '#e8c31e',      /* vivid gold    (rim / emphasis)         */
+          cream: '#fdf9e3',     /* soft paper tint of the accent          */
+          maroon: '#5a1113',    /* alias of secondary for clarity         */
+          forest: '#a16207',    /* legacy alias of primary for clarity    */
         },
         fontFamily: {
           /* ONE typeface for ALL text — headings, body, buttons, tables,

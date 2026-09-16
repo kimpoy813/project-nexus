@@ -9,7 +9,7 @@
 
   <div class="mb-6">
     <div class="w-full rounded-full bg-slate-200 h-3 overflow-hidden">
-      <div class="h-3 rounded-full bg-emerald-600" style="width: {{ progress }}%"></div>
+      <div class="h-3 rounded-full bg-yellow-600" style="width: {{ progress }}%"></div>
     </div>
   </div>
 
@@ -18,7 +18,7 @@
       {% for s in wizard_steps %}
         <a href="{% url 'proposal_moa_step' proposal.id s.no %}"
            class="group flex flex-col rounded-2xl border px-4 py-3 text-left transition
-             {% if s.state == 'current' %}border-emerald-600 bg-emerald-50 text-emerald-900{% elif s.state == 'completed' %}border-slate-200 bg-slate-50 text-slate-700{% else %}border-transparent bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50{% endif %}">
+             {% if s.state == 'current' %}border-yellow-600 bg-yellow-50 text-yellow-900{% elif s.state == 'completed' %}border-slate-200 bg-slate-50 text-slate-700{% else %}border-transparent bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50{% endif %}">
           <p class="text-[11px] font-semibold uppercase tracking-[0.16em]">Step {{ s.no }}</p>
           <p class="mt-2 text-sm font-semibold">{{ s.title }}</p>
           <p class="mt-1 text-xs leading-5 text-slate-500">{{ s.desc }}</p>
@@ -38,9 +38,9 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-        <h3 class="text-sm font-semibold text-emerald-900">Be specific</h3>
-        <p class="mt-2 text-sm text-emerald-800">
+      <div class="rounded-2xl border border-yellow-100 bg-yellow-50 p-5">
+        <h3 class="text-sm font-semibold text-yellow-900">Be specific</h3>
+        <p class="mt-2 text-sm text-yellow-800">
           This is where the contract becomes operational. Write clear responsibilities and concrete deliverables.
         </p>
       </div>
@@ -81,7 +81,7 @@
           <a href="{% url 'proposal_moa_step' proposal.id 2 %}" class="inline-flex items-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
             Back
           </a>
-          <button type="submit" class="inline-flex items-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+          <button type="submit" class="inline-flex items-center rounded-2xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-yellow-950 shadow-sm hover:bg-yellow-400">
             Save and continue
           </button>
         </div>

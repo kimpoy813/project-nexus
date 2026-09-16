@@ -28,8 +28,8 @@
     {% if site_control %}
     <style>
         :root {
-            --nexus-primary: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-primary-2: {{ site_control.primary_color|default:'#103b07' }};
+            --nexus-primary: {{ site_control.primary_color|default:'#a16207' }};
+            --nexus-primary-2: {{ site_control.primary_color|default:'#a16207' }};
             --nexus-secondary: {{ site_control.secondary_color|default:'#5a1113' }};
             --nexus-accent: {{ site_control.accent_color|default:'#f5e587' }};
         }
@@ -219,7 +219,7 @@
             <div class="rounded-2xl border px-5 py-4 shadow-sm
                 {% if site_control.announcement_tone == 'DANGER' %}border-red-200 bg-red-50 text-red-900
                 {% elif site_control.announcement_tone == 'WARNING' %}border-amber-200 bg-amber-50 text-amber-900
-                {% elif site_control.announcement_tone == 'SUCCESS' %}border-green-200 bg-green-50 text-green-900
+                {% elif site_control.announcement_tone == 'SUCCESS' %}border-yellow-200 bg-yellow-50 text-yellow-900
                 {% else %}border-blue-200 bg-blue-50 text-blue-900{% endif %}">
                 <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -305,13 +305,14 @@
                     const tags = msgElement.getAttribute('data-tags') || 'info';
 
                     let bgColor = 'bg-gray-900';
-                    if (tags.includes('success')) bgColor = 'bg-green-700';
+                    let fgColor = 'text-white';
+                    if (tags.includes('success')) { bgColor = 'bg-yellow-500'; fgColor = 'text-yellow-950'; }
                     else if (tags.includes('error')) bgColor = 'bg-red-700';
                     else if (tags.includes('warning')) bgColor = 'bg-yellow-600';
                     else if (tags.includes('info')) bgColor = 'bg-blue-700';
 
                     const toast = document.createElement('div');
-                    toast.className = `${bgColor} text-white px-5 py-4 rounded-2xl shadow-xl max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5`;
+                    toast.className = `${bgColor} ${fgColor} px-5 py-4 rounded-2xl shadow-xl max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5`;
                     toast.setAttribute('role', 'alert');
 
                     const row = document.createElement('div');

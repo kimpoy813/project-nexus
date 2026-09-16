@@ -20,7 +20,7 @@
                     {% for message in messages %}
                         <div class="rounded-lg px-4 py-3 text-sm border
                             {% if message.tags == 'success' %}
-                                bg-green-50 text-green-700 border-green-200
+                                bg-yellow-50 text-yellow-700 border-yellow-200
                             {% elif message.tags == 'error' %}
                                 bg-red-50 text-red-700 border-red-200
                             {% elif message.tags == 'warning' %}
@@ -253,15 +253,15 @@ document.addEventListener("DOMContentLoaded", function () {
             const uppercaseEl = document.getElementById("uppercase");
 
             if (lengthEl) {
-                lengthEl.className = value.length >= 8 ? "text-green-500" : "text-red-500";
+                lengthEl.className = value.length >= 8 ? "text-yellow-500" : "text-red-500";
             }
 
             if (numberEl) {
-                numberEl.className = /\d/.test(value) ? "text-green-500" : "text-red-500";
+                numberEl.className = /\d/.test(value) ? "text-yellow-500" : "text-red-500";
             }
 
             if (uppercaseEl) {
-                uppercaseEl.className = /[A-Z]/.test(value) ? "text-green-500" : "text-red-500";
+                uppercaseEl.className = /[A-Z]/.test(value) ? "text-yellow-500" : "text-red-500";
             }
         });
     }

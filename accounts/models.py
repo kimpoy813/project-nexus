@@ -294,7 +294,7 @@ class SiteConfiguration(models.Model):
     contact_email = models.EmailField(blank=True, default="ispsc.nexus@gmail.com")
     facebook_url = models.URLField(blank=True, default="https://facebook.com")
 
-    primary_color = models.CharField(max_length=7, default="#103b07")
+    primary_color = models.CharField(max_length=7, default="#a16207")
     secondary_color = models.CharField(max_length=7, default="#5a1113")
     accent_color = models.CharField(max_length=7, default="#f5e587")
 

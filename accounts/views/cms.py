@@ -334,7 +334,7 @@ def home_thrust_move(request, pk):
 def _valid_thrust_color(value):
     """Only allow colours from the model's allow-list."""
     allowed = {choice[0] for choice in HomeThrust.COLOR_CHOICES}
-    return value if value in allowed else "text-green-600"
+    return value if value in allowed else "text-yellow-600"
 
 
 @login_required

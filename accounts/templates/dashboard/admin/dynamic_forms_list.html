@@ -26,7 +26,7 @@
                     <p class="text-xs font-black uppercase tracking-wide text-primary/70">{{ form.get_applies_to_display }}{% if form.proposal_wizard_step %} · Wizard Step {{ form.proposal_wizard_step }}{% endif %}</p>
                     <h2 class="mt-1 text-lg font-black text-gray-900">{{ form.name }}</h2>
                 </div>
-                {% if form.is_active %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}
+                {% if form.is_active %}<span class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}
             </div>
             <p class="mt-3 text-sm leading-6 text-gray-600 line-clamp-3">{{ form.description|default:"No description" }}</p>
             <div class="mt-4 rounded-2xl bg-gray-50 p-3">

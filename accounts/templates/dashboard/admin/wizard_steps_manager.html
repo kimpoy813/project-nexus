@@ -33,7 +33,7 @@
               <p class="text-xs text-gray-500">{{ step.description }}</p>
               {% if step.instructions %}<p class="mt-1 text-xs text-primary">Has custom instructions</p>{% endif %}
             </td>
-            <td class="px-6 py-4">{% if step.is_visible %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Shown</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}</td>
+            <td class="px-6 py-4">{% if step.is_visible %}<span class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700">Shown</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}</td>
             <td class="px-6 py-4">{% if step.is_required %}<span class="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">Required</span>{% else %}<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">Optional</span>{% endif %}</td>
             <td class="px-6 py-4 flex items-center gap-2">
               <a href="{% url 'wizard_step_edit' step.step_no %}" title="Edit Step" class="p-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition flex items-center justify-center">

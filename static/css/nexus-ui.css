@@ -1,12 +1,16 @@
 /* NExUS global UX/UI refresh
    Centralized visual language for menus, dashboards, wizards, trackers, forms,
-   tables, cards, and admin pages. Uses plain CSS so it works with Tailwind CDN. */
+   tables, cards, and admin pages. Uses plain CSS so it works with Tailwind CDN.
+
+   Palette: institutional GOLD (yellow) as the primary brand colour, paired
+   with maroon accents and cream highlights. Layout shells run full-width so
+   every page uses the available space while staying clean and readable. */
 
 :root {
-  /* Brand palette sampled from the ISPSC-RDEI Extension Office logo.
+  /* Brand palette — golden yellow primary.
      Keep in sync with static/js/nexus-theme.js (Tailwind tokens). */
-  --nexus-primary: #103b07;   /* forest green  */
-  --nexus-primary-2: #1f5b12;
+  --nexus-primary: #a16207;   /* deep gold     */
+  --nexus-primary-2: #ca8a04; /* vivid gold    */
   --nexus-secondary: #5a1113; /* maroon        */
   --nexus-accent: #f5e587;    /* cream yellow  */
   --nexus-gold: #e8c31e;      /* vivid gold    */
@@ -17,8 +21,8 @@
   --nexus-line-strong: rgba(15, 23, 42, 0.16);
   --nexus-surface: rgba(255, 255, 255, 0.92);
   --nexus-surface-solid: #ffffff;
-  --nexus-bg: #f6f8f3;
-  --nexus-bg-2: #eef4e8;
+  --nexus-bg: #faf9f1;
+  --nexus-bg-2: #f4eeda;
   --nexus-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
   --nexus-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
   --nexus-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.14);
@@ -50,14 +54,14 @@ h1, h2, h3, h4, h5, h6,
 body {
   color: var(--nexus-ink);
   background:
-    radial-gradient(circle at top left, rgba(245, 229, 135, 0.24), transparent 32rem),
-    radial-gradient(circle at top right, rgba(16, 59, 7, 0.10), transparent 30rem),
-    linear-gradient(180deg, #f9fbf6 0%, var(--nexus-bg) 44%, #f8fafc 100%) !important;
+    radial-gradient(circle at top left, rgba(245, 229, 135, 0.28), transparent 32rem),
+    radial-gradient(circle at top right, rgba(232, 195, 30, 0.12), transparent 30rem),
+    linear-gradient(180deg, #fdfcf5 0%, var(--nexus-bg) 44%, #f8fafc 100%) !important;
 }
 
 ::selection {
-  background: rgba(16, 59, 7, 0.18);
-  color: var(--nexus-primary);
+  background: rgba(232, 195, 30, 0.30);
+  color: #713f12;
 }
 
 /* Accessibility */
@@ -89,6 +93,24 @@ body {
 .max-w-6xl.mx-auto,
 .max-w-5xl.mx-auto {
   animation: nexusFadeIn .32s ease both;
+}
+
+/* Full-width layout: page shells span the entire viewport so no space is
+   wasted. Generous inline padding (below) keeps wide screens readable. */
+.max-w-7xl.mx-auto,
+.max-w-6xl.mx-auto,
+.max-w-5xl.mx-auto,
+.max-w-\[1600px\].mx-auto {
+  max-width: 100% !important;
+}
+@media (min-width: 1536px) {
+  .max-w-7xl.mx-auto,
+  .max-w-6xl.mx-auto,
+  .max-w-5xl.mx-auto,
+  .max-w-\[1600px\].mx-auto {
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+  }
 }
 
 @keyframes nexusFadeIn {
@@ -124,12 +146,12 @@ body {
 .nexus-menu-link:hover,
 .nexus-menu-link:focus-visible {
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.07);
+  background: rgba(202, 138, 4, 0.09);
   outline: none;
 }
 .nexus-menu-link.is-strong {
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.08);
+  background: rgba(202, 138, 4, 0.10);
 }
 
 .nexus-icon-button {
@@ -141,14 +163,14 @@ body {
   border-radius: 999px;
   border: 1px solid transparent;
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.06);
+  background: rgba(202, 138, 4, 0.08);
   transition: transform .16s ease, background .16s ease, border-color .16s ease;
 }
 .nexus-icon-button:hover,
 .nexus-icon-button:focus-visible {
   transform: translateY(-1px);
-  background: rgba(16, 59, 7, 0.10);
-  border-color: rgba(16, 59, 7, 0.14);
+  background: rgba(202, 138, 4, 0.14);
+  border-color: rgba(202, 138, 4, 0.18);
   outline: none;
 }
 
@@ -200,7 +222,7 @@ body {
 .ext-card:hover,
 .mine-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(16, 59, 7, .22);
+  border-color: rgba(202, 138, 4, .30);
 }
 
 .dir-card-accent {
@@ -228,28 +250,30 @@ button[type="submit"],
 .dir-btn:hover,
 .nexus-btn-secondary:hover {
   color: var(--nexus-primary) !important;
-  border-color: rgba(16, 59, 7, .22) !important;
+  border-color: rgba(202, 138, 4, .35) !important;
   box-shadow: var(--nexus-shadow-sm);
   transform: translateY(-1px);
 }
 
+/* Primary actions are bright gold with deep-brown text so they stay vivid
+   AND comfortably readable (dark-on-yellow beats white-on-yellow). */
 .dir-btn-primary,
 .nexus-btn-primary,
 .bg-primary,
 button.bg-primary,
 a.bg-primary {
-  background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-primary-2)) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #facc15, #eab308) !important;
+  color: #422006 !important;
   border-color: transparent !important;
-  box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
+  box-shadow: 0 10px 24px rgba(202, 138, 4, .22);
 }
 .dir-btn-primary:hover,
 .nexus-btn-primary:hover,
 .bg-primary:hover,
 button.bg-primary:hover,
 a.bg-primary:hover {
-  background: linear-gradient(135deg, #123f08, #2a7218) !important;
-  box-shadow: 0 14px 30px rgba(16, 59, 7, .24);
+  background: linear-gradient(135deg, #eab308, #ca8a04) !important;
+  box-shadow: 0 14px 30px rgba(202, 138, 4, .30);
   transform: translateY(-1px);
 }
 
@@ -289,8 +313,8 @@ input[type="url"]:focus,
 select:focus,
 textarea:focus,
 .dir-input:focus {
-  border-color: rgba(16, 59, 7, .52) !important;
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .10) !important;
+  border-color: rgba(202, 138, 4, .60) !important;
+  box-shadow: 0 0 0 4px rgba(232, 195, 30, .18) !important;
   outline: none !important;
 }
 label {
@@ -314,7 +338,7 @@ table {
   border-spacing: 0;
 }
 thead th {
-  background: #f8faf7 !important;
+  background: #fbfaf3 !important;
   color: #64748b !important;
   letter-spacing: .045em;
   text-transform: uppercase;
@@ -323,7 +347,7 @@ tbody tr {
   transition: background .14s ease;
 }
 tbody tr:hover {
-  background: rgba(16, 59, 7, 0.035) !important;
+  background: rgba(232, 195, 30, 0.06) !important;
 }
 
 /* Badges */
@@ -344,11 +368,11 @@ tbody tr:hover {
   transition: background .16s ease, color .16s ease, transform .16s ease;
 }
 .dashboard-nav-btn:hover {
-  background: rgba(16, 59, 7, .07) !important;
+  background: rgba(232, 195, 30, .12) !important;
   color: var(--nexus-primary) !important;
 }
 .dashboard-nav-btn.active {
-  background: linear-gradient(135deg, rgba(16, 59, 7, .12), rgba(245, 229, 135, .22)) !important;
+  background: linear-gradient(135deg, rgba(232, 195, 30, .20), rgba(245, 229, 135, .30)) !important;
   color: var(--nexus-primary) !important;
 }
 
@@ -357,7 +381,7 @@ tbody tr:hover {
 .max-h-\[75vh\].overflow-y-auto,
 .max-h-\[65vh\].overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 59, 7, .32) rgba(15, 23, 42, .05);
+  scrollbar-color: rgba(202, 138, 4, .38) rgba(15, 23, 42, .05);
 }
 #wizard-stepper-scroll::-webkit-scrollbar,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar,
@@ -367,16 +391,16 @@ tbody tr:hover {
 #wizard-stepper-scroll::-webkit-scrollbar-thumb,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar-thumb,
 .max-h-\[65vh\].overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(16, 59, 7, .28);
+  background: rgba(202, 138, 4, .34);
   border-radius: 999px;
 }
 
 .wizard-step-circle {
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .05);
+  box-shadow: 0 0 0 4px rgba(232, 195, 30, .10);
 }
 
 [data-current-step="true"] {
-  box-shadow: inset 4px 0 0 var(--nexus-primary), var(--nexus-shadow-sm);
+  box-shadow: inset 4px 0 0 var(--nexus-gold), var(--nexus-shadow-sm);
 }
 
 /* Auth screens */
@@ -388,7 +412,7 @@ tbody tr:hover {
 .nexus-footer {
   background:
     radial-gradient(circle at 20% 20%, rgba(245, 229, 135, .18), transparent 28rem),
-    linear-gradient(135deg, #0b2b04, var(--nexus-primary)) !important;
+    linear-gradient(135deg, #713f12, var(--nexus-primary)) !important;
 }
 
 /* Mobile refinements */

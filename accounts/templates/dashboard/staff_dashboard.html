@@ -68,8 +68,8 @@
                     <p class="mt-2 text-3xl font-bold text-gray-900">{{ signed_pending_count|default:0 }}</p>
                     <p class="mt-1 text-xs text-gray-400">Awaiting verification</p>
                 </div>
-                <div class="h-12 w-12 rounded-xl bg-emerald-50 flex items-center justify-center">
-                    <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <div class="h-12 w-12 rounded-xl bg-yellow-50 flex items-center justify-center">
+                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
@@ -152,7 +152,7 @@
                             {% elif sub.proposal.moa_status == 'FOR_REVISION' %}
                                 <span class="bg-orange-50 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">For Revision</span>
                             {% elif sub.proposal.moa_status == 'CERTIFICATION_READY' %}
-                                <span class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Certification Ready</span>
+                                <span class="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">Certification Ready</span>
                             {% elif sub.proposal.moa_status == 'AGENDA_AND_PRESENTATION' %}
                                 <span class="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-semibold">Agenda Brief</span>
                             {% else %}
@@ -335,7 +335,7 @@
 
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% if proposal.summary_sent %}
-                                <span class="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">Sent</span>
+                                <span class="bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-xs font-semibold">Sent</span>
                             {% elif proposal.has_draft_summary %}
                                 <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">Draft</span>
                             {% else %}

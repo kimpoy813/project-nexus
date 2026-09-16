@@ -21,7 +21,7 @@
     {% if messages %}
         {% for message in messages %}
             <div class="mb-4 rounded-lg border px-4 py-3 text-sm
-                {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800
+                {% if message.tags == 'success' %}border-yellow-200 bg-yellow-50 text-yellow-800
                 {% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800
                 {% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
                 {{ message }}
@@ -161,7 +161,7 @@
     font-size:.82rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
     outline:none; transition:border-color .15s;
 }
-.hs-input:focus { border-color:#103b07; }
+.hs-input:focus { border-color:#a16207; }
 
 .hs-btn {
     display:inline-flex; align-items:center; justify-content:center;
@@ -169,8 +169,8 @@
     border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
 }
 .hs-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.hs-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.hs-btn--primary:hover { opacity:.85; background:#103b07; }
+.hs-btn--primary { background:#a16207; border-color:#a16207; color:#fff; font-weight:600; }
+.hs-btn--primary:hover { opacity:.85; background:#a16207; }
 .hs-btn--danger { color:#b91c1c; border-color:#fecaca; }
 .hs-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
 

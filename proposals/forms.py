@@ -13,22 +13,22 @@ class MOABaseForm(forms.Form):
         base_text_input = (
             "mt-1 block w-full rounded-2xl border border-slate-300 bg-white "
             "px-4 py-3 text-sm text-slate-900 shadow-sm "
-            "focus:border-emerald-600 focus:ring-emerald-600"
+            "focus:border-yellow-600 focus:ring-yellow-600"
         )
         base_textarea = (
             "mt-1 block w-full rounded-2xl border border-slate-300 bg-white "
             "px-4 py-3 text-sm text-slate-900 shadow-sm "
-            "focus:border-emerald-600 focus:ring-emerald-600"
+            "focus:border-yellow-600 focus:ring-yellow-600"
         )
         base_date = (
             "mt-1 block w-full rounded-2xl border border-slate-300 bg-white "
             "px-4 py-3 text-sm text-slate-900 shadow-sm "
-            "focus:border-emerald-600 focus:ring-emerald-600"
+            "focus:border-yellow-600 focus:ring-yellow-600"
         )
         base_file = (
             "mt-1 block w-full rounded-2xl border border-dashed border-slate-300 bg-white "
             "px-4 py-3 text-sm text-slate-900 shadow-sm "
-            "focus:border-emerald-600 focus:ring-emerald-600"
+            "focus:border-yellow-600 focus:ring-yellow-600"
         )
 
         for name, field in self.fields.items():
@@ -50,11 +50,11 @@ class MOABaseForm(forms.Form):
             elif isinstance(widget, forms.Select):
                 widget.attrs.setdefault(
                     "class",
-                    "mt-1 block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-emerald-600 focus:ring-emerald-600",
+                    "mt-1 block w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm focus:border-yellow-600 focus:ring-yellow-600",
                 )
 
             elif isinstance(widget, forms.CheckboxInput):
-                widget.attrs.setdefault("class", "h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-600")
+                widget.attrs.setdefault("class", "h-4 w-4 rounded border-slate-300 text-yellow-600 focus:ring-yellow-600")
 
 
 class MultiFileInput(forms.ClearableFileInput):

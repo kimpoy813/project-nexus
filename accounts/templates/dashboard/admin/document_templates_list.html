@@ -36,7 +36,7 @@
                         <td class="px-6 py-4 text-sm text-gray-700">{{ item.get_category_display }}</td>
                         <td class="px-6 py-4 text-sm text-gray-700">{{ item.version_label|default:"—" }}</td>
                         <td class="px-6 py-4">
-                            {% if item.is_active %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}
+                            {% if item.is_active %}<span class="rounded-full bg-yellow-50 px-3 py-1 text-xs font-black text-yellow-700">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex flex-wrap gap-2">

@@ -568,7 +568,7 @@ class HomeThrust(models.Model):
     # Tailwind text colour classes offered in the admin picker. Kept as an
     # explicit allow-list so admin input can never inject arbitrary classes.
     COLOR_CHOICES = [
-        ("text-green-600", "Green"),
+        ("text-yellow-600", "Gold"),
         ("text-blue-600", "Blue"),
         ("text-yellow-500", "Yellow"),
         ("text-purple-600", "Purple"),
@@ -577,7 +577,7 @@ class HomeThrust(models.Model):
         ("text-pink-500", "Pink"),
         ("text-teal-600", "Teal"),
         ("text-orange-500", "Orange"),
-        ("text-lime-600", "Lime"),
+        ("text-yellow-700", "Deep Gold"),
         ("text-rose-500", "Rose"),
         ("text-amber-500", "Amber"),
         ("text-cyan-600", "Cyan"),
@@ -590,7 +590,7 @@ class HomeThrust(models.Model):
     color_class = models.CharField(
         max_length=40,
         choices=COLOR_CHOICES,
-        default="text-green-600",
+        default="text-yellow-600",
         help_text="Accent colour for the card title.",
     )
     is_visible = models.BooleanField(default=True)

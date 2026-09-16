@@ -298,7 +298,7 @@ class HomeSectionTests(TestCase):
         )
 
         thrust = HomeThrust.objects.get(title="Coloured")
-        self.assertEqual(thrust.color_class, "text-green-600")
+        self.assertEqual(thrust.color_class, "text-yellow-600")
 
     def test_a_thrust_card_with_no_title_is_rejected(self):
         before = HomeThrust.objects.count()

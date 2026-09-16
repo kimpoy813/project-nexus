@@ -9,7 +9,7 @@ from django.db import migrations, models
 
 
 THRUSTS = [
-    ("Indigenous Heritage Protection", "Protecting cultural heritage and indigenous rights within community extension activities.", "text-green-600"),
+    ("Indigenous Heritage Protection", "Protecting cultural heritage and indigenous rights within community extension activities.", "text-yellow-600"),
     ("Environmental Protection", "Programs that conserve ecosystems and promote sustainable practices.", "text-blue-600"),
     ("Resource Sharing", "Facilitating equitable distribution and community access to resources.", "text-yellow-500"),
     ("Numeracy and Literacy", "Adult and community education initiatives to improve literacy and numeracy.", "text-purple-600"),
@@ -18,7 +18,7 @@ THRUSTS = [
     ("Trade Fair and Exhibit", "Showcasing local products and linking producers to markets.", "text-pink-500"),
     ("Technology Transfer & RD Results Dissemination", "Dissemination of research outputs and support for technology uptake.", "text-teal-600"),
     ("Network and Linkage", "Building partnerships, MOUs, and collaborative networks.", "text-orange-500"),
-    ("Adult Education", "Lifelong learning programs and vocational upskilling for adults.", "text-lime-600"),
+    ("Adult Education", "Lifelong learning programs and vocational upskilling for adults.", "text-yellow-700"),
     ("Calamity & Disaster Rehabilitation", "Relief operations, rehabilitation, and disaster risk reduction activities.", "text-rose-500"),
     ("Entrepreneurship & Financial Literacy", "Microenterprise support, financial literacy trainings, and market linkages.", "text-amber-500"),
     ("Health and Nutrition", "Health promotion, nutrition education, and preventive care outreach.", "text-cyan-600"),

@@ -29,7 +29,7 @@
       {% elif proposal.proposal_status == 'IN_REVIEW' %}
         border-purple-200 bg-purple-50
       {% elif proposal.proposal_status == 'APPROVED' %}
-        border-emerald-200 bg-emerald-50
+        border-yellow-200 bg-yellow-50
       {% elif proposal.proposal_status == 'FOR_REVISION' %}
         border-amber-200 bg-amber-50
       {% else %}border-gray-200 bg-gray-50
@@ -38,7 +38,7 @@
       <p class="text-sm font-semibold
         {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' %}text-blue-800
         {% elif proposal.proposal_status == 'IN_REVIEW' %}text-purple-800
-        {% elif proposal.proposal_status == 'APPROVED' %}text-emerald-800
+        {% elif proposal.proposal_status == 'APPROVED' %}text-yellow-800
         {% elif proposal.proposal_status == 'FOR_REVISION' %}text-amber-800
         {% else %}text-gray-800{% endif %}">
         {{ proposal.get_proposal_status_display }}

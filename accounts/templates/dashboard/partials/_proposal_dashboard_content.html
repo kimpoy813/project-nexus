@@ -5,7 +5,7 @@
             <p class="text-sm text-gray-500">Manage your drafts and submitted extension proposals.</p>
         </div>
         <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800">
+           class="inline-flex items-center rounded-lg bg-yellow-700 px-4 py-2 text-white font-medium hover:bg-yellow-800">
             + New Proposal
         </a>
     </div>
@@ -28,7 +28,7 @@
 
         <div class="rounded-xl bg-white shadow p-5 border">
             <p class="text-sm text-gray-500">Approved</p>
-            <h3 class="text-3xl font-bold text-green-600">{{ approved_count }}</h3>
+            <h3 class="text-3xl font-bold text-yellow-600">{{ approved_count }}</h3>
         </div>
     </div>
 
@@ -51,7 +51,7 @@
                                     </p>
                                 </div>
                                 <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-                                   class="text-green-700 font-medium hover:underline">
+                                   class="text-yellow-700 font-medium hover:underline">
                                     Continue
                                 </a>
                             </div>

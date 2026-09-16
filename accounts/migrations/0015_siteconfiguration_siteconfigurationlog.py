@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
                 ("tagline", models.CharField(default="Networked Extension Unified System", max_length=220)),
                 ("contact_email", models.EmailField(blank=True, default="ispsc.nexus@gmail.com", max_length=254)),
                 ("facebook_url", models.URLField(blank=True, default="https://facebook.com")),
-                ("primary_color", models.CharField(default="#103b07", max_length=7)),
+                ("primary_color", models.CharField(default="#a16207", max_length=7)),
                 ("secondary_color", models.CharField(default="#5a1113", max_length=7)),
                 ("accent_color", models.CharField(default="#f5e587", max_length=7)),
                 ("announcement_enabled", models.BooleanField(default=False)),

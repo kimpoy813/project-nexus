@@ -155,9 +155,9 @@
                                 {% elif item.progress_percent < 80 %}
                                     bg-amber-100 text-amber-700
                                 {% elif item.progress_percent < 100 %}
-                                    bg-emerald-100 text-emerald-700
+                                    bg-yellow-100 text-yellow-700
                                 {% else %}
-                                    bg-green-100 text-green-700
+                                    bg-yellow-100 text-yellow-700
                                 {% endif %}
                             ">
                                 {% if item.is_draft %}
@@ -452,7 +452,7 @@ function createDoughnutGauge(canvas, percentage) {
     ctx.lineCap = 'butt';
 
     ctx.beginPath();
-    ctx.strokeStyle = '#103b07';
+    ctx.strokeStyle = '#a16207';
     ctx.lineWidth = lineWidth;
     ctx.arc(centerX, centerY, radius, startAngle, zone1End, false);
     ctx.stroke();
