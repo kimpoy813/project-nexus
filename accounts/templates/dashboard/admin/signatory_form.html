@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+  <div class="nx-page space-y-6">
 
     <div>
       <h1 class="text-2xl font-bold text-gray-900">
@@ -32,7 +32,7 @@
         </div>
       {% endif %}
 
-      <form method="post" class="space-y-5">
+      <form method="post" class="nx-form-grid">
         {% csrf_token %}
 
         <div>
@@ -57,7 +57,7 @@
           </select>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="nx-full grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label for="id_college" class="block text-sm font-medium text-gray-700 mb-1">College</label>
             <select name="college" id="id_college"
@@ -94,7 +94,7 @@
 
         <div class="flex justify-end pt-2">
           <button type="submit"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+                  class="nx-full justify-self-start inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
             {% if mode == "edit" %}Save Changes{% else %}Create Signatory{% endif %}
           </button>
         </div>

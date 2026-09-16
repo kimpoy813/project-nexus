@@ -1,7 +1,7 @@
 {% extends "dashboard/dashboard_base.html" %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div class="nx-page py-8">
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="border-b border-gray-100 px-6 py-4">
             <h1 class="text-xl font-bold text-gray-900">Edit Profile</h1>
@@ -31,7 +31,7 @@
                 {% endif %}
             </div>
 
-            <div class="grid grid-cols-1 gap-4">
+            <div class="nx-form-grid">
                 <div>
                     <label for="{{ form.campus.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
                         Campus

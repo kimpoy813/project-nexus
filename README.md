@@ -67,6 +67,7 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
 | `proposals/tests_transitions.py` | MOA/implementation transitions, status derivation, wizard helpers |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
+| `accounts/tests/test_layout.py` | Full-bleed layout: no capped page shells, stylesheet linked, auth/wizard/dashboard shells intact |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
 than calling `create_user` directly — a signal creates a `FACULTY` profile on
@@ -101,6 +102,31 @@ Each `__init__.py` re-exports every public name, so `urls.py` refers to
 `views.some_view` exactly as before. **When you add a view to a submodule, add
 it to the package's `__init__.py` too** — otherwise the URLconf raises
 `AttributeError` at import. `accounts/tests/test_structure.py` guards this.
+
+## Layout and spacing
+
+Every screen is **full-bleed**: it spans the viewport and keeps its breathing
+room through shared rhythm rather than a centred fixed-width column. The rules
+live in **`static/css/nexus-layout.css`** — use these classes instead of adding
+new `max-w-*xl mx-auto` wrappers:
+
+| Class | Use it for |
+|---|---|
+| `.nx-page` | A page body. Owns the side gutter (`--nx-gutter`), so add `py-*` for vertical spacing but never `px-*`/`p-*`. |
+| `.nx-bar` | The navbar and footer, so their edges line up with page content. |
+| `.nx-page--measure` | Centred display text (hero headings, notices) inside a full-width band. |
+| `.nx-measure` | A prose block that must stay readable (~68 characters) next to wide content. |
+| `.nx-split` | Fluid main column plus a `--nx-rail-lg` side rail (`--rail-left` for the reverse). |
+| `.nx-form-grid` | Form fields that should flow into columns; `.nx-full` keeps a field on its own line. |
+| `.nx-auto-grid` | Card rows that should gain columns on wide screens instead of stretching. |
+
+Tables, KPIs, cards and forms use the whole width; only prose and centred
+headings are measured. `.nx-dash__inner` (dashboards) and `.nexus-wizard-layout`
+(proposal wizard: stepper | form | context panel) follow the same gutter.
+
+`accounts/tests/test_layout.py` renders the public pages, every role
+dashboard, the admin CRUD screens, the auth screens and the wizard, and fails
+if one regresses to a capped container or stops linking the stylesheet.
 
 ## Logging
 

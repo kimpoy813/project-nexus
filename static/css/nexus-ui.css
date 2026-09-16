@@ -83,11 +83,10 @@ body {
   min-height: calc(100vh - 5rem);
 }
 
+/* Page containers fade in as one, whatever width they span. */
 .nexus-page,
-.max-w-7xl.mx-auto.px-4,
-.max-w-7xl.mx-auto.px-6,
-.max-w-6xl.mx-auto,
-.max-w-5xl.mx-auto {
+.nx-page,
+.nx-page--measure {
   animation: nexusFadeIn .32s ease both;
 }
 

@@ -2,8 +2,7 @@
 
 {% block content %}
 {% with role=request.user.profile.role|default:"" %}
-{% with is_review_allowed=proposal.proposal_status == "IN_REVIEW" %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+<div class="nx-page py-8 space-y-6">
 
   <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -58,7 +57,8 @@
       </p>
     </div>
 
-    {% if is_review_allowed and role in "DIRECTOR,DEPARTMENT_COORDINATOR,CAMPUS_COORDINATOR,FACULTY".split(",") %}
+    {# The if tag takes no parentheses or method calls, so the reviewer role gate is spelled out as and/or pairs ("and" binds tighter than "or"). #}
+    {% if proposal.proposal_status == "IN_REVIEW" and role == "DIRECTOR" or proposal.proposal_status == "IN_REVIEW" and role == "DEPARTMENT_COORDINATOR" or proposal.proposal_status == "IN_REVIEW" and role == "CAMPUS_COORDINATOR" or proposal.proposal_status == "IN_REVIEW" and role == "FACULTY" %}
       <form method="post" class="p-6 space-y-4">
         {% csrf_token %}
 
@@ -177,6 +177,5 @@
   </div>
 
 </div>
-{% endwith %}
 {% endwith %}
 {% endblock %}

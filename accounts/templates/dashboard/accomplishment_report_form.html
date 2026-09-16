@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Submit Accomplishment Report - NExUS{% endblock %}
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="nx-page py-8">
   <div class="mb-6">
     <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Quarterly Report</p>
     <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Submit Accomplishment Report</h1>
@@ -13,16 +13,16 @@
       <label class="block text-sm font-bold text-gray-700 mb-1">Report Title</label>
       <input type="text" name="title" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Year</label><input type="number" name="year" value="{{ current_year }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Quarter</label><select name="quarter" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"><option value="">Select quarter</option>{% for value,label in quarter_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Campus</label><input type="text" name="campus" value="{{ profile.campus|default:'' }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">College</label><input type="text" name="college" value="{{ profile.college|default:'' }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Department</label><input type="text" name="department" value="{{ profile.department|default:'' }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Activities Count</label><input type="number" min="0" name="activities_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Beneficiaries Count</label><input type="number" min="0" name="beneficiaries_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Partners Count</label><input type="number" min="0" name="partners_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>

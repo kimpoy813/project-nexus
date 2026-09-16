@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<section class="pt-24 pb-20">
-    <div class="max-w-7xl mx-auto px-6">
+<section class="pb-16 pt-4">
+    <div class="nx-page nx-auth">
 
-        <div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-100">
+        {% include "accounts/_auth_panel.html" with auth_panel_title="Sign in to continue" auth_panel_text="Use your institutional account to work on proposals, reviews, and accomplishment reports." %}
+
+        <div class="nx-auth__form bg-white rounded-2xl shadow-xl border border-gray-100">
 
             <!-- Header -->
             <div class="bg-primary text-white rounded-t-2xl px-8 py-6 text-center">
