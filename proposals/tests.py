@@ -15,7 +15,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from accounts.models import Profile
+from accounts.models import Campus, College, Department, Profile
 from accounts.tests import factories
 
 from .models import Proposal
@@ -151,3 +151,49 @@ class ProposalCreationTests(TestCase):
 
         response = client.get(reverse("proposal_create"))
         self.assertIn(response.status_code, (200, 302))
+
+
+class LegacyProposalFormCascadeTests(TestCase):
+    """The legacy proposal form's campus/college/department selects must be
+    cascading and scoped — they used to be flat lists of every row in the
+    database, and picking a campus changed nothing."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user, cls.admin_client = factories.admin(
+            "legacy_admin", campus="Cascade Campus", college="Cascade College"
+        )
+        cls.campus = Campus.objects.create(name="Cascade Campus")
+        cls.other = Campus.objects.create(name="Other Campus")
+        cls.college = College.objects.create(campus=cls.campus, name="Cascade College")
+        College.objects.create(campus=cls.other, name="Other College")
+        Department.objects.create(campus=cls.campus, college=cls.college, name="Cascade Department")
+
+    def test_form_renders_cascade_wiring(self):
+        response = self.admin_client.get(reverse("admin_legacy_proposal_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="id_campus"')
+        self.assertContains(response, 'id="id_college"')
+        self.assertContains(response, 'id="id_department"')
+        self.assertContains(response, reverse("get_colleges_ajax"))
+        self.assertContains(response, reverse("get_departments_ajax"))
+
+    def test_form_lists_campuses_from_campus_table(self):
+        response = self.admin_client.get(reverse("admin_legacy_proposal_create"))
+        self.assertContains(response, "Cascade Campus")
+        self.assertContains(response, "Other Campus")
+
+    def test_colleges_scoped_to_admins_campus_and_prefilled(self):
+        response = self.admin_client.get(reverse("admin_legacy_proposal_create"))
+        # Only the admin's own campus colleges are listed initially.
+        self.assertContains(response, "Cascade College")
+        self.assertNotContains(response, "Other College")
+        self.assertContains(response, 'value="Cascade Campus" selected')
+
+    def test_failed_post_keeps_submitted_values(self):
+        response = self.admin_client.post(
+            reverse("admin_legacy_proposal_create"),
+            {"title": "", "campus": "Other Campus"},  # no title -> re-render
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="Other Campus" selected')

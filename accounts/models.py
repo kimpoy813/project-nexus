@@ -164,7 +164,10 @@ class Profile(models.Model):
 
     campus = models.CharField(
         max_length=150,
-        choices=get_campus_choices(),
+        # Callable (no parentheses): evaluated at validation/render time so
+        # campuses created in the admin dashboard are accepted immediately,
+        # instead of being frozen at server boot.
+        choices=get_campus_choices,
         blank=True,
         default="",
     )
@@ -397,7 +400,10 @@ class Signatory(models.Model):
 
     campus = models.CharField(
         max_length=150,
-        choices=get_campus_choices(),
+        # Callable (no parentheses): evaluated at validation/render time so
+        # campuses created in the admin dashboard are accepted immediately,
+        # instead of being frozen at server boot.
+        choices=get_campus_choices,
         blank=True,
         default="",
     )

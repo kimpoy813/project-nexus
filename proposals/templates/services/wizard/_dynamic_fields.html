@@ -82,11 +82,20 @@
 
 <script>
 (function() {
+  // Keep in sync with the server-side logic in proposals/views/wizard.py
+  // (_normalise_dependency_value / _dependency_is_satisfied).
+  function normaliseValue(value) {
+    if (value === null || value === undefined) return '';
+    const text = String(value).trim().toLowerCase();
+    if (text === 'on' || text === 'yes' || text === 'true' || text === '1') return 'yes';
+    return text;
+  }
+
   function checkDynamicDependencies() {
     document.querySelectorAll('.dynamic-field-container[data-depends-on]').forEach(container => {
       const dependsOnKey = container.getAttribute('data-depends-on');
-      const expectedValueRaw = container.getAttribute('data-depends-value');
-      const expectedValues = expectedValueRaw.split(',').map(v => v.trim());
+      const expectedValuesRaw = container.getAttribute('data-depends-value');
+      const expectedValues = expectedValuesRaw.split(',').map(v => normaliseValue(v));
       
       let parentInput = document.querySelector(`[name="${dependsOnKey}"]`);
       if (!parentInput) {
@@ -102,13 +111,11 @@
           actualValue = parentInput.value;
         } else if (parentInput.type === 'checkbox') {
           actualValue = parentInput.checked ? 'on' : '';
-        } else if (parentInput.type === 'hidden') {
-          actualValue = parentInput.value;
         } else {
           actualValue = parentInput.value;
         }
         
-        if (expectedValues.includes(actualValue)) {
+        if (expectedValues.includes(normaliseValue(actualValue))) {
           container.classList.remove('hidden');
         } else {
           container.classList.add('hidden');

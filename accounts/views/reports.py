@@ -10,6 +10,7 @@ from django.utils import timezone
 from details.models import AccomplishmentReport
 from details.models import RoleCapability
 from .. import permissions
+from ..campus_data import get_campus_choices
 from ..models import Profile
 from .helpers import _safe_int, _user_role
 
@@ -99,5 +100,8 @@ def accomplishment_report_create(request):
             "quarter_choices": AccomplishmentReport.Quarter.choices,
             "profile": profile,
             "current_year": timezone.now().year,
+            # Live campus list from the admin-managed Campus table so the
+            # cascading college/department selects have a source of truth.
+            "campus_choices": [value for value, _label in get_campus_choices()],
         },
     )
