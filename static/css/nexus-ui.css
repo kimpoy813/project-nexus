@@ -1,30 +1,20 @@
-/* NExUS global UX/UI refresh
-   Centralized visual language for menus, dashboards, wizards, trackers, forms,
-   tables, cards, and admin pages. Uses plain CSS so it works with Tailwind CDN. */
+/* ==========================================================================
+   NExUS global design layer — Vercel-style restraint.
 
-:root {
-  /* Brand palette sampled from the ISPSC-RDEI Extension Office logo.
-     Keep in sync with static/js/nexus-theme.js (Tailwind tokens). */
-  --nexus-primary: #103b07;   /* forest green  */
-  --nexus-primary-2: #1f5b12;
-  --nexus-secondary: #5a1113; /* maroon        */
-  --nexus-accent: #f5e587;    /* cream yellow  */
-  --nexus-gold: #e8c31e;      /* vivid gold    */
-  --nexus-ink: #0f172a;
-  --nexus-muted: #64748b;
-  --nexus-subtle: #94a3b8;
-  --nexus-line: rgba(15, 23, 42, 0.10);
-  --nexus-line-strong: rgba(15, 23, 42, 0.16);
-  --nexus-surface: rgba(255, 255, 255, 0.92);
-  --nexus-surface-solid: #ffffff;
-  --nexus-bg: #f6f8f3;
-  --nexus-bg-2: #eef4e8;
-  --nexus-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --nexus-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-  --nexus-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.14);
-  --nexus-radius: 1.25rem;
-  --nexus-radius-lg: 1.75rem;
-}
+   This file sits on top of static/css/vercel-brand.css (the vbg
+   foundation). base.html puts `vbg-report` on <body>, which activates the
+   foundation's Geist typography, tokens, control styles, and automatic
+   light/dark behavior. Everything here reads the published `--vbg-*`
+   tokens, so the whole system follows the OS theme without a switcher.
+
+   Principles applied from the design language:
+     • Monochrome. Color only for state and sourced data.
+     • No gradients, glass, glows, or ornamental shadows/depth.
+     • Stillness: no decorative page animations.
+     • Hairline borders and spacing over boxes; restrained radii.
+   ========================================================================== */
+
+/* ── Canvas ─────────────────────────────────────────────────────────────── */
 
 html {
   text-rendering: optimizeLegibility;
@@ -32,78 +22,25 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ONE typeface for the entire system (paired with the Inter webfont loaded
-   in the page heads and the fontFamily tokens in nexus-theme.js). Applied
-   broadly so headings, buttons, inputs, tables, and badges never drift. */
-html,
-body,
-button,
-input,
-select,
-textarea,
-h1, h2, h3, h4, h5, h6,
-.nexus-richtext,
-.nexus-richtext * {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+.vbg-report ::selection {
+  background: var(--vbg-gray-alpha-300);
+  color: var(--vbg-text-primary);
 }
 
-body {
-  color: var(--nexus-ink);
-  background:
-    radial-gradient(circle at top left, rgba(245, 229, 135, 0.24), transparent 32rem),
-    radial-gradient(circle at top right, rgba(16, 59, 7, 0.10), transparent 30rem),
-    linear-gradient(180deg, #f9fbf6 0%, var(--nexus-bg) 44%, #f8fafc 100%) !important;
-}
-
-::selection {
-  background: rgba(16, 59, 7, 0.18);
-  color: var(--nexus-primary);
-}
-
-/* Accessibility */
-.skip-link {
-  position: fixed;
-  left: 1rem;
-  top: 1rem;
-  z-index: 9999;
-  transform: translateY(-150%);
-  border-radius: 999px;
-  background: var(--nexus-primary);
-  color: #fff;
-  padding: .7rem 1rem;
-  font-weight: 800;
-  font-size: .875rem;
-  box-shadow: var(--nexus-shadow-lg);
-  transition: transform .18s ease;
-}
-.skip-link:focus { transform: translateY(0); outline: 3px solid rgba(245, 229, 135, .9); }
+/* Compatibility alias for the foundation skip link. */
+.vbg-report .skip-link { position: fixed; }
 
 /* Layout shells */
 .nexus-shell {
-  min-height: calc(100vh - 5rem);
+  min-height: calc(100vh - 4rem);
 }
 
-.nexus-page,
-.max-w-7xl.mx-auto.px-4,
-.max-w-7xl.mx-auto.px-6,
-.max-w-6xl.mx-auto,
-.max-w-5xl.mx-auto {
-  animation: nexusFadeIn .32s ease both;
-}
+/* ── Navbar ─────────────────────────────────────────────────────────────── */
 
-@keyframes nexusFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Navbar */
 .nexus-navbar {
-  height: 5rem;
-  background: rgba(255, 255, 255, 0.86) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  height: 4rem;
+  background: var(--vbg-surface-primary);
+  border-bottom: 1px solid var(--vbg-border-subtle);
 }
 
 .nexus-brand {
@@ -111,126 +48,134 @@ body {
 }
 
 .nexus-menu-link {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: 2.5rem;
-  border-radius: 999px;
-  padding: .55rem .85rem;
-  color: #475569;
-  font-weight: 700;
-  transition: color .18s ease, background .18s ease, transform .18s ease;
+  min-height: 2.25rem;
+  border-radius: var(--vbg-radius-small);
+  padding: 0.4rem 0.75rem;
+  color: var(--vbg-text-secondary);
+  font-weight: var(--vbg-weight-medium);
+  transition: color 150ms ease, background-color 150ms ease;
 }
 .nexus-menu-link:hover,
 .nexus-menu-link:focus-visible {
-  color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.07);
+  color: var(--vbg-text-primary);
+  background: var(--vbg-gray-alpha-100);
   outline: none;
 }
 .nexus-menu-link.is-strong {
-  color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.08);
+  color: var(--vbg-text-primary);
+  font-weight: var(--vbg-weight-semibold);
 }
 
 .nexus-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.55rem;
-  height: 2.55rem;
-  border-radius: 999px;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--vbg-radius-small);
   border: 1px solid transparent;
-  color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.06);
-  transition: transform .16s ease, background .16s ease, border-color .16s ease;
+  color: var(--vbg-text-secondary);
+  background: transparent;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
 }
 .nexus-icon-button:hover,
 .nexus-icon-button:focus-visible {
-  transform: translateY(-1px);
-  background: rgba(16, 59, 7, 0.10);
-  border-color: rgba(16, 59, 7, 0.14);
+  color: var(--vbg-text-primary);
+  background: var(--vbg-gray-alpha-100);
   outline: none;
 }
 
 .nexus-dropdown,
 .nexus-mobile-panel {
-  background: rgba(255, 255, 255, .96) !important;
-  border: 1px solid rgba(15, 23, 42, 0.10) !important;
-  box-shadow: var(--nexus-shadow-lg) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: var(--vbg-surface-primary);
+  border: 1px solid var(--vbg-border-default);
+  border-radius: var(--vbg-radius);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
 }
 
-/* Cards, panels, dashboards */
+/* ── System notice banner + idle warning ────────────────────────────────── */
+
+.nx-banner {
+  border: 1px solid var(--vbg-border-default);
+  border-radius: var(--vbg-radius);
+  background: var(--vbg-surface-secondary);
+  color: var(--vbg-text-primary);
+}
+.nx-banner[data-tone="info"]    { background: var(--vbg-blue-100);   border-color: var(--vbg-blue-400);   color: var(--vbg-blue-1000); }
+.nx-banner[data-tone="success"] { background: var(--vbg-green-100);  border-color: var(--vbg-green-400);  color: var(--vbg-green-1000); }
+.nx-banner[data-tone="warning"] { background: var(--vbg-amber-100);  border-color: var(--vbg-amber-400);  color: var(--vbg-amber-1000); }
+.nx-banner[data-tone="danger"]  { background: var(--vbg-red-100);    border-color: var(--vbg-red-400);    color: var(--vbg-red-1000); }
+
+.nx-idle-warning {
+  background: var(--vbg-amber-100);
+  border: 1px solid var(--vbg-amber-400);
+  color: var(--vbg-amber-1000);
+  border-radius: var(--vbg-radius);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.10);
+}
+.nx-idle-warning button {
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: var(--vbg-radius-small);
+  background: transparent;
+  color: inherit;
+  font-weight: var(--vbg-weight-semibold);
+}
+.nx-idle-warning button:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+/* ── Toasts ─────────────────────────────────────────────────────────────── */
+
+.nx-toast {
+  background: var(--vbg-gray-1000);
+  color: var(--vbg-background-100);
+  border-radius: var(--vbg-radius);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+.nx-toast[data-tone="success"] { background: var(--vbg-green-900);  color: var(--vbg-green-100); }
+.nx-toast[data-tone="error"]   { background: var(--vbg-red-700);    color: #ffffff; }
+.nx-toast[data-tone="warning"] { background: var(--vbg-amber-900);  color: var(--vbg-amber-100); }
+.nx-toast[data-tone="info"]    { background: var(--vbg-blue-900);   color: var(--vbg-blue-100); }
+
+/* ── Cards, panels, dashboards ──────────────────────────────────────────── */
+
 .nexus-card,
 .dir-card,
 .section-block,
+.ext-card,
+.mine-card,
 .rounded-2xl.border.bg-white,
 .rounded-2xl.border.border-gray-200.bg-white,
 .rounded-2xl.border.border-gray-100.bg-white,
 .bg-white.border.border-gray-100.rounded-2xl,
 .bg-white.border.border-gray-200.rounded-2xl {
-  border-color: var(--nexus-line) !important;
-  background: var(--nexus-surface) !important;
-  box-shadow: var(--nexus-shadow-sm) !important;
-}
-
-.nexus-card:hover,
-.dir-card:hover,
-.section-block:hover,
-.ext-card:hover,
-.mine-card:hover {
-  box-shadow: var(--nexus-shadow) !important;
-}
-
-.section-block,
-.dir-card,
-.ext-card,
-.mine-card {
-  border-radius: var(--nexus-radius) !important;
-}
-
-.ext-card,
-.mine-card {
-  background: var(--nexus-surface-solid);
-  border: 1px solid var(--nexus-line);
-  box-shadow: var(--nexus-shadow-sm);
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-.ext-card:hover,
-.mine-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(16, 59, 7, .22);
+  border: 1px solid var(--vbg-border-subtle);
+  background: var(--vbg-surface-secondary);
+  box-shadow: none;
 }
 
 .dir-card-accent {
-  height: 4px !important;
-  border-radius: 999px 999px 0 0;
+  height: 2px !important;
+  border-radius: 0;
+  background: var(--vbg-gray-1000);
 }
 
-/* Buttons */
-.dir-btn,
-.dir-btn-primary,
-button[type="submit"],
-.bg-primary,
-.nexus-btn-primary {
-  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
-}
+/* ── Buttons ────────────────────────────────────────────────────────────── */
 
 .dir-btn,
 .nexus-btn-secondary {
-  border: 1px solid var(--nexus-line) !important;
-  background: #fff !important;
-  color: #334155 !important;
-  border-radius: .9rem !important;
-  box-shadow: 0 1px 1px rgba(15, 23, 42, .04);
+  border: 1px solid var(--vbg-border-default);
+  background: var(--vbg-surface-primary);
+  color: var(--vbg-text-primary);
+  border-radius: var(--vbg-radius-small);
+  transition: background-color 150ms ease, border-color 150ms ease;
 }
 .dir-btn:hover,
 .nexus-btn-secondary:hover {
-  color: var(--nexus-primary) !important;
-  border-color: rgba(16, 59, 7, .22) !important;
-  box-shadow: var(--nexus-shadow-sm);
-  transform: translateY(-1px);
+  background: var(--vbg-gray-alpha-100);
+  border-color: var(--vbg-border-strong);
 }
 
 .dir-btn-primary,
@@ -238,28 +183,43 @@ button[type="submit"],
 .bg-primary,
 button.bg-primary,
 a.bg-primary {
-  background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-primary-2)) !important;
-  color: #fff !important;
-  border-color: transparent !important;
-  box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.dir-btn-primary,
+.nexus-btn-primary {
+  background: var(--vbg-gray-1000);
+  color: var(--vbg-background-100);
+  border: 1px solid var(--vbg-gray-1000);
+  border-radius: var(--vbg-radius-small);
 }
 .dir-btn-primary:hover,
-.nexus-btn-primary:hover,
-.bg-primary:hover,
-button.bg-primary:hover,
-a.bg-primary:hover {
-  background: linear-gradient(135deg, #123f08, #2a7218) !important;
-  box-shadow: 0 14px 30px rgba(16, 59, 7, .24);
-  transform: translateY(-1px);
+.nexus-btn-primary:hover {
+  background: var(--vbg-gray-900);
+  border-color: var(--vbg-gray-900);
 }
 
 button:disabled,
 .disabled\:opacity-40:disabled {
-  transform: none !important;
-  box-shadow: none !important;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* Forms */
+input[type="file"]::file-selector-button {
+  border: 1px solid var(--vbg-border-default);
+  border-radius: var(--vbg-radius-small);
+  padding: 0.5rem 0.9rem;
+  margin-right: 0.75rem;
+  background: var(--vbg-surface-primary);
+  color: var(--vbg-text-primary);
+  font-weight: var(--vbg-weight-medium);
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+  background: var(--vbg-gray-alpha-100);
+}
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -271,12 +231,11 @@ input[type="url"],
 select,
 textarea,
 .dir-input {
-  border-color: rgba(15, 23, 42, 0.14) !important;
-  border-radius: .9rem !important;
-  background-color: rgba(255, 255, 255, 0.96) !important;
-  color: var(--nexus-ink) !important;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.03);
-  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  border: 1px solid var(--vbg-border-default);
+  border-radius: var(--vbg-radius-small);
+  background-color: var(--vbg-surface-primary);
+  color: var(--vbg-text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 input[type="text"]:focus,
 input[type="email"]:focus,
@@ -289,75 +248,121 @@ input[type="url"]:focus,
 select:focus,
 textarea:focus,
 .dir-input:focus {
-  border-color: rgba(16, 59, 7, .52) !important;
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .10) !important;
-  outline: none !important;
+  border-color: var(--vbg-focus);
+  box-shadow: none;
+  outline: 2px solid var(--vbg-focus);
+  outline-offset: 2px;
 }
 label {
-  color: #334155;
+  color: var(--vbg-text-primary);
 }
 
-input[type="file"]::file-selector-button {
-  border: 0;
-  border-radius: .75rem;
-  padding: .55rem .9rem;
-  margin-right: .75rem;
-  background: var(--nexus-primary);
-  color: white;
-  font-weight: 700;
+/* Custom select enhancement (built by base.html's enhanceDropdowns). */
+.nx-select-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vbg-space-2);
+  min-height: var(--vbg-control-height);
+  border: 1px solid var(--vbg-border-default);
+  border-radius: var(--vbg-radius-small);
+  background: var(--vbg-surface-primary);
+  color: var(--vbg-text-primary);
+  padding: 0 var(--vbg-space-3);
+  font-size: var(--vbg-type-compact);
+  text-align: left;
   cursor: pointer;
 }
+.nx-select-btn:hover { border-color: var(--vbg-border-strong); }
+.nx-select-btn--sm { min-height: 2rem; font-size: var(--vbg-type-label); padding: 0 var(--vbg-space-2); }
+.nx-select-list {
+  position: absolute;
+  z-index: 9999;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--vbg-border-default);
+  border-radius: var(--vbg-radius-small);
+  background: var(--vbg-surface-primary);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+  padding: var(--vbg-space-1) 0;
+  font-size: var(--vbg-type-compact);
+  color: var(--vbg-text-primary);
+}
+.nx-select-item {
+  padding: var(--vbg-space-2) var(--vbg-space-3);
+  cursor: pointer;
+}
+.nx-select-item:hover {
+  background: var(--vbg-gray-alpha-200);
+}
 
-/* Tables */
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+
 table {
   border-collapse: separate;
   border-spacing: 0;
 }
 thead th {
-  background: #f8faf7 !important;
-  color: #64748b !important;
-  letter-spacing: .045em;
-  text-transform: uppercase;
+  background: transparent;
+  color: var(--vbg-text-secondary);
+  font-weight: var(--vbg-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
 }
 tbody tr {
-  transition: background .14s ease;
+  transition: background-color 140ms ease;
 }
 tbody tr:hover {
-  background: rgba(16, 59, 7, 0.035) !important;
+  background: var(--vbg-gray-alpha-100);
 }
 
-/* Badges */
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+
 .badge,
 [class*=" rounded-full"][class*="text-"][class*="px-3"] {
-  border: 1px solid currentColor;
-  border-color: color-mix(in srgb, currentColor 16%, transparent);
-  font-weight: 800 !important;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  font-weight: var(--vbg-weight-medium) !important;
 }
 
-/* Dashboard navigation */
+/* ── Dashboard navigation ───────────────────────────────────────────────── */
+
 .dashboard-nav-btn {
-  border-radius: .95rem !important;
-  padding: .72rem .85rem !important;
-  color: #64748b;
-  font-weight: 800;
+  border-radius: var(--vbg-radius-small) !important;
+  padding: 0.65rem 0.85rem !important;
+  color: var(--vbg-text-secondary);
+  font-weight: var(--vbg-weight-medium);
   text-align: left;
-  transition: background .16s ease, color .16s ease, transform .16s ease;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 .dashboard-nav-btn:hover {
-  background: rgba(16, 59, 7, .07) !important;
-  color: var(--nexus-primary) !important;
+  background: var(--vbg-gray-alpha-100) !important;
+  color: var(--vbg-text-primary) !important;
 }
 .dashboard-nav-btn.active {
-  background: linear-gradient(135deg, rgba(16, 59, 7, .12), rgba(245, 229, 135, .22)) !important;
-  color: var(--nexus-primary) !important;
+  background: var(--vbg-gray-alpha-200) !important;
+  color: var(--vbg-text-primary) !important;
+  font-weight: var(--vbg-weight-semibold);
 }
 
-/* Wizards and trackers */
+/* Full-width accordion headers inside cards keep the card's own boundary. */
+.process-toggle {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  min-height: 0;
+}
+.process-toggle:hover {
+  background: var(--vbg-gray-alpha-100);
+}
+
+/* ── Wizards and trackers ───────────────────────────────────────────────── */
+
 #wizard-stepper-scroll,
 .max-h-\[75vh\].overflow-y-auto,
 .max-h-\[65vh\].overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 59, 7, .32) rgba(15, 23, 42, .05);
+  scrollbar-color: var(--vbg-gray-500) transparent;
 }
 #wizard-stepper-scroll::-webkit-scrollbar,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar,
@@ -367,40 +372,133 @@ tbody tr:hover {
 #wizard-stepper-scroll::-webkit-scrollbar-thumb,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar-thumb,
 .max-h-\[65vh\].overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(16, 59, 7, .28);
+  background: var(--vbg-gray-500);
   border-radius: 999px;
 }
 
 .wizard-step-circle {
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .05);
+  box-shadow: none;
 }
 
 [data-current-step="true"] {
-  box-shadow: inset 4px 0 0 var(--nexus-primary), var(--nexus-shadow-sm);
+  box-shadow: inset 2px 0 0 var(--vbg-gray-1000);
 }
 
-/* Auth screens */
+/* ── Auth screens ───────────────────────────────────────────────────────── */
+
 .auth-card {
-  box-shadow: var(--nexus-shadow-lg) !important;
+  box-shadow: none;
 }
 
-/* Footer */
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
 .nexus-footer {
-  background:
-    radial-gradient(circle at 20% 20%, rgba(245, 229, 135, .18), transparent 28rem),
-    linear-gradient(135deg, #0b2b04, var(--nexus-primary)) !important;
+  background: var(--vbg-surface-contrast);
+  color: var(--vbg-text-on-contrast-secondary);
+}
+.nexus-footer a {
+  color: var(--vbg-text-on-contrast-secondary);
+}
+.nexus-footer a:hover {
+  color: var(--vbg-text-on-contrast);
+}
+.nexus-footer .text-white {
+  color: var(--vbg-text-on-contrast);
 }
 
-/* Mobile refinements */
+/* ── Radii: pull oversized corners back to the foundation scale ─────────── */
+
+.vbg-report .rounded-xl  { border-radius: var(--vbg-radius); }
+.vbg-report .rounded-2xl { border-radius: var(--vbg-radius); }
+.vbg-report .rounded-3xl { border-radius: calc(var(--vbg-radius) + 4px); }
+
+/* ==========================================================================
+   Dark adaptation.
+   The vbg foundation flips its tokens with the OS theme automatically.
+   The utilities below hard-code light grays in hundreds of templates, so
+   this layer maps the most common ones onto vbg tokens after the Tailwind
+   CDN utilities (higher specificity, same cascade origin).
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+
+  /* Surfaces */
+  .vbg-report .bg-white     { background-color: var(--vbg-background-200); }
+  .vbg-report .bg-gray-50   { background-color: var(--vbg-background-200); }
+  .vbg-report .bg-gray-100  { background-color: var(--vbg-gray-100); }
+  .vbg-report .bg-gray-200  { background-color: var(--vbg-gray-200); }
+  .vbg-report .bg-slate-100 { background-color: var(--vbg-gray-100); }
+  .vbg-report .bg-slate-200 { background-color: var(--vbg-gray-200); }
+  .vbg-report .hover\:bg-gray-50:hover   { background-color: var(--vbg-gray-alpha-100); }
+  .vbg-report .hover\:bg-gray-100:hover  { background-color: var(--vbg-gray-alpha-200); }
+  .vbg-report .hover\:bg-white:hover     { background-color: var(--vbg-gray-alpha-100); }
+
+  /* Text */
+  .vbg-report .text-gray-900, .vbg-report .text-gray-800,
+  .vbg-report .text-slate-900, .vbg-report .text-slate-800 { color: var(--vbg-gray-1000); }
+  .vbg-report .text-gray-700, .vbg-report .text-slate-700 { color: var(--vbg-gray-900); }
+  .vbg-report .text-gray-600, .vbg-report .text-slate-600 { color: var(--vbg-gray-900); }
+  .vbg-report .text-gray-500, .vbg-report .text-slate-500 { color: var(--vbg-gray-800); }
+  .vbg-report .text-gray-400, .vbg-report .text-slate-400 { color: var(--vbg-gray-700); }
+  .vbg-report .text-gray-300, .vbg-report .text-slate-300 { color: var(--vbg-gray-600); }
+  .vbg-report .text-primary   { color: var(--vbg-gray-1000); }
+  .vbg-report .text-secondary { color: var(--vbg-gray-900); }
+  .vbg-report .hover\:text-primary:hover { color: var(--vbg-gray-1000); }
+  .vbg-report .hover\:text-white:hover   { color: var(--vbg-gray-1000); }
+
+  /* Borders and dividers */
+  .vbg-report .border-gray-100, .vbg-report .border-slate-100 { border-color: var(--vbg-border-subtle); }
+  .vbg-report .border-gray-200, .vbg-report .border-slate-200 { border-color: var(--vbg-border-default); }
+  .vbg-report .border-gray-300, .vbg-report .border-slate-300 { border-color: var(--vbg-border-strong); }
+  .vbg-report .border-gray-400 { border-color: var(--vbg-gray-700); }
+  .vbg-report .divide-gray-50  > :not([hidden]) ~ :not([hidden]) { border-color: var(--vbg-border-subtle); }
+  .vbg-report .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+  .vbg-report .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: var(--vbg-border-subtle); }
+  .vbg-report .divide-gray-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--vbg-border-default); }
+
+  /* Primary becomes the light foreground on filled surfaces (Vercel dark
+     buttons are light). Text paired with it inverts too. */
+  .vbg-report .bg-primary,
+  .vbg-report button.bg-primary,
+  .vbg-report a.bg-primary {
+    background-color: #ededed;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+  }
+  .vbg-report .bg-primary.text-white,
+  .vbg-report .bg-primary .text-white,
+  .vbg-report .bg-primary.text-white\/90,
+  .vbg-report .bg-primary .text-white\/90 { color: #0a0a0a; }
+  .vbg-report .bg-primary .text-white\/80 { color: #404040; }
+  .vbg-report .bg-primary .text-white\/70 { color: #525252; }
+  .vbg-report .hover\:bg-primary:hover {
+    background-color: #ededed;
+    color: #0a0a0a;
+  }
+  .vbg-report .hover\:bg-primary\/10:hover { background-color: var(--vbg-gray-alpha-200); }
+  .vbg-report .hover\:bg-primary\/5:hover  { background-color: var(--vbg-gray-alpha-100); }
+
+  /* Primary tints become light tints on the dark canvas. */
+  .vbg-report .bg-primary\/5  { background-color: var(--vbg-gray-alpha-100); }
+  .vbg-report .bg-primary\/10 { background-color: var(--vbg-gray-alpha-200); }
+  .vbg-report .bg-primary\/20 { background-color: var(--vbg-gray-alpha-300); }
+  .vbg-report .border-primary { border-color: var(--vbg-gray-700); }
+  .vbg-report .border-primary\/20,
+  .vbg-report .border-primary\/15,
+  .vbg-report .border-primary\/10 { border-color: var(--vbg-gray-alpha-300); }
+  .vbg-report .hover\:border-primary:hover { border-color: var(--vbg-gray-600); }
+  .vbg-report .focus\:border-primary:focus { border-color: var(--vbg-focus); }
+  .vbg-report .focus\:ring-primary\/20:focus,
+  .vbg-report .focus\:ring-primary\/10:focus { --tw-ring-color: var(--vbg-gray-alpha-300); }
+
+  /* Footer keeps its contrast band; hardcoded grays stay legible on it. */
+  .vbg-report .nexus-footer.text-gray-300 { color: var(--vbg-text-on-contrast-secondary); }
+}
+
+/* ── Mobile refinements ─────────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
-  .nexus-navbar { height: 4.5rem; }
-  .nexus-shell { padding-top: 4.5rem !important; }
-  #toast-container { top: 5.25rem !important; left: 1rem; right: 1rem; }
-  .section-block,
-  .dir-card,
-  .ext-card,
-  .mine-card,
-  .rounded-2xl { border-radius: 1rem !important; }
+  .nexus-navbar { height: 4rem; }
+  #toast-container { top: 5rem !important; left: 1rem; right: 1rem; }
   table { font-size: .875rem; }
 }
 

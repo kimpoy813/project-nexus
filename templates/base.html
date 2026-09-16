@@ -6,35 +6,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_control.site_name|default:"NExUS" }} - {{ site_control.tagline|default:"Networked Extension Unified System" }}{% endblock %}</title>
 
-    <!-- Tailwind CDN + single institutional theme (logo palette + one font) -->
+    <!-- Tailwind CDN + NExUS theme (Geist type, monochrome palette) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="{% static 'js/nexus-theme.js' %}"></script>
 
-    <!-- One typeface everywhere: Inter -->
+    <!-- Geist and Geist Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" referrerpolicy="no-referrer">
 
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
-    <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <!-- Design foundation (vbg tokens, primitives, automatic light/dark) -->
+    <link href="{% static 'css/vercel-brand.css' %}" rel="stylesheet">
 
-    <!-- NExUS UI Refresh -->
+    <!-- NExUS design layer -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
-    {% if site_control %}
     <style>
+        /* The 2026 design language is monochrome. The legacy variables keep
+           their names for templates that still reference them, but resolve
+           to the neutral foreground scale instead of the configured brand
+           colors. */
         :root {
-            --nexus-primary: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-primary-2: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-secondary: {{ site_control.secondary_color|default:'#5a1113' }};
-            --nexus-accent: {{ site_control.accent_color|default:'#f5e587' }};
+            --nexus-primary: #0a0a0a;
+            --nexus-primary-2: #262626;
+            --nexus-secondary: #262626;
+            --nexus-accent: #e4e4e7;
         }
     </style>
-    {% endif %}
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
@@ -44,8 +46,8 @@
     {% block extra_head %}{% endblock %}
 </head>
 
-<body class="bg-gray-50 text-gray-800 font-sans">
-    <a href="#main-content" class="skip-link">Skip to content</a>
+<body class="vbg-report">
+    <a href="#main-content" class="vbg-skip-link">Skip to content</a>
 
     <!-- Toast Container -->
     <div id="toast-container" class="fixed top-24 right-6 z-50 space-y-3"></div>
@@ -103,8 +105,8 @@
                                  @click.away="openNotif = false"
                                  x-transition.origin.top.right
                                  class="nexus-dropdown absolute right-0 mt-3 w-80 rounded-3xl overflow-hidden z-50">
-                                <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-br from-primary/5 to-accent/20">
-                                    <p class="text-sm font-black text-gray-900">Notifications</p>
+                                <div class="px-5 py-4 border-b border-gray-100">
+                                    <p class="text-sm font-semibold text-gray-900">Notifications</p>
                                     <p class="text-xs text-gray-500">Updates that need your attention.</p>
                                 </div>
 
@@ -214,28 +216,28 @@
     </nav>
 
     {% if site_control and site_control.announcement_is_visible %}
-    <div class="pt-24 -mb-16">
+    <div class="pt-20 -mb-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6">
-            <div class="rounded-2xl border px-5 py-4 shadow-sm
-                {% if site_control.announcement_tone == 'DANGER' %}border-red-200 bg-red-50 text-red-900
-                {% elif site_control.announcement_tone == 'WARNING' %}border-amber-200 bg-amber-50 text-amber-900
-                {% elif site_control.announcement_tone == 'SUCCESS' %}border-green-200 bg-green-50 text-green-900
-                {% else %}border-blue-200 bg-blue-50 text-blue-900{% endif %}">
+            <div class="nx-banner px-5 py-4
+                {% if site_control.announcement_tone == 'DANGER' %}data-tone="danger"
+                {% elif site_control.announcement_tone == 'WARNING' %}data-tone="warning"
+                {% elif site_control.announcement_tone == 'SUCCESS' %}data-tone="success"
+                {% else %}data-tone="info"{% endif %}">
                 <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                         {% if site_control.announcement_title %}
-                            <p class="text-sm font-black">{{ site_control.announcement_title }}</p>
+                            <p class="text-sm font-semibold">{{ site_control.announcement_title }}</p>
                         {% endif %}
                         <p class="text-sm leading-6">{{ site_control.announcement_message }}</p>
                     </div>
-                    <span class="text-[10px] font-black uppercase tracking-widest opacity-70">System notice</span>
+                    <span class="text-xs opacity-70">System notice</span>
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <main id="main-content" class="nexus-shell pt-24">
+    <main id="main-content" class="nexus-shell pt-20">
         {% block content %}{% endblock %}
     </main>
 
@@ -245,7 +247,7 @@
                 <div class="flex items-center gap-3 mb-4">
                     <img src="{% static 'images/nexus-logo-128.png' %}"
                          alt="NExUS logo"
-                         class="h-12 w-12 object-contain rounded-xl bg-white p-1.5 shadow-sm">
+                         class="h-12 w-12 object-contain rounded-lg bg-white p-1.5">
                     <h3 class="text-xl font-black text-white">{{ site_control.site_name|default:"NExUS" }}</h3>
                 </div>
                 <p class="text-sm leading-relaxed text-white/90">
@@ -290,8 +292,6 @@
         </div>
     {% endif %}
 
-    <!-- AOS Script -->
-    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const messagesData = document.getElementById('messages-data');
@@ -304,14 +304,15 @@
                     const message = msgElement.getAttribute('data-message');
                     const tags = msgElement.getAttribute('data-tags') || 'info';
 
-                    let bgColor = 'bg-gray-900';
-                    if (tags.includes('success')) bgColor = 'bg-green-700';
-                    else if (tags.includes('error')) bgColor = 'bg-red-700';
-                    else if (tags.includes('warning')) bgColor = 'bg-yellow-600';
-                    else if (tags.includes('info')) bgColor = 'bg-blue-700';
+                    let tone = 'default';
+                    if (tags.includes('success')) tone = 'success';
+                    else if (tags.includes('error')) tone = 'error';
+                    else if (tags.includes('warning')) tone = 'warning';
+                    else if (tags.includes('info')) tone = 'info';
 
                     const toast = document.createElement('div');
-                    toast.className = `${bgColor} text-white px-5 py-4 rounded-2xl shadow-xl max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5`;
+                    toast.className = 'nx-toast px-5 py-4 max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5';
+                    toast.dataset.tone = tone;
                     toast.setAttribute('role', 'alert');
 
                     const row = document.createElement('div');
@@ -345,8 +346,6 @@
                 messagesData.remove();
             }
         });
-
-        AOS.init({ duration: 700, once: true });
 
         (function () {
             const IDLE_LIMIT_MS = 30 * 60 * 1000;
@@ -426,10 +425,10 @@
     </script>
 
     <div id="idle-warning"
-         class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-amber-700 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-4 max-w-sm w-[calc(100%-2rem)]">
+         class="nx-idle-warning hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-4 flex items-center gap-4 max-w-sm w-[calc(100%-2rem)]">
         <p class="text-sm flex-1">You'll be logged out in about <span id="idle-countdown">5</span> minutes due to inactivity.</p>
         <button type="button" onclick="window.resetIdleTimer && window.resetIdleTimer()"
-                class="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg">
+                class="text-xs px-3 py-1.5">
             Stay logged in
         </button>
     </div>
@@ -462,11 +461,11 @@
                     // Copy classes and build button
                     const btn = document.createElement("button");
                     btn.type = "button";
-                    btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-xl border border-gray-300 px-3 h-[38px] text-sm bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
-                    
+                    btn.className = "nx-select-btn";
+
                     // Adjust if it is a small select input
                     if (select.classList.contains("adm-input--sm")) {
-                        btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 h-[32px] text-xs bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
+                        btn.className = "nx-select-btn nx-select-btn--sm";
                     }
                     
                     const selectedText = document.createElement("span");
@@ -476,9 +475,9 @@
                     selectedText.textContent = activeOption ? activeOption.text : "Select...";
                     
                     const arrowSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    arrowSvg.setAttribute("class", "h-4 w-4 text-gray-500 shrink-0");
+                    arrowSvg.setAttribute("class", "h-4 w-4 opacity-60 shrink-0");
                     if (select.classList.contains("adm-input--sm")) {
-                        arrowSvg.setAttribute("class", "h-3 w-3 text-gray-500 shrink-0");
+                        arrowSvg.setAttribute("class", "h-3 w-3 opacity-60 shrink-0");
                     }
                     arrowSvg.setAttribute("viewBox", "0 0 20 20");
                     arrowSvg.setAttribute("fill", "currentColor");
@@ -489,17 +488,11 @@
                     
                     // Create options list
                     const dropdown = document.createElement("div");
-                    dropdown.className = "hidden absolute bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-sm text-gray-700 font-medium max-h-[500px] overflow-y-auto";
-                    if (select.classList.contains("adm-input--sm")) {
-                        dropdown.className = "hidden absolute bg-white rounded-lg shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-xs text-gray-700 font-medium max-h-[500px] overflow-y-auto";
-                    }
-                    
+                    dropdown.className = "nx-select-list hidden";
+
                     Array.from(select.options).forEach(opt => {
                         const item = document.createElement("div");
-                        item.className = "px-4 py-2 cursor-pointer hover:bg-primary hover:text-white transition";
-                        if (select.classList.contains("adm-input--sm")) {
-                            item.className = "px-3 py-1.5 cursor-pointer hover:bg-primary hover:text-white transition";
-                        }
+                        item.className = "nx-select-item";
                         item.textContent = opt.text;
                         item.dataset.value = opt.value;
                         
@@ -539,7 +532,7 @@
                         e.stopPropagation();
                         
                         // Close all other dropdowns
-                        document.querySelectorAll("body > .z-\\[9999\\]").forEach(d => {
+                        document.querySelectorAll("body > .nx-select-list").forEach(d => {
                             if (d !== dropdown) d.classList.add("hidden");
                         });
                         

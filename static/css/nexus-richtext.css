@@ -1,10 +1,11 @@
 /* ==========================================================================
    Rich-text output from the admin Page Content editor (CKEditor 5).
    Shared by the Home, Services, Reports, and Achievements pages.
+   Values read vbg tokens, so authored content follows the OS theme.
    ========================================================================== */
 
 .nexus-richtext {
-    color: #374151;
+    color: var(--vbg-text-primary);
     line-height: 1.75;
 }
 
@@ -14,10 +15,11 @@
 .nexus-richtext h4,
 .nexus-richtext h5,
 .nexus-richtext h6 {
-    color: #111827;
-    font-weight: 600;
+    color: var(--vbg-gray-1000);
+    font-weight: var(--vbg-weight-heading);
     margin: 1.5em 0 .5em;
     line-height: 1.3;
+    letter-spacing: -0.02em;
 }
 
 .nexus-richtext h1 { font-size: 1.875rem; }
@@ -38,21 +40,24 @@
 .nexus-richtext li > ol { margin-bottom: 0; }
 
 .nexus-richtext a {
-    color: var(--nexus-primary, #103b07);
+    color: var(--vbg-text-primary);
+    font-weight: var(--vbg-weight-medium);
     text-decoration: underline;
+    text-decoration-color: var(--vbg-gray-600);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
 }
-.nexus-richtext a:hover { color: var(--nexus-secondary, #5a1113); }
+.nexus-richtext a:hover { text-decoration-color: currentColor; }
 
-.nexus-richtext strong { font-weight: 600; color: #111827; }
+.nexus-richtext strong { font-weight: var(--vbg-weight-medium); color: var(--vbg-gray-1000); }
 .nexus-richtext em { font-style: italic; }
 
 .nexus-richtext blockquote {
     margin: 1.25em 0;
-    padding: .5em 1.25em;
-    border-left: 3px solid var(--nexus-primary, #103b07);
-    background: #f9fafb;
-    color: #4b5563;
-    font-style: italic;
+    padding: .25em 0 .25em 1.25em;
+    border-left: 2px solid var(--vbg-border-strong);
+    background: transparent;
+    color: var(--vbg-text-secondary);
 }
 
 .nexus-richtext table {
@@ -63,20 +68,22 @@
 }
 .nexus-richtext th,
 .nexus-richtext td {
-    border: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--vbg-border-subtle);
     padding: .6rem .8rem;
     text-align: left;
+    vertical-align: baseline;
 }
 .nexus-richtext th {
-    background: #f9fafb;
-    font-weight: 600;
-    color: #111827;
+    background: transparent;
+    border-bottom-color: var(--vbg-border-default);
+    font-weight: var(--vbg-weight-medium);
+    color: var(--vbg-gray-1000);
 }
 
 .nexus-richtext img {
     max-width: 100%;
     height: auto;
-    border-radius: .75rem;
+    border-radius: var(--vbg-radius);
     margin: 1.25em 0;
 }
 
@@ -85,7 +92,7 @@
 .nexus-richtext figcaption {
     margin-top: .5em;
     font-size: .85rem;
-    color: #6b7280;
+    color: var(--vbg-text-secondary);
     text-align: center;
 }
 
@@ -97,7 +104,7 @@
 .nexus-richtext hr {
     margin: 2em 0;
     border: 0;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--vbg-border-subtle);
 }
 
 /* Clear floats introduced by aligned images */

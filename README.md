@@ -8,6 +8,28 @@ See [`DEPLOYMENT.md`](DEPLOYMENT.md) for production setup (PostgreSQL +
 Supabase Storage) and [`docs/ARCHITECTURE_AUDIT.md`](docs/ARCHITECTURE_AUDIT.md)
 for a prioritised review of known technical debt.
 
+## Design system
+
+The UI follows a Vercel-style design language: Geist / Geist Mono
+typography, a monochrome foreground scale, hairline borders, and automatic
+light/dark themes driven by the OS preference (no visible switcher).
+
+- `static/css/vercel-brand.css` — the published `vbg` foundation
+  (tokens, type roles, controls, report primitives). Treat as read-only;
+  upgrade by replacing the file with the current published copy.
+- `templates/base.html` puts `vbg-report` on `<body>`, which activates the
+  foundation for every page that extends the base template.
+- `static/js/nexus-theme.js` — Tailwind theme: Geist stacks and the
+  monochrome palette (`primary` is the foreground, `#0a0a0a`).
+- `static/css/nexus-ui.css` — app chrome and components on `--vbg-*`
+  tokens, plus the dark adaptation layer for hardcoded Tailwind grays.
+- `static/css/dashboard-views.css`, `static/css/nexus-richtext.css` —
+  shared dashboard vocabulary and CMS rich-text, on the same tokens.
+
+State colors (info, success, warning, danger) are the only chromatic
+tokens. Keep it that way when adding pages: prefer spacing, alignment,
+and typography over new colors, borders, or boxes.
+
 ---
 
 ## Local development
