@@ -23,6 +23,7 @@
 
     <!-- NExUS UI Refresh -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
+    <link href="{% static 'css/nexus-layout.css' %}" rel="stylesheet">
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
     {% if site_control %}
@@ -54,7 +55,7 @@
     <nav x-data="{ mobileMenu: false }"
          @keydown.escape.window="mobileMenu = false"
          class="nexus-navbar fixed top-0 w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-full flex justify-between items-center">
+        <div class="nx-bar h-full flex justify-between items-center">
             <!-- Logo + NEXUS Name -->
             <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home">
                 <img src="{% static 'images/nexus-logo-128.png' %}"
@@ -215,7 +216,7 @@
 
     {% if site_control and site_control.announcement_is_visible %}
     <div class="pt-24 -mb-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="nx-page">
             <div class="rounded-2xl border px-5 py-4 shadow-sm
                 {% if site_control.announcement_tone == 'DANGER' %}border-red-200 bg-red-50 text-red-900
                 {% elif site_control.announcement_tone == 'WARNING' %}border-amber-200 bg-amber-50 text-amber-900
@@ -240,7 +241,7 @@
     </main>
 
     <footer class="nexus-footer text-gray-300 pt-16 pb-10 mt-24">
-        <div class="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-12">
+        <div class="nx-bar grid gap-12 md:grid-cols-3">
             <div>
                 <div class="flex items-center gap-3 mb-4">
                     <img src="{% static 'images/nexus-logo-128.png' %}"

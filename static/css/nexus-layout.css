@@ -1,0 +1,181 @@
+/* ==========================================================================
+   NExUS FLUID LAYOUT SYSTEM
+   --------------------------------------------------------------------------
+   Every page in the system spans the full viewport width instead of floating
+   in a centred 1024–1280px column. Width is used; the layout stays tidy
+   because the *rhythm* is shared, not because everything is boxed in:
+
+     • one fluid side gutter for navbar, page content and footer, so the left
+       and right edges line up on every screen (`--nx-gutter`);
+     • one vertical rhythm (`--nx-stack`) so sections breathe the same way;
+     • a readable measure (`--nx-measure`) applied to prose and centred
+       headings only — never to tables, cards, KPIs or forms, which are free
+       to use the whole width;
+     • rails and card rows that flex, so wide screens gain columns instead of
+       gaining whitespace.
+
+   Utilities are deliberately few and orthogonal: `.nx-page` / `.nx-bar`
+   (containers), `.nx-measure` (prose cap), `.nx-split` (main + rail),
+   `.nx-form-grid` (field columns) and `.nx-auto-grid` (card rows).
+   ========================================================================== */
+
+:root {
+  /* Side gutter: grows with the viewport, never collapses to zero. */
+  --nx-gutter:      clamp(1rem, .35rem + 2.2vw, 3.5rem);
+  --nx-bar-gutter:  clamp(1rem, .35rem + 1.8vw, 3rem);
+  /* Vertical rhythm between page sections. */
+  --nx-stack:       1.5rem;
+  /* Long-form text measure (~68 characters) — prose only. */
+  --nx-measure:     68ch;
+  /* Sidebar / rail widths for split layouts. */
+  --nx-rail:        minmax(15rem, 19rem);
+  --nx-rail-lg:     minmax(17rem, 22rem);
+  --nx-field:       20rem;   /* comfortable minimum width for a form field */
+}
+
+/* ── Containers ─────────────────────────────────────────────────────────── */
+/* `.nx-page` is the page body container, `.nx-bar` the navbar/footer one.
+   They own horizontal padding, so templates must not add px-*/p-* to them
+   (use py-* for vertical spacing). */
+.nx-page,
+.nx-bar {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  min-width: 0;
+}
+.nx-page { padding-inline: var(--nx-gutter); }
+.nx-bar  { padding-inline: var(--nx-bar-gutter); }
+.nx-page--flush { padding-inline: 0; }
+
+/* Full-bleed band with the shared vertical rhythm. */
+.nx-band       { padding-block: var(--nx-stack); }
+.nx-band--tall { padding-block: calc(var(--nx-stack) * 1.5); }
+
+/* ── Measure ────────────────────────────────────────────────────────────── */
+/* A container that keeps a readable measure while its band spans the
+   viewport: hero headings, centred introductions, notices. The gutter is
+   added back so the text starts where every other page's content starts. */
+.nx-page--measure {
+  max-width: min(100%, 58rem);
+  margin-inline: auto;
+}
+.nx-measure       { max-width: var(--nx-measure); }
+.nx-measure--wide { max-width: 84ch; }
+.nx-measure--tight{ max-width: 46ch; }
+
+/* ── Split: fluid main column + rail ────────────────────────────────────── */
+.nx-split {
+  display: grid;
+  gap: var(--nx-stack);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .nx-split            { grid-template-columns: minmax(0, 1fr) var(--nx-rail-lg); }
+  .nx-split--rail-left { grid-template-columns: var(--nx-rail) minmax(0, 1fr); }
+}
+.nx-split > * { min-width: 0; }
+.nx-split__rail { position: relative; }
+@media (min-width: 1024px) {
+  .nx-split__rail--sticky { position: sticky; top: 6.5rem; }
+}
+
+/* ── Card rows ──────────────────────────────────────────────────────────── */
+/* Cards flow into as many columns as the viewport affords, so a wide screen
+   shows more tiles rather than a handful of stretched ones. */
+.nx-auto-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+.nx-auto-grid--sm  { grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+.nx-auto-grid--lg  { grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr)); }
+.nx-auto-grid--gap-lg { gap: 1.5rem; }
+.nx-auto-grid > * { min-width: 0; }
+
+/* ── Forms ──────────────────────────────────────────────────────────────── */
+/* Fields flow into columns once there is room; `.nx-full` keeps a field
+   (textareas, file inputs, repeaters) on its own line. */
+.nx-form-grid {
+  display: grid;
+  gap: 1rem 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 720px) {
+  .nx-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1400px) {
+  .nx-form-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.nx-form-grid > * { min-width: 0; }
+.nx-form-grid > .nx-full { grid-column: 1 / -1; }
+
+/* A form column keeps a comfortable working width on very wide screens
+   without leaving the surrounding page empty. */
+.nx-form-column { max-width: 62rem; }
+
+/* ── Auth screens ───────────────────────────────────────────────────────── */
+/* Brand panel on the left, form on the right — the viewport is used instead
+   of a single card adrift in the middle of the page. */
+.nx-auth {
+  display: grid;
+  gap: var(--nx-stack);
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .nx-auth {
+    grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem);
+    gap: clamp(2rem, 5vw, 6rem);
+  }
+}
+.nx-auth__form { width: 100%; max-width: 34rem; }
+.nx-auth__form--wide { max-width: 44rem; }
+@media (min-width: 1024px) { .nx-auth__form { justify-self: end; } }
+.nx-auth__panel > * + * { margin-top: 1rem; }
+.nx-auth__bullets { display: grid; gap: .65rem; margin-top: 1.5rem; }
+.nx-auth__bullets li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .65rem;
+  align-items: start;
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+/* ── Proposal wizard ────────────────────────────────────────────────────── */
+/* Stepper | form | context panel. The form column absorbs every spare pixel;
+   the rails stay fixed so long labels never wrap mid-word. */
+.nexus-wizard-layout {
+  display: grid;
+  gap: var(--nx-stack);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .nexus-wizard-layout {
+    grid-template-columns: var(--nx-rail) minmax(0, 1fr) var(--nx-rail-lg);
+  }
+}
+.nexus-wizard-layout > * { min-width: 0; }
+
+/* ── Tables and long content ────────────────────────────────────────────── */
+/* Wide tables scroll inside their card instead of pushing the page wider. */
+.nx-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.nx-scroll-x > table { min-width: 60rem; }
+
+/* ── Stacks ─────────────────────────────────────────────────────────────── */
+.nx-stack > * + * { margin-top: var(--nx-stack); }
+.nx-stack--sm > * + * { margin-top: .75rem; }
+.nx-stack--lg > * + * { margin-top: calc(var(--nx-stack) * 1.5); }
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .nx-form-grid { gap: .85rem; }
+  .nx-auto-grid--gap-lg { gap: 1rem; }
+}
+
+@media print {
+  .nx-page, .nx-bar { padding-inline: 0; }
+}

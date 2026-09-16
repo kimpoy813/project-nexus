@@ -1,0 +1,45 @@
+{% load static %}
+{# Brand panel shown beside every auth card so the page uses the full width. Pass `auth_panel_title` / `auth_panel_text` to override the copy. #}
+<div class="nx-auth__panel">
+    <div class="flex items-center gap-3">
+        <img src="{% static 'images/nexus-logo-128.png' %}"
+             alt="{{ site_control.site_name|default:'NExUS' }} logo"
+             class="h-14 w-14 rounded-2xl bg-white object-contain p-2 shadow-sm">
+        <div class="min-w-0">
+            <p class="text-2xl font-black tracking-tight text-primary">
+                {{ site_control.short_name|default:"NExUS" }}
+            </p>
+            <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                {{ site_control.tagline|default:"Networked Extension Unified System" }}
+            </p>
+        </div>
+    </div>
+
+    <h1 class="mt-6 text-3xl font-bold tracking-tight text-gray-900 nx-measure--wide">
+        {{ auth_panel_title|default:"Extension work, tracked end to end." }}
+    </h1>
+    <p class="nx-measure text-sm leading-6 text-gray-600">
+        {{ auth_panel_text|default:"One system for the whole extension lifecycle — used by faculty, coordinators, evaluators, and the Extension Office." }}
+    </p>
+
+    <ul class="nx-auth__bullets text-gray-700">
+        <li>
+            <span class="mt-0.5 grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-primary">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 111.4-1.4l3.3 3.29 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
+            </span>
+            <span>Draft proposals through the guided step-by-step wizard.</span>
+        </li>
+        <li>
+            <span class="mt-0.5 grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-primary">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 111.4-1.4l3.3 3.29 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
+            </span>
+            <span>Route them for review, then on to MOA and implementation.</span>
+        </li>
+        <li>
+            <span class="mt-0.5 grid h-6 w-6 place-items-center rounded-full bg-primary/10 text-primary">
+                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 111.4-1.4l3.3 3.29 6.8-6.8a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
+            </span>
+            <span>File accomplishment reports and release signed documents.</span>
+        </li>
+    </ul>
+</div>

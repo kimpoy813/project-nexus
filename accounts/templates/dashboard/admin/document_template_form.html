@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{% if mode == 'edit' %}Edit{% else %}Upload{% endif %} Template - NExUS{% endblock %}
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="nx-page py-8">
     <div class="mb-6">
         <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Template Builder</p>
         <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">{% if mode == 'edit' %}Edit Template{% else %}Upload Template{% endif %}</h1>
@@ -14,7 +14,7 @@
             <label class="block text-sm font-bold text-gray-700 mb-1">Title</label>
             <input type="text" name="title" value="{{ template_obj.title|default:'' }}" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-1">Category</label>
                 <select name="category" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">

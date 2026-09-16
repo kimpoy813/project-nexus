@@ -84,10 +84,17 @@
 
 /* ── Page shell ─────────────────────────────────────────────────────────── */
 .nx-dash            { min-height: 100vh; background: var(--nx-bg); }
-.nx-dash__inner     { max-width: 80rem; margin: 0 auto; padding: 2rem 1rem; }
-@media (min-width: 640px) { .nx-dash__inner { padding: 2rem 1.5rem; } }
-@media (min-width: 1024px){ .nx-dash__inner { padding: 2rem 2rem; } }
-.nx-dash--wide .nx-dash__inner { max-width: 100rem; }
+/* Full-bleed: dashboards are data-dense, so they use the whole viewport and
+   keep the same fluid gutter as the navbar and footer (nexus-layout.css). */
+.nx-dash__inner     {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    min-width: 0;
+    padding: 2rem var(--nx-gutter, 1rem);
+}
+/* `.nx-dash--wide` used to lift the 80rem cap to 100rem; with a fluid shell
+   there is no cap left to lift, so the modifier is intentionally a no-op. */
 
 /* ── Page header ────────────────────────────────────────────────────────── */
 .nx-dash__header {

@@ -1,9 +1,9 @@
 {% extends "dashboard/dashboard_base.html" %}
 {% block content %}
-<div class="max-w-2xl mx-auto p-6">
+<div class="nx-page py-6">
     <h1 class="text-2xl font-bold mb-6">{% if activity %}Edit{% else %}Add{% endif %} Activity</h1>
 
-    <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 space-y-4">
+    <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 nx-form-grid">
         {% csrf_token %}
 
         <div>
@@ -11,12 +11,12 @@
         <input name="title" value="{{ activity.title|default:'' }}" class="w-full border rounded-lg p-2" required>
         </div>
 
-        <div>
+        <div class="nx-full">
         <label class="block text-sm font-medium mb-1">Description</label>
         <textarea name="description" class="w-full border rounded-lg p-2" rows="4" required>{{ activity.description|default:'' }}</textarea>
         </div>
 
-        <div>
+        <div class="nx-full">
             <label class="block text-sm font-medium">Dates (you can add multiple)</label>
 
             <div id="datesWrap" class="space-y-2 mt-2">
@@ -53,7 +53,7 @@
             }
         </script>
 
-        <div>
+        <div class="nx-full">
         <label class="block text-sm font-medium mb-1">Image</label>
         <input type="file" name="image" class="w-full">
         </div>
@@ -66,7 +66,7 @@
         </label>
         </div>
 
-        <div class="flex gap-3">
+        <div class="nx-full flex gap-3">
         <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
         <a class="px-4 py-2 rounded-lg border" href="{% url 'activities_list' %}">Cancel</a>
         </div>

@@ -4,7 +4,7 @@
 {% block content %}
 <!-- HERO (matches Home, Reports, and Achievements) -->
 <section class="relative bg-primary text-white py-28 overflow-hidden">
-    <div class="max-w-5xl mx-auto px-6 text-center">
+    <div class="nx-page nx-page--measure text-center">
         {% if page.hero_eyebrow %}
             <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
                 {{ page.hero_eyebrow }}
@@ -16,7 +16,7 @@
         </h1>
 
         {% if page.hero_subheading %}
-            <p class="mt-6 text-lg text-white/80 max-w-3xl mx-auto leading-relaxed">
+            <p class="mt-6 text-lg text-white/80 nx-measure mx-auto leading-relaxed">
                 {{ page.hero_subheading }}
             </p>
         {% endif %}
@@ -42,11 +42,11 @@
 <!-- LIFECYCLE OVERVIEW -->
 {% if workflow_phases %}
 <section class="bg-white py-12">
-    <div class="mx-auto max-w-5xl px-6">
+    <div class="nx-page">
         <p class="text-center text-sm font-semibold text-gray-900">
             {{ lifecycle_heading|default:"Model-backed lifecycle" }}
         </p>
-        <div class="mt-6 grid gap-5 md:grid-cols-3">
+        <div class="mt-6 nx-auto-grid nx-auto-grid--gap-lg">
             {% for phase in workflow_phases %}
                 <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
                     <div class="mb-2 flex items-baseline justify-between gap-3">
@@ -67,7 +67,7 @@
 {% endif %}
 
 <section class="border-y border-gray-200 bg-gray-50">
-    <div class="mx-auto max-w-7xl px-6 py-10">
+    <div class="nx-page py-10">
         <div class="grid gap-4 md:grid-cols-5">
             <a href="#maintained-process"
                class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
@@ -99,7 +99,7 @@
 </section>
 
 <section id="maintained-process" class="bg-white py-16 scroll-mt-28">
-    <div class="mx-auto max-w-7xl px-6">
+    <div class="nx-page">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Process Records</p>
@@ -157,7 +157,7 @@
 
 
 <section id="template-library" class="bg-white py-16 scroll-mt-28">
-    <div class="mx-auto max-w-7xl px-6">
+    <div class="nx-page">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Admin Template Library</p>
@@ -165,7 +165,7 @@
             </div>
             <p class="max-w-2xl text-sm leading-6 text-gray-600">These files are uploaded by the Admin account, so the Extension Office can replace templates without developer changes.</p>
         </div>
-        <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div class="mt-8 nx-auto-grid nx-auto-grid--lg">
             {% for item in office_templates %}
                 <article class="rounded-lg border border-gray-200 bg-white p-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ item.get_category_display }}</p>
@@ -187,7 +187,7 @@
 </section>
 
 <section id="office-forms" class="bg-gray-50 py-16 scroll-mt-28">
-    <div class="mx-auto max-w-7xl px-6">
+    <div class="nx-page">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Admin Form Builder</p>
@@ -224,7 +224,7 @@
 </section>
 
 <section id="proposal-wizard" class="bg-gray-50 py-16 scroll-mt-28">
-    <div class="mx-auto max-w-7xl px-6">
+    <div class="nx-page">
         <div class="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Proposal Wizard</p>
@@ -253,7 +253,7 @@
 </section>
 
 <section id="status-lifecycle" class="bg-white py-16 scroll-mt-28">
-    <div class="mx-auto max-w-7xl px-6">
+    <div class="nx-page">
         <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Proposal Model</p>
@@ -314,7 +314,7 @@
 {% for section in page.visible_sections %}
     <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
              class="scroll-mt-32 border-t border-gray-200 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
-        <div class="mx-auto max-w-5xl px-6">
+        <div class="nx-page">
             {% if section.heading %}
                 <h2 class="text-3xl font-bold text-gray-900">{{ section.heading }}</h2>
             {% endif %}

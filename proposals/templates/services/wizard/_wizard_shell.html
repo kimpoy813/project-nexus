@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="nexus-page max-w-7xl mx-auto px-4 sm:px-6 py-8">
-  <div class="nexus-wizard-layout grid grid-cols-1 lg:grid-cols-12 gap-6">
+<div class="nx-page nexus-page py-8">
+  <div class="nexus-wizard-layout">
 
-    <!-- SIDEBAR (3 cols) -->
+    <!-- SIDEBAR: fixed-width rail -->
     {% include "services/wizard/_sidebar_stepper.html" %}
 
-    <!-- MAIN CONTENT (6 cols) -->
-    <section class="lg:col-span-6 xl:col-span-6 space-y-6">
+    <!-- MAIN CONTENT: fluid column, takes every spare pixel -->
+    <section class="nx-wizard-main space-y-6">
       {% if wizard_step_config and wizard_step_config.instructions %}
         <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900 shadow-sm">
           <p class="mb-1 text-xs font-black uppercase tracking-[0.18em] text-blue-700">Office Instructions</p>
@@ -19,10 +19,10 @@
       </div>
     </section>
 
-    <!-- RIGHT PANEL SLOT (3 cols total, only ONE of these renders) -->
+    <!-- RIGHT PANEL SLOT: fixed-width rail (only ONE of these renders) -->
     {% if proposal.proposal_status == "FOR_REVISION" %}
       <!-- SUMMARY / COMMENTS (PROONENT REVISION VIEW) -->
-      <aside class="lg:col-span-3 xl:col-span-3 self-start">
+      <aside class="nx-wizard-rail self-start">
         <div class="sticky top-24 rounded-2xl border border-gray-200 bg-white shadow-sm p-6 space-y-4">
 
           <div>
@@ -76,7 +76,7 @@
 
     {% elif proposal.proposal_status == "IN_REVIEW" and current_review_round and can_comment or proposal.proposal_status == "SUBMITTED_FOR_REVIEW" and current_review_round and can_comment %}
       <!-- REVIEWER COMMENT PANEL -->
-      <aside class="lg:col-span-3 xl:col-span-3 self-start">
+      <aside class="nx-wizard-rail self-start">
         <div class="sticky top-24 space-y-4">
 
           <!-- COMMENT FORM -->
@@ -150,7 +150,7 @@
 
     {% else %}
       <!-- KEEP GRID BALANCED (EMPTY RIGHT SLOT) -->
-      <div class="hidden lg:block lg:col-span-3 xl:col-span-3"></div>
+      <div class="nx-wizard-rail hidden lg:block" aria-hidden="true"></div>
     {% endif %}
 
   </div>
