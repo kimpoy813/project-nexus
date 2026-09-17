@@ -438,6 +438,71 @@
     <script src="{% static 'js/dashboard-views.js' %}"></script>
     <script>
     document.addEventListener("DOMContentLoaded", () => {
+        const DROPDOWN_ITEM_CLS = "px-4 py-2 cursor-pointer hover:bg-primary hover:text-white transition";
+        const DROPDOWN_ITEM_CLS_SM = "px-3 py-1.5 cursor-pointer hover:bg-primary hover:text-white transition";
+
+        // Signature of a select's current options + selection. Used to detect
+        // when a cascade script (campus -> college -> department, admin-built
+        // dynamic fields, ...) has repopulated the native select AFTER the
+        // custom dropdown was built, so the visible dropdown can be rebuilt.
+        function optionSignature(select) {
+            let sig = "";
+            for (let i = 0; i < select.options.length; i++) {
+                const opt = select.options[i];
+                sig += `${opt.value}\u0000${opt.text}\u0001`;
+            }
+            return `${sig}\u0002${select.selectedIndex}`;
+        }
+
+        function updateSelectedLabel(select, selectedText) {
+            const activeOption = select.options[select.selectedIndex];
+            selectedText.textContent = activeOption ? activeOption.text : "Select...";
+        }
+
+        function buildDropdownItems(select, dropdown, selectedText) {
+            dropdown.innerHTML = "";
+            Array.from(select.options).forEach(opt => {
+                const item = document.createElement("div");
+                item.className = select.classList.contains("adm-input--sm") ? DROPDOWN_ITEM_CLS_SM : DROPDOWN_ITEM_CLS;
+                item.textContent = opt.text;
+                item.dataset.value = opt.value;
+
+                item.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    select.value = opt.value;
+                    updateSelectedLabel(select, selectedText);
+                    dropdown.classList.add("hidden");
+
+                    const changeEvent = new Event("change", { bubbles: true });
+                    select.dispatchEvent(changeEvent);
+
+                    const form = select.closest("form");
+                    if (form && select.getAttribute("onchange") && select.getAttribute("onchange").includes("submit")) {
+                        form.submit();
+                    }
+                });
+
+                dropdown.appendChild(item);
+            });
+
+            updateSelectedLabel(select, selectedText);
+            dropdown.dataset.optionSignature = optionSignature(select);
+        }
+
+        // Keep already-enhanced custom dropdowns in step with their native
+        // select. Without this, the dropdown kept showing the option list
+        // captured at page load, so the college/department choices stayed
+        // empty after picking a campus even though the AJAX cascade had
+        // populated the (hidden) native select.
+        function syncEnhancedDropdowns() {
+            document.querySelectorAll("select.enhanced-done").forEach(select => {
+                const refs = select._nexusDropdownRefs;
+                if (!refs || !document.body.contains(refs.dropdown)) return;
+                if (refs.dropdown.dataset.optionSignature === optionSignature(select)) return;
+                buildDropdownItems(select, refs.dropdown, refs.selectedText);
+            });
+        }
+
         function enhanceDropdowns() {
             document.querySelectorAll("select").forEach(select => {
                 try {
@@ -446,36 +511,39 @@
                     const hasContainer = prevSibling && prevSibling.classList.contains("custom-dropdown-container");
                     if (select.classList.contains("enhanced-done") && !hasContainer) {
                         select.classList.remove("enhanced-done");
+                        // Drop the orphaned body-appended dropdown from the
+                        // previous enhancement so it cannot linger.
+                        const oldRefs = select._nexusDropdownRefs;
+                        if (oldRefs && oldRefs.dropdown && oldRefs.dropdown.parentNode) {
+                            oldRefs.dropdown.remove();
+                        }
                     }
-                    
+
                     // Skip if it's already enhanced, or is hidden/ignored
                     if (select.classList.contains("enhanced-done")) return;
                     if (!select.parentNode || !document.body.contains(select)) return;
                     // Ignore rich editor or simple selects we want to keep
                     if (select.closest(".ck-editor") || select.classList.contains("flatpickr-monthDropdown-months")) return;
-                    
+
                     select.classList.add("enhanced-done");
-                    
+
                     // Create container
                     const container = document.createElement("div");
                     container.className = "relative inline-block w-full custom-dropdown-container";
-                    
+
                     // Copy classes and build button
                     const btn = document.createElement("button");
                     btn.type = "button";
                     btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-xl border border-gray-300 px-3 h-[38px] text-sm bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
-                    
+
                     // Adjust if it is a small select input
                     if (select.classList.contains("adm-input--sm")) {
                         btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 h-[32px] text-xs bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
                     }
-                    
+
                     const selectedText = document.createElement("span");
                     selectedText.className = "selected-text truncate";
-                    
-                    const activeOption = select.options[select.selectedIndex];
-                    selectedText.textContent = activeOption ? activeOption.text : "Select...";
-                    
+
                     const arrowSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
                     arrowSvg.setAttribute("class", "h-4 w-4 text-gray-500 shrink-0");
                     if (select.classList.contains("adm-input--sm")) {
@@ -484,66 +552,52 @@
                     arrowSvg.setAttribute("viewBox", "0 0 20 20");
                     arrowSvg.setAttribute("fill", "currentColor");
                     arrowSvg.innerHTML = `<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />`;
-                    
+
                     btn.appendChild(selectedText);
                     btn.appendChild(arrowSvg);
-                    
+
                     // Create options list
                     const dropdown = document.createElement("div");
                     dropdown.className = "hidden absolute bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-sm text-gray-700 font-medium max-h-[500px] overflow-y-auto";
                     if (select.classList.contains("adm-input--sm")) {
                         dropdown.className = "hidden absolute bg-white rounded-lg shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-xs text-gray-700 font-medium max-h-[500px] overflow-y-auto";
                     }
-                    
-                    Array.from(select.options).forEach(opt => {
-                        const item = document.createElement("div");
-                        item.className = "px-4 py-2 cursor-pointer hover:bg-primary hover:text-white transition";
-                        if (select.classList.contains("adm-input--sm")) {
-                            item.className = "px-3 py-1.5 cursor-pointer hover:bg-primary hover:text-white transition";
-                        }
-                        item.textContent = opt.text;
-                        item.dataset.value = opt.value;
-                        
-                        item.addEventListener("click", (e) => {
-                            e.stopPropagation();
-                            select.value = opt.value;
-                            selectedText.textContent = opt.text;
-                            dropdown.classList.add("hidden");
-                            
-                            const changeEvent = new Event("change", { bubbles: true });
-                            select.dispatchEvent(changeEvent);
-                            
-                            const form = select.closest("form");
-                            if (form && select.getAttribute("onchange") && select.getAttribute("onchange").includes("submit")) {
-                                form.submit();
-                            }
-                        });
-                        
-                        dropdown.appendChild(item);
-                    });
-                    
+
+                    // Link the body-appended dropdown back to its select
+                    // (debugging/testing aid).
+                    if (select.id) dropdown.dataset.enhancedFor = select.id;
+
                     container.appendChild(btn);
-                    
+
                     // Append directly to body to prevent clipping/cut-off!
                     document.body.appendChild(dropdown);
-                    
+
                     select.style.setProperty("display", "none", "important");
                     select.style.visibility = "hidden";
                     select.style.opacity = "0";
                     select.style.position = "absolute";
                     select.style.width = "0";
                     select.style.height = "0";
-                    
+
                     select.parentNode.insertBefore(container, select);
-                    
+
+                    // Remember the parts so syncEnhancedDropdowns() can
+                    // rebuild them when the select's options change.
+                    select._nexusDropdownRefs = { dropdown: dropdown, selectedText: selectedText };
+                    buildDropdownItems(select, dropdown, selectedText);
+
                     btn.addEventListener("click", (e) => {
                         e.stopPropagation();
-                        
+
+                        // Always rebuild from the live select so options
+                        // loaded after page load (AJAX cascades) are shown.
+                        buildDropdownItems(select, dropdown, selectedText);
+
                         // Close all other dropdowns
                         document.querySelectorAll("body > .z-\\[9999\\]").forEach(d => {
                             if (d !== dropdown) d.classList.add("hidden");
                         });
-                        
+
                         const isHidden = dropdown.classList.contains("hidden");
                         if (isHidden) {
                             // Position dynamically relative to button
@@ -556,11 +610,11 @@
                             dropdown.classList.add("hidden");
                         }
                     });
-                    
+
                     document.addEventListener("click", () => {
                         dropdown.classList.add("hidden");
                     });
-                    
+
                     // Keep body-appended dropdown synchronized if scroll/resize occurs
                     window.addEventListener("scroll", () => { dropdown.classList.add("hidden"); }, { passive: true });
                     window.addEventListener("resize", () => { dropdown.classList.add("hidden"); }, { passive: true });
@@ -569,9 +623,14 @@
                 }
             });
         }
-        
-        setTimeout(enhanceDropdowns, 100);
-        const observer = new MutationObserver(enhanceDropdowns);
+
+        function refreshDropdowns() {
+            enhanceDropdowns();
+            syncEnhancedDropdowns();
+        }
+
+        setTimeout(refreshDropdowns, 100);
+        const observer = new MutationObserver(refreshDropdowns);
         observer.observe(document.body, { childList: true, subtree: true });
     });
     </script>
