@@ -492,13 +492,11 @@ def targets_list(request):
 @login_required
 @admin_required
 def target_create(request):
-    campuses = (
-        Profile.objects.exclude(campus__isnull=True)
-        .exclude(campus__exact="")
-        .values_list("campus", flat=True)
-        .distinct()
-        .order_by("campus")
-    )
+    # Campus choices must come from the admin-managed Campus table (with the
+    # static fallback), NOT from user profiles — profiles are empty on a fresh
+    # install, which used to leave this dropdown blank even when the admin had
+    # already set up campuses, colleges, and departments.
+    campus_choices = [value for value, _label in get_campus_choices()]
 
     if request.method == "POST":
         year = request.POST.get("year")
@@ -526,7 +524,7 @@ def target_create(request):
         messages.success(request, f"Target created for {campus} ({year})")
         return redirect("targets_list")
 
-    return render(request, "dashboard/admin/target_form.html", {"campuses": campuses})
+    return render(request, "dashboard/admin/target_form.html", {"campuses": campus_choices})
 
 
 @login_required

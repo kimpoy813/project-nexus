@@ -16,6 +16,15 @@ from .constants import (  # noqa: F401
     TOTAL_STEPS,
     User,
 )
+from .dynamic_fields import (  # noqa: F401
+    DEPENDENCY_PARENT_NOT_FOUND,
+    dependency_is_satisfied,
+    dependency_parent_value,
+    dynamic_field_blocks_submission,
+    dynamic_parent_values_from_post,
+    dynamic_parent_values_from_saved,
+    normalise_dependency_value,
+)
 from .helpers import (  # noqa: F401
     _apply_numbering,
     _extract_last_name,

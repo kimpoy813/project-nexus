@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from proposals.models import Proposal
 from ..decorators import admin_required
+from ..campus_data import get_campus_choices
 from ..forms import AdminCreateUserForm
 from ..models import Profile
 from ..models import SiteConfiguration
@@ -22,6 +23,14 @@ from ..models import SiteConfigurationLog
 
 logger = logging.getLogger(__name__)
 from .helpers import User, _get_or_create_profile
+
+
+def _campus_choices_with_saved(choices, saved):
+    """Return campus choices, ensuring a saved (possibly legacy) value stays selectable."""
+    values = list(choices)
+    if saved and saved not in values:
+        values.append(saved)
+    return values
 
 
 @login_required
@@ -121,6 +130,14 @@ def admin_edit_user(request, user_id):
             "edit_user": user_obj,
             "edit_profile": profile,
             "role_choices": Profile.ROLE_CHOICES,
+            # Live campus list from the admin-managed Campus table so newly
+            # created or renamed campuses appear here immediately. The user's
+            # saved campus is kept in the list even when it is no longer a
+            # managed campus, so a plain re-save never silently changes it.
+            "campus_choices": _campus_choices_with_saved(
+                [value for value, _label in get_campus_choices()],
+                profile.campus or "",
+            ),
         },
     )
 

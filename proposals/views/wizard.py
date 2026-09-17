@@ -37,6 +37,12 @@ from ..models import ProposalSpecificObjective
 from ..models import ProposalThrust
 from accounts.decorators import faculty_like_required, admin_required
 from .constants import GENDER_ISSUE_LIST, SDG_LIST, STEP_LABELS, THRUST_LIST, TOTAL_STEPS, User
+from .dynamic_fields import (
+    dependency_parent_value as _dependency_parent_value,
+    dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
+    dynamic_parent_values_from_post as _dynamic_parent_values_from_post,
+    dynamic_parent_values_from_saved as _dynamic_parent_values_from_saved,
+)
 from .helpers import _strip_phase_prefix, _to_int, _to_roman
 from .permissions import _can_edit, _can_review, _can_view_proposal, _ensure_open_review_round, _get_reviewer_role, _role_has_capability
 
@@ -249,20 +255,21 @@ def _is_dynamic_step_complete(proposal, step):
         ).prefetch_related("answers")
     }
 
+    saved_values = _dynamic_parent_values_from_saved(proposal)
+
+    def _blocking_field_without_value(form, field, answer):
+        parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)
+        if not _dynamic_field_blocks_submission(form, field, parent_value):
+            return False
+        return not answer or not answer.has_value
+
     for form in forms:
         res = responses.get(form.id)
-        if not res:
-            for field in form.fields.all():
-                if field.required:
-                    return False
-            continue
+        answer_map = {ans.field_id: ans for ans in res.answers.all()} if res else {}
 
-        answer_map = {ans.field_id: ans for ans in res.answers.all()}
         for field in form.fields.all():
-            if field.required:
-                ans = answer_map.get(field.id)
-                if not ans or not ans.has_value:
-                    return False
+            if _blocking_field_without_value(form, field, answer_map.get(field.id)):
+                return False
     return True
 
 
@@ -412,9 +419,12 @@ def _save_dynamic_form_answers(proposal, step, user, request):
 
     Returns a list of missing required field labels. Values are saved even when
     some required fields are still empty so proponents can draft gradually.
+    Required fields whose ``depends_on`` condition is not met are skipped:
+    the user never saw them, so they cannot be missing.
     """
     forms = list(_dynamic_forms_for_proposal_step(step))
     missing = []
+    post_values = _dynamic_parent_values_from_post(forms, request)
 
     for form in forms:
         response, _ = DynamicFormResponse.objects.get_or_create(
@@ -446,7 +456,8 @@ def _save_dynamic_form_answers(proposal, step, user, request):
 
             answer.save()
 
-            if form.blocks_proposal_submission and field.required and not answer.has_value:
+            parent_value = _dependency_parent_value(proposal, field.depends_on_key, post_values=post_values)
+            if not answer.has_value and _dynamic_field_blocks_submission(form, field, parent_value):
                 missing.append(f"{form.name}: {field.label}")
 
     return missing
@@ -474,6 +485,8 @@ def _proposal_dynamic_requirements_missing(proposal):
         ).prefetch_related("answers")
     }
 
+    saved_values = _dynamic_parent_values_from_saved(proposal)
+
     missing = []
     for form in forms:
         response = responses.get(form.id)
@@ -484,7 +497,10 @@ def _proposal_dynamic_requirements_missing(proposal):
         for field in form.fields.all():
             if not field.required:
                 continue
+            parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)
             answer = answer_map.get(field.id)
+            if not _dynamic_field_blocks_submission(form, field, parent_value):
+                continue
             if not answer or not answer.has_value:
                 step_label = f"Step {form.proposal_wizard_step}" if form.proposal_wizard_step else "Proposal wizard"
                 missing.append(f"{step_label} — {form.name}: {field.label}")

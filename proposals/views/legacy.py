@@ -70,9 +70,37 @@ def admin_legacy_proposal_create(request):
             return redirect("admin_dashboard")
 
     from accounts.models import Campus, College, Department
+
+    # Live campus list from the admin-managed Campus table, preselected with
+    # the current admin's own campus. College/department lists are scoped to
+    # that campus so the selects start consistent with what the cascading
+    # dropdowns would show after the user picks a campus.
     campuses = Campus.objects.all().order_by("name")
-    colleges = College.objects.all().order_by("name")
-    departments = Department.objects.all().order_by("name")
+
+    profile = getattr(request.user, "profile", None)
+    if request.method == "POST":
+        # Re-rendering after a validation error: keep what the admin picked.
+        selected_campus = (request.POST.get("campus") or "").strip()
+        selected_college = (request.POST.get("college") or "").strip()
+        selected_department = (request.POST.get("department") or "").strip()
+    else:
+        selected_campus = getattr(profile, "campus", "") or ""
+        selected_college = getattr(profile, "college", "") or ""
+        selected_department = getattr(profile, "department", "") or ""
+
+    if selected_campus:
+        colleges = College.objects.filter(campus__name=selected_campus).order_by("name")
+        if selected_college:
+            departments = Department.objects.filter(
+                campus__name=selected_campus, college__name=selected_college
+            ).order_by("name")
+        else:
+            departments = Department.objects.filter(
+                campus__name=selected_campus, college__isnull=True
+            ).order_by("name")
+    else:
+        colleges = College.objects.none()
+        departments = Department.objects.none()
 
     month_choices = [
         "January", "February", "March", "April", "May", "June",
@@ -89,6 +117,9 @@ def admin_legacy_proposal_create(request):
             "campuses": campuses,
             "colleges": colleges,
             "departments": departments,
+            "selected_campus": selected_campus,
+            "selected_college": selected_college,
+            "selected_department": selected_department,
             "month_choices": month_choices,
         }
     )
