@@ -4,7 +4,6 @@ Implementation tracker and proposal document storage.
 import logging
 
 from pathlib import Path
-from urllib3 import request
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404

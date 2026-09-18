@@ -1,0 +1,186 @@
+{% comment %}
+Client side of the repeatable groups (see _repeater_fields.html).
+
+Adding a row clones the <template> the server rendered, so a row created in the
+browser is the same row the server would have rendered - the only substitutions
+are __INDEX__ (input names) and __NUMBER__ (the visible caption).
+
+Removing a row:
+  * an unsaved row is dropped from the DOM (it was never stored),
+  * a saved row flags its own hidden "remove" input and submits the step, so
+    the deletion is persisted straight away.
+
+Moving a row fills the single "move" input with "<row id>:<up|down>" and
+submits. All three paths end in a normal form POST, which keeps the feature
+working without any custom endpoints.
+{% endcomment %}
+<script>
+(function () {
+  if (window.__nexusRepeatersReady) return;
+  window.__nexusRepeatersReady = true;
+
+  function rowsOf(root) {
+    return root.querySelector('[data-repeater-rows]');
+  }
+
+  function renumber(root) {
+    const container = rowsOf(root);
+    if (!container) return;
+
+    const label = root.dataset.rowLabel || 'Row';
+    const rows = Array.from(container.querySelectorAll('[data-repeater-row]'));
+
+    rows.forEach(function (row, index) {
+      const caption = row.querySelector('[data-repeater-row-title]');
+      if (caption) caption.textContent = label + ' ' + (index + 1);
+
+      // Keep the submitted order in step with the visible order: input names
+      // carry the row index, so they are rewritten after every change.
+      row.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (input) {
+        input.name = input.name
+          .replace(/(_row_)\d+(_field_)/, '$1' + index + '$2')
+          .replace(/(_row_id_)\d+$/, '$1' + index);
+      });
+    });
+
+    const counter = root.querySelector('[data-repeater-count]');
+    if (counter) counter.value = rows.length;
+
+    const empty = root.querySelector('[data-repeater-empty]');
+    if (empty) empty.classList.toggle('hidden', rows.length > 0);
+
+    applyLimit(root, rows.length);
+  }
+
+  function applyLimit(root, count) {
+    const max = parseInt(root.dataset.maxRows || '0', 10);
+    const button = root.querySelector('[data-repeater-add]');
+    const notice = root.querySelector('[data-repeater-limit]');
+    const capped = max > 0 && count >= max;
+    if (button) button.disabled = capped;
+    if (notice) notice.classList.toggle('hidden', !capped);
+  }
+
+  function addRow(root) {
+    const container = rowsOf(root);
+    const template = root.querySelector('[data-repeater-template]');
+    if (!container || !template) return;
+
+    const max = parseInt(root.dataset.maxRows || '0', 10);
+    const index = container.querySelectorAll('[data-repeater-row]').length;
+    if (max > 0 && index >= max) return;
+
+    const html = template.innerHTML
+      .replace(/__INDEX__/g, String(index))
+      .replace(/__NUMBER__/g, String(index + 1));
+
+    const holder = document.createElement('div');
+    holder.innerHTML = html.trim();
+    const row = holder.firstElementChild;
+    container.appendChild(row);
+    renumber(root);
+    checkDependencies(root, row);
+
+    const firstInput = row.querySelector('input:not([type=hidden]), select, textarea');
+    if (firstInput) firstInput.focus();
+  }
+
+  function moveRow(root, rowId, direction) {
+    const input = root.querySelector('[data-repeater-move]');
+    const form = root.closest('form');
+    if (!input || !form) return;
+    input.value = rowId + ':' + direction;
+    form.submit();
+  }
+
+  function valueOf(container, key) {
+    const input = container.querySelector('[data-field-key="' + key + '"]');
+    if (!input) return null;
+    if (input.tagName === 'SELECT') return input.value;
+    if (input.type === 'checkbox') return input.checked ? 'yes' : '';
+    return input.value;
+  }
+
+  // A row's dependency resolves inside that row first, so one proponent's
+  // answer can never hide another proponent's field; the whole form is the
+  // fallback, matching the server in proposals/views/repeaters.py.
+  function checkDependencies(root, row) {
+    (row || root).querySelectorAll('.repeater-field[data-depends-on]').forEach(function (field) {
+      const key = field.getAttribute('data-depends-on');
+      const expected = (field.getAttribute('data-depends-value') || '')
+        .split(',')
+        .map(function (item) { return normalise(item); });
+
+      let actual = row ? valueOf(row, key) : null;
+      if (actual === null) actual = valueOf(root, key);
+
+      field.classList.toggle('hidden', expected.indexOf(normalise(actual)) === -1);
+    });
+  }
+
+  function normalise(value) {
+    if (value === null || value === undefined) return '';
+    const text = String(value).trim().toLowerCase();
+    if (['on', 'yes', 'true', '1'].indexOf(text) !== -1) return 'yes';
+    return text;
+  }
+
+  function bind(root) {
+    if (root.dataset.repeaterBound === '1') return;
+    root.dataset.repeaterBound = '1';
+
+    root.addEventListener('click', function (event) {
+      const addButton = event.target.closest('[data-repeater-add]');
+      if (addButton) { addRow(root); return; }
+
+      const dropButton = event.target.closest('[data-repeater-drop]');
+      if (dropButton) {
+        const row = dropButton.closest('[data-repeater-row]');
+        if (row) { row.remove(); renumber(root); }
+        return;
+      }
+
+      const removeButton = event.target.closest('[data-repeater-remove]');
+      if (removeButton) {
+        // Flag the row for deletion, then let the button submit the step.
+        const row = removeButton.closest('[data-repeater-row]');
+        const flag = row && row.querySelector('[data-repeater-remove-input]');
+        if (flag) flag.value = removeButton.dataset.repeaterRemove || '';
+        return;
+      }
+
+      const upButton = event.target.closest('[data-repeater-move-up]');
+      if (upButton) {
+        event.preventDefault();
+        moveRow(root, upButton.dataset.repeaterMoveUp, 'up');
+        return;
+      }
+
+      const downButton = event.target.closest('[data-repeater-move-down]');
+      if (downButton) {
+        event.preventDefault();
+        moveRow(root, downButton.dataset.repeaterMoveDown, 'down');
+      }
+    });
+
+    ['input', 'change'].forEach(function (type) {
+      root.addEventListener(type, function (event) {
+        checkDependencies(root, event.target.closest('[data-repeater-row]'));
+      });
+    });
+  }
+
+  function init() {
+    document.querySelectorAll('[data-repeater]').forEach(function (root) {
+      bind(root);
+      renumber(root);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

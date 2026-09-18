@@ -98,6 +98,31 @@
             <div id="searchResults" class="mt-2 border border-gray-200 rounded-xl overflow-hidden hidden bg-white"></div>
         </div>
 
+        {% comment %}
+        The proponent rows themselves. When an admin has built a repeatable
+        group for this step, those are the exact fields the proponent fills in
+        (Name, Position / Designation, Specialization, Role, CP Number, Email,
+        plus anything else the office added). Without one, the built-in roster
+        further down keeps working, so the step is never broken.
+        {% endcomment %}
+        {% if proponent_repeater_active %}
+        <div class="pt-2">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-sm font-semibold text-gray-900">Proponents</h3>
+                {% if is_edit_mode %}
+                <button type="submit" name="action" value="save_members"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition text-sm">
+                    Save Changes
+                </button>
+                {% endif %}
+            </div>
+
+            <div class="mt-4">
+                {% include "services/wizard/_repeater_fields.html" with form=proponent_repeater_form %}
+            </div>
+        </div>
+        {% endif %}
+
         {% if proposal.scope_type == "PROGRAM" and program_projects %}
         <div class="pt-2">
             <div class="flex items-start justify-between gap-4">
@@ -151,6 +176,7 @@
         </div>
         {% endif %}
 
+        {% if not proponent_repeater_active %}
         <div class="pt-2">
             <div class="flex items-center justify-between">
                 <h3 class="text-sm font-semibold text-gray-900">Current Proponents</h3>
@@ -253,7 +279,7 @@
                 The creator cannot be removed and is automatically assigned as leader based on scope.
             </p>
         </div>
-
+        {% endif %}
 
     {% include "services/wizard/_dynamic_fields.html" %}
 
@@ -339,5 +365,9 @@ function pickUser(idx){
 
 document.getElementById("userSearch")?.addEventListener("input", (e) => doSearch(e.target.value));
 </script>
+{% endif %}
+
+{% if proponent_repeater_active %}
+    {% include "services/wizard/_repeater_script.html" %}
 {% endif %}
 {% endblock %}

@@ -10,7 +10,6 @@ from docx.shared import Mm
 from docx.shared import Pt
 from io import BytesIO
 from pathlib import Path
-from urllib3 import request
 from xhtml2pdf import pisa
 import re
 from django.contrib import messages

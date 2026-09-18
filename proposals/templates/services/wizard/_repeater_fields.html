@@ -1,0 +1,128 @@
+{% comment %}
+Repeatable group renderer (one card per row).
+
+Used for admin-built forms whose "repeatable group" switch is on. Rows are
+added / removed / reordered in the browser and saved by
+proposals/views/repeaters.py - the input names below must stay in sync with
+that module's ``repeater_<form>_row_<index>_field_<field>`` contract.
+
+Context:
+  form          the DynamicFormTemplate (a repeater)
+  is_edit_mode  False when the proposal is locked / read-only
+{% endcomment %}
+<div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4"
+     data-repeater
+     data-form-id="{{ form.id }}"
+     data-row-label="{{ form.row_label }}"
+     data-max-rows="{{ form.repeater_max_rows }}"
+     data-min-rows="{{ form.repeater_min_rows }}"
+     data-edit-mode="{% if is_edit_mode %}1{% else %}0{% endif %}">
+
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h3 class="text-sm font-black text-gray-900">{{ form.name }}</h3>
+      {% if form.description %}<p class="mt-1 text-xs leading-5 text-gray-600">{{ form.description }}</p>{% endif %}
+      {% if form.instructions %}<p class="mt-2 rounded-xl bg-gray-50 p-3 text-xs leading-5 text-gray-600">{{ form.instructions }}</p>{% endif %}
+      <p class="mt-1 text-xs text-gray-500">
+        Each {{ form.row_label|lower }} fills in the fields below. Add as many rows as you need{% if form.repeater_max_rows %}, up to {{ form.repeater_max_rows }}{% endif %}.
+      </p>
+    </div>
+
+    {% if is_edit_mode %}
+    <button type="button" data-repeater-add
+            class="shrink-0 rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white transition">
+      + Add {{ form.row_label }}
+    </button>
+    {% endif %}
+  </div>
+
+  <input type="hidden" name="repeater_{{ form.id }}_rows" value="{{ form.repeater_rows|length }}" data-repeater-count>
+  <input type="hidden" name="repeater_{{ form.id }}_move" value="" data-repeater-move>
+
+  <div class="mt-4 space-y-3" data-repeater-rows>
+    {% for row in form.repeater_rows %}
+    <div class="repeater-row rounded-xl border border-gray-100 bg-gray-50/60 p-4" data-repeater-row>
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-xs font-black uppercase tracking-wide text-gray-500" data-repeater-row-title>
+          {{ form.row_label }} {{ row.number }}
+        </p>
+
+        <div class="flex items-center gap-2">
+          {% if row.locked %}
+            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Creator</span>
+          {% elif is_edit_mode %}
+            <input type="hidden" name="repeater_{{ form.id }}_remove" value="" data-repeater-remove-input>
+            <button type="submit" name="action" value="save_members" data-repeater-remove="{{ row.row_id }}"
+                    class="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition">
+              Remove
+            </button>
+          {% endif %}
+
+          {% if is_edit_mode and row.row_id %}
+          <button type="submit" name="action" value="save_members" data-repeater-move-up="{{ row.row_id }}"
+                  title="Move up" class="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-white transition">&uarr;</button>
+          <button type="submit" name="action" value="save_members" data-repeater-move-down="{{ row.row_id }}"
+                  title="Move down" class="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-white transition">&darr;</button>
+          {% endif %}
+        </div>
+      </div>
+
+      <input type="hidden" name="repeater_{{ form.id }}_row_id_{{ row.index }}" value="{{ row.row_id|default:'' }}">
+
+      <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {% for cell in row.cells %}
+        <div class="{% if cell.field.field_type == 'TEXTAREA' %}sm:col-span-2{% endif %} repeater-field"
+             {% if cell.field.depends_on_key %}data-depends-on="{{ cell.field.depends_on_key }}" data-depends-value="{{ cell.field.depends_on_value }}"{% endif %}>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">
+            {{ cell.field.label }}{% if cell.field.required %} <span class="text-red-600">*</span>{% endif %}
+          </label>
+          {% include "services/wizard/_repeater_cell.html" with cell=cell row=row form=form is_edit_mode=is_edit_mode %}
+          {% if cell.field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ cell.field.help_text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="mt-3 {% if form.repeater_rows %}hidden{% endif %} text-sm text-gray-500" data-repeater-empty>
+    No {{ form.row_label|lower }} rows yet.
+  </p>
+
+  {% if is_edit_mode %}
+  <template data-repeater-template>
+    <div class="repeater-row rounded-xl border border-gray-100 bg-gray-50/60 p-4" data-repeater-row>
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-xs font-black uppercase tracking-wide text-gray-500" data-repeater-row-title>
+          {{ form.row_label }} __NUMBER__
+        </p>
+        <div class="flex items-center gap-2">
+          <button type="button" data-repeater-drop
+                  class="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition">
+            Remove
+          </button>
+        </div>
+      </div>
+
+      <input type="hidden" name="repeater_{{ form.id }}_row_id___INDEX__" value="">
+
+      <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {% for cell in form.repeater_rows.0.cells %}
+        <div class="{% if cell.field.field_type == 'TEXTAREA' %}sm:col-span-2{% endif %} repeater-field"
+             {% if cell.field.depends_on_key %}data-depends-on="{{ cell.field.depends_on_key }}" data-depends-value="{{ cell.field.depends_on_value }}"{% endif %}>
+          <label class="block text-xs font-semibold text-gray-600 mb-1">
+            {{ cell.field.label }}{% if cell.field.required %} <span class="text-red-600">*</span>{% endif %}
+          </label>
+          {% include "services/wizard/_repeater_cell.html" with cell=cell is_template=True form=form %}
+          {% if cell.field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ cell.field.help_text }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </template>
+
+  <p class="mt-2 hidden text-xs font-semibold text-gray-500" data-repeater-limit>
+    The maximum number of {{ form.row_label|lower }} rows has been reached.
+  </p>
+  {% endif %}
+</div>

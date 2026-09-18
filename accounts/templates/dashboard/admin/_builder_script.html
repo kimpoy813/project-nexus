@@ -1,0 +1,132 @@
+{% comment %}
+Shared script for the no-code builders (wizard step editor + form builder).
+
+  * addFieldRow() clones the field row markup: kept in sync with the server
+    rendered rows so a new row submits exactly the same field_*[] arrays.
+  * field row reordering: rows are read back in DOM order, and the server
+    stores "order" from that position, so moving the element is the whole
+    feature.
+  * the repeatable-group panel toggles the Maps-to cells that only make sense
+    when rows are stored as proponents.
+{% endcomment %}
+<script>
+const fieldTypes = `{% for value,label in field_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
+const mapsToOptions = `{% for value,label in proponent_map_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
+
+function addFieldRow() {
+    const wrap = document.getElementById('fieldRows');
+    const div = document.createElement('div');
+    div.className = 'field-row rounded-2xl border border-gray-200 bg-gray-50/60 p-4';
+    div.innerHTML = `
+        <input type="hidden" name="field_id[]" value="">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div class="md:col-span-2">
+              <label class="text-xs font-bold text-gray-600">Label</label>
+              <input name="field_label[]" required class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Field label">
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs font-bold text-gray-600">Key</label>
+              <input name="field_key[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="auto if blank">
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs font-bold text-gray-600">Type</label>
+              <select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">${fieldTypes}</select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs font-bold text-gray-600">Placeholder</label>
+              <input name="field_placeholder[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <div class="md:col-span-2">
+              <label class="text-xs font-bold text-gray-600">Help Text</label>
+              <input name="field_help_text[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
+            </div>
+            <div class="md:col-span-2 flex items-end justify-end gap-2">
+              <label class="relative inline-flex items-center cursor-pointer select-none mb-1" title="Required">
+                <input type="checkbox" name="field_required[]" value="new" class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                <span class="ml-2 text-xs font-bold text-gray-700">Req.</span>
+              </label>
+              <button type="button" data-field-move="up" title="Move up" class="mb-1 p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">&uarr;</button>
+              <button type="button" data-field-move="down" title="Move down" class="mb-1 p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">&darr;</button>
+              <button type="button" data-field-remove title="Remove Field" class="mb-1 p-1.5 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition flex items-center justify-center border border-red-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <div class="md:col-span-12">
+              <label class="text-xs font-bold text-gray-600">Choices for dropdown fields (one option per line)</label>
+              <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
+            </div>
+            <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="maps-to-cell hidden">
+                <label class="text-xs font-bold text-gray-500">Stores in proponent record</label>
+                <select name="field_maps_to[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                  <option value="">Keep as an extra detail</option>
+                  ${mapsToOptions}
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>
+                <input name="field_depends_on_key[]" placeholder="e.g. extension_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+              </div>
+              <div>
+                <label class="text-xs font-bold text-gray-500">Depends On Value(s) (comma-separated)</label>
+                <input name="field_depends_on_value[]" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+              </div>
+            </div>
+        </div>`;
+    wrap.appendChild(div);
+    syncMapsToCells();
+    return div;
+}
+
+/* Rows are submitted in DOM order and the server stores that as their order,
+   so reordering is just moving the element. */
+function moveFieldRow(button, direction) {
+    const row = button.closest('.field-row');
+    if (!row) return;
+    const sibling = direction === 'up' ? row.previousElementSibling : row.nextElementSibling;
+    if (!sibling) return;
+    if (direction === 'up') {
+        row.parentNode.insertBefore(row, sibling);
+    } else {
+        row.parentNode.insertBefore(sibling, row);
+    }
+}
+
+function syncMapsToCells() {
+    const toggle = document.querySelector('[data-repeater-toggle]');
+    const store = document.querySelector('[data-repeater-store]');
+    const enabled = toggle && toggle.checked && store && store.value === 'PROPONENT';
+
+    document.querySelectorAll('.maps-to-cell').forEach(function (cell) {
+        cell.classList.toggle('hidden', !enabled);
+    });
+
+    const panel = document.querySelector('[data-repeater-fields]');
+    if (panel) panel.classList.toggle('opacity-50', !(toggle && toggle.checked));
+}
+
+document.addEventListener('click', function (event) {
+    const moveButton = event.target.closest('[data-field-move]');
+    if (moveButton) {
+        moveFieldRow(moveButton, moveButton.dataset.fieldMove);
+        return;
+    }
+
+    const removeButton = event.target.closest('[data-field-remove]');
+    if (removeButton) {
+        const row = removeButton.closest('.field-row');
+        if (row) row.remove();
+    }
+});
+
+document.addEventListener('change', function (event) {
+    if (event.target.closest('[data-repeater-toggle], [data-repeater-store]')) {
+        syncMapsToCells();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', syncMapsToCells);
+</script>

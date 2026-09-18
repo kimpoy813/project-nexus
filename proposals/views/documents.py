@@ -9,7 +9,6 @@ from openpyxl.styles import Alignment
 from openpyxl.utils import get_column_letter
 from pathlib import Path
 from urllib.parse import quote
-from urllib3 import request
 import math
 import mimetypes
 from django.contrib import messages

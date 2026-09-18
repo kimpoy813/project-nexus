@@ -1,0 +1,65 @@
+{% comment %}
+"Repeatable group" panel of the no-code builder (wizard step editor and the
+free-standing form builder both include this).
+
+Turns a single set of inputs into a group of rows - one card per entry - which
+is what proposal wizard Step 3 (Proponents) uses. Needs:
+  form_obj  the DynamicFormTemplate (absent while creating a form)
+  repeater_store_choices / proponent_map_choices  from accounts.views.builders
+{% endcomment %}
+<section class="border-t border-gray-100 pt-6" data-repeater-settings>
+  <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <div>
+      <h2 class="text-lg font-black text-gray-900">Repeatable group</h2>
+      <p class="mt-1 text-sm text-gray-500">
+        Print these fields once per row so the proponent can enter several of the same thing -
+        several proponents, several beneficiaries, several partners. Each row is saved separately.
+      </p>
+    </div>
+    <label class="relative inline-flex shrink-0 items-center cursor-pointer select-none">
+      <input type="checkbox" name="is_repeater" data-repeater-toggle
+             {% if form_obj.is_repeater %}checked{% endif %} class="sr-only peer">
+      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+      <span class="ml-3 text-sm font-bold text-gray-700">Repeat these fields</span>
+    </label>
+  </div>
+
+  <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4 {% if not form_obj.is_repeater %}opacity-50{% endif %}" data-repeater-fields>
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1">Row label</label>
+      <input type="text" name="repeater_label" value="{{ form_obj.repeater_label|default:'' }}"
+             placeholder="e.g. Proponent"
+             class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+      <p class="mt-1 text-xs text-gray-500">Used on the "Add …" button.</p>
+    </div>
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1">Minimum rows</label>
+      <input type="number" min="0" name="repeater_min_rows" value="{{ form_obj.repeater_min_rows|default:0 }}"
+             class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+      <p class="mt-1 text-xs text-gray-500">Rows required before the step is complete.</p>
+    </div>
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1">Maximum rows</label>
+      <input type="number" min="0" name="repeater_max_rows" value="{{ form_obj.repeater_max_rows|default:0 }}"
+             class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+      <p class="mt-1 text-xs text-gray-500">0 = no limit.</p>
+    </div>
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1">Each row is stored as</label>
+      <select name="row_store" data-repeater-store class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+        {% for value, label in repeater_store_choices %}
+          <option value="{{ value }}" {% if form_obj.row_store == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <p class="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-900">
+    Choosing <span class="font-bold">Proponents of the proposal</span> makes each row a real proponent record, so the
+    generated documents, the review screens, and the dashboards keep working. Map fields onto
+    <span class="font-bold">Name</span>, <span class="font-bold">Position / Designation</span>, <span class="font-bold">Specialization</span>,
+    <span class="font-bold">Role</span>, <span class="font-bold">CP Number</span> and <span class="font-bold">Email</span> so they fill those columns;
+    unmapped fields are kept as extra details of that proponent. File upload fields are not available inside
+    repeatable groups - add those as normal fields on the step.
+  </p>
+</section>

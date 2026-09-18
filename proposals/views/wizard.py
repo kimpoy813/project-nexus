@@ -4,7 +4,6 @@ The proposal creation wizard: steps, validation, sharing, and submission.
 
 from collections import Counter
 from datetime import timedelta
-from urllib3 import request
 import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -15,12 +14,12 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
-from details.models import DynamicFormAnswer
 from details.models import DynamicFormField
 from details.models import DynamicFormResponse
 from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
+from details.proponent_fields import ensure_proponent_repeater_form
 from ..models import ProgramProject
 from ..models import Proposal
 from ..models import ProposalAttachment
@@ -43,18 +42,32 @@ from .dynamic_fields import (
     dynamic_parent_values_from_post as _dynamic_parent_values_from_post,
     dynamic_parent_values_from_saved as _dynamic_parent_values_from_saved,
 )
+from .dynamic_answers import (
+    _attach_dynamic_forms_to_context,
+    _dynamic_forms_for_proposal_step,
+    _is_dynamic_step_complete,
+    _proposal_dynamic_requirements_missing,
+    _save_dynamic_form_answers,
+    _save_step_repeaters,
+)
 from .helpers import _strip_phase_prefix, _to_int, _to_roman
 from .permissions import _can_edit, _can_review, _can_view_proposal, _ensure_open_review_round, _get_reviewer_role, _role_has_capability
+from .proponents import _update_creator_role, save_step_three_proponents
 
 
 def mark_step_completed(proposal, step_no):
+    """Record a step as done. Callers flash their own message.
+
+    This used to call ``messages.success(request, ...)`` with no ``request`` in
+    scope - ``request`` resolved to the (then imported) ``urllib3.request``
+    module, so every "Save & Next" that completed a step raised a TypeError.
+    """
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     completed.add(step_no)
     skipped.discard(step_no)
     proposal.completed_steps = sorted(completed)
     proposal.skipped_steps = sorted(skipped)
-    messages.success(request, "Step saved successfully.")
 
 
 def mark_step_skipped(proposal, step_no):
@@ -152,7 +165,12 @@ def is_step_complete(proposal, step):
         return True
 
     if step == 3:
-        return proposal.proponents.exists()
+        # At least one proponent, plus whatever the admin-made proponent fields
+        # mark as required (the repeatable group's required columns and its
+        # minimum row count).
+        if not proposal.proponents.exists():
+            return False
+        return _is_dynamic_step_complete(proposal, step)
 
     if step == 4:
         return bool((proposal.implementing_agency or "").strip())
@@ -236,43 +254,6 @@ def is_step_complete(proposal, step):
     return _is_dynamic_step_complete(proposal, step)
 
 
-def _is_dynamic_step_complete(proposal, step):
-    forms = DynamicFormTemplate.objects.filter(
-        is_active=True,
-        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-        proposal_wizard_step=step,
-        blocks_proposal_submission=True,
-    ).prefetch_related("fields")
-    
-    if not forms.exists():
-        return True
-
-    responses = {
-        res.form_id: res
-        for res in DynamicFormResponse.objects.filter(
-            proposal=proposal,
-            form__in=forms,
-        ).prefetch_related("answers")
-    }
-
-    saved_values = _dynamic_parent_values_from_saved(proposal)
-
-    def _blocking_field_without_value(form, field, answer):
-        parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)
-        if not _dynamic_field_blocks_submission(form, field, parent_value):
-            return False
-        return not answer or not answer.has_value
-
-    for form in forms:
-        res = responses.get(form.id)
-        answer_map = {ans.field_id: ans for ans in res.answers.all()} if res else {}
-
-        for field in form.fields.all():
-            if _blocking_field_without_value(form, field, answer_map.get(field.id)):
-                return False
-    return True
-
-
 def build_wizard_steps(proposal, current_step, comment_counts=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
@@ -305,21 +286,6 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
     return steps
 
 
-def _update_creator_role(proposal):
-    creator_pp = proposal.proponents.filter(user=proposal.created_by).first()
-    if not creator_pp:
-        return
-
-    if proposal.scope_type == "PROGRAM":
-        creator_pp.role = "Program Leader"
-    elif proposal.scope_type == "PROJECT":
-        creator_pp.role = "Project Leader"
-    else:
-        creator_pp.role = "Proponent"
-
-    creator_pp.save(update_fields=["role"])
-
-
 def _build_wizard_context(proposal, step, request_user, comment_counts=None):
     required_steps = set(get_required_wizard_step_numbers())
     completed_required = required_steps.intersection(set(proposal.completed_steps or []))
@@ -345,167 +311,6 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
     )
     ctx["active_editors"] = active_editors
     return ctx
-
-
-def _dynamic_forms_for_proposal_step(step):
-    return (
-        DynamicFormTemplate.objects.filter(
-            is_active=True,
-            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-            proposal_wizard_step=step,
-        )
-        .prefetch_related("fields")
-        .order_by("name")
-    )
-
-
-def _attach_dynamic_forms_to_context(ctx, proposal, step):
-    forms = list(_dynamic_forms_for_proposal_step(step))
-    if not forms:
-        ctx["dynamic_forms"] = []
-        ctx["step_fields"] = {}
-        return []
-
-    responses = {
-        response.form_id: response
-        for response in DynamicFormResponse.objects.filter(
-            proposal=proposal,
-            form__in=forms,
-        ).prefetch_related("answers", "answers__field")
-    }
-
-    step_fields = {}
-    for form in forms:
-        for field in form.fields.all():
-            step_fields[field.field_key] = field
-
-    ctx["step_fields"] = step_fields
-
-    hardcoded_keys_by_step = {
-        1: {"extension_type", "scope_type", "research_title"},
-        2: {"title"},
-        4: {"implementing_agency"},
-        5: {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
-        7: {"budgetary_requirement"},
-        10: {"extension_venue", "estimated_month", "estimated_year"},
-        11: {"rationale_background"},
-        12: {"significance"},
-        13: {"general_objective"},
-    }
-    exclude_keys = hardcoded_keys_by_step.get(step, set())
-
-    for form in forms:
-        response = responses.get(form.id)
-        answer_by_field = {}
-        if response:
-            answer_by_field = {answer.field_id: answer for answer in response.answers.all()}
-        form.response = response
-        
-        all_fields = list(form.fields.all())
-        for field in all_fields:
-            answer = answer_by_field.get(field.id)
-            field.answer = answer
-            field.answer_value = getattr(answer, "value", "") if answer else ""
-            field.answer_file = getattr(answer, "file", None) if answer else None
-
-        form.fields_to_render = [f for f in all_fields if f.field_key not in exclude_keys]
-
-    ctx["dynamic_forms"] = forms
-    return forms
-
-
-def _save_dynamic_form_answers(proposal, step, user, request):
-    """Save admin-built dynamic fields attached to the current wizard step.
-
-    Returns a list of missing required field labels. Values are saved even when
-    some required fields are still empty so proponents can draft gradually.
-    Required fields whose ``depends_on`` condition is not met are skipped:
-    the user never saw them, so they cannot be missing.
-    """
-    forms = list(_dynamic_forms_for_proposal_step(step))
-    missing = []
-    post_values = _dynamic_parent_values_from_post(forms, request)
-
-    for form in forms:
-        response, _ = DynamicFormResponse.objects.get_or_create(
-            form=form,
-            proposal=proposal,
-            defaults={"submitted_by": user},
-        )
-        if response.submitted_by_id is None and user.is_authenticated:
-            response.submitted_by = user
-            response.save(update_fields=["submitted_by", "updated_at"])
-
-        for field in form.fields.all():
-            input_name = f"dynamic_field_{field.id}"
-            answer, _ = DynamicFormAnswer.objects.get_or_create(
-                response=response,
-                field=field,
-            )
-
-            if field.field_type == DynamicFormField.FieldType.FILE:
-                uploaded = request.FILES.get(input_name)
-                if uploaded:
-                    answer.file = uploaded
-                # Keep existing file when no new file is uploaded.
-                answer.value = ""
-            elif field.field_type == DynamicFormField.FieldType.CHECKBOX:
-                answer.value = "Yes" if request.POST.get(input_name) == "on" else ""
-            else:
-                answer.value = (request.POST.get(input_name) or "").strip()
-
-            answer.save()
-
-            parent_value = _dependency_parent_value(proposal, field.depends_on_key, post_values=post_values)
-            if not answer.has_value and _dynamic_field_blocks_submission(form, field, parent_value):
-                missing.append(f"{form.name}: {field.label}")
-
-    return missing
-
-
-def _proposal_dynamic_requirements_missing(proposal):
-    """Return missing required admin-built proposal fields across all wizard steps."""
-    forms = list(
-        DynamicFormTemplate.objects.filter(
-            is_active=True,
-            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-            blocks_proposal_submission=True,
-        )
-        .exclude(proposal_wizard_step__isnull=True)
-        .prefetch_related("fields")
-    )
-    if not forms:
-        return []
-
-    responses = {
-        response.form_id: response
-        for response in DynamicFormResponse.objects.filter(
-            proposal=proposal,
-            form__in=forms,
-        ).prefetch_related("answers")
-    }
-
-    saved_values = _dynamic_parent_values_from_saved(proposal)
-
-    missing = []
-    for form in forms:
-        response = responses.get(form.id)
-        answer_map = {}
-        if response:
-            answer_map = {answer.field_id: answer for answer in response.answers.all()}
-
-        for field in form.fields.all():
-            if not field.required:
-                continue
-            parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)
-            answer = answer_map.get(field.id)
-            if not _dynamic_field_blocks_submission(form, field, parent_value):
-                continue
-            if not answer or not answer.has_value:
-                step_label = f"Step {form.proposal_wizard_step}" if form.proposal_wizard_step else "Proposal wizard"
-                missing.append(f"{step_label} — {form.name}: {field.label}")
-
-    return missing
 
 
 @login_required
@@ -748,7 +553,13 @@ def proposal_wizard(request, proposal_id, step):
         messages.error(request, "You don't have access to this proposal.")
         return redirect("dashboard_redirect")
 
-    step = normalize_wizard_step(max(1, min(step, TOTAL_STEPS)))
+    # The step list is seeded on first use; do it before clamping the requested
+    # step, otherwise an empty table makes every step clamp to step 1.
+    _wizard_step_config_map()
+
+    # int() matters: min() returns the TOTAL_STEPS wrapper when the requested
+    # step is past the end, and a wrapper is not a usable step number.
+    step = normalize_wizard_step(max(1, min(step, int(TOTAL_STEPS))))
     can_edit = _can_edit(request.user, proposal)
     can_review = _can_review(request.user, proposal)
 
@@ -820,6 +631,12 @@ def proposal_wizard(request, proposal_id, step):
     ctx["can_comment"] = can_comment
     ctx["reviewer_role"] = reviewer_role
     ctx["can_edit_proposal"] = can_edit
+    if step == 3:
+        # Seeds the default proponent group (Name, Designation, ...) the first
+        # time the step is opened, so Step 3 works before an admin ever visits
+        # the builder. Admins who change or delete those fields are not
+        # overruled: seeding only fills a completely empty form.
+        ensure_proponent_repeater_form(step)
     _attach_dynamic_forms_to_context(ctx, proposal, step)
 
     if ctx["can_comment"]:
@@ -854,6 +671,11 @@ def proposal_wizard(request, proposal_id, step):
         return _handle_save_comment(
             request, proposal, step, current_round, reviewer_role
         )
+
+    # Required-field problems found by a step's own save path (currently the
+    # Step 3 proponent group); merged with the admin-managed fields below so
+    # "Save & Next" blocks on both.
+    step_missing = []
 
     if step == 1:
         proposal.extension_type = request.POST.get("extension_type", "")
@@ -922,57 +744,7 @@ def proposal_wizard(request, proposal_id, step):
                 ProgramProject.objects.bulk_create(to_create)
 
     elif step == 3:
-        remove_ids = request.POST.getlist("remove_proponent_ids")
-        if remove_ids:
-            ProposalProponent.objects.filter(
-                proposal=proposal,
-                id__in=remove_ids,
-            ).exclude(user=proposal.created_by).delete()
-
-        add_user_id = (request.POST.get("add_user_id") or "").strip()
-        if add_user_id.isdigit():
-            user_obj = User.objects.filter(id=int(add_user_id)).first()
-            if user_obj:
-                prof = getattr(user_obj, "profile", None)
-                ProposalProponent.objects.get_or_create(
-                    proposal=proposal,
-                    user=user_obj,
-                    defaults={
-                        "full_name": getattr(prof, "full_name", user_obj.username),
-                        "email": user_obj.email or "",
-                        "role": "Proponent",
-                        "designation": "",
-                        "specialization": "",
-                        "cp_number": "",
-                    },
-                )
-
-        for p in proposal.proponents.all():
-            prefix = f"p_{p.id}_"
-            p.designation = request.POST.get(prefix + "designation", p.designation)
-            p.specialization = request.POST.get(prefix + "specialization", p.specialization)
-            p.cp_number = request.POST.get(prefix + "cp_number", p.cp_number)
-            p.email = request.POST.get(prefix + "email", p.email)
-            p.save(update_fields=["designation", "specialization", "cp_number", "email"])
-
-        _update_creator_role(proposal)
-
-        if proposal.scope_type == "PROGRAM":
-            proposal.proponents.exclude(user=proposal.created_by).update(role="Proponent")
-
-            for prj in proposal.program_projects.all():
-                uid = (request.POST.get(f"project_leader_{prj.id}") or "").strip()
-                if uid.isdigit():
-                    prj.leader_user_id = int(uid)
-                    prj.save(update_fields=["leader_user"])
-
-                    pp = proposal.proponents.filter(user_id=int(uid)).first()
-                    if pp and pp.user_id != proposal.created_by_id:
-                        pp.role = "Project Leader"
-                        pp.save(update_fields=["role"])
-                else:
-                    prj.leader_user = None
-                    prj.save(update_fields=["leader_user"])
+        step_missing.extend(save_step_three_proponents(proposal, request))
 
         if action in ("add_member", "save_members"):
             if is_step_complete(proposal, step):
@@ -981,7 +753,14 @@ def proposal_wizard(request, proposal_id, step):
                 unmark_step_completed(proposal, step)
 
             proposal.save(update_fields=["completed_steps", "skipped_steps"])
-            messages.success(request, "Members updated.")
+            if step_missing:
+                messages.error(
+                    request,
+                    "Saved, but some required proponent details are still missing: "
+                    + "; ".join(step_missing[:5]),
+                )
+            else:
+                messages.success(request, "Members updated.")
             return redirect("proposal_wizard", proposal_id=proposal.id, step=3)
 
     elif step == 4:
@@ -1181,7 +960,8 @@ def proposal_wizard(request, proposal_id, step):
             proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
             proposal.save(update_fields=["certificate_of_completion_file"])
 
-    dynamic_missing = _save_dynamic_form_answers(proposal, step, request.user, request)
+    step_missing.extend(_save_step_repeaters(proposal, step, request, request.user))
+    dynamic_missing = step_missing + _save_dynamic_form_answers(proposal, step, request.user, request)
     if action == "next" and dynamic_missing:
         unmark_step_completed(proposal, step)
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
