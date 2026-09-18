@@ -1,0 +1,143 @@
+/* Public landing-page refinements.
+   Keep the two public entry pages calm: one institutional accent, neutral
+   surfaces, and copy that is easy to scan before a user opens the detail. */
+
+body.home-page-body,
+body.services-page-body {
+  background: #f6f8f3 !important;
+}
+
+body.home-page-body .nexus-footer,
+body.services-page-body .nexus-footer {
+  background: var(--nexus-primary) !important;
+}
+
+/* ── Home ──────────────────────────────────────────────────────────────── */
+.home-page {
+  overflow: hidden;
+  background: #fff;
+}
+
+.home-page > section {
+  border-top: 1px solid rgba(15, 23, 42, .06);
+}
+
+.home-page > section:first-child {
+  border-top: 0;
+}
+
+.home-page .home-section-nav {
+  border-top: 0;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
+}
+
+.home-page .home-thrust-card,
+.home-page .home-person-card,
+.home-page .home-sdg-card,
+.home-page .home-activity-card {
+  border-color: rgba(15, 23, 42, .10) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+}
+
+.home-page .home-thrust-card:hover,
+.home-page .home-person-card:hover,
+.home-page .home-sdg-card:hover,
+.home-page .home-activity-card:hover {
+  border-color: rgba(16, 59, 7, .24) !important;
+}
+
+/* Thrust names and SDG labels use the same brand ink. The SDG artwork stays
+   recognizable, but its many colours no longer compete with the page copy. */
+.home-page .home-thrust-card h4,
+.home-page .home-sdg-card h4 {
+  color: var(--nexus-primary) !important;
+}
+
+.home-page .home-sdg-grid {
+  gap: 1rem !important;
+}
+
+.home-page .home-sdg-card {
+  padding: 1rem !important;
+  border-radius: .9rem !important;
+}
+
+.home-page .home-sdg-card img {
+  width: 5.5rem;
+  margin-bottom: .75rem;
+  filter: grayscale(.55) saturate(.65);
+}
+
+.home-page .home-sdg-card:hover img {
+  filter: grayscale(.2) saturate(.8);
+}
+
+.home-page .home-muted-section {
+  background: #f8faf7 !important;
+}
+
+/* ── Services ─────────────────────────────────────────────────────────── */
+.services-page {
+  overflow: hidden;
+  background: #fff;
+}
+
+.services-page .services-hero__heading {
+  max-width: 18ch;
+  margin-inline: auto;
+}
+
+.services-page .services-hero__copy {
+  max-width: 44ch;
+  margin-inline: auto;
+  font-size: 1rem;
+}
+
+.services-page .services-jump-links {
+  background: #f8faf7;
+}
+
+.services-page .services-jump-link {
+  min-height: 3.5rem;
+  border-color: rgba(15, 23, 42, .10) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+}
+
+.services-page .services-jump-link:hover,
+.services-page .services-jump-link:focus-visible {
+  border-color: rgba(16, 59, 7, .26) !important;
+  color: var(--nexus-primary);
+}
+
+.services-page .services-section {
+  border-top: 1px solid rgba(15, 23, 42, .07);
+}
+
+.services-page .services-section__intro {
+  max-width: 42rem;
+}
+
+.services-page .services-process-card,
+.services-page .services-info-card,
+.services-page .services-status-card {
+  border-color: rgba(15, 23, 42, .10) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+.services-page .services-step-copy {
+  max-width: 68ch;
+}
+
+.services-page .services-wizard-card {
+  min-height: 4rem;
+}
+
+.services-page .services-status-card .services-status-bar {
+  background: var(--nexus-primary) !important;
+}
+
+@media (max-width: 640px) {
+  .services-page .services-hero__heading {
+    max-width: 15ch;
+  }
+}

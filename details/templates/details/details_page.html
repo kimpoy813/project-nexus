@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 {% load static %}
+
+{% block body_class %}home-page-body{% endblock %}
+
+{% block extra_head %}
+    <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
+<div class="home-page">
 
 <!-- HERO SECTION (admin-editable via Page Content) -->
 <section class="relative bg-primary text-white py-36 overflow-hidden">
@@ -43,7 +51,7 @@
 {% endfor %}
 
 <!-- Section Navigation -->
-<section class="bg-white border-b border-gray-100 sticky top-20 z-40">
+<section class="home-section-nav bg-white border-b border-gray-100 sticky top-20 z-40">
     <div class="nx-page py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
 
         {% for row in home_headings %}
@@ -65,7 +73,7 @@
         {% endif %}
 
         {% if home_sections.thrust.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2" data-aos="fade-up">
+            <h3 class="text-xl font-semibold text-center text-primary mb-2" data-aos="fade-up">
                 {{ home_sections.thrust.subtitle }}
             </h3>
         {% endif %}
@@ -78,8 +86,8 @@
 
         <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {% for thrust in home_thrusts %}
-            <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-                <h4 class="font-semibold text-lg mb-2 {{ thrust.color_class }}">{{ thrust.title }}</h4>
+            <div class="home-thrust-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+                <h4 class="font-semibold text-lg mb-2 text-primary">{{ thrust.title }}</h4>
                 <p class="text-gray-500 text-sm">{{ thrust.description }}</p>
             </div>
             {% endfor %}
@@ -90,14 +98,14 @@
 
 
 {% if home_sections.process.is_visible %}
-<section class="py-20 bg-gray-50 scroll-mt-32" id="process">
+<section class="home-muted-section py-20 bg-gray-50 scroll-mt-32" id="process">
     <div class="nx-page">
 
         {% if home_sections.process.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.process.heading }}</h2>
         {% endif %}
         {% if home_sections.process.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.process.subtitle }}</h3>
+            <h3 class="text-xl font-semibold text-center text-primary mb-2 -mt-8">{{ home_sections.process.subtitle }}</h3>
         {% endif %}
         {% if home_sections.process.caption %}
             <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.process.caption }}</p>
@@ -132,7 +140,7 @@
                 {% endif %}
 
                 <!-- Circle -->
-                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm font-semibold shadow">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-semibold shadow">
                 {{ forloop.counter }}
                 </div>
 
@@ -184,7 +192,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.targets.heading }}</h2>
         {% endif %}
         {% if home_sections.targets.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.targets.subtitle }}</h3>
+            <h3 class="text-xl font-semibold text-center text-primary mb-2 -mt-8">{{ home_sections.targets.subtitle }}</h3>
         {% endif %}
         {% if home_sections.targets.caption %}
             <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.targets.caption }}</p>
@@ -205,7 +213,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <div class="bg-white p-6 rounded-xl border border-gray-100 text-center">
             <div class="text-sm font-semibold text-gray-500 mb-2">{{ metric.label }}</div>
             <div class="text-2xl font-bold text-primary">Target: {{ metric.planned|intcomma }}</div>
-            <div class="text-xl font-semibold text-secondary mt-2">Actual: {{ metric.actual|intcomma }}</div>
+            <div class="text-xl font-semibold text-primary mt-2">Actual: {{ metric.actual|intcomma }}</div>
         </div>
         {% endfor %}
         </div>
@@ -267,8 +275,8 @@ document.querySelectorAll(".process-toggle").forEach(button => {
                             <td class="px-4 py-3">{{ t.actual_q3 }}</td>
                             <td class="px-4 py-3">{{ t.planned_q4 }}</td>
                             <td class="px-4 py-3">{{ t.actual_q4 }}</td>
-                            <td class="px-4 py-3 font-semibold text-secondary">{{ t.planned_total }}</td>
-                            <td class="px-4 py-3 font-semibold text-secondary">{{ t.actual_total }}</td>
+                            <td class="px-4 py-3 font-semibold text-primary">{{ t.planned_total }}</td>
+                            <td class="px-4 py-3 font-semibold text-primary">{{ t.actual_total }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -307,13 +315,13 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
 <!-- PERSONNEL -->
 {% if home_sections.personnel.is_visible %}
-<section id="personnel" class="py-24 bg-gray-50 scroll-mt-32">
+<section id="personnel" class="home-muted-section py-24 bg-gray-50 scroll-mt-32">
     <div class="nx-page">
         {% if home_sections.personnel.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.personnel.heading }}</h2>
         {% endif %}
         {% if home_sections.personnel.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.personnel.subtitle }}</h3>
+            <h3 class="text-xl font-semibold text-center text-primary mb-2 -mt-8">{{ home_sections.personnel.subtitle }}</h3>
         {% endif %}
         {% if home_sections.personnel.caption %}
             <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.personnel.caption }}</p>
@@ -322,7 +330,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <!-- Featured Director Centered - Same size as others -->
         {% if personnel %}
         <div class="flex justify-center mb-8">
-            <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center w-full max-w-sm hover:border-primary transition duration-300">
+            <div class="home-person-card bg-white border border-gray-100 rounded-2xl p-8 text-center w-full max-w-sm hover:border-primary transition duration-300">
                 {% if personnel.0.photo %}
                     <img src="{{ personnel.0.photo.url }}" alt="{{ personnel.0.name }}"
                         class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
@@ -332,7 +340,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
                     </span>
                 {% endif %}
                 <h3 class="text-xl font-semibold mb-1">{{ personnel.0.name }}</h3>
-                <p class="text-secondary font-medium mb-3">{{ personnel.0.position }}</p>
+                <p class="text-primary font-medium mb-3">{{ personnel.0.position }}</p>
                 <p class="text-sm text-gray-600">{{ personnel.0.description }}</p>
             </div>
         </div>
@@ -341,7 +349,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
         <!-- Personnel Grid -->
         <div class="grid md:grid-cols-3 gap-10">
             {% for person in personnel|slice:"1:" %}
-            <div class="bg-white border border-gray-100 rounded-2xl p-8 text-center hover:border-primary transition duration-300">
+            <div class="home-person-card bg-white border border-gray-100 rounded-2xl p-8 text-center hover:border-primary transition duration-300">
                 {% if person.photo %}
                     <img src="{{ person.photo.url }}" alt="{{ person.name }}"
                         class="w-32 h-32 mx-auto rounded-full object-cover mb-6 border-4 border-primary">
@@ -351,7 +359,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
                     </span>
                 {% endif %}
                 <h3 class="text-xl font-semibold mb-1">{{ person.name }}</h3>
-                <p class="text-secondary font-medium mb-3">{{ person.position }}</p>
+                <p class="text-primary font-medium mb-3">{{ person.position }}</p>
                 <p class="text-sm text-gray-600">{{ person.description }}</p>
             </div>
             {% endfor %}
@@ -367,114 +375,114 @@ document.querySelectorAll(".process-toggle").forEach(button => {
             <h2 class="text-4xl font-bold text-center mb-16">{{ home_sections.sdg.heading }}</h2>
         {% endif %}
         {% if home_sections.sdg.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.sdg.subtitle }}</h3>
+            <h3 class="text-xl font-semibold text-center text-primary mb-2 -mt-8">{{ home_sections.sdg.subtitle }}</h3>
         {% endif %}
         {% if home_sections.sdg.caption %}
             <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.sdg.caption }}</p>
         {% endif %}
 
-        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+        <div class="home-sdg-grid grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
 
         <!-- SDG 1 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/01.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#E5243B;">No Poverty</h4>
+            <h4 class="font-semibold text-gray-800">No Poverty</h4>
         </div>
 
         <!-- SDG 2 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/02.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#DDA63A;">Zero Hunger</h4>
+            <h4 class="font-semibold text-gray-800">Zero Hunger</h4>
         </div>
 
         <!-- SDG 3 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/03.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#4C9F38;">Good Health and Well-being</h4>
+            <h4 class="font-semibold text-gray-800">Good Health and Well-being</h4>
         </div>
 
         <!-- SDG 4 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/04.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#C5192D;">Quality Education</h4>
+            <h4 class="font-semibold text-gray-800">Quality Education</h4>
         </div>
 
         <!-- SDG 5 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/05.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#FF3A21;">Gender Equality</h4>
+            <h4 class="font-semibold text-gray-800">Gender Equality</h4>
         </div>
 
         <!-- SDG 6 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/06.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#26BDE2;">Clean Water and Sanitation</h4>
+            <h4 class="font-semibold text-gray-800">Clean Water and Sanitation</h4>
         </div>
 
         <!-- SDG 7 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/07.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#FCC30B;">Affordable and Clean Energy</h4>
+            <h4 class="font-semibold text-gray-800">Affordable and Clean Energy</h4>
         </div>
 
         <!-- SDG 8 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/08.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#A21942;">Decent Work and Economic Growth</h4>
+            <h4 class="font-semibold text-gray-800">Decent Work and Economic Growth</h4>
         </div>
 
         <!-- SDG 9 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/09.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#FD6925;">Industry, Innovation and Infrastructure</h4>
+            <h4 class="font-semibold text-gray-800">Industry, Innovation and Infrastructure</h4>
         </div>
 
         <!-- SDG 10 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/10.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#DD1367;">Reduced Inequalities</h4>
+            <h4 class="font-semibold text-gray-800">Reduced Inequalities</h4>
         </div>
 
         <!-- SDG 11 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/11.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#FD9D24;">Sustainable Cities and Communities</h4>
+            <h4 class="font-semibold text-gray-800">Sustainable Cities and Communities</h4>
         </div>
 
         <!-- SDG 12 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/12.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#BF8B2E;">Responsible Consumption and Production</h4>
+            <h4 class="font-semibold text-gray-800">Responsible Consumption and Production</h4>
         </div>
 
         <!-- SDG 13 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/13.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#3F7E44;">Climate Action</h4>
+            <h4 class="font-semibold text-gray-800">Climate Action</h4>
         </div>
 
         <!-- SDG 14 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/14.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#0A97D9;">Life Below Water</h4>
+            <h4 class="font-semibold text-gray-800">Life Below Water</h4>
         </div>
 
         <!-- SDG 15 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/15.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#56C02B;">Life on Land</h4>
+            <h4 class="font-semibold text-gray-800">Life on Land</h4>
         </div>
 
         <!-- SDG 16 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/16.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#00689D;">Peace, Justice and Strong Institutions</h4>
+            <h4 class="font-semibold text-gray-800">Peace, Justice and Strong Institutions</h4>
         </div>
 
         <!-- SDG 17 -->
-        <div class="bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
+        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
             <img src="{% static 'sdg/17.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold" style="color:#19486A;">Partnerships for the Goals</h4>
+            <h4 class="font-semibold text-gray-800">Partnerships for the Goals</h4>
         </div>
         
         </div>
@@ -486,13 +494,13 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
 <!-- ACTIVITIES -->
 {% if home_sections.activities.is_visible %}
-<section id="activities" class="py-24 bg-gray-50 scroll-mt-32">
+<section id="activities" class="home-muted-section py-24 bg-gray-50 scroll-mt-32">
     <div class="nx-page">
         {% if home_sections.activities.heading %}
             <h2 class="text-4xl font-bold text-center mb-12">{{ home_sections.activities.heading }}</h2>
         {% endif %}
         {% if home_sections.activities.subtitle %}
-            <h3 class="text-xl font-semibold text-center text-secondary mb-2 -mt-8">{{ home_sections.activities.subtitle }}</h3>
+            <h3 class="text-xl font-semibold text-center text-primary mb-2 -mt-8">{{ home_sections.activities.subtitle }}</h3>
         {% endif %}
         {% if home_sections.activities.caption %}
             <p class="text-base text-center text-gray-700 mb-12">{{ home_sections.activities.caption }}</p>
@@ -500,7 +508,7 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
         <div class="grid md:grid-cols-3 gap-10">
             {% for activity in activities %}
-            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300" data-aos="fade-up">
+            <div class="home-activity-card bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300" data-aos="fade-up">
 
                 {% if activity.image %}
                 <img src="{{ activity.image.url }}"
@@ -536,4 +544,5 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 </section>
 {% endif %}
 
+</div>
 {% endblock %}
