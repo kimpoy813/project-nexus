@@ -14,8 +14,9 @@ ships `render.yaml` and `build.sh` for this.
    connection is IPv6-only unless you pay for the IPv4 add-on — so copy the **Session pooler**
    connection string (port `5432`), not the "Direct connection" one. It looks like:
    `postgresql://postgres.xxxx:PASSWORD@aws-0-region.pooler.supabase.com:5432/postgres`.
-3. **Create a Storage bucket** (e.g. `nexus-media`) — see section 3 below — and grab your S3
-   access keys.
+3. **Create a public Storage bucket** (e.g. `nexus-media`) and, on **Project Settings → Storage
+   → S3**, copy the endpoint + region and create an S3 access key pair — see section 3 below
+   for the exact values and the mistakes that break uploads.
 4. **Push this repo to your own GitHub account** if you haven't already (Render deploys from
    a repo you control).
 5. On [Render](https://render.com), click **New → Blueprint**, point it at your repo, and it
@@ -103,11 +104,20 @@ PostgreSQL is not used for file uploads. Uploaded files should go to Supabase St
 In Supabase:
 
 1. Create a project.
-2. Go to **Storage**.
-3. Create a bucket, for example: `nexus-media`.
-4. If files should be directly viewable through generated links, make the bucket public or configure suitable policies.
-5. Go to Supabase S3 settings and create S3 access keys.
-6. Add these environment variables to your host:
+2. Go to **Storage → New bucket**, create a bucket, for example: `nexus-media`, and turn on
+   **Public bucket**. Uploaded files are served straight from
+   `/storage/v1/object/public/nexus-media/...`, and Supabase's S3 API does not implement ACLs,
+   so a public bucket is what makes the generated links work. (Keep a private bucket only if
+   you plan to proxy every download yourself — this project does not.)
+3. Go to **Project Settings → Storage → S3** (the S3 configuration page) and copy the
+   **endpoint** and the **region** shown there. The endpoint always ends in `/storage/v1/s3`:
+   `https://PROJECT_REF.supabase.co/storage/v1/s3`. Supabase also serves the faster
+   `https://PROJECT_REF.storage.supabase.co/storage/v1/s3` host; either host works, but the
+   endpoint must **never** contain the bucket name.
+4. On the same page create an **S3 access key pair** (Access key ID + Secret access key).
+   These are separate from the project's `anon` / `service_role` API keys — pasting a JWT
+   there is the most common setup mistake.
+5. Add these environment variables to your host, using the values copied in steps 2–4:
 
 ```env
 USE_SUPABASE_STORAGE=True
@@ -115,14 +125,59 @@ SUPABASE_STORAGE_BUCKET=nexus-media
 SUPABASE_S3_ENDPOINT_URL=https://PROJECT_REF.supabase.co/storage/v1/s3
 SUPABASE_S3_ACCESS_KEY_ID=your-access-key
 SUPABASE_S3_SECRET_ACCESS_KEY=your-secret-key
-SUPABASE_S3_REGION_NAME=us-east-1
+SUPABASE_S3_REGION_NAME=your-project-region
 SUPABASE_STORAGE_PUBLIC_URL=https://PROJECT_REF.supabase.co/storage/v1/object/public/nexus-media
 ```
+
+Rules that the settings module enforces (a violation keeps the S3 backend switched off and
+blocks new uploads with an actionable message instead of failing mid-upload):
+
+| Value | Must look like | Common mistake |
+| --- | --- | --- |
+| `SUPABASE_S3_ENDPOINT_URL` | `https://PROJECT_REF.supabase.co/storage/v1/s3` | no `https://`, bucket appended, or the `/storage/v1/object/...` URL pasted instead |
+| `SUPABASE_STORAGE_BUCKET` | plain bucket name, e.g. `nexus-media` | pasting the URL or the placeholder |
+| `SUPABASE_S3_REGION_NAME` | exactly the region shown on the S3 page | leaving a placeholder, or a region from another project |
+| `SUPABASE_STORAGE_PUBLIC_URL` | `https://PROJECT_REF.supabase.co/storage/v1/object/public/<bucket>` | different bucket or different project than the endpoint |
+| `SUPABASE_S3_ACCESS_KEY_ID` / `SUPABASE_S3_SECRET_ACCESS_KEY` | the S3 access key pair | `anon`/`service_role` JWT pasted in, or both values identical |
 
 The project uses `django-storages` with Supabase's S3-compatible API. On Render, set
 **all** of these values and explicitly set `USE_SUPABASE_STORAGE=True` in the service's
 Environment page before deploying. The Blueprint deliberately leaves that switch unset so
 an incomplete first-time setup cannot send uploads to an empty S3 endpoint and return a 500.
+
+Because Supabase only implements part of the S3 API, `conf/settings.py` deliberately:
+
+* sends **no `x-amz-acl` header** (`AWS_DEFAULT_ACL` is not used — ACLs are unsupported), and
+* disables boto3's automatic data-integrity headers
+  (`request_checksum_calculation="when_required"`), because boto3 ≥ 1.36 otherwise attaches
+  `x-amz-sdk-checksum-algorithm`/`x-amz-checksum-*`, which S3-compatible providers reject
+  with `Unsupported header 'x-amz-sdk-checksum-algorithm' received for this API call`.
+
+### Verifying the setup (bucket, endpoint, keys)
+
+```bash
+python manage.py check_file_storage              # full live check
+python manage.py check_file_storage --config-only  # settings only, no network calls
+```
+
+The command prints the resolved bucket/endpoint/region (secrets redacted), then performs a real
+`HeadBucket`, list, upload, read-back, public download, and delete of a throwaway object under
+`_nx_storage_check/`. Every failure is reported with the provider's own error code plus the fix,
+for example:
+
+| Error | Meaning |
+| --- | --- |
+| `SignatureDoesNotMatch` (HTTP 403) | access keys or region do not belong to this project |
+| `AccessDenied: Invalid Region` | `SUPABASE_S3_REGION_NAME` does not match the project's region |
+| `NoSuchBucket` (HTTP 404) | bucket name typo, or the endpoint points at another project |
+| `InvalidAccessKeyId` | the key was rotated/deleted in Supabase, or is not an S3 access key |
+| `ValueError: Invalid endpoint` | `SUPABASE_S3_ENDPOINT_URL` is malformed (missing scheme, bucket appended) |
+| `Public download returned HTTP 400/404` | the bucket is not public, so file links will be broken |
+
+On Render's **free** tier there is no Shell tab: the same diagnostics appear in the service
+**Logs** (the upload view logs the full exception), and `build.sh` runs the config-only check so
+malformed settings show up in the build log. On paid plans, or from a local checkout with the
+production values exported, run the command directly.
 
 All upload forms (templates, images, reports, proposal files, MOA files, and dynamic-form
 attachments) refuse new files while this setup is incomplete. They return to the form with a
@@ -171,6 +226,7 @@ SUPABASE_STORAGE_BUCKET=nexus-media
 SUPABASE_S3_ENDPOINT_URL=https://PROJECT_REF.supabase.co/storage/v1/s3
 SUPABASE_S3_ACCESS_KEY_ID=...
 SUPABASE_S3_SECRET_ACCESS_KEY=...
+SUPABASE_S3_REGION_NAME=your-project-region
 SUPABASE_STORAGE_PUBLIC_URL=https://PROJECT_REF.supabase.co/storage/v1/object/public/nexus-media
 ```
 

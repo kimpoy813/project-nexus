@@ -51,6 +51,22 @@ python manage.py test accounts --settings=conf.settings_test
 python manage.py test accounts.tests.test_permissions --settings=conf.settings_test
 ```
 
+## File storage
+
+Uploads use local storage in development and **Supabase Storage** (its
+S3-compatible API) in production — see [`DEPLOYMENT.md`](DEPLOYMENT.md) §3. The
+settings in **`conf/storage_config.py`** validate the bucket, endpoint, region,
+public URL, and access keys before the remote backend is selected, so a
+malformed value returns an actionable message instead of a mid-upload failure.
+
+To test a live configuration end to end (writes and removes a throwaway object
+under `_nx_storage_check/`):
+
+```bash
+python manage.py check_file_storage              # full check, talks to Supabase
+python manage.py check_file_storage --config-only  # settings only, no network
+```
+
 ### What is covered
 
 | Suite | Focus |
@@ -68,6 +84,7 @@ python manage.py test accounts.tests.test_permissions --settings=conf.settings_t
 | `proposals/tests_transitions.py` | MOA/implementation transitions, status derivation, wizard helpers |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 | `accounts/tests/test_layout.py` | Full-bleed layout: no capped page shells, stylesheet linked, auth/wizard/dashboard shells intact |
+| `accounts/tests/test_file_storage_configuration.py` | Supabase bucket/endpoint/region/key validation, the `check_file_storage` command, and the provider error shown after a failed upload |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
 than calling `create_user` directly — a signal creates a `FACULTY` profile on

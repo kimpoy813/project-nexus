@@ -23,6 +23,15 @@ services:
       # Do not enable the S3 backend until every Supabase value below has been
       # configured. Enabling it with empty Blueprint secrets makes all file
       # uploads fail with a 500 ("Invalid endpoint").
+      # Values come from Supabase -> Project Settings -> Storage -> S3:
+      #   ENDPOINT  https://<project-ref>.supabase.co/storage/v1/s3
+      #   BUCKET    must exist and be marked public
+      #   REGION    copy it from that page; the wrong region fails every upload
+      #             with "Invalid Region"/"SignatureDoesNotMatch"
+      #   KEYS      the S3 access key pair, not the anon/service_role API keys
+      #   PUBLIC_URL https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>
+      # Verify afterwards with `python manage.py check_file_storage` (see
+      # DEPLOYMENT.md section 3).
       - key: USE_SUPABASE_STORAGE
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
@@ -34,7 +43,7 @@ services:
       - key: SUPABASE_S3_SECRET_ACCESS_KEY
         sync: false
       - key: SUPABASE_S3_REGION_NAME
-        value: us-east-1
+        sync: false
       - key: SUPABASE_STORAGE_PUBLIC_URL
         sync: false
       - key: EMAIL_HOST_USER

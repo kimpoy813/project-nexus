@@ -22,6 +22,8 @@ from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from ..decorators import admin_required
 from ..forms import DocumentTemplateForm
+from ..storage_diagnostics import describe_storage_exception
+from ..storage_diagnostics import storage_failure_hint
 from .helpers import _safe_int
 from .reports import ACCOMPLISHMENT_REPORT_ROLES
 
@@ -45,16 +47,29 @@ def _template_storage_is_unavailable():
 
 
 def _save_document_template(form, *, action, user):
-    """Save a validated template without letting a storage outage become a 500."""
+    """Save a validated template without letting a storage outage become a 500.
+
+    Returns ``(template, exception)``.  The exception (when there is one) is
+    handed to the view so the administrator sees the provider's own error code
+    instead of only "check the Supabase bucket, endpoint, and S3 access keys".
+    """
     try:
-        return form.save()
-    except _DOCUMENT_TEMPLATE_STORAGE_ERRORS:
+        return form.save(), None
+    except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
         logger.exception(
             "Could not %s document template for user_id=%s; check the configured file storage.",
             action,
             user.pk,
         )
-        return None
+        return None, exc
+
+
+def _storage_failure_message(headline, exc):
+    """Append the provider's reason and a fix hint to a user-facing message."""
+    reason = describe_storage_exception(exc)
+    if not reason:
+        return headline
+    return f"{headline} Storage error: {reason}. {storage_failure_hint(exc)}"
 
 
 def _seed_default_fields():
@@ -195,6 +210,11 @@ def _document_template_form_context(*, mode, form, template_obj=None):
         "form": form,
         "template_obj": template_obj,
         "storage_configuration_error": _template_storage_is_unavailable(),
+        # Non-fatal advice (for example a missing SUPABASE_STORAGE_PUBLIC_URL),
+        # shown in the form so it can be fixed before files go live.
+        "storage_configuration_warnings": getattr(
+            settings, "SUPABASE_STORAGE_CONFIGURATION_WARNINGS", ()
+        ),
     }
 
 
@@ -209,13 +229,17 @@ def document_template_create(request):
             logger.error("Document template upload blocked: %s", storage_error)
             messages.error(request, "The template was not uploaded. File storage needs to be configured first.")
         else:
-            template = _save_document_template(form, action="create", user=request.user)
+            template, storage_exc = _save_document_template(form, action="create", user=request.user)
             if template:
                 messages.success(request, f'Template "{template.title}" uploaded successfully.')
                 return redirect("document_templates_list")
             messages.error(
                 request,
-                "The template could not be uploaded to file storage. Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
+                _storage_failure_message(
+                    "The template could not be uploaded to file storage. Check the Supabase "
+                    "bucket, endpoint, and S3 access keys, then try again.",
+                    storage_exc,
+                ),
             )
     elif request.method == "POST":
         messages.error(request, "Please correct the errors below and try again.")
@@ -244,13 +268,17 @@ def document_template_edit(request, pk):
             # Restore it so the "Current file" link remains the stored file.
             template.refresh_from_db()
         else:
-            saved_template = _save_document_template(form, action="update", user=request.user)
+            saved_template, storage_exc = _save_document_template(form, action="update", user=request.user)
             if saved_template:
                 messages.success(request, f'Template "{saved_template.title}" updated successfully.')
                 return redirect("document_templates_list")
             messages.error(
                 request,
-                "The template could not be saved to file storage. Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
+                _storage_failure_message(
+                    "The template could not be saved to file storage. Check the Supabase bucket, "
+                    "endpoint, and S3 access keys, then try again.",
+                    storage_exc,
+                ),
             )
             # As above, do not render a link to an upload that did not save.
             template.refresh_from_db()
