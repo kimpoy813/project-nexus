@@ -20,7 +20,10 @@ The emphasis is on the properties that matter to a user:
 
 import io
 import zipfile
+from unittest.mock import PropertyMock, patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db.models.fields.files import FieldFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -30,6 +33,7 @@ from accounts.tests import factories
 from . import docx_forms
 from .docx_forms import build_extension_form_docx
 from .models import Proposal
+from .models import ProposalFinalDocument
 
 
 def docx_text(data):
@@ -58,6 +62,65 @@ def is_valid_docx(data):
             return "word/document.xml" in archive.namelist()
     except zipfile.BadZipFile:
         return False
+
+
+class StoredFileResponseTests(TestCase):
+    """Uploaded files must download from Supabase as well as local storage."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = factories.make_user("stored_file_owner", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.client.force_login(self.owner)
+        self.proposal = Proposal.objects.create(created_by=self.owner, title="Stored file test")
+
+    def test_preview_reads_through_the_storage_backend_not_a_local_path(self):
+        self.proposal.work_plan_file = SimpleUploadedFile(
+            "work-plan.pdf", b"%PDF-sample", content_type="application/pdf"
+        )
+        self.proposal.save(update_fields=["work_plan_file"])
+
+        # S3Storage intentionally raises NotImplementedError for .path. The
+        # FieldFile itself remains readable through its storage backend.
+        with patch.object(
+            FieldFile,
+            "path",
+            new_callable=PropertyMock,
+            side_effect=NotImplementedError("This backend doesn't support absolute paths."),
+        ):
+            response = self.client.get(
+                reverse("proposal_file_preview", args=[self.proposal.id, "work_plan"])
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Disposition"], 'inline; filename="work-plan.pdf"')
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-sample")
+
+    def test_approval_download_reads_through_the_storage_backend_not_a_local_path(self):
+        ProposalFinalDocument.objects.create(
+            proposal=self.proposal,
+            document_type=ProposalFinalDocument.DocumentType.LETTER_OF_AWARD,
+            file=SimpleUploadedFile("award.pdf", b"%PDF-award", content_type="application/pdf"),
+            uploaded_by=self.owner,
+        )
+
+        with patch.object(
+            FieldFile,
+            "path",
+            new_callable=PropertyMock,
+            side_effect=NotImplementedError("This backend doesn't support absolute paths."),
+        ):
+            response = self.client.get(
+                reverse(
+                    "proposal_download_approval_document",
+                    args=[self.proposal.id, "letter_of_award"],
+                )
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Disposition"], 'attachment; filename="award.pdf"')
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-award")
 
 
 class ExtensionFormRoutingTests(TestCase):

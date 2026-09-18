@@ -384,6 +384,23 @@ def download_funding_template(request, proposal_id):
     return response
 
 
+def _serve_stored_file(file_field, *, inline):
+    """Build a response from Django storage without assuming a local disk path.
+
+    Supabase's S3 storage deliberately has no ``.path``. Opening the FieldFile
+    through its storage backend works for both local development and remote
+    object storage.
+    """
+    filename = Path(file_field.name).name
+    content_type, _ = mimetypes.guess_type(filename)
+    content_type = content_type or "application/octet-stream"
+    disposition = "inline" if inline else "attachment"
+
+    response = FileResponse(file_field.open("rb"), content_type=content_type)
+    response["Content-Disposition"] = f'{disposition}; filename="{quote(filename)}"'
+    return response
+
+
 @login_required
 def proposal_file_preview(request, proposal_id, file_type, attachment_id=None):
     proposal = get_object_or_404(Proposal, id=proposal_id)
@@ -414,14 +431,7 @@ def proposal_file_preview(request, proposal_id, file_type, attachment_id=None):
     if not file_field:
         raise Http404("File not found.")
 
-    file_path = file_field.path
-    filename = Path(file_path).name
-    content_type, _ = mimetypes.guess_type(file_path)
-    content_type = content_type or "application/octet-stream"
-
-    response = FileResponse(open(file_path, "rb"), content_type=content_type)
-    response["Content-Disposition"] = f'inline; filename="{quote(filename)}"'
-    return response
+    return _serve_stored_file(file_field, inline=True)
 
 
 @login_required
@@ -536,15 +546,10 @@ def proposal_download_approval_document(request, proposal_id, document_type):
     if not final_doc or not getattr(final_doc, "file", None):
         raise Http404("Approval document not found.")
 
+    # Open through the active storage backend before advancing workflow state;
+    # an unavailable object must not count as a completed document download.
+    response = _serve_stored_file(final_doc.file, inline=False)
     _mark_approval_documents_completed(proposal)
-
-    file_path = final_doc.file.path
-    filename = Path(file_path).name
-    content_type, _ = mimetypes.guess_type(file_path)
-    content_type = content_type or "application/octet-stream"
-
-    response = FileResponse(open(file_path, "rb"), content_type=content_type)
-    response["Content-Disposition"] = f'attachment; filename="{quote(filename)}"'
     return response
 
 

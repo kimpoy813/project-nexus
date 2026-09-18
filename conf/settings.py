@@ -82,6 +82,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "accounts.middleware.SiteControlMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Must run after MessageMiddleware so failed uploads can return a safe
+    # redirect with a user-facing message instead of an unhandled 500.
+    "accounts.middleware.UploadStorageErrorMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "accounts.middleware.InactiveLogoutMiddleware",
     "axes.middleware.AxesMiddleware",
@@ -225,14 +228,41 @@ STORAGES = {
     },
 }
 
-if env_bool("USE_SUPABASE_STORAGE", False):
+# A Render Blueprint can create the service before its secret Supabase values
+# are entered.  Previously it enabled the S3 backend with empty values in that
+# state.  The first file upload then failed inside boto3 with, for example,
+# ``ValueError: Invalid endpoint:`` and the admin received a 500 page.
+#
+# Only select the remote backend when every connection value is present.  The
+# availability message is used by upload views to give administrators an
+# actionable explanation instead of attempting a broken upload.
+USE_SUPABASE_STORAGE = env_bool("USE_SUPABASE_STORAGE", False)
+_SUPABASE_STORAGE_REQUIRED_ENV_VARS = (
+    "SUPABASE_STORAGE_BUCKET",
+    "SUPABASE_S3_ENDPOINT_URL",
+    "SUPABASE_S3_ACCESS_KEY_ID",
+    "SUPABASE_S3_SECRET_ACCESS_KEY",
+)
+SUPABASE_STORAGE_MISSING_ENV_VARS = tuple(
+    name for name in _SUPABASE_STORAGE_REQUIRED_ENV_VARS if not os.environ.get(name, "").strip()
+)
+MEDIA_STORAGE_CONFIGURATION_ERROR = ""
+
+if USE_SUPABASE_STORAGE and SUPABASE_STORAGE_MISSING_ENV_VARS:
+    MEDIA_STORAGE_CONFIGURATION_ERROR = (
+        "Supabase file storage is enabled but is missing: "
+        f"{', '.join(SUPABASE_STORAGE_MISSING_ENV_VARS)}. "
+        "Set these deployment environment variables and redeploy before uploading files."
+    )
+
+if USE_SUPABASE_STORAGE and not SUPABASE_STORAGE_MISSING_ENV_VARS:
     SUPABASE_STORAGE_PUBLIC_URL = os.environ.get("SUPABASE_STORAGE_PUBLIC_URL", "").rstrip("/")
 
     supabase_options = {
-        "access_key": os.environ.get("SUPABASE_S3_ACCESS_KEY_ID", ""),
-        "secret_key": os.environ.get("SUPABASE_S3_SECRET_ACCESS_KEY", ""),
-        "bucket_name": os.environ.get("SUPABASE_STORAGE_BUCKET", ""),
-        "endpoint_url": os.environ.get("SUPABASE_S3_ENDPOINT_URL", ""),
+        "access_key": os.environ["SUPABASE_S3_ACCESS_KEY_ID"],
+        "secret_key": os.environ["SUPABASE_S3_SECRET_ACCESS_KEY"],
+        "bucket_name": os.environ["SUPABASE_STORAGE_BUCKET"],
+        "endpoint_url": os.environ["SUPABASE_S3_ENDPOINT_URL"],
         "region_name": os.environ.get("SUPABASE_S3_REGION_NAME", "us-east-1"),
         "addressing_style": "path",
         "file_overwrite": False,
@@ -252,6 +282,9 @@ if env_bool("USE_SUPABASE_STORAGE", False):
         "OPTIONS": supabase_options,
     }
 else:
+    # This is suitable for local development. The Template Library blocks new
+    # file writes when MEDIA_STORAGE_CONFIGURATION_ERROR is set so official
+    # templates are never silently placed on an ephemeral service filesystem.
     STORAGES["default"] = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     }
