@@ -45,7 +45,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 
-<body class="bg-gray-50 text-gray-800 font-sans">
+<body class="bg-gray-50 text-gray-800 font-sans {% block body_class %}{% endblock %}">
     <a href="#main-content" class="skip-link">Skip to content</a>
 
     <!-- Toast Container -->

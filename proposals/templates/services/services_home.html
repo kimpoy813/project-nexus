@@ -1,334 +1,315 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block body_class %}services-page-body{% endblock %}
+
+{% block extra_head %}
+    <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
-<!-- HERO (matches Home, Reports, and Achievements) -->
-<section class="relative bg-primary text-white py-28 overflow-hidden">
-    <div class="nx-page nx-page--measure text-center">
-        {% if page.hero_eyebrow %}
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
-                {{ page.hero_eyebrow }}
-            </p>
-        {% endif %}
-
-        <h1 class="text-4xl md:text-5xl font-semibold leading-tight tracking-wide">
-            {{ page.hero_heading|default:"Extension Services" }}
-        </h1>
-
-        {% if page.hero_subheading %}
-            <p class="mt-6 text-lg text-white/80 nx-measure mx-auto leading-relaxed">
-                {{ page.hero_subheading }}
-            </p>
-        {% endif %}
-
-        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href="{% url 'proposal_create' %}"
-               class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90">
-                <span>Create Proposal</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.69l-3.22-3.22a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.22-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
-                </svg>
-            </a>
-            {% if user.is_authenticated %}
-                <a href="{% url 'dashboard_redirect' %}"
-                   class="inline-flex items-center rounded-lg border border-white/40 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    View Dashboard
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</section>
-
-<!-- LIFECYCLE OVERVIEW -->
-{% if workflow_phases %}
-<section class="bg-white py-12">
-    <div class="nx-page">
-        <p class="text-center text-sm font-semibold text-gray-900">
-            {{ lifecycle_heading|default:"Model-backed lifecycle" }}
-        </p>
-        <div class="mt-6 nx-auto-grid nx-auto-grid--gap-lg">
-            {% for phase in workflow_phases %}
-                <div class="rounded-lg border border-gray-200 bg-gray-50 p-5">
-                    <div class="mb-2 flex items-baseline justify-between gap-3">
-                        <span class="text-sm font-semibold text-gray-800">{{ phase.label }}</span>
-                        <span class="text-xs text-gray-500">{{ phase.weight_label }}</span>
-                    </div>
-                    <div class="h-2 overflow-hidden rounded-full bg-gray-200">
-                        <div class="h-2 rounded-full bg-primary" style="width: {{ phase.weight_percent }}%"></div>
-                    </div>
-                    {% if phase.summary %}
-                        <p class="mt-3 text-xs leading-5 text-gray-600">{{ phase.summary }}</p>
-                    {% endif %}
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<section class="border-y border-gray-200 bg-gray-50">
-    <div class="nx-page py-10">
-        <div class="grid gap-4 md:grid-cols-5">
-            <a href="#maintained-process"
-               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
-                <p class="text-sm font-semibold text-primary">Maintained Process</p>
-                <p class="mt-2 text-sm leading-6 text-gray-600">Admin-managed process steps shown in their saved order.</p>
-            </a>
-            <a href="#proposal-wizard"
-               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
-                <p class="text-sm font-semibold text-primary">Proposal Wizard</p>
-                <p class="mt-2 text-sm leading-6 text-gray-600">{{ total_wizard_steps }} required sections before submission.</p>
-            </a>
-            <a href="#status-lifecycle"
-               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
-                <p class="text-sm font-semibold text-primary">Status Lifecycle</p>
-                <p class="mt-2 text-sm leading-6 text-gray-600">Proposal, MOA, and implementation statuses from the Proposal model.</p>
-            </a>
-            <a href="#template-library"
-               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
-                <p class="text-sm font-semibold text-primary">Template Library</p>
-                <p class="mt-2 text-sm leading-6 text-gray-600">Latest office-uploaded templates and forms.</p>
-            </a>
-            <a href="#office-forms"
-               class="rounded-lg border border-gray-200 bg-white p-5 transition hover:border-primary">
-                <p class="text-sm font-semibold text-primary">Office Forms</p>
-                <p class="mt-2 text-sm leading-6 text-gray-600">Admin-managed form/checklist requirements.</p>
-            </a>
-        </div>
-    </div>
-</section>
-
-<section id="maintained-process" class="bg-white py-16 scroll-mt-28">
-    <div class="nx-page">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Process Records</p>
-                <h2 class="mt-3 text-3xl font-bold text-gray-950">Institutional process flow</h2>
-            </div>
-            <p class="max-w-2xl text-sm leading-6 text-gray-600">
-                These are pulled from the admin-managed ExtensionProcess and ProcessStep models, so edits made by an
-                administrator become the public reference.
-            </p>
-        </div>
-
-        <div class="mt-8 space-y-5">
-            {% for process in process_records %}
-                <article class="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                    <button type="button"
-                            class="process-toggle flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-50"
-                            aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
-                        <span>
-                            <span class="block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Process {{ forloop.counter }}</span>
-                            <span class="mt-1 block text-lg font-semibold text-gray-950">{{ process.title }}</span>
-                        </span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                             class="chev h-5 w-5 shrink-0 text-gray-500 transition {% if forloop.first %}rotate-180{% endif %}"
-                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-
-                    <div class="process-content {% if not forloop.first %}hidden{% endif %} border-t border-gray-100 px-5 py-6">
-                        {% if process.steps.all %}
-                            <ol class="space-y-5">
-                                {% for step in process.steps.all %}
-                                    <li class="grid gap-4 sm:grid-cols-[44px_minmax(0,1fr)]">
-                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-                                            {{ forloop.counter|stringformat:"02d" }}
-                                        </div>
-                                        <p class="pt-1 text-sm leading-7 text-gray-700">{{ step.description }}</p>
-                                    </li>
-                                {% endfor %}
-                            </ol>
-                        {% else %}
-                            <p class="text-sm text-gray-500">No steps have been added for this process yet.</p>
-                        {% endif %}
-                    </div>
-                </article>
-            {% empty %}
-                <div class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                    <p class="text-sm font-semibold text-gray-900">No maintained process records yet.</p>
-                    <p class="mt-2 text-sm text-gray-600">The status lifecycle below still reflects the Proposal model.</p>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-
-<section id="template-library" class="bg-white py-16 scroll-mt-28">
-    <div class="nx-page">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Admin Template Library</p>
-                <h2 class="mt-3 text-3xl font-bold text-gray-950">Official forms and document templates</h2>
-            </div>
-            <p class="max-w-2xl text-sm leading-6 text-gray-600">These files are uploaded by the Admin account, so the Extension Office can replace templates without developer changes.</p>
-        </div>
-        <div class="mt-8 nx-auto-grid nx-auto-grid--lg">
-            {% for item in office_templates %}
-                <article class="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ item.get_category_display }}</p>
-                    <h3 class="mt-2 text-lg font-bold text-gray-950">{{ item.title }}</h3>
-                    <p class="mt-2 text-sm leading-6 text-gray-600">{{ item.description|default:"Official office template." }}</p>
-                    <div class="mt-auto flex items-center justify-between gap-3 pt-4">
-                        <span class="text-xs text-gray-500">{{ item.version_label|default:"Current" }}</span>
-                        {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-secondary">Download</a>{% endif %}
-                    </div>
-                </article>
-            {% empty %}
-                <div class="md:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-8 text-center">
-                    <p class="text-sm font-semibold text-gray-900">No office templates are published yet.</p>
-                    <p class="mt-2 text-sm text-gray-600">Admins can upload them from the Template Library builder.</p>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<section id="office-forms" class="bg-gray-50 py-16 scroll-mt-28">
-    <div class="nx-page">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Admin Form Builder</p>
-                <h2 class="mt-3 text-3xl font-bold text-gray-950">Current form and checklist requirements</h2>
-            </div>
-            <p class="max-w-2xl text-sm leading-6 text-gray-600">These configurable forms show the office's current requirements. Admins can add, remove, or revise fields without coding.</p>
-        </div>
-        <div class="mt-8 grid gap-4 lg:grid-cols-2">
-            {% for form in dynamic_form_templates %}
-                <article class="rounded-lg border border-gray-200 bg-white p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ form.get_applies_to_display }}</p>
-                    <h3 class="mt-2 text-lg font-bold text-gray-950">{{ form.name }}</h3>
-                    <p class="mt-2 text-sm leading-6 text-gray-600">{{ form.description|default:"Office-managed form." }}</p>
-                    {% if form.instructions %}<p class="mt-3 rounded-lg bg-primary/5 p-3 text-xs leading-5 text-primary">{{ form.instructions }}</p>{% endif %}
-                    <div class="mt-4 grid gap-2 sm:grid-cols-2">
-                        {% for field in form.fields.all %}
-                            <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                                <p class="text-sm font-semibold text-gray-800">{{ field.label }}{% if field.required %} <span class="text-red-600">*</span>{% endif %}</p>
-                                <p class="mt-1 text-xs text-gray-500">{{ field.get_field_type_display }}{% if field.help_text %} · {{ field.help_text }}{% endif %}</p>
-                            </div>
-                        {% empty %}
-                            <p class="text-sm text-gray-500">No fields configured yet.</p>
-                        {% endfor %}
-                    </div>
-                </article>
-            {% empty %}
-                <div class="lg:col-span-2 rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-                    <p class="text-sm font-semibold text-gray-900">No admin-managed forms are published yet.</p>
-                    <p class="mt-2 text-sm text-gray-600">Admins can create them from the Form Builder.</p>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<section id="proposal-wizard" class="bg-gray-50 py-16 scroll-mt-28">
-    <div class="nx-page">
-        <div class="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Proposal Wizard</p>
-                <h2 class="mt-3 text-3xl font-bold text-gray-950">What proponents complete before submission</h2>
-                <p class="mt-4 text-sm leading-7 text-gray-600">
-                    These sections are generated from the same STEP_LABELS used by the proposal wizard sidebar and
-                    completion checks.
+<div class="services-page">
+    <!-- HERO -->
+    <section class="services-hero relative bg-primary py-24 text-white overflow-hidden">
+        <div class="nx-page nx-page--measure text-center">
+            {% if page.hero_eyebrow %}
+                <p class="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
+                    {{ page.hero_eyebrow }}
                 </p>
+            {% endif %}
+
+            <h1 class="services-hero__heading text-4xl font-semibold leading-tight tracking-wide md:text-5xl">
+                {{ page.hero_heading|default:"Extension Services" }}
+            </h1>
+
+            {% if page.hero_subheading %}
+                <p class="services-hero__copy mt-5 text-white/80 leading-relaxed">
+                    {{ page.hero_subheading|truncatewords:18 }}
+                </p>
+            {% endif %}
+
+            <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
+                <a href="{% url 'proposal_create' %}"
+                   class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90">
+                    <span>Start a proposal</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.69l-3.22-3.22a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.22-3.22H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard_redirect' %}"
+                       class="inline-flex items-center rounded-lg border border-white/40 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                        View dashboard
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <!-- WORKFLOW AT A GLANCE -->
+    {% if workflow_phases %}
+    <section class="bg-white py-10">
+        <div class="nx-page">
+            <div class="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Workflow</p>
+                    <h2 class="mt-2 text-xl font-bold text-gray-950">From proposal to implementation</h2>
+                </div>
+                <p class="text-sm text-gray-500">Current phase weights</p>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {% for item in wizard_steps %}
-                    <div class="rounded-lg border border-gray-200 bg-white p-4">
-                        <div class="flex items-center gap-3">
-                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-primary">
-                                {{ item.no|stringformat:"02d" }}
-                            </span>
-                            <h3 class="text-sm font-semibold leading-5 text-gray-950">{{ item.title }}</h3>
+            <div class="mt-6 nx-auto-grid nx-auto-grid--gap-lg">
+                {% for phase in workflow_phases %}
+                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <div class="mb-2 flex items-baseline justify-between gap-3">
+                            <span class="text-sm font-semibold text-gray-800">{{ phase.label }}</span>
+                            <span class="text-xs text-gray-500">{{ phase.weight_label }}</span>
                         </div>
-                        <p class="mt-3 text-xs leading-5 text-gray-600">{{ item.desc }}</p>
+                        <div class="h-1.5 overflow-hidden rounded-full bg-gray-200">
+                            <div class="h-1.5 rounded-full bg-primary" style="width: {{ phase.weight_percent }}%"></div>
+                        </div>
                     </div>
                 {% endfor %}
             </div>
         </div>
-    </div>
-</section>
+    </section>
+    {% endif %}
 
-<section id="status-lifecycle" class="bg-white py-16 scroll-mt-28">
-    <div class="nx-page">
-        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Proposal Model</p>
-                <h2 class="mt-3 text-3xl font-bold text-gray-950">Tracked statuses and progress</h2>
-            </div>
-            <p class="max-w-2xl text-sm leading-6 text-gray-600">
-                These labels and percentages come from the Proposal, MOA, and Implementation status choices and progress
-                maps in the model.
-            </p>
-        </div>
-
-        <div class="mt-8 grid gap-6 lg:grid-cols-3">
-            {% for phase in workflow_phases %}
-                <article class="rounded-lg border border-gray-200 bg-white p-5">
-                    <div class="min-h-28">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ phase.weight }}</p>
-                        <h3 class="mt-2 text-xl font-bold text-gray-950">{{ phase.label }}</h3>
-                        <p class="mt-3 text-sm leading-6 text-gray-600">{{ phase.summary }}</p>
-                    </div>
-
-                    <div class="mt-5 space-y-3">
-                        {% for status in phase.statuses %}
-                            <div>
-                                <div class="mb-1 flex items-center justify-between gap-3">
-                                    <span class="text-xs font-semibold leading-5 text-gray-700">{{ status.label }}</span>
-                                    <span class="text-xs text-gray-500">{{ status.progress }}%</span>
-                                </div>
-                                <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                                    <div class="h-1.5 rounded-full {% if phase.key == 'proposal' %}bg-primary{% elif phase.key == 'moa' %}bg-secondary{% else %}bg-emerald-600{% endif %}"
-                                         style="width: {{ status.progress }}%"></div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </article>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-
-<script>
-    document.querySelectorAll(".process-toggle").forEach((button) => {
-        button.addEventListener("click", () => {
-            const content = button.nextElementSibling;
-            const chev = button.querySelector(".chev");
-            const willOpen = content.classList.contains("hidden");
-
-            content.classList.toggle("hidden", !willOpen);
-            button.setAttribute("aria-expanded", willOpen ? "true" : "false");
-            if (chev) {
-                chev.classList.toggle("rotate-180", willOpen);
-            }
-        });
-    });
-</script>
-
-{% comment %}Admin-authored content blocks from the Page Content editor.{% endcomment %}
-{% for section in page.visible_sections %}
-    <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-             class="scroll-mt-32 border-t border-gray-200 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
-        <div class="nx-page">
-            {% if section.heading %}
-                <h2 class="text-3xl font-bold text-gray-900">{{ section.heading }}</h2>
-            {% endif %}
-            {% if section.subheading %}
-                <p class="mt-3 text-gray-600">{{ section.subheading }}</p>
-            {% endif %}
-            {% if section.image %}
-                <img src="{{ section.image.url }}" alt="{{ section.heading }}" class="mt-8 w-full rounded-2xl object-cover">
-            {% endif %}
-            {% if section.body %}
-                <div class="nexus-richtext mt-6">{{ section.body|safe }}</div>
-            {% endif %}
+    <!-- PAGE JUMP LINKS -->
+    <section class="services-jump-links border-y border-gray-200">
+        <div class="nx-page py-6">
+            <nav aria-label="Services sections" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                <a href="#maintained-process" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">01</span> Process flow
+                </a>
+                <a href="#template-library" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">02</span> Templates
+                </a>
+                <a href="#office-forms" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">03</span> Forms
+                </a>
+                <a href="#proposal-wizard" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">04</span> Proposal checklist
+                </a>
+                <a href="#status-lifecycle" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">05</span> Status tracking
+                </a>
+            </nav>
         </div>
     </section>
-{% endfor %}
 
+    <!-- MAINTAINED PROCESS -->
+    <section id="maintained-process" class="services-section bg-white py-14 scroll-mt-28">
+        <div class="nx-page">
+            <div class="services-section__intro">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Process records</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Current process flow</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Open a process to view its saved steps.</p>
+            </div>
+
+            <div class="mt-7 space-y-3">
+                {% for process in process_records %}
+                    <article class="services-process-card overflow-hidden rounded-lg border bg-white">
+                        <button type="button"
+                                class="process-toggle flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-50"
+                                aria-expanded="false">
+                            <span>
+                                <span class="block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Process {{ forloop.counter }}</span>
+                                <span class="mt-1 block text-lg font-semibold text-gray-950">{{ process.title }}</span>
+                            </span>
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 class="chev h-5 w-5 shrink-0 text-gray-500 transition"
+                                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+
+                        <div class="process-content hidden border-t border-gray-100 px-5 py-6">
+                            {% if process.steps.all %}
+                                <ol class="space-y-5">
+                                    {% for step in process.steps.all %}
+                                        <li class="grid gap-4 sm:grid-cols-[44px_minmax(0,1fr)]">
+                                            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                                                {{ forloop.counter|stringformat:"02d" }}
+                                            </div>
+                                            <p class="services-step-copy pt-1 text-sm leading-7 text-gray-700">{{ step.description }}</p>
+                                        </li>
+                                    {% endfor %}
+                                </ol>
+                            {% else %}
+                                <p class="text-sm text-gray-500">No steps have been added yet.</p>
+                            {% endif %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-7 text-center">
+                        <p class="text-sm text-gray-600">No process records are published yet.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- TEMPLATE LIBRARY -->
+    <section id="template-library" class="services-section bg-gray-50 py-14 scroll-mt-28">
+        <div class="nx-page">
+            <div class="services-section__intro">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Downloads</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Official templates</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Download the latest office files.</p>
+            </div>
+
+            <div class="mt-7 nx-auto-grid nx-auto-grid--lg">
+                {% for item in office_templates %}
+                    <article class="services-info-card flex h-full flex-col rounded-lg border bg-white p-5">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ item.get_category_display }}</p>
+                        <h3 class="mt-2 text-lg font-bold text-gray-950">{{ item.title }}</h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-600">{{ item.description|default:"Official office template."|truncatewords:12 }}</p>
+                        <div class="mt-auto flex items-center justify-between gap-3 pt-4">
+                            <span class="text-xs text-gray-500">{{ item.version_label|default:"Current" }}</span>
+                            {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary">Download</a>{% endif %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="rounded-lg border border-dashed border-gray-300 bg-white p-7 text-center">
+                        <p class="text-sm text-gray-600">No office templates are published yet.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- OFFICE FORMS -->
+    <section id="office-forms" class="services-section bg-white py-14 scroll-mt-28">
+        <div class="nx-page">
+            <div class="services-section__intro">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Requirements</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Current office forms</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">The fields below reflect the current checklist.</p>
+            </div>
+
+            <div class="mt-7 grid gap-4 lg:grid-cols-2">
+                {% for form in dynamic_form_templates %}
+                    <article class="services-info-card rounded-lg border bg-white p-5">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ form.get_applies_to_display }}</p>
+                        <h3 class="mt-2 text-lg font-bold text-gray-950">{{ form.name }}</h3>
+                        <p class="mt-2 text-sm leading-6 text-gray-600">{{ form.description|default:"Office-managed form."|truncatewords:12 }}</p>
+                        {% if form.instructions %}
+                            <p class="mt-3 rounded-lg bg-primary/5 p-3 text-xs leading-5 text-primary">{{ form.instructions|truncatewords:16 }}</p>
+                        {% endif %}
+                        <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                            {% for field in form.fields.all %}
+                                <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                                    <p class="text-sm font-semibold text-gray-800">{{ field.label }}{% if field.required %} <span class="text-red-600">*</span>{% endif %}</p>
+                                    <p class="mt-1 text-xs text-gray-500">{{ field.get_field_type_display }}</p>
+                                </div>
+                            {% empty %}
+                                <p class="text-sm text-gray-500">No fields configured yet.</p>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% empty %}
+                    <div class="lg:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-7 text-center">
+                        <p class="text-sm text-gray-600">No admin-managed forms are published yet.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- PROPOSAL CHECKLIST -->
+    <section id="proposal-wizard" class="services-section bg-gray-50 py-14 scroll-mt-28">
+        <div class="nx-page">
+            <div class="services-section__intro">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Proposal checklist</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">{{ total_wizard_steps }} sections before submission</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">A quick view of the proposal wizard.</p>
+            </div>
+
+            <div class="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {% for item in wizard_steps %}
+                    <div class="services-wizard-card flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-primary">
+                            {{ item.no|stringformat:"02d" }}
+                        </span>
+                        <h3 class="text-sm font-semibold leading-5 text-gray-950">{{ item.title }}</h3>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- STATUS LIFECYCLE -->
+    <section id="status-lifecycle" class="services-section bg-white py-14 scroll-mt-28">
+        <div class="nx-page">
+            <div class="services-section__intro">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Status tracking</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Proposal progress</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Progress updates as work moves through each phase.</p>
+            </div>
+
+            <div class="mt-7 grid gap-5 lg:grid-cols-3">
+                {% for phase in workflow_phases %}
+                    <article class="services-status-card rounded-lg border bg-white p-5">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ phase.weight }}</p>
+                            <h3 class="mt-2 text-xl font-bold text-gray-950">{{ phase.label }}</h3>
+                        </div>
+
+                        <div class="mt-5 space-y-3">
+                            {% for status in phase.statuses %}
+                                <div>
+                                    <div class="mb-1 flex items-center justify-between gap-3">
+                                        <span class="text-xs font-semibold leading-5 text-gray-700">{{ status.label }}</span>
+                                        <span class="text-xs text-gray-500">{{ status.progress }}%</span>
+                                    </div>
+                                    <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                                        <div class="services-status-bar h-1.5 rounded-full bg-primary" style="width: {{ status.progress }}%"></div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.querySelectorAll(".process-toggle").forEach((button) => {
+            button.addEventListener("click", () => {
+                const content = button.nextElementSibling;
+                const chev = button.querySelector(".chev");
+                const willOpen = content.classList.contains("hidden");
+
+                content.classList.toggle("hidden", !willOpen);
+                button.setAttribute("aria-expanded", willOpen ? "true" : "false");
+                if (chev) {
+                    chev.classList.toggle("rotate-180", willOpen);
+                }
+            });
+        });
+    </script>
+
+    {% comment %}Admin-authored content blocks from the Page Content editor.{% endcomment %}
+    {% for section in page.visible_sections %}
+        <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
+                 class="services-section scroll-mt-32 border-t border-gray-200 py-14 {% cycle 'bg-white' 'bg-gray-50' %}">
+            <div class="nx-page">
+                {% if section.heading %}
+                    <h2 class="text-3xl font-bold text-gray-900">{{ section.heading }}</h2>
+                {% endif %}
+                {% if section.subheading %}
+                    <p class="mt-3 text-gray-600">{{ section.subheading }}</p>
+                {% endif %}
+                {% if section.image %}
+                    <img src="{{ section.image.url }}" alt="{{ section.heading }}" class="mt-8 w-full rounded-2xl object-cover">
+                {% endif %}
+                {% if section.body %}
+                    <div class="nexus-richtext mt-6">{{ section.body|safe }}</div>
+                {% endif %}
+            </div>
+        </section>
+    {% endfor %}
+</div>
 {% endblock %}
