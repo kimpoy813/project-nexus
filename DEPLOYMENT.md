@@ -112,8 +112,9 @@ In Supabase:
 3. Go to **Project Settings → Storage → S3** (the S3 configuration page) and copy the
    **endpoint** and the **region** shown there. The endpoint always ends in `/storage/v1/s3`:
    `https://PROJECT_REF.supabase.co/storage/v1/s3`. Supabase also serves the faster
-   `https://PROJECT_REF.storage.supabase.co/storage/v1/s3` host; either host works, but the
-   endpoint must **never** contain the bucket name.
+   `https://PROJECT_REF.storage.supabase.co/storage/v1/s3` host; **either host works** (both
+   serve the S3 API and the public object route), but the endpoint must **never** contain the
+   bucket name.
 4. On the same page create an **S3 access key pair** (Access key ID + Secret access key).
    These are separate from the project's `anon` / `service_role` API keys — pasting a JWT
    there is the most common setup mistake.
@@ -154,6 +155,26 @@ Because Supabase only implements part of the S3 API, `conf/settings.py` delibera
   with `Unsupported header 'x-amz-sdk-checksum-algorithm' received for this API call`.
 
 ### Verifying the setup (bucket, endpoint, keys)
+
+Two checks need no credentials at all, so they can be run from any browser, `curl`, or the
+Render log viewer. Replace `PROJECT_REF` and `BUCKET` with your own values:
+
+```bash
+# 1. Is the endpoint the real Supabase S3 API? (expect the S3 XML error below)
+curl -s https://PROJECT_REF.supabase.co/storage/v1/s3
+#   <?xml ...?><Error ...><Code>AccessDenied</Code><Message>Missing signature</Message></Error>
+#   Any other body (or a DNS/TLS failure) means the project reference or the host is wrong.
+
+# 2. Does the bucket exist, and does the public link route resolve it?
+curl -s https://PROJECT_REF.supabase.co/storage/v1/object/public/BUCKET/no-such-file.txt
+#   {"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}
+#       -> the bucket exists; the file simply is not there.
+#   {"statusCode":"404","error":"Bucket not found","message":"Bucket not found","code":"NoSuchBucket"}
+#       -> the bucket name or the project reference in this URL is wrong.
+```
+
+Those two probes cannot prove that the bucket is *public* (that needs a real object), so finish
+with the credentialled command, which uploads and re-downloads a throwaway object:
 
 ```bash
 python manage.py check_file_storage              # full live check
