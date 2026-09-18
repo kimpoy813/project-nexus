@@ -1,5 +1,10 @@
-from django.db import models
+import logging
+
+from django.db import DatabaseError, models
 from django_ckeditor_5.fields import CKEditor5Field
+
+logger = logging.getLogger(__name__)
+
 
 class Personnel(models.Model):
     name = models.CharField(max_length=150)
@@ -624,12 +629,26 @@ class WorkflowPhase(models.Model):
     The underlying status codes and progress maps still live in the Proposal
     model (they drive real permissions and must stay in code), but the public
     presentation - label, summary, and progress weight - is admin-editable.
+
+    ``weight_percent`` is also the single source of truth for how much each
+    phase contributes to ``Proposal.overall_progress`` (see ``phase_shares``),
+    so the rings published on the Services page and the percentages shown on
+    the dashboards can never drift apart from the maths.
     """
 
     class Key(models.TextChoices):
         PROPOSAL = "proposal", "Proposal"
         MOA = "moa", "MOA"
         IMPLEMENTATION = "implementation", "Implementation"
+
+    #: Fallback split, used when the table is empty or not readable yet (before
+    #: the seeding migration has run). Proposal and Implementation carry the
+    #: work; the MOA is a routing gate that only applies when required.
+    DEFAULT_WEIGHTS = {
+        Key.PROPOSAL: 50,
+        Key.MOA: 20,
+        Key.IMPLEMENTATION: 30,
+    }
 
     key = models.SlugField(
         max_length=30,
@@ -640,14 +659,17 @@ class WorkflowPhase(models.Model):
     label = models.CharField(max_length=80)
     summary = models.TextField(blank=True, default="")
     weight_percent = models.PositiveSmallIntegerField(
-        default=40,
-        help_text="Share of overall progress, 0-100. Also sets the bar width.",
+        default=DEFAULT_WEIGHTS[Key.PROPOSAL],
+        help_text=(
+            "Share of overall progress, 0-100. Drives the progress ring on the "
+            "Services page and the overall progress calculation."
+        ),
     )
     weight_label = models.CharField(
         max_length=120,
         blank=True,
         default="",
-        help_text='Caption beside the bar, e.g. "40% of overall progress when MOA is required".',
+        help_text='Caption beside the ring, e.g. "50% of overall progress when MOA is required".',
     )
     is_visible = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=1)
@@ -670,3 +692,60 @@ class WorkflowPhase(models.Model):
     @classmethod
     def ordered_visible(cls):
         return cls.objects.filter(is_visible=True)
+
+    @classmethod
+    def weight_map(cls):
+        """``{key: weight_percent}`` for all three phases, defaults filling gaps.
+
+        Every row counts, not just the visible ones: hiding a card on the
+        Services page is a presentation choice and must not quietly change how
+        anybody's progress is calculated.
+
+        Deliberately uncached. It is a three-row read, and caching it would let
+        a stale split outlive an admin edit and drift from the rings published
+        on the Services page.
+        """
+        weights = dict(cls.DEFAULT_WEIGHTS)
+        try:
+            stored = list(cls.objects.values_list("key", "weight_percent"))
+        except DatabaseError:
+            # No table yet (fresh install before migrating). Migrations and
+            # management commands still need a usable answer.
+            logger.warning("WorkflowPhase table unavailable; using the default weights.", exc_info=True)
+            return weights
+
+        for key, percent in stored:
+            if key in weights:
+                weights[key] = max(0, min(100, int(percent or 0)))
+
+        return weights
+
+    @classmethod
+    def phase_shares(cls, include_moa=True):
+        """Fraction of overall progress per phase, always summing to 1.0.
+
+        When no MOA is required its share is redistributed across Proposal and
+        Implementation in proportion to their weights, so a project without an
+        MOA can still reach 100%.
+        """
+        weights = cls.weight_map()
+        proposal = weights[cls.Key.PROPOSAL]
+        moa = weights[cls.Key.MOA] if include_moa else 0
+        implementation = weights[cls.Key.IMPLEMENTATION]
+
+        total = proposal + moa + implementation
+        if total <= 0:
+            # Degenerate configuration (all weights zeroed in the admin): fall
+            # back to an even split of the phases that apply.
+            even = 1 / 3 if include_moa else 0.5
+            return {
+                cls.Key.PROPOSAL: even,
+                cls.Key.MOA: even if include_moa else 0.0,
+                cls.Key.IMPLEMENTATION: even,
+            }
+
+        return {
+            cls.Key.PROPOSAL: proposal / total,
+            cls.Key.MOA: moa / total,
+            cls.Key.IMPLEMENTATION: implementation / total,
+        }

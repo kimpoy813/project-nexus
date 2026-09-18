@@ -1,0 +1,28 @@
+{% comment %}
+    Progress ring — how the Services page represents a percentage.
+
+    Include variables:
+      ring_percent  whole number 0-100 drawn as the filled arc (required)
+      ring_tone     proposal | moa | implementation — brand colour per phase
+      ring_size     lg | md | sm — sm hides the figure, because the percentage
+                    is printed as text beside it
+      ring_label    optional accessible name; when given, the ring is announced
+                    as an image and the figure inside it stays out of the
+                    accessibility tree so the number is not read twice
+
+    Styling lives in static/css/nexus-ui.css under "Progress rings".
+{% endcomment %}
+<div class="nx-ring nx-ring--{{ ring_size|default:"md" }} nx-ring--{{ ring_tone|default:"proposal" }}"
+     style="--nx-ring-pct: {{ ring_percent|default:0 }}"
+     {% if ring_label %}role="img" aria-label="{{ ring_label }}"{% endif %}>
+    <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <circle class="nx-ring__track" cx="50" cy="50" r="42" pathLength="100"></circle>
+        {% comment %}A zero-length arc with round caps would paint a stray dot, so an empty ring draws the track only.{% endcomment %}
+        {% if ring_percent %}
+            <circle class="nx-ring__value" cx="50" cy="50" r="42" pathLength="100"></circle>
+        {% endif %}
+    </svg>
+    <span class="nx-ring__figure"{% if ring_label %} aria-hidden="true"{% endif %}>
+        <span class="nx-ring__number">{{ ring_percent|default:0 }}</span><span class="nx-ring__symbol">%</span>
+    </span>
+</div>

@@ -48,29 +48,36 @@
 
     <!-- WORKFLOW AT A GLANCE -->
     {% if workflow_phases %}
-    <section class="bg-white py-10">
+    <section class="services-workflow bg-white py-12">
         <div class="nx-page">
-            <div class="flex flex-wrap items-end justify-between gap-2">
+            <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Workflow</p>
                     <h2 class="mt-2 text-xl font-bold text-gray-950">From proposal to implementation</h2>
                 </div>
-                <p class="text-sm text-gray-500">Current phase weights</p>
+                <p class="text-sm text-gray-500">Each ring is that phase's share of overall progress</p>
             </div>
 
             <div class="mt-6 nx-auto-grid nx-auto-grid--gap-lg">
                 {% for phase in workflow_phases %}
-                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                        <div class="mb-2 flex items-baseline justify-between gap-3">
-                            <span class="text-sm font-semibold text-gray-800">{{ phase.label }}</span>
-                            <span class="text-xs text-gray-500">{{ phase.weight_label }}</span>
-                        </div>
-                        <div class="h-1.5 overflow-hidden rounded-full bg-gray-200">
-                            <div class="h-1.5 rounded-full bg-primary" style="width: {{ phase.weight_percent }}%"></div>
-                        </div>
-                    </div>
+                    <article class="services-phase-card rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+                        {% include "services/_progress_ring.html" with ring_percent=phase.weight_percent ring_tone=phase.key ring_size="lg" ring_label=phase.ring_label %}
+                        <p class="mt-4 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-gray-500">
+                            Phase {{ forloop.counter|stringformat:"02d" }}
+                        </p>
+                        <h3 class="mt-1 text-lg font-bold text-gray-950">{{ phase.label }}</h3>
+                        {% if phase.weight_label %}
+                            <p class="mt-1 text-xs leading-5 text-gray-600">{{ phase.weight_label }}</p>
+                        {% endif %}
+                    </article>
                 {% endfor %}
             </div>
+
+            <p class="mt-5 text-xs leading-5 text-gray-500">
+                The three weights total {{ workflow_weight_total }}% of overall progress and are maintained by the
+                Extension Office. When a project needs no MOA, that share is redistributed across Proposal and
+                Implementation.
+            </p>
         </div>
     </section>
     {% endif %}
@@ -245,30 +252,39 @@
             <div class="services-section__intro">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Status tracking</p>
                 <h2 class="mt-2 text-3xl font-bold text-gray-950">Proposal progress</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">Progress updates as work moves through each phase.</p>
+                <p class="mt-3 text-sm leading-6 text-gray-600">
+                    The large ring is the phase's share of overall progress; the small rings track how far each
+                    status has moved that phase forward.
+                </p>
             </div>
 
-            <div class="mt-7 grid gap-5 lg:grid-cols-3">
+            <div class="mt-7 nx-auto-grid nx-auto-grid--lg">
                 {% for phase in workflow_phases %}
-                    <article class="services-status-card rounded-lg border bg-white p-5">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">{{ phase.weight }}</p>
-                            <h3 class="mt-2 text-xl font-bold text-gray-950">{{ phase.label }}</h3>
+                    <article class="services-status-card rounded-xl border bg-white p-5">
+                        <div class="flex items-start gap-5">
+                            {% include "services/_progress_ring.html" with ring_percent=phase.weight_percent ring_tone=phase.key ring_size="md" ring_label=phase.ring_label %}
+                            <div class="min-w-0">
+                                <p class="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-gray-500">
+                                    Phase {{ forloop.counter|stringformat:"02d" }}
+                                </p>
+                                <h3 class="mt-1 text-xl font-bold text-gray-950">{{ phase.label }}</h3>
+                                {% if phase.summary %}
+                                    <p class="mt-1 text-xs leading-5 text-gray-500">{{ phase.summary|truncatewords:14 }}</p>
+                                {% endif %}
+                            </div>
                         </div>
 
-                        <div class="mt-5 space-y-3">
+                        <ol class="mt-5 space-y-2 border-t border-gray-100 pt-4">
                             {% for status in phase.statuses %}
-                                <div>
-                                    <div class="mb-1 flex items-center justify-between gap-3">
-                                        <span class="text-xs font-semibold leading-5 text-gray-700">{{ status.label }}</span>
-                                        <span class="text-xs text-gray-500">{{ status.progress }}%</span>
-                                    </div>
-                                    <div class="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                                        <div class="services-status-bar h-1.5 rounded-full bg-primary" style="width: {{ status.progress }}%"></div>
-                                    </div>
-                                </div>
+                                <li class="flex items-center gap-3">
+                                    {% include "services/_progress_ring.html" with ring_percent=status.progress ring_tone=phase.key ring_size="sm" %}
+                                    <span class="min-w-0 flex-1 text-xs font-semibold leading-5 text-gray-700">{{ status.label }}</span>
+                                    <span class="text-xs font-bold tabular-nums text-gray-900">{{ status.progress }}%</span>
+                                </li>
+                            {% empty %}
+                                <li class="text-xs text-gray-500">No statuses are configured for this phase.</li>
                             {% endfor %}
-                        </div>
+                        </ol>
                     </article>
                 {% endfor %}
             </div>

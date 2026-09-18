@@ -145,6 +145,25 @@ headings are measured. `.nx-dash__inner` (dashboards) and `.nexus-wizard-layout`
 dashboard, the admin CRUD screens, the auth screens and the wizard, and fails
 if one regresses to a capped container or stops linking the stylesheet.
 
+### Progress rings
+
+Phase percentages are drawn as rings rather than bars. The component lives in
+`static/css/nexus-ui.css` (`.nx-ring`) and its markup in
+`proposals/templates/services/_progress_ring.html`:
+
+| Include variable | What it does |
+|---|---|
+| `ring_percent` | 0-100, drawn as the filled arc. The circle carries `pathLength="100"`, so the dasharray is written in percent units and no circumference maths leaks into templates. |
+| `ring_tone` | `proposal` / `moa` / `implementation` — green, maroon and gold, the same bands the dashboard gauges use. |
+| `ring_size` | `lg` / `md` / `sm`. `sm` hides the figure inside the ring because the percentage is printed beside it. |
+| `ring_label` | Optional accessible name. When it is set the ring is announced as an image and the figure inside it stays out of the accessibility tree, so the number is never read twice. |
+
+The numbers come from `details.models.WorkflowPhase.weight_percent` (admin →
+Services page → Workflow Phases), which is also what `Proposal.overall_progress`
+weights by — one source of truth, so the published rings and the dashboard
+percentages cannot drift apart. A proposal that needs no MOA has that phase's
+share redistributed across Proposal and Implementation.
+
 ## Logging
 
 `conf/settings.py` configures console logging. Use a module logger rather than

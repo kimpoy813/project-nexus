@@ -17,6 +17,7 @@ from django.urls import reverse
 
 from accounts.models import Campus, College, Department, Profile
 from accounts.tests import factories
+from details.models import WorkflowPhase
 
 from .models import Proposal
 
@@ -25,7 +26,11 @@ User = get_user_model()
 
 
 class ProposalProgressTests(TestCase):
-    """``overall_progress`` weights the three phases differently."""
+    """``overall_progress`` weights the three phases differently.
+
+    The weights are the admin-editable ``WorkflowPhase`` rows that the Services
+    page draws as rings, so editing them there changes these numbers too.
+    """
 
     def setUp(self):
         self.user = factories.make_user("prop_owner", Profile.ROLE_FACULTY)
@@ -42,22 +47,50 @@ class ProposalProgressTests(TestCase):
                 proposal.proposal_status = status
                 self.assertEqual(proposal.proposal_progress, expected)
 
-    def test_progress_is_split_50_50_when_no_moa_is_required(self):
-        proposal = Proposal.objects.create(created_by=self.user, requires_moa=False)
-        proposal.proposal_status = Proposal.ProposalStatus.COMPLETED
-        proposal.implementation_status = Proposal.ImplementationStatus.NOT_STARTED
-
-        # 100 * 0.50 + 0 * 0.50
-        self.assertEqual(proposal.overall_progress, 50)
-
-    def test_progress_is_split_40_20_40_when_an_moa_is_required(self):
+    def test_progress_is_split_50_20_30_when_an_moa_is_required(self):
         proposal = Proposal.objects.create(created_by=self.user, requires_moa=True)
         proposal.proposal_status = Proposal.ProposalStatus.COMPLETED
         proposal.moa_status = Proposal.MOAStatus.NOT_STARTED
         proposal.implementation_status = Proposal.ImplementationStatus.NOT_STARTED
 
-        # 100 * 0.40 + 0 * 0.20 + 0 * 0.40
-        self.assertEqual(proposal.overall_progress, 40)
+        # 100 * 0.50 + 0 * 0.20 + 0 * 0.30
+        self.assertEqual(proposal.overall_progress, 50)
+
+    def test_the_moa_share_is_redistributed_when_no_moa_is_required(self):
+        proposal = Proposal.objects.create(created_by=self.user, requires_moa=False)
+        proposal.proposal_status = Proposal.ProposalStatus.COMPLETED
+        proposal.implementation_status = Proposal.ImplementationStatus.NOT_STARTED
+
+        # Without an MOA its 20% is spread across the other two phases in
+        # proportion to their weights: 50 / (50 + 30) = 62.5%, halves up.
+        self.assertEqual(proposal.overall_progress, 63)
+
+    def test_the_published_phase_weights_drive_the_calculation(self):
+        """One source of truth: the Services rings and this number agree."""
+        phase = WorkflowPhase.objects.get(key=WorkflowPhase.Key.PROPOSAL)
+        phase.weight_percent = 80
+        phase.save()
+
+        proposal = Proposal.objects.create(created_by=self.user, requires_moa=True)
+        proposal.proposal_status = Proposal.ProposalStatus.COMPLETED
+        proposal.moa_status = Proposal.MOAStatus.NOT_STARTED
+        proposal.implementation_status = Proposal.ImplementationStatus.NOT_STARTED
+
+        # 80 / (80 + 20 + 30) = 0.615... -> 62
+        self.assertEqual(proposal.overall_progress, 62)
+
+    def test_hiding_a_phase_card_does_not_change_the_maths(self):
+        """Visibility is presentation only; the weights still apply."""
+        phase = WorkflowPhase.objects.get(key=WorkflowPhase.Key.MOA)
+        phase.is_visible = False
+        phase.save()
+
+        proposal = Proposal.objects.create(created_by=self.user, requires_moa=True)
+        proposal.proposal_status = Proposal.ProposalStatus.COMPLETED
+        proposal.moa_status = Proposal.MOAStatus.NOT_STARTED
+        proposal.implementation_status = Proposal.ImplementationStatus.NOT_STARTED
+
+        self.assertEqual(proposal.overall_progress, 50)
 
     def test_a_fully_completed_proposal_reaches_100_percent(self):
         proposal = Proposal.objects.create(created_by=self.user, requires_moa=True)

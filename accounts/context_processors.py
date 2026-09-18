@@ -48,7 +48,27 @@ def site_configuration(request):
         "role_capabilities": capabilities,
         "can_submit_accomplishment": can_submit_accomplishment,
         "can_view_accomplishment": can_view_accomplishment,
+        "workflow_phase_shares": _workflow_phase_shares(),
     }
+
+
+def _workflow_phase_shares():
+    """Phase weights as fractions, for the dashboard progress gauges.
+
+    The gauges colour-band the arc by phase, so their boundaries have to come
+    from the same admin-editable ``WorkflowPhase`` rows that drive
+    ``Proposal.overall_progress`` - otherwise the colours would stop matching
+    the percentage underneath them.
+    """
+    from details.models import WorkflowPhase
+
+    try:
+        return WorkflowPhase.phase_shares()
+    except Exception:
+        logger.exception("Failed to load workflow phase shares; using defaults.")
+        defaults = WorkflowPhase.DEFAULT_WEIGHTS
+        total = sum(defaults.values())
+        return {key: value / total for key, value in defaults.items()}
 
 
 def _resolve_capabilities(request):
