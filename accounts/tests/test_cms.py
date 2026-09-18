@@ -52,7 +52,11 @@ class SeedDataTests(TestCase):
 
     def test_workflow_phases_are_seeded_with_their_weights(self):
         weights = dict(WorkflowPhase.objects.values_list("key", "weight_percent"))
-        self.assertEqual(weights, {"proposal": 40, "moa": 20, "implementation": 40})
+        self.assertEqual(weights, {"proposal": 50, "moa": 20, "implementation": 30})
+
+    def test_the_seeded_weights_add_up_to_a_whole(self):
+        """The rings on the Services page are shares of one 100% total."""
+        self.assertEqual(sum(WorkflowPhase.weight_map().values()), 100)
 
 
 class PublicPageTests(TestCase):
@@ -363,14 +367,28 @@ class WorkflowPhaseTests(TestCase):
 
         self.assertContains(self.client.get("/proposals/"), "PHASE-LABEL-MARKER")
 
-    def test_the_progress_weight_drives_the_bar_width(self):
+    def test_the_progress_weight_drives_the_ring(self):
         phase = WorkflowPhase.objects.get(key="proposal")
         self.client_admin.post(
             reverse("workflow_phases_manager"),
             self._payload(**{f"phase_{phase.id}_weight_percent": "55"}),
         )
 
-        self.assertContains(self.client.get("/proposals/"), "width: 55%")
+        self.assertContains(self.client.get("/proposals/"), "--nx-ring-pct: 55")
+
+    def test_the_services_page_represents_weights_as_rings(self):
+        """Regression guard: the phase percentages used to be flat bars."""
+        response = self.client.get("/proposals/")
+
+        for phase in WorkflowPhase.objects.order_by("order"):
+            with self.subTest(phase=phase.key):
+                self.assertContains(
+                    response,
+                    f'aria-label="{phase.label}: {phase.weight_percent}% of overall progress"',
+                )
+
+        self.assertNotContains(response, "services-status-bar")
+        self.assertContains(response, "total 100% of overall progress")
 
     def test_an_out_of_range_weight_is_clamped(self):
         phase = WorkflowPhase.objects.get(key="proposal")

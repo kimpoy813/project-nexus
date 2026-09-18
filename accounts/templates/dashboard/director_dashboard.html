@@ -1044,7 +1044,7 @@ function createDoughnutGauge(canvas,pct){
     ctx.clearRect(0,0,w,h);
     const cx=w/2,cy=h/2,r=Math.min(w,h)/2-8,lw=12;
     const sA=(-234*Math.PI)/180,tA=(288*Math.PI)/180,eA=sA+tA;
-    const proposalW=0.40,moaW=0.20,implW=0.40;const z1=sA+tA*proposalW,z2=sA+tA*(proposalW+moaW);
+    const sh=nexusPhaseShares();const z1=sA+tA*sh.proposal,z2=sA+tA*(sh.proposal+sh.moa);
     const pE=sA+tA*(Math.max(0,Math.min(pct,100))/100);
     ctx.lineCap='butt';
     // three color zones

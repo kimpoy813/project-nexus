@@ -100,3 +100,44 @@ class WorkflowPhaseModelTests(TestCase):
         keys = list(WorkflowPhase.ordered_visible().values_list("key", flat=True))
         self.assertNotIn("moa", keys)
         self.assertIn("proposal", keys)
+
+    def test_weight_map_follows_an_edit_immediately(self):
+        """Uncached on purpose: the rings and the maths read the same rows."""
+        self.assertEqual(WorkflowPhase.weight_map()["proposal"], 50)
+
+        phase = WorkflowPhase.objects.get(key="proposal")
+        phase.weight_percent = 65
+        phase.save()
+
+        self.assertEqual(WorkflowPhase.weight_map()["proposal"], 65)
+
+    def test_a_hidden_phase_still_counts_towards_the_shares(self):
+        """Visibility is presentation only; it must not change progress maths."""
+        phase = WorkflowPhase.objects.get(key="moa")
+        phase.is_visible = False
+        phase.save()
+
+        self.assertEqual(WorkflowPhase.phase_shares()["moa"], 0.2)
+
+    def test_shares_always_sum_to_one(self):
+        for include_moa in (True, False):
+            with self.subTest(include_moa=include_moa):
+                self.assertAlmostEqual(
+                    sum(WorkflowPhase.phase_shares(include_moa=include_moa).values()),
+                    1.0,
+                )
+
+    def test_the_moa_share_is_dropped_when_it_is_not_required(self):
+        shares = WorkflowPhase.phase_shares(include_moa=False)
+
+        self.assertEqual(shares["moa"], 0)
+        # 50 / (50 + 30) and 30 / (50 + 30)
+        self.assertAlmostEqual(shares["proposal"], 0.625)
+        self.assertAlmostEqual(shares["implementation"], 0.375)
+
+    def test_zeroed_weights_fall_back_to_an_even_split(self):
+        WorkflowPhase.objects.update(weight_percent=0)
+
+        shares = WorkflowPhase.phase_shares()
+        self.assertAlmostEqual(sum(shares.values()), 1.0)
+        self.assertAlmostEqual(shares["proposal"], 1 / 3)

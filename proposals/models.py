@@ -1,4 +1,5 @@
 from datetime import timedelta
+import math
 import uuid
 
 from django.apps import apps
@@ -8,6 +9,16 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
+
+
+def _round_half_up(value):
+    """Round to the nearest whole percent with halves going up.
+
+    Python's ``round()`` uses banker's rounding, so a redistributed weight such
+    as 62.5% would display as 62% and look like it disagrees with the published
+    phase weights.
+    """
+    return int(math.floor(value + 0.5))
 
 
 class Proposal(models.Model):
@@ -524,6 +535,24 @@ class Proposal(models.Model):
     def implementation_progress(self):
         return self.IMPLEMENTATION_PROGRESS_MAP.get(self.implementation_status, 0)
 
+    def phase_shares(self):
+        """Shares of overall progress as (proposal, MOA, implementation) fractions.
+
+        Reads the admin-editable ``WorkflowPhase`` weights - the same numbers
+        drawn as rings on the public Services page - so the published split and
+        this calculation can never disagree. The three always sum to 1.0.
+        """
+        # Imported lazily: details is a sibling app and this property is also
+        # exercised during migrations, when the app registry is partly built.
+        from details.models import WorkflowPhase
+
+        shares = WorkflowPhase.phase_shares(include_moa=bool(self.requires_moa))
+        return (
+            shares[WorkflowPhase.Key.PROPOSAL],
+            shares[WorkflowPhase.Key.MOA],
+            shares[WorkflowPhase.Key.IMPLEMENTATION],
+        )
+
     @property
     def overall_progress(self):
         if self.status == self.OverallStatus.COMPLETED:
@@ -531,17 +560,13 @@ class Proposal(models.Model):
         if self.status in {self.OverallStatus.REJECTED, self.OverallStatus.CANCELLED}:
             return 0
 
-        if self.requires_moa:
-            return round(
-                (self.proposal_progress * 0.40)
-                + (self.moa_progress * 0.20)
-                + (self.implementation_progress * 0.40)
-            )
-
-        return round(
-            (self.proposal_progress * 0.50)
-            + (self.implementation_progress * 0.50)
+        proposal_share, moa_share, implementation_share = self.phase_shares()
+        weighted = (
+            (self.proposal_progress * proposal_share)
+            + (self.moa_progress * moa_share)
+            + (self.implementation_progress * implementation_share)
         )
+        return min(100, max(0, _round_half_up(weighted)))
 
     @property
     def current_phase_label(self):

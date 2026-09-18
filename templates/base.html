@@ -37,6 +37,15 @@
     </style>
     {% endif %}
 
+    {% comment %}
+        Phase weights (Proposal / MOA / Implementation) as fractions of overall
+        progress, emitted from the admin-editable WorkflowPhase rows. The
+        dashboard gauges colour-band their arcs with this so the zone boundaries
+        always match Proposal.overall_progress. Read by nexusPhaseShares() in
+        js/nexus-theme.js.
+    {% endcomment %}
+    {{ workflow_phase_shares|json_script:"nexus-phase-shares" }}
+
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>

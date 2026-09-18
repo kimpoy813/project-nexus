@@ -53,16 +53,19 @@ def services_home(request):
     }
 
     workflow_phases = []
+    weight_total = 0
     for phase in WorkflowPhase.ordered_visible():
         choices_map = status_flows.get(phase.key)
+        weight_total += phase.weight_percent
         workflow_phases.append({
             "key": phase.key,
             "label": phase.label,
             "summary": phase.summary,
             "weight_label": phase.weight_label,
             "weight_percent": phase.weight_percent,
-            # Legacy alias so older markup keeps working.
-            "weight": phase.weight_label,
+            # The ring is announced as an image; the figure drawn inside it is
+            # decorative, so the number is never read out twice.
+            "ring_label": f"{phase.label}: {phase.weight_percent}% of overall progress",
             "statuses": _build_status_flow(*choices_map) if choices_map else [],
         })
 
@@ -71,6 +74,7 @@ def services_home(request):
         "thrusts": thrusts,
         "process_records": process_records,
         "workflow_phases": workflow_phases,
+        "workflow_weight_total": weight_total,
         "wizard_steps": STEP_LABELS,
         "total_wizard_steps": TOTAL_STEPS,
         "office_templates": office_templates,

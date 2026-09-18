@@ -442,11 +442,10 @@ function createDoughnutGauge(canvas, percentage) {
     const totalAngle = (288 * Math.PI) / 180;
     const endAngle = startAngle + totalAngle;
 
-    const proposalWeight = 0.40;
-    const moaWeight = 0.20;
+    const shares = nexusPhaseShares();
 
-    const zone1End = startAngle + totalAngle * proposalWeight;
-    const zone2End = startAngle + totalAngle * (proposalWeight + moaWeight);
+    const zone1End = startAngle + totalAngle * shares.proposal;
+    const zone2End = startAngle + totalAngle * (shares.proposal + shares.moa);
     const progressEnd = startAngle + totalAngle * (Math.max(0, Math.min(percentage, 100)) / 100);
 
     ctx.lineCap = 'butt';

@@ -119,6 +119,7 @@ body.services-page-body .nexus-footer {
 
 .services-page .services-process-card,
 .services-page .services-info-card,
+.services-page .services-phase-card,
 .services-page .services-status-card {
   border-color: rgba(15, 23, 42, .10) !important;
   box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
@@ -130,10 +131,6 @@ body.services-page-body .nexus-footer {
 
 .services-page .services-wizard-card {
   min-height: 4rem;
-}
-
-.services-page .services-status-card .services-status-bar {
-  background: var(--nexus-primary) !important;
 }
 
 @media (max-width: 640px) {
