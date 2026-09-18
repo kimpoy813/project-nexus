@@ -20,6 +20,7 @@ from details.models import DynamicFormField
 from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
+from details.proponent_fields import PROPONENT_STEP_NO, ensure_proponent_repeater_form
 from ..decorators import admin_required
 from ..forms import DocumentTemplateForm
 from ..storage_diagnostics import describe_storage_exception
@@ -112,7 +113,7 @@ def _seed_default_fields():
 
     for step_no, fields in default_fields_map.items():
         form_name = f"Fields for Step {step_no}"
-        form_obj, _ = DynamicFormTemplate.objects.get_or_create(
+        form_obj, created = DynamicFormTemplate.objects.get_or_create(
             proposal_wizard_step=step_no,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
             defaults={
@@ -122,7 +123,13 @@ def _seed_default_fields():
                 "blocks_proposal_submission": True,
             }
         )
-        
+
+        # A form the office already built or edited on this step is left alone:
+        # the defaults exist to give a fresh step a usable shape, not to add
+        # surprise fields to a custom one (including a repeatable group).
+        if not created and form_obj.fields.exists():
+            continue
+
         for idx, f in enumerate(fields):
             DynamicFormField.objects.get_or_create(
                 form=form_obj,
@@ -330,6 +337,38 @@ def _unique_dynamic_form_slug(name, existing=None):
     return candidate
 
 
+def _save_repeater_settings(form_obj, post_data):
+    """Read the "repeatable group" panel of the form builder.
+
+    Kept separate from the field rows because it describes the *group*, not its
+    fields. ``maps_to`` only means something for a proponent-storing group, so
+    switching the group to free-standing rows clears any stale mapping rather
+    than leaving fields pointing at a record that no longer receives them.
+    """
+    form_obj.is_repeater = post_data.get("is_repeater") == "on"
+    form_obj.repeater_label = (post_data.get("repeater_label") or "").strip()[:80]
+
+    minimum = _safe_int(post_data.get("repeater_min_rows"), 0) or 0
+    maximum = _safe_int(post_data.get("repeater_max_rows"), 0) or 0
+    minimum = max(0, minimum)
+    maximum = max(0, maximum)
+    if maximum and minimum > maximum:
+        # A window that cannot be satisfied is a typo, not a request: keep the
+        # cap the admin typed and pull the floor down to it.
+        minimum = maximum
+    form_obj.repeater_min_rows = minimum
+    form_obj.repeater_max_rows = maximum
+
+    allowed_stores = {choice[0] for choice in DynamicFormTemplate.RowStore.choices}
+    row_store = (post_data.get("row_store") or "").strip()
+    form_obj.row_store = row_store if row_store in allowed_stores else DynamicFormTemplate.RowStore.GENERIC
+
+    if not form_obj.is_repeater or form_obj.row_store != DynamicFormTemplate.RowStore.PROPONENT:
+        form_obj.fields.update(maps_to="")
+
+    form_obj.save()
+
+
 def _save_dynamic_form_fields(form_obj, post_data):
     field_ids = post_data.getlist("field_id[]")
     labels = post_data.getlist("field_label[]")
@@ -341,11 +380,12 @@ def _save_dynamic_form_fields(form_obj, post_data):
     choices_list = post_data.getlist("field_choices[]")
     depends_on_keys = post_data.getlist("field_depends_on_key[]")
     depends_on_values = post_data.getlist("field_depends_on_value[]")
+    maps_to_values = post_data.getlist("field_maps_to[]")
 
     max_len = max(
         len(field_ids), len(labels), len(keys), len(types),
         len(placeholders), len(help_texts), len(choices_list),
-        len(depends_on_keys), len(depends_on_values), 0,
+        len(depends_on_keys), len(depends_on_values), len(maps_to_values), 0,
     )
 
     def at(values, index, default=""):
@@ -353,6 +393,11 @@ def _save_dynamic_form_fields(form_obj, post_data):
 
     kept_ids = []
     allowed_types = {choice[0] for choice in DynamicFormField.FieldType.choices}
+    allowed_maps = {choice[0] for choice in DynamicFormField.MapsTo.choices}
+    # Only a proponent-storing group has record columns to map onto, and each
+    # column can only come from one field (the first field asking for it wins).
+    maps_enabled = form_obj.is_repeater and form_obj.row_store == DynamicFormTemplate.RowStore.PROPONENT
+    taken_maps = set()
 
     for idx in range(max_len):
         label = (at(labels, idx) or "").strip()
@@ -381,12 +426,24 @@ def _save_dynamic_form_fields(form_obj, post_data):
         obj.label = label
         obj.field_key = field_key
         obj.field_type = field_type
-        obj.required = (field_id and field_id in required_indexes) or (not field_id and f"new_{idx}" in required_indexes)
+        # Saved rows carry their field id; rows built in the browser ("new")
+        # have none yet, so their required switch is matched by marker.
+        obj.required = bool(field_id and field_id in required_indexes) or (
+            not field_id and ("new" in required_indexes or f"new_{idx}" in required_indexes)
+        )
         obj.placeholder = (at(placeholders, idx) or "").strip()
         obj.help_text = (at(help_texts, idx) or "").strip()
         obj.choices_text = (at(choices_list, idx) or "").strip()
         obj.depends_on_key = (at(depends_on_keys, idx) or "").strip()
         obj.depends_on_value = (at(depends_on_values, idx) or "").strip()
+
+        maps_to = (at(maps_to_values, idx) or "").strip()
+        if not maps_enabled or maps_to not in allowed_maps or maps_to in taken_maps:
+            maps_to = ""
+        if maps_to:
+            taken_maps.add(maps_to)
+        obj.maps_to = maps_to
+
         obj.order = idx + 1
         obj.save()
         kept_ids.append(obj.id)
@@ -412,6 +469,7 @@ def dynamic_form_create(request):
                 instructions=(request.POST.get("instructions") or "").strip(),
                 is_active=request.POST.get("is_active") == "on",
             )
+            _save_repeater_settings(form_obj, request.POST)
             _save_dynamic_form_fields(form_obj, request.POST)
             messages.success(request, f'Form "{name}" created successfully.')
             return redirect("dynamic_forms_list")
@@ -419,11 +477,10 @@ def dynamic_form_create(request):
     return render(
         request,
         "dashboard/admin/dynamic_form_builder.html",
-        {
-            "mode": "create",
-            "applies_to_choices": DynamicFormTemplate.AppliesTo.choices,
-            "field_type_choices": DynamicFormField.FieldType.choices,
-        },
+        _builder_context(
+            mode="create",
+            applies_to_choices=DynamicFormTemplate.AppliesTo.choices,
+        ),
     )
 
 
@@ -443,6 +500,7 @@ def dynamic_form_edit(request, pk):
         form_obj.instructions = (request.POST.get("instructions") or "").strip()
         form_obj.is_active = request.POST.get("is_active") == "on"
         form_obj.save()
+        _save_repeater_settings(form_obj, request.POST)
         _save_dynamic_form_fields(form_obj, request.POST)
         messages.success(request, f'Form "{form_obj.name}" updated successfully.')
         return redirect("dynamic_forms_list")
@@ -450,12 +508,11 @@ def dynamic_form_edit(request, pk):
     return render(
         request,
         "dashboard/admin/dynamic_form_builder.html",
-        {
-            "mode": "edit",
-            "form_obj": form_obj,
-            "applies_to_choices": DynamicFormTemplate.AppliesTo.choices,
-            "field_type_choices": DynamicFormField.FieldType.choices,
-        },
+        _builder_context(
+            form_obj,
+            mode="edit",
+            applies_to_choices=DynamicFormTemplate.AppliesTo.choices,
+        ),
     )
 
 
@@ -478,16 +535,36 @@ def wizard_steps_manager(request):
     return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
 
 
+def _builder_context(form_obj=None, **extra):
+    """Template context shared by the wizard step editor and the form builder.
+
+    Both screens render the same field rows and the same "repeatable group"
+    panel, so the choices they need are assembled in one place.
+    """
+    ctx = {
+        "form_obj": form_obj,
+        "field_type_choices": DynamicFormField.FieldType.choices,
+        "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
+        "proponent_map_choices": DynamicFormField.MapsTo.choices,
+    }
+    ctx.update(extra)
+    return ctx
+
+
 @login_required
 @admin_required
 def wizard_step_edit(request, step_no):
     _sync_default_wizard_step_configs()
     step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
 
-    form_obj = DynamicFormTemplate.objects.filter(
-        proposal_wizard_step=step_no,
-        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-    ).first()
+    form_obj = (
+        DynamicFormTemplate.objects.filter(
+            proposal_wizard_step=step_no,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+        )
+        .order_by("id")
+        .first()
+    )
     if not form_obj:
         name = f"Fields for Step {step_no}: {step_config.title}"
         slug = _unique_dynamic_form_slug(name)
@@ -499,6 +576,14 @@ def wizard_step_edit(request, step_no):
             is_active=True,
             blocks_proposal_submission=True,
         )
+
+    if step_no == PROPONENT_STEP_NO:
+        # Show the office's default proponent fields instead of an empty
+        # builder. Seeding only fills a form with no fields, so an admin's own
+        # layout is never overwritten.
+        seeded = ensure_proponent_repeater_form(step_no)
+        if seeded is not None:
+            form_obj = seeded
 
     if request.method == "POST":
         step_config.title = (request.POST.get("title") or step_config.title).strip()
@@ -512,6 +597,7 @@ def wizard_step_edit(request, step_no):
         form_obj.name = f"Fields for Step {step_no}: {step_config.title}"
         form_obj.save(update_fields=["name"])
 
+        _save_repeater_settings(form_obj, request.POST)
         _save_dynamic_form_fields(form_obj, request.POST)
 
         messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
@@ -520,11 +606,7 @@ def wizard_step_edit(request, step_no):
     return render(
         request,
         "dashboard/admin/wizard_step_form.html",
-        {
-            "step_config": step_config,
-            "form_obj": form_obj,
-            "field_type_choices": DynamicFormField.FieldType.choices,
-        },
+        _builder_context(form_obj, step_config=step_config),
     )
 
 
@@ -571,6 +653,7 @@ def wizard_step_create(request):
                 is_active=True,
                 blocks_proposal_submission=True,
             )
+            _save_repeater_settings(form_obj, request.POST)
             _save_dynamic_form_fields(form_obj, request.POST)
 
             messages.success(request, f"Wizard Step {step_no} and its fields created successfully.")
@@ -579,10 +662,7 @@ def wizard_step_create(request):
     return render(
         request,
         "dashboard/admin/wizard_step_create_form.html",
-        {
-            "next_step_no": next_step_no,
-            "field_type_choices": DynamicFormField.FieldType.choices,
-        },
+        _builder_context(next_step_no=next_step_no),
     )
 
 

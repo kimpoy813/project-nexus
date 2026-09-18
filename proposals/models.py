@@ -1199,8 +1199,15 @@ class ProposalProponent(models.Model):
     role = models.CharField(max_length=120, blank=True, default="")
     cp_number = models.CharField(max_length=50, blank=True, default="")
     email = models.EmailField(blank=True, default="")
+    #: Manual position in the proponent list. The admin can reorder rows on the
+    #: wizard step, and the generated documents print proponents in this order.
+    sort_order = models.PositiveIntegerField(default=0)
+    #: Values of admin-built repeater fields that are not mapped onto one of the
+    #: columns above, keyed by ``DynamicFormField.field_key``.
+    extra_fields = models.JSONField(default=dict, blank=True)
 
     class Meta:
+        ordering = ["sort_order", "id"]
         constraints = [
             models.UniqueConstraint(
                 fields=["proposal", "user"],

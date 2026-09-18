@@ -2,7 +2,6 @@
 MOA drafting wizard, tracker, and uploads.
 """
 
-from urllib3 import request
 import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required

@@ -82,6 +82,14 @@ class _DynamicStepLabels:
 
 
 class _DynamicTotalSteps:
+    """Number of wizard steps, read from the admin's step table.
+
+    Behaves like an int in comparisons (see the rich-comparison methods below),
+    which is why it needs ``__hash__``: Python drops the inherited one as soon
+    as ``__eq__`` is defined, and ``min(step, TOTAL_STEPS)`` can hand this
+    object back - it then blew up as a dict key in the wizard view.
+    """
+
     def __int__(self):
         try:
             from details.models import ProposalWizardStepConfig
@@ -92,6 +100,9 @@ class _DynamicTotalSteps:
 
     def __index__(self):
         return int(self)
+
+    def __hash__(self):
+        return hash(int(self))
 
     def __str__(self):
         return str(int(self))

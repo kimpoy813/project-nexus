@@ -154,7 +154,16 @@ class DocumentTemplate(models.Model):
 
 
 class DynamicFormTemplate(models.Model):
-    """Admin-defined form blueprint for office checklists/intake forms."""
+    """Admin-defined form blueprint for office checklists/intake forms.
+
+    A form can either be a *single set* of inputs (the original behaviour) or a
+    *repeater*: one card per row, with an "add another" button, so the same
+    group of fields can be filled in several times. The proposal wizard's Step
+    3 (Proponents) is the canonical repeater: each row is one proponent, and
+    rows are stored on the proposal itself (see ``RowStore``) so the generated
+    documents, review screens, and dashboards keep reading the same data they
+    always have.
+    """
 
     class AppliesTo(models.TextChoices):
         PROPOSAL = "PROPOSAL", "Proposal"
@@ -162,6 +171,19 @@ class DynamicFormTemplate(models.Model):
         IMPLEMENTATION = "IMPLEMENTATION", "Implementation"
         EVALUATION = "EVALUATION", "Evaluation"
         GENERAL = "GENERAL", "General"
+
+    class RowStore(models.TextChoices):
+        """Where a repeater's rows live.
+
+        ``PROPONENT`` rows are the proposal's ``ProposalProponent`` records:
+        fields can be mapped onto real columns (name, designation, role, ...)
+        so every existing reader of the proponent list keeps working, and an
+        account picked in the "add proponent" search becomes the row's user.
+        ``GENERIC`` rows only ever exist inside the form itself.
+        """
+
+        GENERIC = "GENERIC", "Saved with this form (free-standing rows)"
+        PROPONENT = "PROPONENT", "Proponents of the proposal (Step 3)"
 
     name = models.CharField(max_length=180)
     slug = models.SlugField(max_length=200, unique=True)
@@ -178,6 +200,36 @@ class DynamicFormTemplate(models.Model):
     description = models.TextField(blank=True, default="")
     instructions = models.TextField(blank=True, default="")
     is_active = models.BooleanField(default=True)
+    is_repeater = models.BooleanField(
+        default=False,
+        help_text=(
+            "Repeatable group: the fields below are shown once per row and the "
+            "proponent can add as many rows as they need."
+        ),
+    )
+    repeater_label = models.CharField(
+        max_length=80,
+        blank=True,
+        default="",
+        help_text='Name of one row, e.g. "Proponent". Used in buttons and messages.',
+    )
+    repeater_min_rows = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Rows the proponent must fill in before the step can be completed.",
+    )
+    repeater_max_rows = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Maximum number of rows. 0 = no limit.",
+    )
+    row_store = models.CharField(
+        max_length=20,
+        choices=RowStore.choices,
+        default=RowStore.GENERIC,
+        help_text=(
+            "Only used for repeatable groups: store each row as a free-standing "
+            "row, or as one of the proposal's proponents."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -186,6 +238,21 @@ class DynamicFormTemplate(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def row_label(self):
+        """Human name for one row, used in buttons and validation messages."""
+        return (self.repeater_label or "").strip() or "Entry"
+
+    @property
+    def is_proponent_repeater(self):
+        """True when this repeater writes into the proposal's proponent list."""
+        return bool(self.is_repeater and self.row_store == self.RowStore.PROPONENT)
+
+    @property
+    def max_rows(self):
+        """Row cap as ``None`` (unlimited) or a positive integer."""
+        return self.repeater_max_rows or None
 
 
 class DynamicFormField(models.Model):
@@ -201,6 +268,21 @@ class DynamicFormField(models.Model):
         CHECKBOX = "CHECKBOX", "Checkbox"
         FILE = "FILE", "File Upload"
 
+    class MapsTo(models.TextChoices):
+        """Proponent record columns a repeater field can write into.
+
+        Every other reader of a proponent (the generated DOCX/XLSX forms, the
+        review screens, the dashboards) reads these columns, so mapping is what
+        keeps an admin-built proponent row interchangeable with a built-in one.
+        """
+
+        FULL_NAME = "full_name", "Name"
+        DESIGNATION = "designation", "Position / Designation"
+        SPECIALIZATION = "specialization", "Specialization"
+        ROLE = "role", "Role"
+        CP_NUMBER = "cp_number", "CP Number"
+        EMAIL = "email", "Email"
+
     form = models.ForeignKey(DynamicFormTemplate, related_name="fields", on_delete=models.CASCADE)
     label = models.CharField(max_length=180)
     field_key = models.SlugField(max_length=120)
@@ -209,6 +291,17 @@ class DynamicFormField(models.Model):
     placeholder = models.CharField(max_length=180, blank=True, default="")
     help_text = models.CharField(max_length=255, blank=True, default="")
     choices_text = models.TextField(blank=True, default="", help_text="One dropdown choice per line.")
+    maps_to = models.CharField(
+        max_length=40,
+        choices=MapsTo.choices,
+        blank=True,
+        default="",
+        help_text=(
+            "For repeatable groups that store proponents: which proponent "
+            "record column this field fills in. Blank fields are kept as extra "
+            "details of that proponent."
+        ),
+    )
     depends_on_key = models.CharField(max_length=120, blank=True, default="", help_text="The key of the parent field this field depends on.")
     depends_on_value = models.CharField(max_length=255, blank=True, default="", help_text="The parent field value(s), comma-separated, that make this field visible.")
     order = models.PositiveIntegerField(default=1)
@@ -293,6 +386,32 @@ class DynamicFormAnswer(models.Model):
     @property
     def has_value(self):
         return bool((self.value or "").strip() or self.file)
+
+
+class DynamicFormRow(models.Model):
+    """One row of a *generic* repeatable group (``RowStore.GENERIC``).
+
+    Values are keyed by ``DynamicFormField.field_key``. Proponent repeaters do
+    not use this model: their rows are ``proposals.ProposalProponent`` records.
+    """
+
+    response = models.ForeignKey(
+        DynamicFormResponse,
+        related_name="rows",
+        on_delete=models.CASCADE,
+    )
+    row_index = models.PositiveIntegerField(default=0)
+    data = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["row_index", "id"]
+
+    def __str__(self):
+        return f"{self.response} - row {self.row_index + 1}"
+
+    def value_for(self, field):
+        return (self.data or {}).get(field.field_key, "")
 
 
 class ProposalWizardStepConfig(models.Model):

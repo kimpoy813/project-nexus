@@ -54,6 +54,24 @@ from .permissions import (  # noqa: F401
     _role_has_capability,
     _user_role_value,
 )
+from .dynamic_answers import (  # noqa: F401
+    _attach_dynamic_forms_to_context,
+    _dynamic_forms_for_proposal_step,
+    _is_dynamic_step_complete,
+    _proposal_dynamic_requirements_missing,
+    _save_dynamic_form_answers,
+    _save_step_repeaters,
+)
+from .proponents import (  # noqa: F401
+    _update_creator_role,
+    save_step_three_proponents,
+)
+from .repeaters import (  # noqa: F401
+    attach_repeater_rows,
+    proponent_repeater_form_for_step,
+    repeater_missing,
+    save_repeater_rows,
+)
 from .wizard import (  # noqa: F401
     build_wizard_steps,
     get_required_wizard_step_numbers,
@@ -72,12 +90,7 @@ from .wizard import (  # noqa: F401
     proposal_wizard,
     title_suggest,
     unmark_step_completed,
-    _attach_dynamic_forms_to_context,
     _build_wizard_context,
-    _dynamic_forms_for_proposal_step,
-    _proposal_dynamic_requirements_missing,
-    _save_dynamic_form_answers,
-    _update_creator_role,
     _wizard_step_config_map,
 )
 from .legacy import (  # noqa: F401
@@ -164,6 +177,7 @@ __all__ = [
     "THRUST_LIST",
     "TOTAL_STEPS",
     "User",
+    "attach_repeater_rows",
     "build_moa_wizard_steps",
     "build_wizard_steps",
     "copy_block",
@@ -216,9 +230,13 @@ __all__ = [
     "proposal_version_summary",
     "proposal_view_summary",
     "proposal_wizard",
+    "proponent_repeater_form_for_step",
+    "repeater_missing",
     "replicate_funding_blocks",
     "replicate_phase_blocks",
     "replicate_table_blocks_only",
+    "save_repeater_rows",
+    "save_step_three_proponents",
     "services_home",
     "set_estimated_row_height",
     "staff_comment_summary_docx",

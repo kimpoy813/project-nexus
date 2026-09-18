@@ -1,0 +1,60 @@
+{% comment %}
+One field inside one repeater row (see _repeater_fields.html).
+
+  cell         {field, value}
+  row          the row dict (saved rows) - absent for the JS template
+  form         the DynamicFormTemplate
+  is_edit_mode False renders read-only controls
+  is_template  True renders the <template> copy, where the row index is the
+               literal __INDEX__ the script replaces
+
+Disabled controls are not submitted, so read-only dropdowns and checkboxes
+carry a hidden mirror of their value - the same approach _dynamic_fields.html
+uses for single-value fields.
+{% endcomment %}
+{% with index=row.index|default:0 field=cell.field value=cell.value %}
+  {% if field.field_type == 'TEXTAREA' %}
+    <textarea rows="3" data-field-key="{{ field.field_key }}"
+              name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
+              placeholder="{{ field.placeholder }}" {% if not is_edit_mode %}readonly{% endif %}
+              class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">{{ value }}</textarea>
+
+  {% elif field.field_type == 'SELECT' %}
+    <select data-field-key="{{ field.field_key }}"
+            name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
+            {% if not is_edit_mode and not is_template %}disabled{% endif %}
+            class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">
+      <option value="">Select...</option>
+      {% for choice in field.parsed_choices %}
+        <option value="{{ choice.value }}" {% if value == choice.value %}selected{% endif %}>{{ choice.label }}</option>
+      {% endfor %}
+    </select>
+    {% if not is_edit_mode and not is_template %}
+      <input type="hidden"
+             name="repeater_{{ form.id }}_row_{{ index }}_field_{{ field.id }}"
+             value="{{ value }}">
+    {% endif %}
+
+  {% elif field.field_type == 'CHECKBOX' %}
+    <label class="relative inline-flex items-center cursor-pointer select-none">
+      <input type="checkbox" class="sr-only peer" data-field-key="{{ field.field_key }}"
+             name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
+             {% if value %}checked{% endif %}
+             {% if not is_edit_mode and not is_template %}disabled{% endif %}>
+      <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+      <span class="ml-3 text-sm font-semibold text-gray-700">Yes</span>
+    </label>
+    {% if not is_edit_mode and not is_template and value %}
+      <input type="hidden"
+             name="repeater_{{ form.id }}_row_{{ index }}_field_{{ field.id }}"
+             value="{{ value }}">
+    {% endif %}
+
+  {% else %}
+    <input type="{{ field.field_type|lower }}" data-field-key="{{ field.field_key }}"
+           name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
+           value="{{ value }}" placeholder="{{ field.placeholder }}"
+           {% if not is_edit_mode and not is_template %}readonly{% endif %}
+           class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">
+  {% endif %}
+{% endwith %}

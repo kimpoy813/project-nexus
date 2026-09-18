@@ -2,7 +2,6 @@
 Public-facing Services page.
 """
 
-from urllib3 import request
 from django.db.models import Prefetch
 from django.shortcuts import render
 from details.models import DocumentTemplate

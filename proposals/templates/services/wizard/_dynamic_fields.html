@@ -9,6 +9,10 @@
   </div>
 
   {% for dyn_form in dynamic_forms %}
+    {% if dyn_form.is_repeater %}
+      {% include "services/wizard/_repeater_fields.html" with form=dyn_form %}
+      {% if not forloop.last %}<div class="h-1"></div>{% endif %}
+    {% else %}
     <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
       <div class="mb-4">
         <h4 class="text-sm font-black text-gray-900">{{ dyn_form.name }}</h4>
@@ -77,8 +81,11 @@
         {% endfor %}
       </div>
     </section>
+    {% endif %}
   {% endfor %}
 </div>
+
+{% include "services/wizard/_repeater_script.html" %}
 
 <script>
 (function() {
