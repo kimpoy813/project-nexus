@@ -590,7 +590,7 @@ select.dir-input {
                         </div>
                     </div>
 
-                    <div class="mt-3">
+                    <div class="mt-auto pt-3">
                         <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn block w-full text-center">View Proposal</a>
                     </div>
                     <div class="mt-2 grid grid-cols-2 gap-2">
@@ -634,7 +634,7 @@ select.dir-input {
                         </div>
                         <span class="badge badge-red">For Revision</span>
                     </div>
-                    <div class="mt-3 grid grid-cols-2 gap-2">
+                    <div class="mt-auto pt-3 grid grid-cols-2 gap-2">
                         <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center">View Proposal</a>
                         <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center">View Summary</a>
                     </div>
@@ -679,7 +679,7 @@ select.dir-input {
                         <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</p><p class="mt-0.5 text-xs text-slate-600">{{ proposal.campus|default:"—" }}</p></div>
                         <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Updated</p><p class="mt-0.5 text-xs text-slate-600">{% if proposal.last_saved_at %}{{ proposal.last_saved_at|date:"M d, Y" }}{% else %}—{% endif %}</p></div>
                     </div>
-                    <div class="mt-3 grid grid-cols-2 gap-2">
+                    <div class="mt-auto pt-3 grid grid-cols-2 gap-2">
                         <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center">View Proposal</a>
                         <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center">View Summary</a>
                     </div>
@@ -832,7 +832,7 @@ select.dir-input {
                 </div>
                 
 
-                <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                     <div>
                         <p class="text-[10px] uppercase tracking-wide text-slate-400">{% if item.is_draft %}Last saved{% else %}Submitted{% endif %}</p>
                         <p class="text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</p>
@@ -963,7 +963,7 @@ select.dir-input {
                         </div>
                     </div>
 
-                    <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <div class="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
                         <div>
                             <p class="text-[10px] uppercase tracking-wide text-slate-400">{% if item.is_draft %}Last Saved{% else %}Submitted{% endif %}</p>
                             <p class="text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</p>
