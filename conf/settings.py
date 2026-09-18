@@ -82,6 +82,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "accounts.middleware.SiteControlMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # Must run after MessageMiddleware so failed uploads can return a safe
+    # redirect with a user-facing message instead of an unhandled 500.
+    "accounts.middleware.UploadStorageErrorMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "accounts.middleware.InactiveLogoutMiddleware",
     "axes.middleware.AxesMiddleware",

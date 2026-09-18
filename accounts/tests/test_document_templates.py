@@ -61,11 +61,13 @@ class DocumentTemplateUploadTests(TestCase):
         )
     )
     def test_incomplete_supabase_configuration_shows_an_actionable_error_without_uploading(self):
-        response = self.client.post(reverse("document_template_create"), self._payload())
+        response = self.client.post(
+            reverse("document_template_create"), self._payload(), follow=True
+        )
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "File uploads are not configured yet.")
-        self.assertContains(response, "The template was not uploaded")
+        self.assertContains(response, "Your file was not uploaded because secure file storage")
         self.assertFalse(DocumentTemplate.objects.exists())
 
     def test_storage_outage_is_logged_and_shown_as_a_message_instead_of_a_500(self):
@@ -91,6 +93,7 @@ class DocumentTemplateUploadTests(TestCase):
         response = self.client.post(
             reverse("document_template_edit", args=[template.pk]),
             self._payload(title="Attempted replacement"),
+            follow=True,
         )
 
         self.assertEqual(response.status_code, 200)

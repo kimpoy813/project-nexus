@@ -124,6 +124,12 @@ The project uses `django-storages` with Supabase's S3-compatible API. On Render,
 Environment page before deploying. The Blueprint deliberately leaves that switch unset so
 an incomplete first-time setup cannot send uploads to an empty S3 endpoint and return a 500.
 
+All upload forms (templates, images, reports, proposal files, MOA files, and dynamic-form
+attachments) refuse new files while this setup is incomplete. They return to the form with a
+clear message rather than saving files to an ephemeral service disk. File previews and approval
+downloads also read through the configured storage backend, so they work with both local storage
+and Supabase S3.
+
 ## 4. Static files
 
 Static files are served with WhiteNoise.
