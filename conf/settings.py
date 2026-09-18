@@ -10,6 +10,8 @@ Production-ready configuration notes:
 from pathlib import Path
 import os
 
+from conf.storage_config import build_supabase_storage_config
+
 try:
     import dj_database_url
 except ImportError:  # Allows local tooling to import settings before dependencies are installed.
@@ -210,14 +212,19 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # Local default: filesystem under MEDIA_ROOT.
 # Production option: Supabase Storage using its S3-compatible API.
 # Required env vars when USE_SUPABASE_STORAGE=True:
-# - SUPABASE_STORAGE_BUCKET
-# - SUPABASE_S3_ENDPOINT_URL, e.g. https://PROJECT_REF.supabase.co/storage/v1/s3
+# - SUPABASE_STORAGE_BUCKET                (plain bucket name, e.g. nexus-media)
+# - SUPABASE_S3_ENDPOINT_URL               (https://<project-ref>.supabase.co/storage/v1/s3)
 # - SUPABASE_S3_ACCESS_KEY_ID
 # - SUPABASE_S3_SECRET_ACCESS_KEY
-# Optional:
-# - SUPABASE_S3_REGION_NAME
-# - SUPABASE_STORAGE_PUBLIC_URL, e.g.
-#   https://PROJECT_REF.supabase.co/storage/v1/object/public/BUCKET
+# Strongly recommended:
+# - SUPABASE_S3_REGION_NAME                (copy it from the Supabase S3 settings page)
+# - SUPABASE_STORAGE_PUBLIC_URL            (https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>)
+#
+# The values are validated by conf/storage_config.py.  When something is
+# missing or malformed the remote backend is *not* selected and
+# MEDIA_STORAGE_CONFIGURATION_ERROR explains what to fix, because sending
+# uploads to a half-configured bucket is how files silently disappear.
+# Run `python manage.py check_file_storage` to test a live configuration.
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -228,54 +235,81 @@ STORAGES = {
     },
 }
 
-# A Render Blueprint can create the service before its secret Supabase values
-# are entered.  Previously it enabled the S3 backend with empty values in that
-# state.  The first file upload then failed inside boto3 with, for example,
-# ``ValueError: Invalid endpoint:`` and the admin received a 500 page.
-#
-# Only select the remote backend when every connection value is present.  The
-# availability message is used by upload views to give administrators an
-# actionable explanation instead of attempting a broken upload.
 USE_SUPABASE_STORAGE = env_bool("USE_SUPABASE_STORAGE", False)
-_SUPABASE_STORAGE_REQUIRED_ENV_VARS = (
-    "SUPABASE_STORAGE_BUCKET",
-    "SUPABASE_S3_ENDPOINT_URL",
-    "SUPABASE_S3_ACCESS_KEY_ID",
-    "SUPABASE_S3_SECRET_ACCESS_KEY",
-)
-SUPABASE_STORAGE_MISSING_ENV_VARS = tuple(
-    name for name in _SUPABASE_STORAGE_REQUIRED_ENV_VARS if not os.environ.get(name, "").strip()
-)
+
+# Values copied from a dashboard can carry trailing spaces or newlines. Those
+# break the SigV4 signature ("SignatureDoesNotMatch") while looking correct in
+# the Render dashboard, so every value is stripped and checked here before the
+# client is built.
+SUPABASE_STORAGE = build_supabase_storage_config(os.environ)
+
+# Kept for backwards compatibility with deployment notes written before the
+# validation module existed.
+SUPABASE_STORAGE_MISSING_ENV_VARS = SUPABASE_STORAGE.missing_env_vars
+
+# Non-fatal advice (for example a missing SUPABASE_STORAGE_PUBLIC_URL). Shown by
+# `manage.py check_file_storage` and kept out of the upload guard.
+SUPABASE_STORAGE_CONFIGURATION_WARNINGS = SUPABASE_STORAGE.warnings
+
+# Fatal problems. Upload views and the upload middleware refuse to write files
+# while this is set so nothing lands on the ephemeral service filesystem.
 MEDIA_STORAGE_CONFIGURATION_ERROR = ""
+if USE_SUPABASE_STORAGE:
+    MEDIA_STORAGE_CONFIGURATION_ERROR = " ".join(SUPABASE_STORAGE.errors)
 
-if USE_SUPABASE_STORAGE and SUPABASE_STORAGE_MISSING_ENV_VARS:
-    MEDIA_STORAGE_CONFIGURATION_ERROR = (
-        "Supabase file storage is enabled but is missing: "
-        f"{', '.join(SUPABASE_STORAGE_MISSING_ENV_VARS)}. "
-        "Set these deployment environment variables and redeploy before uploading files."
-    )
-
-if USE_SUPABASE_STORAGE and not SUPABASE_STORAGE_MISSING_ENV_VARS:
-    SUPABASE_STORAGE_PUBLIC_URL = os.environ.get("SUPABASE_STORAGE_PUBLIC_URL", "").rstrip("/")
+if USE_SUPABASE_STORAGE and SUPABASE_STORAGE.is_usable:
+    SUPABASE_STORAGE_BUCKET = SUPABASE_STORAGE.bucket
+    SUPABASE_S3_ENDPOINT_URL = SUPABASE_STORAGE.endpoint_url
+    SUPABASE_S3_REGION_NAME = SUPABASE_STORAGE.region_name
+    SUPABASE_STORAGE_PUBLIC_URL = SUPABASE_STORAGE.public_url
 
     supabase_options = {
-        "access_key": os.environ["SUPABASE_S3_ACCESS_KEY_ID"],
-        "secret_key": os.environ["SUPABASE_S3_SECRET_ACCESS_KEY"],
-        "bucket_name": os.environ["SUPABASE_STORAGE_BUCKET"],
-        "endpoint_url": os.environ["SUPABASE_S3_ENDPOINT_URL"],
-        "region_name": os.environ.get("SUPABASE_S3_REGION_NAME", "us-east-1"),
+        "access_key": SUPABASE_STORAGE.access_key,
+        "secret_key": SUPABASE_STORAGE.secret_key,
+        "bucket_name": SUPABASE_STORAGE.bucket,
+        "endpoint_url": SUPABASE_STORAGE.endpoint_url,
+        "region_name": SUPABASE_STORAGE.region_name,
         "addressing_style": "path",
         "file_overwrite": False,
         "querystring_auth": False,
-        "default_acl": "public-read",
+        # NOTE: Supabase Storage does not implement S3 ACLs (the
+        # compatibility table marks x-amz-acl as unsupported), so no
+        # default_acl is set. Objects are readable because the bucket itself is
+        # public and MEDIA_URL uses /storage/v1/object/public/<bucket>.
         "object_parameters": {
             "CacheControl": "max-age=86400",
         },
     }
 
-    if SUPABASE_STORAGE_PUBLIC_URL:
-        supabase_options["custom_domain"] = SUPABASE_STORAGE_PUBLIC_URL.replace("https://", "").replace("http://", "")
-        MEDIA_URL = f"{SUPABASE_STORAGE_PUBLIC_URL}/"
+    # boto3 >= 1.36 attaches data-integrity headers (x-amz-sdk-checksum-algorithm
+    # and x-amz-checksum-*) to every PutObject/CreateMultipartUpload. Supabase's
+    # S3 layer does not implement those headers ("Unsupported header
+    # 'x-amz-sdk-checksum-algorithm' received" is the same failure other
+    # S3-compatible providers report), so uploads are sent the way every other
+    # Supabase client sends them: with checksums only where the API requires
+    # them.
+    try:
+        from botocore.config import Config as _BotoConfig
+
+        supabase_options["client_config"] = _BotoConfig(
+            signature_version="s3v4",
+            s3={"addressing_style": "path"},
+            request_checksum_calculation="when_required",
+            response_checksum_validation="when_required",
+            connect_timeout=10,
+            read_timeout=60,
+            retries={"max_attempts": 3, "mode": "standard"},
+        )
+    except ImportError:  # pragma: no cover - boto3 is a hard requirement in production.
+        pass
+
+    if SUPABASE_STORAGE.public_url:
+        supabase_options["custom_domain"] = SUPABASE_STORAGE.custom_domain
+        # django-storages defaults url_protocol to https: and ignores the
+        # scheme of MEDIA_URL when a custom domain is set, which would break
+        # self-hosted or local Supabase served over plain http.
+        supabase_options["url_protocol"] = SUPABASE_STORAGE.public_url_scheme
+        MEDIA_URL = f"{SUPABASE_STORAGE.public_url}/"
 
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",

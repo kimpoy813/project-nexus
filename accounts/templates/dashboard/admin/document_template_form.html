@@ -16,6 +16,14 @@
                 <p class="mt-1">{{ storage_configuration_error }}</p>
             </div>
         {% endif %}
+        {% if storage_configuration_warnings %}
+            <div role="status" class="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                <p class="font-black">File storage works, but please check this.</p>
+                {% for warning in storage_configuration_warnings %}
+                    <p class="mt-1">{{ warning }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% if form.non_field_errors %}
             <div role="alert" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ form.non_field_errors }}</div>
         {% endif %}

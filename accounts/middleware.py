@@ -13,6 +13,8 @@ from django.db import DatabaseError
 from django.shortcuts import redirect
 from django.utils import timezone
 
+from .storage_diagnostics import describe_storage_exception
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,28 +57,33 @@ class UploadStorageErrorMiddleware:
 
         try:
             response = self.get_response(request)
-        except self.STORAGE_ERRORS:
+        except self.STORAGE_ERRORS as exc:
             # This branch is useful for a custom middleware/backend which
             # raises directly. Django's normal request handler converts view
             # exceptions into a 500 response first; that path is handled just
             # below as well.
             if request.method not in self.WRITE_METHODS:
                 raise
+            # Include the provider's own error code so the administrator knows
+            # whether to look at the bucket, the endpoint, or the keys.
+            reason = describe_storage_exception(exc)
             return self._return_to_form(
                 request,
-                "Your file could not be saved right now. Please try again; if the problem continues, "
-                "ask an administrator to check secure file storage.",
+                f"Your file could not be saved right now ({reason}). Please try again; if the "
+                "problem continues, ask an administrator to run `python manage.py "
+                "check_file_storage` on the server.",
                 exc_info=True,
             )
-        except ValueError:
+        except ValueError as exc:
             # boto3 reports a malformed configured endpoint as ValueError.
             # Do not swallow unrelated view bugs unless this is an S3 write.
             if request.method not in self.WRITE_METHODS or not getattr(settings, "USE_SUPABASE_STORAGE", False):
                 raise
             return self._return_to_form(
                 request,
-                "Your file could not be saved because secure file storage is misconfigured. "
-                "Please ask an administrator to check the Supabase endpoint and access keys.",
+                "Your file could not be saved because secure file storage is misconfigured "
+                f"({describe_storage_exception(exc)}). Please ask an administrator to check the "
+                "Supabase endpoint and access keys.",
                 exc_info=True,
             )
 
