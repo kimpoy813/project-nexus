@@ -189,6 +189,15 @@ body {
   border-radius: var(--nexus-radius) !important;
 }
 
+/* Dashboard cards stretch to equal heights in their grids; flex columns let
+   each card pin its footer/actions to the bottom so buttons align across a row. */
+.ext-card,
+.rq-card,
+.mine-card {
+  display: flex;
+  flex-direction: column;
+}
+
 .ext-card,
 .mine-card {
   background: var(--nexus-surface-solid);
