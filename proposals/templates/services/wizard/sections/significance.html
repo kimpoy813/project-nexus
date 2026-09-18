@@ -1,0 +1,38 @@
+{% comment %}
+Section: significance. Rendered inside the wizard form by step.html;
+the surrounding header, admin-built fields and navigation are shared.
+{% endcomment %}
+<div>
+    <label for="significance" class="block text-sm font-semibold text-gray-900 mb-2">
+        {{ step_fields.significance.label|default:"Significance" }}{% if step_fields.significance.required %} <span class="text-red-600">*</span>{% endif %}
+    </label>
+    <textarea
+        name="significance"
+        rows="8"
+        placeholder="{{ step_fields.significance.placeholder|default:'Explain the importance and expected contribution of the proposed extension initiative.' }}"
+        oninput="autoResize(this); updateWordCount(this, 'wc-rationale')"
+        class="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm
+                outline-none focus:ring-2 focus:ring-primary focus:border-primary
+                resize-none overflow-hidden min-h-[200px]"
+        {% if not is_edit_mode %}readonly{% endif %}>{{ proposal.significance }}</textarea>
+    {% if step_fields.significance.help_text %}
+    <p class="text-xs text-gray-500 mt-1">{{ step_fields.significance.help_text }}</p>
+    {% endif %}
+    <p class="text-xs text-gray-400 text-right mt-1">
+        <span id="wc-rationale">0</span> words
+    </p>
+</div>
+
+{% if is_edit_mode %}
+<script>
+    function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+    }
+    function updateWordCount(el, counterId) {
+        const words = el.value.trim().split(/\s+/).filter(w => w.length > 0);
+        document.getElementById(counterId).textContent = words.length;
+    }
+    document.querySelectorAll('textarea[oninput]').forEach(autoResize);
+</script>
+{% endif %}

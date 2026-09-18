@@ -29,7 +29,8 @@ from ..models import ProposalCommentSummary
 from ..models import ProposalEvaluatorAssignment
 from ..models import ProposalSectionComment
 from accounts.decorators import role_required
-from .constants import STEP_LABELS, User
+from .constants import User
+from .wizard_config import step_config_map, step_title_map
 from .helpers import _extract_last_name, _extract_points, _get_signatory, _insert_paragraph_after, _proponent_line
 from .permissions import _can_view_proposal, _can_view_summary, _ensure_open_review_round, _is_campus_coordinator, _is_department_coordinator, _is_director, _is_staff
 
@@ -106,14 +107,15 @@ def proposal_review_comments(request, proposal_id, step=1):
     )
 
     grouped_comments = OrderedDict()
+    step_configs = step_config_map()
     for item in step_comments:
         step_no = item.step_no or 1
         if step_no not in grouped_comments:
-            step_meta = next((s for s in STEP_LABELS if s["no"] == step_no), None)
+            step_meta = step_configs.get(step_no)
             grouped_comments[step_no] = {
                 "step_no": step_no,
-                "step_title": step_meta["title"] if step_meta else f"Step {step_no}",
-                "step_desc": step_meta["desc"] if step_meta else "",
+                "step_title": step_meta.title if step_meta else f"Step {step_no}",
+                "step_desc": step_meta.description if step_meta else "",
                 "comments": [],
             }
         grouped_comments[step_no]["comments"].append(item)
@@ -486,7 +488,7 @@ def summarize_comments(comments_queryset, *, include_step_labels=True):
     - Group by step and extract 1–2 actionable points per step.
     - Keep output short and readable for the Summary letter.
     """
-    step_title_map = {s.get("no"): s.get("title") for s in STEP_LABELS if isinstance(s, dict)}
+    step_titles = step_title_map()
 
     ACTION_WORDS = (
         "should", "must", "please", "kindly", "revise", "update", "add", "include",
@@ -594,7 +596,7 @@ def summarize_comments(comments_queryset, *, include_step_labels=True):
         if not points:
             continue
 
-        title = step_title_map.get(step_no) if step_no else "General"
+        title = step_titles.get(step_no) if step_no else "General"
         joined = "; ".join(points[:2]).strip()
 
         if len(joined) > 220:

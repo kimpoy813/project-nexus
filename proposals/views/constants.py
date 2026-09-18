@@ -4,102 +4,58 @@ Step labels and reference lists shared across the proposal views.
 
 from django.contrib.auth import get_user_model
 
+from details.wizard_defaults import default_step_dicts
+
 
 User = get_user_model()
 
 
-INITIAL_STEP_LABELS = [
-    {"no": 1, "title": "Extension Type and Scope", "desc": "Type of extension and proposal scope"},
-    {"no": 2, "title": "Title", "desc": "Program, project, or activity title"},
-    {"no": 3, "title": "Proponents", "desc": "Proponent details and assigned roles"},
-    {"no": 4, "title": "Implementing Agency/Unit", "desc": "Office, agency, or unit responsible"},
-    {"no": 5, "title": "Collaborators/Beneficiaries", "desc": "Beneficiary count and target group"},
-    {"no": 6, "title": "SDGs / Extension Agenda", "desc": "SDGs covered and extension thrust"},
-    {"no": 7, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
-    {"no": 8, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
-    {"no": 9, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
-    {"no": 10, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
-    {"no": 11, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
-    {"no": 12, "title": "Significance", "desc": "Importance of the proposed extension"},
-    {"no": 13, "title": "Objectives", "desc": "General and specific SMART objectives"},
-    {"no": 14, "title": "Methodology / Mechanics", "desc": "Implementation approach"},
-    {"no": 15, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
-    {"no": 16, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
-    {"no": 17, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
-    {"no": 18, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
-    {"no": 19, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
-]
+def _step_labels():
+    """The wizard's visible steps as ``{"no", "title", "desc", "section"}``.
+
+    Backed by the admin's ``ProposalWizardStepConfig`` table (seeded from
+    ``details.wizard_defaults`` on first use). Kept as a function so callers
+    read the current layout, not the one at import time.
+    """
+    from .wizard_config import step_summaries
+    return step_summaries()
+
+
+def _total_steps():
+    from .wizard_config import last_step_number
+    return last_step_number()
 
 
 class _DynamicStepLabels:
-    def _get_steps(self):
-        try:
-            from details.models import ProposalWizardStepConfig
-            if not ProposalWizardStepConfig.objects.exists():
-                to_create = []
-                for item in INITIAL_STEP_LABELS:
-                    to_create.append(
-                        ProposalWizardStepConfig(
-                            step_no=item["no"],
-                            title=item["title"],
-                            description=item["desc"],
-                            is_visible=True,
-                            is_required=True,
-                        )
-                    )
-                ProposalWizardStepConfig.objects.bulk_create(to_create)
-            
-            return [
-                {"no": config.step_no, "title": config.title, "desc": config.description}
-                for config in ProposalWizardStepConfig.objects.all().order_by("step_no")
-            ]
-        except Exception:
-            return INITIAL_STEP_LABELS
+    """List-like view of ``_step_labels()`` for older call sites."""
 
     def __iter__(self):
-        return iter(self._get_steps())
+        return iter(_step_labels())
 
     def __len__(self):
-        return len(self._get_steps())
+        return len(_step_labels())
 
     def __getitem__(self, index):
-        return self._get_steps()[index]
-
-    def __setitem__(self, index, value):
-        pass
-
-    def __delitem__(self, index):
-        pass
+        return _step_labels()[index]
 
     def __contains__(self, item):
-        return item in self._get_steps()
+        return item in _step_labels()
 
     def __repr__(self):
-        return repr(self._get_steps())
-
-    def __str__(self):
-        return str(self._get_steps())
+        return repr(_step_labels())
 
 
 class _DynamicTotalSteps:
-    """Number of wizard steps, read from the admin's step table.
+    """Int-like view of ``_total_steps()`` for older call sites.
 
-    Behaves like an int in comparisons (see the rich-comparison methods below),
-    which is why it needs ``__hash__``: Python drops the inherited one as soon
-    as ``__eq__`` is defined, and ``min(step, TOTAL_STEPS)`` can hand this
-    object back - it then blew up as a dict key in the wizard view.
+    ``__hash__`` is defined because ``__eq__`` is: ``min(step, TOTAL_STEPS)``
+    can hand this object back and it must remain usable as a dict key.
     """
 
     def __int__(self):
-        try:
-            from details.models import ProposalWizardStepConfig
-            max_step = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("-step_no").first()
-            return max_step.step_no if max_step else 19
-        except Exception:
-            return 19
+        return _total_steps()
 
-    def __index__(self):
-        return int(self)
+    __index__ = __int__
 
     def __hash__(self):
         return hash(int(self))
@@ -143,6 +99,11 @@ class _DynamicTotalSteps:
 
 STEP_LABELS = _DynamicStepLabels()
 TOTAL_STEPS = _DynamicTotalSteps()
+
+
+#: The built-in layout as ``{"no", "section", "title", "desc"}`` dicts. The
+#: canonical definition is ``details.wizard_defaults.DEFAULT_WIZARD_STEPS``.
+INITIAL_STEP_LABELS = default_step_dicts()
 
 
 SDG_LIST = [

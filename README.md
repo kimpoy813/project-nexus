@@ -78,6 +78,7 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `proposals/tests.py` | Proposal progress weighting, phase labels, proposal access control |
 | `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
+| `proposals/tests_sections.py` | The wizard follows the admin's layout: movable sections, fields-only steps, reorder, native-field validation |
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
@@ -107,18 +108,53 @@ accounts/views/          proposals/views/
   helpers.py               constants.py
   proposal_queries.py      helpers.py
   auth.py                  permissions.py
-  dashboards.py            wizard.py
-  admin_users.py           public.py
-  content.py               review.py
-  builders.py              moa.py
-  reports.py               implementation.py
-  cms.py                   documents.py
+  dashboards.py            wizard.py          the wizard view (GET/POST plumbing)
+  admin_users.py           wizard_config.py   step list: seeding, navigation, per-step forms
+  content.py               sections.py        the built-in parts of the proposal form
+  builders.py              public.py
+  reports.py               review.py
+  cms.py                   moa.py
+                           implementation.py
+                           documents.py
 ```
 
 Each `__init__.py` re-exports every public name, so `urls.py` refers to
 `views.some_view` exactly as before. **When you add a view to a submodule, add
 it to the package's `__init__.py` too** — otherwise the URLconf raises
 `AttributeError` at import. `accounts/tests/test_structure.py` guards this.
+
+## The proposal wizard is admin-configurable
+
+Nothing in the wizard keys behaviour off a step *number* any more. Each
+`ProposalWizardStepConfig` row (Admin → Wizard Steps) is a position in the
+wizard plus a **section** — one of the built-in parts of the proposal form
+(title, proponents, SDG picker, budget, uploads, …). The admin can:
+
+- rename a step, change its description and office instructions;
+- move steps up/down or renumber them 1…N (attached fields move with them);
+- choose which built-in section a step shows, or make a *fields-only* step
+  built entirely from the form builder (e.g. a new office checklist);
+- hide a step, or make it optional for submission;
+- edit the label / placeholder / help text / required flag of a section's own
+  inputs, and add extra fields (text, number, date, dropdown, file, …).
+
+Code-wise:
+
+- `details/wizard_defaults.py` — the built-in 19-step layout used to seed an
+  empty database. The `details` app never imports the proposal views.
+- `proposals/views/sections.py` — the `SECTIONS` registry. A `Section` knows
+  its template (`services/wizard/sections/<key>.html`), how to add context,
+  how to save a POST, and when it is complete. **To add a new built-in
+  section, register it here and write its partial** — no view changes.
+- `proposals/views/wizard_config.py` — the step list (seeding, visible /
+  required numbers, next / previous, the per-step field form).
+- `proposals/templates/services/wizard/step.html` — the one template every
+  step renders with; it includes the section partial, the admin-built fields
+  and the shared navigation.
+
+Section "native" fields (e.g. `budgetary_requirement`) appear in the step's
+field form so the admin can edit their labels, but their values live on the
+`Proposal` model, so they are never saved or validated as dynamic answers.
 
 ## Layout and spacing
 

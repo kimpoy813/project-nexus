@@ -415,9 +415,28 @@ class DynamicFormRow(models.Model):
 
 
 class ProposalWizardStepConfig(models.Model):
-    """Admin overrides for the built-in 19 proposal wizard steps."""
+    """One step of the proposal wizard, as laid out by the admin.
+
+    A step is a *position* in the wizard (``step_no``) plus the *section* it
+    renders. Sections are the built-in parts of the proposal form (title,
+    proponents, SDGs, budget, file uploads, ...) and are defined in
+    ``proposals.views.sections``; a step with an empty ``section_key`` shows
+    only the admin-built fields attached to it through the form builder.
+
+    Because behaviour hangs off ``section_key`` rather than ``step_no``, the
+    admin can renumber, reorder, insert, and remove steps freely.
+    """
 
     step_no = models.PositiveSmallIntegerField(unique=True)
+    section_key = models.CharField(
+        max_length=60,
+        blank=True,
+        default="",
+        help_text=(
+            "Built-in part of the proposal form shown on this step. "
+            "Leave blank for a step made only of admin-built fields."
+        ),
+    )
     title = models.CharField(max_length=160)
     description = models.CharField(max_length=255, blank=True, default="")
     instructions = models.TextField(blank=True, default="")
@@ -430,6 +449,11 @@ class ProposalWizardStepConfig(models.Model):
 
     def __str__(self):
         return f"Step {self.step_no}: {self.title}"
+
+    @property
+    def is_custom(self):
+        """True when the step has no built-in section (fields only)."""
+        return not (self.section_key or "").strip()
 
 
 class RoleCapability(models.Model):

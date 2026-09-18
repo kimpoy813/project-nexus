@@ -1,4 +1,14 @@
 {% extends "services/wizard/_wizard_shell.html" %}
+{% comment %}
+The one template every proposal wizard step renders with.
+
+What differs between steps is the *section* the admin assigned to it (see
+``proposals.views.sections``): that section's inputs come from
+``sections/<key>.html``. Everything else - the heading, the "who is editing"
+strip, the admin-built fields, and the Back / Skip / Save & Next controls -
+is shared, so a step the admin adds with no built-in section still looks and
+behaves like the rest of the wizard.
+{% endcomment %}
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
   <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
@@ -65,17 +75,28 @@
   {% endif %}
 </div>
 
-<div class="p-6 space-y-6">
-  <form method="POST" enctype="multipart/form-data" class="space-y-6">
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+  <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-4 space-y-8">
     {% csrf_token %}
+
+    {% if section_template %}
+      {% include section_template %}
+    {% elif not dynamic_forms %}
+      <div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
+        <p class="text-sm font-semibold text-gray-700">This step has no fields yet.</p>
+        <p class="mt-1 text-xs text-gray-500">
+          The Extension Office has not added any inputs to this step. You can continue to the next one.
+        </p>
+      </div>
+    {% endif %}
 
     {% include "services/wizard/_dynamic_fields.html" %}
 
     {% if is_edit_mode %}
-    <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
+    <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-100">
       <button name="action" value="back"
-              class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
-              type="submit">
+              class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition {% if not prev_step_no %}invisible{% endif %}"
+              type="submit" {% if not prev_step_no %}tabindex="-1" aria-hidden="true"{% endif %}>
         Back
       </button>
 
@@ -88,17 +109,23 @@
       <button name="action" value="next"
               class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
               type="submit">
-        Save & Next
+        {% if next_step_no %}Save &amp; Next{% else %}Save &amp; Review{% endif %}
       </button>
     </div>
     <p class="text-xs text-gray-400 mt-2">
       Skipped steps are marked in the sidebar and can be completed anytime before submission.
     </p>
     {% else %}
-    <div class="flex justify-end pt-2">
-      <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+    <div class="flex justify-between gap-2 pt-2">
+      {% if prev_step_no %}
+        <a href="{% url 'proposal_wizard' proposal.id prev_step_no %}{% if request.GET.readonly %}?readonly=1{% endif %}"
+           class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+          Previous Step
+        </a>
+      {% else %}<span></span>{% endif %}
+      <a href="{% if next_step_no %}{% url 'proposal_wizard' proposal.id next_step_no %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
          class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
-        {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
+        {% if next_step_no %}Next Step{% else %}Back to Dashboard{% endif %}
       </a>
     </div>
     {% endif %}

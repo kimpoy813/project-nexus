@@ -296,6 +296,32 @@ just reporting it.
 
 ---
 
+### 2.5 ✅ Wizard behaviour was keyed to hardcoded step numbers — **fixed**
+
+`proposals/views/wizard.py` (and `dynamic_answers.py`, `proponents.py`,
+`details/proponent_fields.py`) branched on `step == 7` and friends in four
+separate places — GET context, POST save, completion, and the "native keys"
+exclusion list — while 20 near-identical `step_N.html` templates duplicated the
+header and footer. The admin's Wizard Steps screen could therefore rename step 7
+but not move, remove, or replace it, which is exactly what the office's new
+forms required.
+
+**Status:** each `ProposalWizardStepConfig` row now carries a `section_key`
+(migration `details.0019`, which stamps existing rows with the section their
+number shipped with, so live installations are unaffected). Step behaviour
+comes from `proposals/views/sections.py`, a registry of 19 `Section` objects,
+each owning its template partial, context, save, and completion check.
+`wizard.py` dropped from 1,172 to ~680 lines; the 20 templates became one
+`step.html` plus 19 partials under `sections/`. The admin can now reorder
+steps, assign sections, and add fields-only steps.
+
+The rewrite also surfaced a real bug: on a fresh database, "Save & Next" on
+Step 1 bounced straight back because the seeded native fields were required
+as `dynamic_field_<id>` answers the page never posts.
+`proposals/tests_sections.py` (23 tests) pins the new contract.
+
+---
+
 ## Severity 3 — Consistency and maintainability
 
 ### 3.1 ✅ Dashboard styling had diverged — **substantially addressed in this commit**

@@ -27,6 +27,28 @@ from .repeaters import (
 )
 
 
+def _native_keys(form):
+    """Field keys the step's built-in section renders and stores itself.
+
+    The admin edits these fields' labels / placeholders / required flags in
+    the builder, but their values live on the Proposal (``proposal.title``,
+    ``proposal.budgetary_requirement``, ...) rather than in
+    ``DynamicFormAnswer``. They must not be saved or validated as if they
+    were ``dynamic_field_<id>`` inputs, or the step could never be passed.
+    """
+    from .sections import native_keys_for_step
+
+    if form.proposal_wizard_step is None:
+        return frozenset()
+    return native_keys_for_step(form.proposal_wizard_step)
+
+
+def _answer_fields(form):
+    """The fields of ``form`` that really are stored as dynamic answers."""
+    native = _native_keys(form)
+    return [f for f in form.fields.all() if f.field_key not in native]
+
+
 def _is_dynamic_step_complete(proposal, step):
     forms = DynamicFormTemplate.objects.filter(
         is_active=True,
@@ -64,7 +86,7 @@ def _is_dynamic_step_complete(proposal, step):
         res = responses.get(form.id)
         answer_map = {ans.field_id: ans for ans in res.answers.all()} if res else {}
 
-        for field in form.fields.all():
+        for field in _answer_fields(form):
             if _blocking_field_without_value(form, field, answer_map.get(field.id)):
                 return False
     return True
@@ -87,10 +109,14 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
 
     # Only the first form on a step may own the proposal's proponent rows: a
     # duplicate form would otherwise print - and save - the same rows twice.
-    # On step 3 that form is rendered inline by step_3.html (above the
-    # project-leader panel) instead of at the bottom of the page.
+    # On the step that carries the Proponents section that form is rendered
+    # inline by the section partial (above the project-leader panel) instead
+    # of at the bottom of the page.
+    from .sections import is_proponents_step, native_keys_for_step
+
     ctx["proponent_repeater_form"] = None
     ctx["proponent_repeater_active"] = False
+    on_proponents_step = is_proponents_step(step)
 
     kept = []
     seen_proponent_repeater = False
@@ -99,7 +125,7 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
             if seen_proponent_repeater:
                 continue
             seen_proponent_repeater = True
-            if step == 3:
+            if on_proponents_step:
                 ctx["proponent_repeater_form"] = form
                 ctx["proponent_repeater_active"] = True
                 continue
@@ -130,18 +156,10 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
 
     ctx["step_fields"] = step_fields
 
-    hardcoded_keys_by_step = {
-        1: {"extension_type", "scope_type", "research_title"},
-        2: {"title"},
-        4: {"implementing_agency"},
-        5: {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
-        7: {"budgetary_requirement"},
-        10: {"extension_venue", "estimated_month", "estimated_year"},
-        11: {"rationale_background"},
-        12: {"significance"},
-        13: {"general_objective"},
-    }
-    exclude_keys = hardcoded_keys_by_step.get(step, set())
+    # Fields the step's built-in section renders itself (their values live on
+    # the Proposal); the admin edits their labels here but they are not shown
+    # a second time in the "additional fields" block.
+    exclude_keys = native_keys_for_step(step)
 
     for form in forms:
         response = responses.get(form.id)
@@ -158,6 +176,11 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
             field.answer_file = getattr(answer, "file", None) if answer else None
 
         form.fields_to_render = [f for f in all_fields if f.field_key not in exclude_keys]
+
+    # A form with nothing left to draw (every field is native to the section,
+    # or the admin has not added any yet) would print an empty
+    # "Admin-managed requirements" box, so it is left out of the page.
+    forms = [form for form in forms if form.is_repeater or form.fields_to_render]
 
     ctx["dynamic_forms"] = forms
     return forms
@@ -189,7 +212,7 @@ def _save_dynamic_form_answers(proposal, step, user, request):
             response.submitted_by = user
             response.save(update_fields=["submitted_by", "updated_at"])
 
-        for field in form.fields.all():
+        for field in _answer_fields(form):
             input_name = f"dynamic_field_{field.id}"
             answer, _ = DynamicFormAnswer.objects.get_or_create(
                 response=response,
@@ -219,16 +242,18 @@ def _save_dynamic_form_answers(proposal, step, user, request):
 def _save_step_repeaters(proposal, step, request, user):
     """Save every repeatable group on this step.
 
-    Step 3's proponent group is saved by the step 3 branch instead, because it
-    also drives the creator's role and the per-phase project leaders.
+    The Proponents section's own group is saved by the proponents module
+    instead, because it also drives the creator's role and the per-phase
+    project leaders.
     """
+    from .sections import is_proponents_step
+
     missing = []
+    on_proponents_step = is_proponents_step(step)
     for form in _dynamic_forms_for_proposal_step(step):
         if not form.is_repeater:
             continue
-        if step == 3 and form.is_proponent_repeater:
-            # Step 3's own group is saved by the proponents module, which also
-            # sorts out the creator's role and the per-phase project leaders.
+        if on_proponents_step and form.is_proponent_repeater:
             continue
         form_missing, _meta = save_repeater_rows(proposal, form, request, user)
         missing.extend(form_missing)
@@ -274,7 +299,7 @@ def _proposal_dynamic_requirements_missing(proposal):
         if response:
             answer_map = {answer.field_id: answer for answer in response.answers.all()}
 
-        for field in form.fields.all():
+        for field in _answer_fields(form):
             if not field.required:
                 continue
             parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)

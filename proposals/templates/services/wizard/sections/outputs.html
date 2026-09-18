@@ -1,0 +1,134 @@
+{% comment %}
+Section: outputs. Rendered inside the wizard form by step.html;
+the surrounding header, admin-built fields and navigation are shared.
+{% endcomment %}
+<div>
+    <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-900">Output / Outcome</label>
+    </div>
+
+    <div class="space-y-3 output-outcomes-group" data-group="output-outcomes">
+        {% if output_outcomes %}
+            {% for item in output_outcomes %}
+            <div class="flex gap-2 items-start output-outcome-row">
+                <textarea
+                    name="output_outcomes[]"
+                    rows="2"
+                    {% if not is_edit_mode %}readonly{% endif %}
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-output-outcome {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                    placeholder="Enter an expected output or outcome...">{{ item }}</textarea>
+
+                {% if is_edit_mode %}
+                <button type="button"
+                        class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                        onclick="removeOutputOutcomeRow(this)">
+                    Remove
+                </button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="flex gap-2 items-start output-outcome-row">
+                <textarea
+                    name="output_outcomes[]"
+                    rows="2"
+                    {% if not is_edit_mode %}readonly{% endif %}
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-output-outcome {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                    placeholder="Enter an expected output or outcome..."></textarea>
+
+                {% if is_edit_mode %}
+                <button type="button"
+                        class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                        onclick="removeOutputOutcomeRow(this)">
+                    Remove
+                </button>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if is_edit_mode %}
+    <button type="button"
+            class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+            onclick="addOutputOutcomeRow()">
+        Add Output / Outcome
+    </button>
+    {% endif %}
+</div>
+
+{% if is_edit_mode %}
+<script>
+(function () {
+    function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+    }
+
+    function handleTabIndent(e) {
+        if (e.key === "Tab") {
+            e.preventDefault();
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const indent = "    ";
+
+            textarea.value =
+                textarea.value.substring(0, start) +
+                indent +
+                textarea.value.substring(end);
+
+            textarea.selectionStart = textarea.selectionEnd = start + indent.length;
+            autoResize(textarea);
+        }
+    }
+
+    window.addOutputOutcomeRow = function () {
+        const group = document.querySelector('.output-outcomes-group[data-group="output-outcomes"]');
+        if (!group) return;
+
+        const row = document.createElement("div");
+        row.className = "flex gap-2 items-start output-outcome-row";
+        row.innerHTML = `
+            <textarea
+                name="output_outcomes[]"
+                rows="2"
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden auto-resize-output-outcome"
+                placeholder="Enter an expected output or outcome..."></textarea>
+            <button type="button"
+                    class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                    onclick="removeOutputOutcomeRow(this)">
+                Remove
+            </button>
+        `;
+        group.appendChild(row);
+
+        const textarea = row.querySelector("textarea");
+        textarea.addEventListener("input", function () { autoResize(textarea); });
+        textarea.addEventListener("keydown", handleTabIndent);
+        autoResize(textarea);
+    };
+
+    window.removeOutputOutcomeRow = function (btn) {
+        const row = btn.closest(".output-outcome-row");
+        if (!row) return;
+
+        const group = row.parentElement;
+        if (group.querySelectorAll(".output-outcome-row").length > 1) {
+            row.remove();
+        } else {
+            const textarea = row.querySelector("textarea");
+            if (textarea) {
+                textarea.value = "";
+                autoResize(textarea);
+            }
+        }
+    };
+
+    document.querySelectorAll(".auto-resize-output-outcome").forEach(textarea => {
+        textarea.addEventListener("input", function () { autoResize(textarea); });
+        textarea.addEventListener("keydown", handleTabIndent);
+        autoResize(textarea);
+    });
+})();
+</script>
+{% endif %}
