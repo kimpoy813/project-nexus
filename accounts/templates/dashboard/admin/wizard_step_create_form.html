@@ -29,6 +29,32 @@
       <textarea name="instructions" rows="3" placeholder="Optional guidelines for the proponents..." class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></textarea>
       <p class="mt-1 text-xs text-gray-500">Shown above the step form to guide proponents.</p>
     </div>
+
+    <!-- STEP CONTENT (LAYOUT) -->
+    <fieldset class="rounded-2xl border border-gray-200 bg-gray-50/60 p-4" data-layout-fieldset>
+      <legend class="px-2 text-sm font-black text-gray-900">Step Content</legend>
+      <p class="mt-1 mb-3 text-xs leading-5 text-gray-600">
+        New steps are custom by default: the fields you build below are the whole step.
+        {% if has_builtin_form %}This step number also has a system form you can restore instead.{% endif %}
+      </p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="rounded-2xl border-2 border-gray-200 bg-white p-4 cursor-pointer transition hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary/5 {% if not has_builtin_form %}opacity-50 pointer-events-none{% endif %}">
+          <input type="radio" name="layout" value="BUILTIN" class="peer sr-only" {% if not has_builtin_form %}disabled{% endif %} data-layout-option>
+          <span class="block text-sm font-black text-gray-900">Built-in system form</span>
+          <span class="mt-1 block text-xs leading-5 text-gray-600">
+            {% if has_builtin_form %}Restore this step number's classic form; the fields below become extra questions under it.{% else %}(Not available: this step number has no system form.){% endif %}
+          </span>
+        </label>
+        <label class="rounded-2xl border-2 border-gray-200 bg-white p-4 cursor-pointer transition hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+          <input type="radio" name="layout" value="DYNAMIC" class="peer sr-only" checked data-layout-option>
+          <span class="block text-sm font-black text-gray-900">Custom form (admin-managed fields)</span>
+          <span class="mt-1 block text-xs leading-5 text-gray-600">
+            Show <strong>only</strong> the fields you build below. Map a field to a proposal field (e.g. "Implementing agency") so generated documents keep working.
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-center justify-between gap-4 select-none">
         <span class="text-sm font-bold text-gray-700">Show this step in the wizard</span>

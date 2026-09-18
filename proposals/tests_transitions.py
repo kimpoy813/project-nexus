@@ -467,25 +467,25 @@ class WizardHelperTests(TestCase):
         steps = {c.step_no for c in comments}
         self.assertEqual(steps, {2})
 
-    # ---- _add_step_context_for_get --------------------------------------
+    # ---- built-in step context (wizard_builtin registry) -----------------
 
     def test_step_context_adds_the_sdg_and_thrust_lists(self):
-        from .views.wizard import _add_step_context_for_get
+        from .views.wizard_builtin import _builtin_step_context
 
-        ctx = _add_step_context_for_get({}, self.proposal, step=6)
+        ctx = _builtin_step_context(self.proposal, step=6)
         self.assertIn("sdgs", ctx)
         self.assertIn("thrusts", ctx)
 
     def test_step_context_adds_gender_totals(self):
-        from .views.wizard import _add_step_context_for_get
+        from .views.wizard_builtin import _builtin_step_context
 
         self.proposal.sex_male = 3
         self.proposal.sex_female = 4
 
-        ctx = _add_step_context_for_get({}, self.proposal, step=8)
+        ctx = _builtin_step_context(self.proposal, step=8)
         self.assertEqual(ctx["sex_total"], 7)
 
     def test_step_context_is_harmless_for_a_step_with_no_extras(self):
-        from .views.wizard import _add_step_context_for_get
+        from .views.wizard_builtin import _builtin_step_context
 
-        self.assertEqual(_add_step_context_for_get({}, self.proposal, step=1), {})
+        self.assertEqual(_builtin_step_context(self.proposal, step=1), {})

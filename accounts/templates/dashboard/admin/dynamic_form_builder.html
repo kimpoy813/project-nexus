@@ -94,7 +94,7 @@
                                   <label class="text-xs font-bold text-gray-600">Choices for dropdown fields (one option per line)</label>
                                   <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">{{ field.choices_text }}</textarea>
                                 </div>
-                                <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                                   <div class="maps-to-cell hidden">
                                     <label class="text-xs font-bold text-gray-500">Stores in proponent record</label>
                                     <select name="field_maps_to[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
@@ -103,6 +103,16 @@
                                         <option value="{{ value }}" {% if field.maps_to == value %}selected{% endif %}>{{ label }}</option>
                                       {% endfor %}
                                     </select>
+                                  </div>
+                                  <div class="maps-to-proposal-cell">
+                                    <label class="text-xs font-bold text-gray-500">Saves to proposal field</label>
+                                    <select name="field_maps_to_proposal[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                                      <option value="">Keep as a step answer only</option>
+                                      {% for value,label in proposal_map_choices %}
+                                        <option value="{{ value }}" {% if field.maps_to_proposal == value %}selected{% endif %}>{{ label }}</option>
+                                      {% endfor %}
+                                    </select>
+                                    <p class="mt-1 text-[10px] leading-4 text-gray-400">Used by generated forms &amp; reports.</p>
                                   </div>
                                   <div>
                                     <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>

@@ -78,6 +78,7 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `proposals/tests.py` | Proposal progress weighting, phase labels, proposal access control |
 | `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
+| `proposals/tests_dynamic_wizard.py` | Dynamic wizard steps: built-in vs custom layouts, proposal-field mapping, fresh-install regression |
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
@@ -119,6 +120,34 @@ Each `__init__.py` re-exports every public name, so `urls.py` refers to
 `views.some_view` exactly as before. **When you add a view to a submodule, add
 it to the package's `__init__.py` too** — otherwise the URLconf raises
 `AttributeError` at import. `accounts/tests/test_structure.py` guards this.
+
+## Dynamic wizard steps (no-code)
+
+The proposal wizard's steps are **admin-managed end to end** — nothing about a
+step's form is hard-coded into the templates anymore:
+
+* **Step list** — `details.ProposalWizardStepConfig` owns each step's title,
+  description, instructions, visibility, and whether it is required.
+* **Step content** — each step has a `layout`. `BUILTIN` keeps the classic
+  system form (the type/scope chips, the SDG grid, the sex/gender table, the
+  upload widgets — now just entries in the `proposals/views/wizard_builtin.py`
+  registry); `DYNAMIC` retires it and shows **only** the admin-built form.
+  This is how the office adopts a new printed template for a step without a
+  developer.
+* **Proposal-field mapping** — a plain field with
+  `DynamicFormField.maps_to_proposal` also writes its answer into the real
+  `Proposal` column (title, implementing agency, budget, rationale, …), so the
+  generated DOCX/XLSX forms, review screens, and dashboards keep reading it
+  no matter how a step is rebuilt. On a `BUILTIN` step, a field mapped to a
+  column the system form already owns is a *label override* — it is never
+  rendered or validated twice.
+
+The flows live in `proposals/views/wizard.py` (dispatch),
+`proposals/views/wizard_builtin.py` (the built-in step registry), and
+`proposals/views/dynamic_answers.py` (render/save/validate for admin-built
+fields). `proposals/tests_dynamic_wizard.py` pins the behaviour, including the
+fresh-install regression where required mirror fields used to block Step 1
+from ever saving.
 
 ## Layout and spacing
 

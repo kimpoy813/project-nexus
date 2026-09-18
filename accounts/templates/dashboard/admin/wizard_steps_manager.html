@@ -6,7 +6,7 @@
     <div>
       <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Wizard Manager</p>
       <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Proposal Wizard Steps</h1>
-      <p class="mt-2 text-sm text-gray-600">Rename steps, change instructions, hide optional steps, and decide which steps are required for submission.</p>
+      <p class="mt-2 text-sm text-gray-600">Rename steps, change instructions, hide optional steps, and decide which steps are required for submission. Switch a step's content between its <strong>built-in form</strong> and a <strong>custom form</strong> you build yourself — for example, when the office releases a new template for that part of the proposal.</p>
     </div>
     <div class="flex flex-wrap gap-2">
       <a href="{% url 'wizard_step_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Add New Step</a>
@@ -20,6 +20,7 @@
         <thead><tr>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Step</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Title / Description</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Content</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Visible</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Required</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Action</th>
@@ -32,6 +33,13 @@
               <p class="font-bold text-gray-900">{{ step.title }}</p>
               <p class="text-xs text-gray-500">{{ step.description }}</p>
               {% if step.instructions %}<p class="mt-1 text-xs text-primary">Has custom instructions</p>{% endif %}
+            </td>
+            <td class="px-6 py-4">
+              {% if step.layout == 'DYNAMIC' %}
+                <span class="rounded-full bg-purple-50 px-3 py-1 text-xs font-black text-purple-700" title="The step shows only the admin-built fields">Custom form</span>
+              {% else %}
+                <span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600" title="The step keeps its classic system form; admin fields are extra questions">Built-in form</span>
+              {% endif %}
             </td>
             <td class="px-6 py-4">{% if step.is_visible %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Shown</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}</td>
             <td class="px-6 py-4">{% if step.is_required %}<span class="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">Required</span>{% else %}<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">Optional</span>{% endif %}</td>

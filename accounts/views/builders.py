@@ -75,7 +75,7 @@ def _storage_failure_message(headline, exc):
 
 def _seed_default_fields():
     from details.models import DynamicFormTemplate, DynamicFormField
-    
+
     default_fields_map = {
         1: [
             {"key": "extension_type", "label": "Extension Type", "type": "SELECT", "choices": "RESEARCH_FACULTY|Research-based (Faculty)\nRESEARCH_STUDENT|Research-based (Student)\nREQUEST_BASED|Request-based\nCOMMUNITY_BASED|Community-based", "placeholder": "Choose extension type"},
@@ -142,6 +142,11 @@ def _seed_default_fields():
                     "required": f.get("required", True),
                     "depends_on_key": f.get("depends_on_key", ""),
                     "depends_on_value": f.get("depends_on_value", ""),
+                    # Every seeded field mirrors the Proposal column of the
+                    # same name, so the mapping is explicit from day one: turn
+                    # the step into a custom form and the same fields keep
+                    # feeding the generated documents.
+                    "maps_to_proposal": f["key"],
                     "order": idx + 1,
                 }
             )
@@ -365,6 +370,10 @@ def _save_repeater_settings(form_obj, post_data):
 
     if not form_obj.is_repeater or form_obj.row_store != DynamicFormTemplate.RowStore.PROPONENT:
         form_obj.fields.update(maps_to="")
+    if form_obj.is_repeater:
+        # A repeatable group's rows are not one proposal-level value, so a
+        # proposal-column mapping would never be written.
+        form_obj.fields.update(maps_to_proposal="")
 
     form_obj.save()
 
@@ -381,11 +390,13 @@ def _save_dynamic_form_fields(form_obj, post_data):
     depends_on_keys = post_data.getlist("field_depends_on_key[]")
     depends_on_values = post_data.getlist("field_depends_on_value[]")
     maps_to_values = post_data.getlist("field_maps_to[]")
+    maps_to_proposal_values = post_data.getlist("field_maps_to_proposal[]")
 
     max_len = max(
         len(field_ids), len(labels), len(keys), len(types),
         len(placeholders), len(help_texts), len(choices_list),
-        len(depends_on_keys), len(depends_on_values), len(maps_to_values), 0,
+        len(depends_on_keys), len(depends_on_values), len(maps_to_values),
+        len(maps_to_proposal_values), 0,
     )
 
     def at(values, index, default=""):
@@ -394,10 +405,16 @@ def _save_dynamic_form_fields(form_obj, post_data):
     kept_ids = []
     allowed_types = {choice[0] for choice in DynamicFormField.FieldType.choices}
     allowed_maps = {choice[0] for choice in DynamicFormField.MapsTo.choices}
+    allowed_proposal_maps = {choice[0] for choice in DynamicFormField.ProposalMapsTo.choices}
     # Only a proponent-storing group has record columns to map onto, and each
     # column can only come from one field (the first field asking for it wins).
     maps_enabled = form_obj.is_repeater and form_obj.row_store == DynamicFormTemplate.RowStore.PROPONENT
     taken_maps = set()
+    # A proposal-column mapping only makes sense on a plain (non-repeatable)
+    # field: one value per proposal, and each column can only be written by
+    # one field per form.
+    proposal_maps_enabled = not form_obj.is_repeater
+    taken_proposal_maps = set()
 
     for idx in range(max_len):
         label = (at(labels, idx) or "").strip()
@@ -443,6 +460,17 @@ def _save_dynamic_form_fields(form_obj, post_data):
         if maps_to:
             taken_maps.add(maps_to)
         obj.maps_to = maps_to
+
+        maps_to_proposal = (at(maps_to_proposal_values, idx) or "").strip()
+        if (
+            not proposal_maps_enabled
+            or maps_to_proposal not in allowed_proposal_maps
+            or maps_to_proposal in taken_proposal_maps
+        ):
+            maps_to_proposal = ""
+        if maps_to_proposal:
+            taken_proposal_maps.add(maps_to_proposal)
+        obj.maps_to_proposal = maps_to_proposal
 
         obj.order = idx + 1
         obj.save()
@@ -546,9 +574,29 @@ def _builder_context(form_obj=None, **extra):
         "field_type_choices": DynamicFormField.FieldType.choices,
         "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
         "proponent_map_choices": DynamicFormField.MapsTo.choices,
+        "proposal_map_choices": DynamicFormField.ProposalMapsTo.choices,
+        "layout_choices": ProposalWizardStepConfig.Layout.choices,
     }
     ctx.update(extra)
     return ctx
+
+
+def _layout_from_post(post_data, *, fallback, has_builtin_form):
+    """Read the step's layout choice, kept safe for steps without a system form.
+
+    ``BUILTIN`` is only meaningful when the step number has a built-in form to
+    fall back on; anything else quietly becomes a custom form (which is what
+    the template offers anyway).
+    """
+    value = (post_data.get("layout") or "").strip()
+    if value == ProposalWizardStepConfig.Layout.BUILTIN and has_builtin_form:
+        return ProposalWizardStepConfig.Layout.BUILTIN
+    if value == ProposalWizardStepConfig.Layout.DYNAMIC:
+        return ProposalWizardStepConfig.Layout.DYNAMIC
+    if not value:
+        return fallback
+    # An unknown value, or BUILTIN for a step that has no system form.
+    return ProposalWizardStepConfig.Layout.DYNAMIC if not has_builtin_form else fallback
 
 
 @login_required
@@ -556,6 +604,9 @@ def _builder_context(form_obj=None, **extra):
 def wizard_step_edit(request, step_no):
     _sync_default_wizard_step_configs()
     step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
+
+    from proposals.views.wizard_builtin import BUILTIN_STEP_NUMBERS
+    has_builtin_form = step_no in BUILTIN_STEP_NUMBERS
 
     form_obj = (
         DynamicFormTemplate.objects.filter(
@@ -589,6 +640,11 @@ def wizard_step_edit(request, step_no):
         step_config.title = (request.POST.get("title") or step_config.title).strip()
         step_config.description = (request.POST.get("description") or "").strip()
         step_config.instructions = (request.POST.get("instructions") or "").strip()
+        step_config.layout = _layout_from_post(
+            request.POST,
+            fallback=step_config.layout,
+            has_builtin_form=has_builtin_form,
+        )
         step_config.is_visible = request.POST.get("is_visible") == "on"
         step_config.is_required = request.POST.get("is_required") == "on"
         step_config.save()
@@ -606,7 +662,7 @@ def wizard_step_edit(request, step_no):
     return render(
         request,
         "dashboard/admin/wizard_step_form.html",
-        _builder_context(form_obj, step_config=step_config),
+        _builder_context(form_obj, step_config=step_config, has_builtin_form=has_builtin_form),
     )
 
 
@@ -614,6 +670,8 @@ def wizard_step_edit(request, step_no):
 @admin_required
 def wizard_step_create(request):
     _sync_default_wizard_step_configs()
+
+    from proposals.views.wizard_builtin import BUILTIN_STEP_NUMBERS
 
     max_step = ProposalWizardStepConfig.objects.order_by("-step_no").first()
     next_step_no = (max_step.step_no + 1) if max_step else 1
@@ -623,6 +681,14 @@ def wizard_step_create(request):
         title = (request.POST.get("title") or "").strip()
         description = (request.POST.get("description") or "").strip()
         instructions = (request.POST.get("instructions") or "").strip()
+        has_builtin_form = step_no in BUILTIN_STEP_NUMBERS
+        # New steps are custom by default: the office adds them because the
+        # built-in 19 no longer cover their forms.
+        layout = _layout_from_post(
+            request.POST,
+            fallback=ProposalWizardStepConfig.Layout.DYNAMIC,
+            has_builtin_form=has_builtin_form,
+        )
         is_visible = request.POST.get("is_visible") == "on"
         is_required = request.POST.get("is_required") == "on"
 
@@ -638,6 +704,7 @@ def wizard_step_create(request):
                 title=title,
                 description=description,
                 instructions=instructions,
+                layout=layout,
                 is_visible=is_visible,
                 is_required=is_required,
             )
@@ -656,13 +723,19 @@ def wizard_step_create(request):
             _save_repeater_settings(form_obj, request.POST)
             _save_dynamic_form_fields(form_obj, request.POST)
 
-            messages.success(request, f"Wizard Step {step_no} and its fields created successfully.")
+            messages.success(
+                request,
+                f"Wizard Step {step_config.step_no} ({step_config.title}) and its fields created successfully.",
+            )
             return redirect("wizard_steps_manager")
 
     return render(
         request,
         "dashboard/admin/wizard_step_create_form.html",
-        _builder_context(next_step_no=next_step_no),
+        _builder_context(
+            next_step_no=next_step_no,
+            has_builtin_form=next_step_no in BUILTIN_STEP_NUMBERS,
+        ),
     )
 
 

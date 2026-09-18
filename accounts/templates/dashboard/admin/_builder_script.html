@@ -12,6 +12,7 @@ Shared script for the no-code builders (wizard step editor + form builder).
 <script>
 const fieldTypes = `{% for value,label in field_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
 const mapsToOptions = `{% for value,label in proponent_map_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
+const mapsToProposalOptions = `{% for value,label in proposal_map_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
 
 function addFieldRow() {
     const wrap = document.getElementById('fieldRows');
@@ -58,13 +59,21 @@ function addFieldRow() {
               <label class="text-xs font-bold text-gray-600">Choices for dropdown fields (one option per line)</label>
               <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
             </div>
-            <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
               <div class="maps-to-cell hidden">
                 <label class="text-xs font-bold text-gray-500">Stores in proponent record</label>
                 <select name="field_maps_to[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
                   <option value="">Keep as an extra detail</option>
                   ${mapsToOptions}
                 </select>
+              </div>
+              <div class="maps-to-proposal-cell">
+                <label class="text-xs font-bold text-gray-500">Saves to proposal field</label>
+                <select name="field_maps_to_proposal[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
+                  <option value="">Keep as a step answer only</option>
+                  ${mapsToProposalOptions}
+                </select>
+                <p class="mt-1 text-[10px] leading-4 text-gray-400">Used by generated forms &amp; reports.</p>
               </div>
               <div>
                 <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>
@@ -98,14 +107,38 @@ function moveFieldRow(button, direction) {
 function syncMapsToCells() {
     const toggle = document.querySelector('[data-repeater-toggle]');
     const store = document.querySelector('[data-repeater-store]');
-    const enabled = toggle && toggle.checked && store && store.value === 'PROPONENT';
+    const isProponentRepeater = toggle && toggle.checked && store && store.value === 'PROPONENT';
+    const isRepeater = !!(toggle && toggle.checked);
 
+    // Proponent-record mapping only exists on a proponent-storing repeatable
+    // group; proposal-field mapping only on a plain (non-repeatable) field.
     document.querySelectorAll('.maps-to-cell').forEach(function (cell) {
-        cell.classList.toggle('hidden', !enabled);
+        cell.classList.toggle('hidden', !isProponentRepeater);
+    });
+    document.querySelectorAll('.maps-to-proposal-cell').forEach(function (cell) {
+        cell.classList.toggle('hidden', isRepeater);
     });
 
     const panel = document.querySelector('[data-repeater-fields]');
-    if (panel) panel.classList.toggle('opacity-50', !(toggle && toggle.checked));
+    if (panel) panel.classList.toggle('opacity-50', !isRepeater);
+}
+
+/* The step-content radio changes what the fields below mean: the whole step
+   (custom form) or extra questions under the system form (built-in). */
+function syncLayoutHints() {
+    const selected = document.querySelector('[data-layout-option]:checked');
+    if (!selected) return;
+    const isCustom = selected.value === 'DYNAMIC';
+
+    const note = document.querySelector('[data-layout-note]');
+    if (note) note.classList.toggle('hidden', !isCustom);
+
+    const help = document.querySelector('[data-fields-help]');
+    if (help) {
+        help.textContent = isCustom
+            ? 'These fields are the whole step — build the form the office now uses. Map a field to a proposal field so generated documents keep working.'
+            : 'These fields are shown as extra questions below the step\'s built-in system form.';
+    }
 }
 
 document.addEventListener('click', function (event) {
@@ -126,7 +159,13 @@ document.addEventListener('change', function (event) {
     if (event.target.closest('[data-repeater-toggle], [data-repeater-store]')) {
         syncMapsToCells();
     }
+    if (event.target.closest('[data-layout-option]')) {
+        syncLayoutHints();
+    }
 });
 
-document.addEventListener('DOMContentLoaded', syncMapsToCells);
+document.addEventListener('DOMContentLoaded', function () {
+    syncMapsToCells();
+    syncLayoutHints();
+});
 </script>

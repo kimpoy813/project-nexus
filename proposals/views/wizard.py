@@ -1,5 +1,11 @@
 """
 The proposal creation wizard: steps, validation, sharing, and submission.
+
+The step list, each step's form, and its completion rules are admin-managed
+(see ``details.ProposalWizardStepConfig`` and the no-code builder). A step
+whose layout is ``BUILTIN`` still runs its classic system form - those live in
+``proposals.views.wizard_builtin`` behind a registry - while a ``DYNAMIC``
+step renders and saves through the admin-built form alone.
 """
 
 from collections import Counter
@@ -14,75 +20,35 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
-from details.models import DynamicFormField
-from details.models import DynamicFormResponse
-from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from details.proponent_fields import ensure_proponent_repeater_form
-from ..models import ProgramProject
 from ..models import Proposal
-from ..models import ProposalAttachment
 from ..models import ProposalCollaborator
 from ..models import ProposalCommentSummary
 from ..models import ProposalEditorPresence
-from ..models import ProposalGenderIssue
-from ..models import ProposalMethodology
-from ..models import ProposalOutputOutcome
 from ..models import ProposalProponent
-from ..models import ProposalSDG
 from ..models import ProposalSectionComment
-from ..models import ProposalSpecificObjective
-from ..models import ProposalThrust
-from accounts.decorators import faculty_like_required, admin_required
-from .constants import GENDER_ISSUE_LIST, SDG_LIST, STEP_LABELS, THRUST_LIST, TOTAL_STEPS, User
-from .dynamic_fields import (
-    dependency_parent_value as _dependency_parent_value,
-    dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
-    dynamic_parent_values_from_post as _dynamic_parent_values_from_post,
-    dynamic_parent_values_from_saved as _dynamic_parent_values_from_saved,
-)
+from accounts.decorators import faculty_like_required
+from .constants import TOTAL_STEPS, User
 from .dynamic_answers import (
     _attach_dynamic_forms_to_context,
-    _dynamic_forms_for_proposal_step,
     _is_dynamic_step_complete,
     _proposal_dynamic_requirements_missing,
     _save_dynamic_form_answers,
     _save_step_repeaters,
 )
-from .helpers import _strip_phase_prefix, _to_int, _to_roman
 from .permissions import _can_edit, _can_review, _can_view_proposal, _ensure_open_review_round, _get_reviewer_role, _role_has_capability
-from .proponents import _update_creator_role, save_step_three_proponents
-
-
-def mark_step_completed(proposal, step_no):
-    """Record a step as done. Callers flash their own message.
-
-    This used to call ``messages.success(request, ...)`` with no ``request`` in
-    scope - ``request`` resolved to the (then imported) ``urllib3.request``
-    module, so every "Save & Next" that completed a step raised a TypeError.
-    """
-    completed = set(proposal.completed_steps or [])
-    skipped = set(proposal.skipped_steps or [])
-    completed.add(step_no)
-    skipped.discard(step_no)
-    proposal.completed_steps = sorted(completed)
-    proposal.skipped_steps = sorted(skipped)
-
-
-def mark_step_skipped(proposal, step_no):
-    completed = set(proposal.completed_steps or [])
-    skipped = set(proposal.skipped_steps or [])
-    completed.discard(step_no)
-    skipped.add(step_no)
-    proposal.completed_steps = sorted(completed)
-    proposal.skipped_steps = sorted(skipped)
-
-
-def unmark_step_completed(proposal, step_no):
-    completed = set(proposal.completed_steps or [])
-    completed.discard(step_no)
-    proposal.completed_steps = sorted(completed)
+from .proponents import _update_creator_role
+from .wizard_builtin import (
+    _builtin_step_complete,
+    _builtin_step_context,
+    _save_builtin_step,
+    mark_step_completed,
+    mark_step_skipped,
+    unmark_step_completed,
+    uses_builtin_form,
+)
 
 
 def _wizard_step_config_map():
@@ -149,107 +115,21 @@ def previous_visible_wizard_step(step):
     return None
 
 
-def is_step_complete(proposal, step):
-    if step == 1:
-        if not proposal.extension_type or not proposal.scope_type:
-            return False
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"] and not (proposal.research_title or "").strip():
-            return False
-        return True
+def is_step_complete(proposal, step, config=None):
+    """Is ``step`` complete, judged by whichever form owns it?
 
-    if step == 2:
-        if not (proposal.title or "").strip():
+    A built-in-layout step is judged by its classic system rule **and** by the
+    admin-built extra questions below it (exactly how the Step 3 proponent
+    group has always worked - the rule is simply applied to every step now).
+    A custom-layout step is judged purely by its admin-built fields - that is
+    the whole point of rebuilding a step in the no-code builder.
+    """
+    if uses_builtin_form(step, config=config):
+        if not _builtin_step_complete(proposal, step):
             return False
-        if proposal.scope_type == "PROGRAM":
-            return proposal.program_projects.exists()
-        return True
-
-    if step == 3:
-        # At least one proponent, plus whatever the admin-made proponent fields
-        # mark as required (the repeatable group's required columns and its
-        # minimum row count).
-        if not proposal.proponents.exists():
-            return False
+        # Mirror fields (label overrides for the system form's own inputs) are
+        # skipped inside this check, so only the extra questions count.
         return _is_dynamic_step_complete(proposal, step)
-
-    if step == 4:
-        return bool((proposal.implementing_agency or "").strip())
-
-    if step == 5:
-        return proposal.beneficiaries_count is not None and bool((proposal.beneficiaries_who or "").strip())
-
-    if step == 6:
-        return proposal.sdg_links.exists() or proposal.thrust_links.exists()
-
-    if step == 7:
-        return bool((proposal.budgetary_requirement or "").strip())
-
-    if step == 8:
-        sex_total = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        gender_total = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
-        return sex_total > 0 and sex_total == gender_total
-
-    if step == 9:
-        issues = proposal.gender_issue_links.all()
-        if not issues.exists():
-            return False
-        others = issues.filter(issue_key="others").first()
-        if others and not (others.other_text or "").strip():
-            return False
-        return True
-
-    if step == 10:
-        return bool((proposal.extension_venue or "").strip())
-
-    if step == 11:
-        return bool((proposal.rationale_background or "").strip())
-
-    if step == 12:
-        return bool((proposal.significance or "").strip())
-
-    if step == 13:
-        if not (proposal.general_objective or "").strip():
-            return False
-
-        if proposal.scope_type == "PROGRAM":
-            projects = proposal.program_projects.all()
-            if not projects.exists():
-                return False
-            for prj in projects:
-                if not proposal.specific_objectives.filter(program_project=prj).exists():
-                    return False
-            return True
-
-        return proposal.specific_objectives.filter(program_project__isnull=True).exists()
-
-    if step == 14:
-        return proposal.methodologies.exists()
-
-    if step == 15:
-        return proposal.output_outcomes.exists()
-
-    if step == 16:
-        return bool(proposal.work_plan_file) and bool(proposal.gantt_chart_file)
-
-    if step == 17:
-        return bool(proposal.funding_file)
-
-    if step == 18:
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            return bool(proposal.research_abstract_file)
-        return True
-
-    if step == 19:
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            return bool(proposal.certificate_of_completion_file)
-        return True
 
     return _is_dynamic_step_complete(proposal, step)
 
@@ -286,12 +166,13 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
     return steps
 
 
-def _build_wizard_context(proposal, step, request_user, comment_counts=None):
+def _build_wizard_context(proposal, step, request_user, comment_counts=None, step_config=None):
     required_steps = set(get_required_wizard_step_numbers())
     completed_required = required_steps.intersection(set(proposal.completed_steps or []))
     progress = int((len(completed_required) / len(required_steps)) * 100) if required_steps else 100
-    configs = _wizard_step_config_map()
-    step_config = configs.get(step)
+    if step_config is None:
+        configs = _wizard_step_config_map()
+        step_config = configs.get(step)
 
     ctx = {
         "proposal": proposal,
@@ -401,109 +282,16 @@ def _proponent_review_panel(proposal, current_round, step, *, is_proponent):
     return review_summary, visible_comments
 
 
-def _add_step_context_for_get(ctx, proposal, step):
-    """Attach the per-step data the wizard templates need on GET.
+def _step_context_for_get(ctx, proposal, step, step_config):
+    """Attach the per-step data the step template needs on GET.
 
-    Split out of ``proposal_wizard`` purely for readability: this was ~100
-    lines of ``if step == N`` inline in the view. Mutates and returns ``ctx``.
+    Built-in steps get their classic context from the registry module; custom
+    steps carry everything they need on the admin-built forms themselves.
     """
-    if step == 2 and proposal.scope_type == "PROGRAM":
-        ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
-
-    if step == 3:
-        ctx["proponents"] = proposal.proponents.select_related("user").all().order_by("id")
-        if proposal.scope_type == "PROGRAM":
-            ctx["program_projects"] = proposal.program_projects.select_related("leader_user").all().order_by("order", "id")
-
-    if step == 6:
-        ctx["sdgs"] = SDG_LIST
-        ctx["thrusts"] = THRUST_LIST
-        sdg_links = proposal.sdg_links.all()
-        thrust_links = proposal.thrust_links.all()
-        ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
-        ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
-        ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
-        ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
-
-    if step == 7:
-        ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
-
-    if step == 8:
-        ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        ctx["gender_total"] = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
-
-    if step == 9:
-        ctx["gender_issues"] = GENDER_ISSUE_LIST
-        ctx["selected_gender_issue_keys"] = set(
-            proposal.gender_issue_links.values_list("issue_key", flat=True)
-        )
-        others_item = proposal.gender_issue_links.filter(issue_key="others").first()
-        ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
-
-    if step == 10:
-        ctx["estimated_month"] = proposal.estimated_month or ""
-        ctx["estimated_year"] = proposal.estimated_year or ""
-        ctx["extension_venue"] = proposal.extension_venue or ""
-        ctx["month_choices"] = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December",
-        ]
-
-    if step == 11:
-        ctx["rationale_background"] = proposal.rationale_background or ""
-
-    if step == 12:
-        ctx["significance"] = proposal.significance or ""
-
-    if step == 13:
-        ctx["general_objective"] = proposal.general_objective or ""
-        if proposal.scope_type == "PROGRAM":
-            projects = proposal.program_projects.all().order_by("order", "id")
-            ctx["program_projects"] = projects
-            ctx["project_objectives_map"] = {
-                prj.id: list(
-                    proposal.specific_objectives.filter(program_project=prj)
-                    .values_list("objective", flat=True)
-                )
-                for prj in projects
-            }
-        else:
-            ctx["specific_objectives"] = list(
-                proposal.specific_objectives.filter(program_project__isnull=True)
-                .values_list("objective", flat=True)
-            )
-
-    if step == 14:
-        ctx["methodologies"] = list(proposal.methodologies.values_list("item", flat=True))
-
-    if step == 15:
-        ctx["output_outcomes"] = list(proposal.output_outcomes.values_list("item", flat=True))
-
-    if step == 16:
-        ctx["existing_attachments"] = proposal.attachments.filter(
-            category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES
-        ).order_by("id")
-        if proposal.scope_type == "PROGRAM":
-            ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
-
-    if step == 17:
-        ctx["existing_funding_attachments"] = proposal.attachments.filter(
-            category=ProposalAttachment.Category.OTHER
-        ).order_by("id")
-
-    if step == 18:
-        ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
-
-    if step == 19:
-        ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
+    if uses_builtin_form(step, config=step_config):
+        ctx.update(_builtin_step_context(proposal, step))
     return ctx
+
 
 def _handle_save_comment(request, proposal, step, current_round, reviewer_role):
     """Persist a reviewer's comment for one wizard step.
@@ -555,7 +343,7 @@ def proposal_wizard(request, proposal_id, step):
 
     # The step list is seeded on first use; do it before clamping the requested
     # step, otherwise an empty table makes every step clamp to step 1.
-    _wizard_step_config_map()
+    step_configs = _wizard_step_config_map()
 
     # int() matters: min() returns the TOTAL_STEPS wrapper when the requested
     # step is past the end, and a wrapper is not a usable step number.
@@ -592,7 +380,12 @@ def proposal_wizard(request, proposal_id, step):
     )
 
     # 🔥 IMPORTANT: ctx must exist first
-    ctx = _build_wizard_context(proposal, step, request.user, comment_counts=step_comment_counts)
+    step_config = step_configs.get(step)
+    ctx = _build_wizard_context(
+        proposal, step, request.user,
+        comment_counts=step_comment_counts,
+        step_config=step_config,
+    )
 
     # add review panel data
     ctx["review_summary"] = review_summary
@@ -656,15 +449,22 @@ def proposal_wizard(request, proposal_id, step):
         ctx["existing_step_comment"] = None
         ctx["step_comments"] = []
 
-    template = f"services/wizard/step_{step}.html"
-    from django.template.loader import select_template
-    try:
-        select_template([template])
-    except Exception:
-        template = "services/wizard/step_dynamic.html"
+    # A built-in-layout step renders its classic template; a custom-layout
+    # step renders the generic dynamic template, where the admin-built form
+    # *is* the step content.
+    builtin_step = uses_builtin_form(step, config=step_config)
+    template = "services/wizard/step_dynamic.html"
+    if builtin_step:
+        from django.template.loader import select_template
+        try:
+            select_template([f"services/wizard/step_{step}.html"])
+            template = f"services/wizard/step_{step}.html"
+        except Exception:
+            template = "services/wizard/step_dynamic.html"
+    ctx["dynamic_only_step"] = template == "services/wizard/step_dynamic.html"
 
     if request.method == "GET":
-        _add_step_context_for_get(ctx, proposal, step)
+        _step_context_for_get(ctx, proposal, step, step_config)
         return render(request, template, ctx)
 
     if action == "save_comment":
@@ -674,291 +474,15 @@ def proposal_wizard(request, proposal_id, step):
 
     # Required-field problems found by a step's own save path (currently the
     # Step 3 proponent group); merged with the admin-managed fields below so
-    # "Save & Next" blocks on both.
+    # "Save & Next" blocks on both. Custom-layout steps have no built-in
+    # save path - their fields are saved by the dynamic-form code below.
     step_missing = []
 
-    if step == 1:
-        proposal.extension_type = request.POST.get("extension_type", "")
-        proposal.scope_type = request.POST.get("scope_type", "")
-        research_title = (request.POST.get("research_title") or "").strip()
-
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            proposal.research_title = research_title
-        else:
-            proposal.research_title = ""
-
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"] and not research_title and action != "skip":
-            messages.error(request, "Research Title is required for research-based extension type.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=1)
-
-        proposal.save(update_fields=["extension_type", "scope_type", "research_title"])
-        _update_creator_role(proposal)
-
-    elif step == 2:
-        proposal.title = (request.POST.get("title") or "").strip()
-        proposal.save(update_fields=["title"])
-
-        if proposal.scope_type == "PROGRAM":
-            raw_ids = request.POST.getlist("project_id[]")
-            raw_titles = request.POST.getlist("project_titles[]")
-
-            max_len = max(len(raw_ids), len(raw_titles), 0)
-            raw_ids += [""] * (max_len - len(raw_ids))
-            raw_titles += [""] * (max_len - len(raw_titles))
-
-            existing = {str(p.id): p for p in proposal.program_projects.all()}
-            keep_db_ids = []
-            to_update = []
-            to_create = []
-
-            for i in range(max_len):
-                pid = (raw_ids[i] or "").strip()
-                clean_title = _strip_phase_prefix(raw_titles[i])
-
-                if not clean_title:
-                    continue
-
-                order_no = len(keep_db_ids) + len(to_create) + 1
-                stored_title = f"Phase {_to_roman(order_no)} {clean_title}"
-
-                if pid and pid in existing:
-                    prj = existing[pid]
-                    prj.title = stored_title
-                    prj.order = order_no
-                    to_update.append(prj)
-                    keep_db_ids.append(prj.id)
-                else:
-                    to_create.append(
-                        ProgramProject(
-                            proposal=proposal,
-                            title=stored_title,
-                            order=order_no,
-                        )
-                    )
-
-            proposal.program_projects.exclude(id__in=keep_db_ids).delete()
-
-            if to_update:
-                ProgramProject.objects.bulk_update(to_update, ["title", "order"])
-            if to_create:
-                ProgramProject.objects.bulk_create(to_create)
-
-    elif step == 3:
-        step_missing.extend(save_step_three_proponents(proposal, request))
-
-        if action in ("add_member", "save_members"):
-            if is_step_complete(proposal, step):
-                mark_step_completed(proposal, step)
-            else:
-                unmark_step_completed(proposal, step)
-
-            proposal.save(update_fields=["completed_steps", "skipped_steps"])
-            if step_missing:
-                messages.error(
-                    request,
-                    "Saved, but some required proponent details are still missing: "
-                    + "; ".join(step_missing[:5]),
-                )
-            else:
-                messages.success(request, "Members updated.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=3)
-
-    elif step == 4:
-        proposal.implementing_agency = (request.POST.get("implementing_agency") or "").strip()
-        proposal.save(update_fields=["implementing_agency"])
-
-    elif step == 5:
-        raw_beneficiaries = request.POST.get("beneficiaries_count")
-        proposal.beneficiaries_count = _to_int(raw_beneficiaries, default=None)
-        if proposal.beneficiaries_count == 0 and (raw_beneficiaries or "").strip() == "":
-            proposal.beneficiaries_count = None
-        proposal.beneficiaries_who = (request.POST.get("beneficiaries_who") or "").strip()
-        proposal.save(update_fields=["beneficiaries_count", "beneficiaries_who"])
-
-    elif step == 6:
-        sdg_codes = request.POST.getlist("sdg_codes")
-        thrust_names = request.POST.getlist("thrust_names")
-
-        ProposalSDG.objects.filter(proposal=proposal).delete()
-        ProposalThrust.objects.filter(proposal=proposal).delete()
-
-        for code in sdg_codes:
-            code = (code or "").strip()
-            if code:
-                explanation = (request.POST.get(f"sdg_explanation_{code}") or "").strip()
-                ProposalSDG.objects.create(
-                    proposal=proposal,
-                    sdg_code=code,
-                    explanation=explanation,
-                )
-
-        for name in thrust_names:
-            name = (name or "").strip()
-            if name:
-                explanation = (request.POST.get(f"thrust_explanation_{name}") or "").strip()
-                ProposalThrust.objects.create(
-                    proposal=proposal,
-                    thrust_name=name,
-                    explanation=explanation,
-                )
-
-    elif step == 7:
-        proposal.budgetary_requirement = (request.POST.get("budgetary_requirement") or "").strip()
-        proposal.save(update_fields=["budgetary_requirement"])
-
-    elif step == 8:
-        sex_male = _to_int(request.POST.get("sex_male"))
-        sex_female = _to_int(request.POST.get("sex_female"))
-        g_lesbian = _to_int(request.POST.get("g_lesbian"))
-        g_gay = _to_int(request.POST.get("g_gay"))
-        g_bisexual = _to_int(request.POST.get("g_bisexual"))
-        g_transgender = _to_int(request.POST.get("g_transgender"))
-        g_straight = _to_int(request.POST.get("g_straight"))
-        g_others = _to_int(request.POST.get("g_others"))
-
-        sex_total = sex_male + sex_female
-        gender_total = g_lesbian + g_gay + g_bisexual + g_transgender + g_straight + g_others
-
-        proposal.sex_male = sex_male
-        proposal.sex_female = sex_female
-        proposal.g_lesbian = g_lesbian
-        proposal.g_gay = g_gay
-        proposal.g_bisexual = g_bisexual
-        proposal.g_transgender = g_transgender
-        proposal.g_straight = g_straight
-        proposal.g_others = g_others
-        proposal.save(update_fields=[
-            "sex_male", "sex_female", "g_lesbian", "g_gay",
-            "g_bisexual", "g_transgender", "g_straight", "g_others",
-        ])
-
-        if action == "next" and sex_total != gender_total:
-            messages.error(request, "Sex total and Gender total must be the same before you can proceed.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=8)
-
-    elif step == 9:
-        selected_keys = request.POST.getlist("gender_issue_keys")
-        other_text = (request.POST.get("gender_issue_other_text") or "").strip()
-
-        ProposalGenderIssue.objects.filter(proposal=proposal).delete()
-        label_map = dict(GENDER_ISSUE_LIST)
-
-        for key in selected_keys:
-            key = (key or "").strip()
-            if not key or key not in label_map:
-                continue
-
-            ProposalGenderIssue.objects.create(
-                proposal=proposal,
-                issue_key=key,
-                issue_label=label_map[key],
-                other_text=other_text if key == "others" else "",
-            )
-
-    elif step == 10:
-        estimated_month = (request.POST.get("estimated_month") or "").strip()
-        estimated_year_raw = (request.POST.get("estimated_year") or "").strip()
-        extension_venue = (request.POST.get("extension_venue") or "").strip()
-
-        proposal.estimated_month = estimated_month or ""
-        proposal.estimated_year = int(estimated_year_raw) if estimated_year_raw.isdigit() else None
-        proposal.extension_venue = extension_venue
-        proposal.save(update_fields=["estimated_month", "estimated_year", "extension_venue"])
-
-    elif step == 11:
-        proposal.rationale_background = (request.POST.get("rationale_background") or "").strip()
-        proposal.save(update_fields=["rationale_background"])
-
-    elif step == 12:
-        proposal.significance = (request.POST.get("significance") or "").strip()
-        proposal.save(update_fields=["significance"])
-
-    elif step == 13:
-        proposal.general_objective = (request.POST.get("general_objective") or "").strip()
-        proposal.save(update_fields=["general_objective"])
-
-        proposal.specific_objectives.all().delete()
-
-        if proposal.scope_type == "PROGRAM":
-            for prj in proposal.program_projects.all():
-                objectives = request.POST.getlist(f"specific_objectives_{prj.id}[]")
-                for obj in objectives:
-                    obj = (obj or "").strip()
-                    if obj:
-                        ProposalSpecificObjective.objects.create(
-                            proposal=proposal,
-                            program_project=prj,
-                            objective=obj,
-                        )
-        else:
-            objectives = request.POST.getlist("specific_objectives[]")
-            for obj in objectives:
-                obj = (obj or "").strip()
-                if obj:
-                    ProposalSpecificObjective.objects.create(
-                        proposal=proposal,
-                        program_project=None,
-                        objective=obj,
-                    )
-
-    elif step == 14:
-        proposal.methodologies.all().delete()
-        for item in request.POST.getlist("methodologies[]"):
-            item = (item or "").strip()
-            if item:
-                ProposalMethodology.objects.create(proposal=proposal, item=item)
-
-    elif step == 15:
-        proposal.output_outcomes.all().delete()
-        for item in request.POST.getlist("output_outcomes[]"):
-            item = (item or "").strip()
-            if item:
-                ProposalOutputOutcome.objects.create(proposal=proposal, item=item)
-
-    elif step == 16:
-        remove_attachment_ids = request.POST.getlist("remove_attachment_ids")
-        if remove_attachment_ids:
-            ProposalAttachment.objects.filter(
-                proposal=proposal,
-                category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES,
-                id__in=remove_attachment_ids,
-            ).delete()
-
-        changed_fields = []
-        if request.FILES.get("work_plan_file"):
-            proposal.work_plan_file = request.FILES["work_plan_file"]
-            changed_fields.append("work_plan_file")
-
-        if request.FILES.get("gantt_chart_file"):
-            proposal.gantt_chart_file = request.FILES["gantt_chart_file"]
-            changed_fields.append("gantt_chart_file")
-
-        if changed_fields:
-            proposal.save(update_fields=changed_fields)
-
-        for f in request.FILES.getlist("attachment_files"):
-            if f:
-                ProposalAttachment.objects.create(
-                    proposal=proposal,
-                    file=f,
-                    category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES,
-                    label=getattr(f, "name", ""),
-                )
-
-    elif step == 17:
-        if request.FILES.get("funding_file"):
-            proposal.funding_file = request.FILES["funding_file"]
-            proposal.save(update_fields=["funding_file"])
-
-    elif step == 18:
-        if request.FILES.get("research_abstract_file"):
-            proposal.research_abstract_file = request.FILES["research_abstract_file"]
-            proposal.save(update_fields=["research_abstract_file"])
-
-    elif step == 19:
-        if request.FILES.get("certificate_of_completion_file"):
-            proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
-            proposal.save(update_fields=["certificate_of_completion_file"])
+    if builtin_step:
+        early_response, builtin_missing = _save_builtin_step(request, proposal, step, action)
+        step_missing.extend(builtin_missing)
+        if early_response is not None:
+            return early_response
 
     step_missing.extend(_save_step_repeaters(proposal, step, request, request.user))
     dynamic_missing = step_missing + _save_dynamic_form_answers(proposal, step, request.user, request)
@@ -979,6 +503,19 @@ def proposal_wizard(request, proposal_id, step):
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
         messages.info(request, "Skipped.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step) or step)
+
+    if action in ("add_member", "save_members"):
+        # A repeatable group's row buttons (add / remove / move) submit these
+        # actions: save what was posted and stay on the step instead of
+        # advancing, matching the built-in Step 3 behaviour. On a built-in
+        # Step 3 the saver above already returned; this covers custom steps.
+        if is_step_complete(proposal, step):
+            mark_step_completed(proposal, step)
+        else:
+            unmark_step_completed(proposal, step)
+        proposal.save(update_fields=["completed_steps", "skipped_steps"])
+        messages.success(request, "Saved.")
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
 
     if is_step_complete(proposal, step):
         mark_step_completed(proposal, step)

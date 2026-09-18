@@ -283,6 +283,30 @@ class DynamicFormField(models.Model):
         CP_NUMBER = "cp_number", "CP Number"
         EMAIL = "email", "Email"
 
+    class ProposalMapsTo(models.TextChoices):
+        """Proposal columns a *plain* (non-repeatable) field can write into.
+
+        The generated documents, review screens, and dashboards read these
+        columns, so an admin who rebuilds a step as a custom form can point a
+        field at the column it replaces and everything downstream keeps
+        working. Only used when the field's form is not a repeatable group.
+        """
+
+        TITLE = "title", "Title of the Program / Project / Activity"
+        EXTENSION_TYPE = "extension_type", "Extension type"
+        SCOPE_TYPE = "scope_type", "Scope (program / project / activity)"
+        RESEARCH_TITLE = "research_title", "Research title"
+        IMPLEMENTING_AGENCY = "implementing_agency", "Implementing agency / unit"
+        BENEFICIARIES_COUNT = "beneficiaries_count", "Number of beneficiaries"
+        BENEFICIARIES_WHO = "beneficiaries_who", "Who the beneficiaries are"
+        BUDGETARY_REQUIREMENT = "budgetary_requirement", "Budgetary requirement"
+        EXTENSION_VENUE = "extension_venue", "Extension venue / site"
+        ESTIMATED_MONTH = "estimated_month", "Estimated month"
+        ESTIMATED_YEAR = "estimated_year", "Estimated year"
+        RATIONALE_BACKGROUND = "rationale_background", "Rationale / background"
+        SIGNIFICANCE = "significance", "Significance"
+        GENERAL_OBJECTIVE = "general_objective", "General objective"
+
     form = models.ForeignKey(DynamicFormTemplate, related_name="fields", on_delete=models.CASCADE)
     label = models.CharField(max_length=180)
     field_key = models.SlugField(max_length=120)
@@ -300,6 +324,18 @@ class DynamicFormField(models.Model):
             "For repeatable groups that store proponents: which proponent "
             "record column this field fills in. Blank fields are kept as extra "
             "details of that proponent."
+        ),
+    )
+    maps_to_proposal = models.CharField(
+        max_length=40,
+        choices=ProposalMapsTo.choices,
+        blank=True,
+        default="",
+        help_text=(
+            "For normal (non-repeatable) fields on a proposal wizard step: "
+            "also save the answer into this proposal field, so generated "
+            "documents and reports keep working when a step is rebuilt as a "
+            "custom form."
         ),
     )
     depends_on_key = models.CharField(max_length=120, blank=True, default="", help_text="The key of the parent field this field depends on.")
@@ -415,12 +451,45 @@ class DynamicFormRow(models.Model):
 
 
 class ProposalWizardStepConfig(models.Model):
-    """Admin overrides for the built-in 19 proposal wizard steps."""
+    """Admin-managed definition of one proposal wizard step.
+
+    The office controls everything about a step through this row and the
+    ``DynamicFormTemplate`` attached to it: its title, instructions,
+    visibility, whether it is required, *and* — through ``layout`` — whether
+    the step shows the built-in system form or a form the admin built from
+    scratch (see ``Layout``).
+    """
+
+    class Layout(models.TextChoices):
+        """What the step's form is made of.
+
+        ``BUILTIN`` keeps the step's classic system form (the Extension
+        Type/Scope chips, the SDG grid, the sex/gender table, the upload
+        widgets, ...). Admin-built fields on the step are shown *below* it as
+        extra questions.
+
+        ``DYNAMIC`` drops the built-in form entirely: the step shows only the
+        admin-built fields. This is how the office replaces a step whose old
+        printed form was retired, using the builder instead of a developer.
+        """
+
+        BUILTIN = "BUILTIN", "Built-in system form"
+        DYNAMIC = "DYNAMIC", "Custom form (admin-managed fields)"
 
     step_no = models.PositiveSmallIntegerField(unique=True)
     title = models.CharField(max_length=160)
     description = models.CharField(max_length=255, blank=True, default="")
     instructions = models.TextField(blank=True, default="")
+    layout = models.CharField(
+        max_length=20,
+        choices=Layout.choices,
+        default=Layout.BUILTIN,
+        help_text=(
+            "Built-in system form: the step keeps its classic form and the "
+            "fields below are extra questions. Custom form: the fields below "
+            "are the whole step."
+        ),
+    )
     is_visible = models.BooleanField(default=True)
     is_required = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -430,6 +499,10 @@ class ProposalWizardStepConfig(models.Model):
 
     def __str__(self):
         return f"Step {self.step_no}: {self.title}"
+
+    @property
+    def uses_builtin_form(self):
+        return self.layout == self.Layout.BUILTIN
 
 
 class RoleCapability(models.Model):
