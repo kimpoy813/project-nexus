@@ -11,13 +11,19 @@ One field inside one repeater row (see _repeater_fields.html).
 Disabled controls are not submitted, so read-only dropdowns and checkboxes
 carry a hidden mirror of their value - the same approach _dynamic_fields.html
 uses for single-value fields.
+
+``is_template`` never prints a value. The <template> is what the "+ Add"
+button clones, and the clone is built from the *first* row's cells, so printing
+``value`` here would hand every new row a copy of that row's answers - the
+proponent would add a row and find the previous entry already filled in, and
+saving it would store the same entry twice.
 {% endcomment %}
 {% with index=row.index|default:0 field=cell.field value=cell.value %}
   {% if field.field_type == 'TEXTAREA' %}
     <textarea rows="3" data-field-key="{{ field.field_key }}"
               name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
               placeholder="{{ field.placeholder }}" {% if not is_edit_mode %}readonly{% endif %}
-              class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">{{ value }}</textarea>
+              class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">{% if not is_template %}{{ value }}{% endif %}</textarea>
 
   {% elif field.field_type == 'SELECT' %}
     <select data-field-key="{{ field.field_key }}"
@@ -26,7 +32,7 @@ uses for single-value fields.
             class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">
       <option value="">Select...</option>
       {% for choice in field.parsed_choices %}
-        <option value="{{ choice.value }}" {% if value == choice.value %}selected{% endif %}>{{ choice.label }}</option>
+        <option value="{{ choice.value }}" {% if not is_template and value == choice.value %}selected{% endif %}>{{ choice.label }}</option>
       {% endfor %}
     </select>
     {% if not is_edit_mode and not is_template %}
@@ -39,7 +45,7 @@ uses for single-value fields.
     <label class="relative inline-flex items-center cursor-pointer select-none">
       <input type="checkbox" class="sr-only peer" data-field-key="{{ field.field_key }}"
              name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
-             {% if value %}checked{% endif %}
+             {% if not is_template and value %}checked{% endif %}
              {% if not is_edit_mode and not is_template %}disabled{% endif %}>
       <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
       <span class="ml-3 text-sm font-semibold text-gray-700">Yes</span>
@@ -53,7 +59,7 @@ uses for single-value fields.
   {% else %}
     <input type="{{ field.field_type|lower }}" data-field-key="{{ field.field_key }}"
            name="repeater_{{ form.id }}_row_{% if is_template %}__INDEX__{% else %}{{ index }}{% endif %}_field_{{ field.id }}"
-           value="{{ value }}" placeholder="{{ field.placeholder }}"
+           value="{% if not is_template %}{{ value }}{% endif %}" placeholder="{{ field.placeholder }}"
            {% if not is_edit_mode and not is_template %}readonly{% endif %}
            class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary {% if not is_edit_mode %}bg-gray-100 text-gray-700{% endif %}">
   {% endif %}

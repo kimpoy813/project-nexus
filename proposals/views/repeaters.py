@@ -166,12 +166,21 @@ def _build_rows(proposal, form):
 
 
 def attach_repeater_rows(proposal, forms):
-    """Expose ``repeater_rows`` / ``repeater_fields`` on each repeater form."""
+    """Expose ``repeater_rows`` / ``repeater_fields`` on each repeater form.
+
+    ``repeater_template_cells`` backs the ``<template>`` the "+ Add" button
+    clones. It is deliberately built from *blank* values rather than from the
+    first saved row: cloning a filled-in row would hand the proponent a copy of
+    an existing entry, and saving that row stores the same entry twice.
+    """
     for form in forms:
         if not form.is_repeater:
             continue
         form.repeater_fields = _renderable_fields(form)
         form.repeater_rows = _build_rows(proposal, form)
+        form.repeater_template_cells = _row_cells(
+            form.repeater_fields, _blank_values(form.repeater_fields)
+        )
     return forms
 
 
@@ -278,32 +287,45 @@ def save_repeater_rows(proposal, form, request, user):
     if not form.is_repeater:
         return [], {}
 
-    _apply_row_commands(proposal, form, request)
+    removed_ids = _apply_row_commands(proposal, form, request)
 
     if form.row_store == form.RowStore.PROPONENT:
-        return _save_proponent_rows(proposal, form, request)
-    return _save_generic_rows(proposal, form, request, user)
+        return _save_proponent_rows(proposal, form, request, removed_ids)
+    return _save_generic_rows(proposal, form, request, user, removed_ids)
 
 
 def _apply_row_commands(proposal, form, request):
-    """Handle the per-row remove / move submit buttons (before reading values)."""
+    """Handle the per-row remove / move submit buttons (before reading values).
+
+    Returns the ids of the rows that were actually deleted. A removed row is
+    still in the submitted page - the Remove button only flags it - so the save
+    below has to know which row ids are gone, or it reads the flagged row's
+    still-posted values back in as a brand new row and the entry comes straight
+    back.
+    """
     if form.row_store == form.RowStore.PROPONENT:
-        _apply_proponent_row_commands(proposal, form, request)
-    else:
-        _apply_generic_row_commands(proposal, form, request)
+        return _apply_proponent_row_commands(proposal, form, request)
+    return _apply_generic_row_commands(proposal, form, request)
 
 
 def _apply_proponent_row_commands(proposal, form, request):
+    removed_ids = set()
+
     remove_ids = _int_list(request.POST.getlist(_remove_input(form)))
     if remove_ids:
-        proposal.proponents.filter(id__in=remove_ids).exclude(
+        removable = proposal.proponents.filter(id__in=remove_ids).exclude(
             user_id=proposal.created_by_id
-        ).delete()
+        )
+        removed_ids = set(removable.values_list("id", flat=True))
+        if removed_ids:
+            removable.delete()
 
     move = (request.POST.get(_move_input(form)) or "").strip()
     if move:
         row_id, _, direction = move.partition(":")
         _move_proponent_row(proposal, _to_int(row_id), direction)
+
+    return removed_ids
 
 
 def _move_proponent_row(proposal, row_id, direction):
@@ -328,13 +350,18 @@ def _move_proponent_row(proposal, row_id, direction):
 
 
 def _apply_generic_row_commands(proposal, form, request):
+    removed_ids = set()
+
     response = DynamicFormResponse.objects.filter(form=form, proposal=proposal).first()
     if response is None:
-        return
+        return removed_ids
 
     remove_ids = _int_list(request.POST.getlist(_remove_input(form)))
     if remove_ids:
-        response.rows.filter(id__in=remove_ids).delete()
+        removable = response.rows.filter(id__in=remove_ids)
+        removed_ids = set(removable.values_list("id", flat=True))
+        if removed_ids:
+            removable.delete()
 
     move = (request.POST.get(_move_input(form)) or "").strip()
     if move:
@@ -350,13 +377,16 @@ def _apply_generic_row_commands(proposal, form, request):
                 )
                 DynamicFormRow.objects.bulk_update(rows, ["row_index"])
 
+    return removed_ids
 
-def _save_proponent_rows(proposal, form, request):
+
+def _save_proponent_rows(proposal, form, request, removed_ids=()):
     fields = list(form.fields.all())
     editable_fields = _renderable_fields(form)
     row_count = _posted_row_count(form, request)
     post_parent_values = dynamic_parent_values_from_post([form], request)
 
+    removed_ids = set(removed_ids or ())
     existing = {row.id: row for row in proposal.proponents.all()}
     missing = []
     explicit_role_ids = set()
@@ -365,6 +395,10 @@ def _save_proponent_rows(proposal, form, request):
 
     for index in range(row_count):
         row_id = _to_int(request.POST.get(_row_id_input(form, index)))
+        if row_id in removed_ids:
+            # Deleted by the Remove button a moment ago: its inputs are still
+            # in the POST, but re-saving them would resurrect the entry.
+            continue
         values = _row_values(form, request, index, editable_fields)
         proponent = existing.get(row_id)
 
@@ -423,11 +457,12 @@ def _register_explicit_role(form, values, proponent, explicit_role_ids):
             explicit_role_ids.add(proponent.id)
 
 
-def _save_generic_rows(proposal, form, request, user):
+def _save_generic_rows(proposal, form, request, user, removed_ids=()):
     fields = _renderable_fields(form)
     row_count = _posted_row_count(form, request)
     post_parent_values = dynamic_parent_values_from_post([form], request)
 
+    removed_ids = set(removed_ids or ())
     response, _ = DynamicFormResponse.objects.get_or_create(
         form=form,
         proposal=proposal,
@@ -440,6 +475,9 @@ def _save_generic_rows(proposal, form, request, user):
 
     for index in range(row_count):
         row_id = _to_int(request.POST.get(_row_id_input(form, index)))
+        if row_id in removed_ids:
+            # See _save_proponent_rows: a removed row is still in the POST.
+            continue
         values = _row_values(form, request, index, fields)
         row = existing.get(row_id)
 
