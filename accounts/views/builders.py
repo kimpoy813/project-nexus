@@ -2,9 +2,14 @@
 No-code builders: document templates, dynamic forms, wizard steps, role capabilities.
 """
 from collections import OrderedDict
+import logging
 
+from botocore.exceptions import BotoCoreError
+from botocore.exceptions import ClientError
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import SuspiciousFileOperation
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -16,8 +21,40 @@ from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from ..decorators import admin_required
+from ..forms import DocumentTemplateForm
 from .helpers import _safe_int
 from .reports import ACCOMPLISHMENT_REPORT_ROLES
+
+
+logger = logging.getLogger(__name__)
+
+# django-storages delegates remote failures to botocore.  The remaining error
+# types cover an invalid storage setting and a local filesystem problem.
+_DOCUMENT_TEMPLATE_STORAGE_ERRORS = (
+    BotoCoreError,
+    ClientError,
+    OSError,
+    SuspiciousFileOperation,
+    ValueError,
+)
+
+
+def _template_storage_is_unavailable():
+    """Return the deployment configuration problem, if there is one."""
+    return getattr(settings, "MEDIA_STORAGE_CONFIGURATION_ERROR", "")
+
+
+def _save_document_template(form, *, action, user):
+    """Save a validated template without letting a storage outage become a 500."""
+    try:
+        return form.save()
+    except _DOCUMENT_TEMPLATE_STORAGE_ERRORS:
+        logger.exception(
+            "Could not %s document template for user_id=%s; check the configured file storage.",
+            action,
+            user.pk,
+        )
+        return None
 
 
 def _seed_default_fields():
@@ -152,38 +189,41 @@ def document_templates_list(request):
     )
 
 
+def _document_template_form_context(*, mode, form, template_obj=None):
+    return {
+        "mode": mode,
+        "form": form,
+        "template_obj": template_obj,
+        "storage_configuration_error": _template_storage_is_unavailable(),
+    }
+
+
 @login_required
 @admin_required
 def document_template_create(request):
-    if request.method == "POST":
-        title = (request.POST.get("title") or "").strip()
-        category = (request.POST.get("category") or DocumentTemplate.Category.OTHER).strip()
-        description = (request.POST.get("description") or "").strip()
-        version_label = (request.POST.get("version_label") or "").strip()
-        is_active = request.POST.get("is_active") == "on"
-        file = request.FILES.get("file")
+    form = DocumentTemplateForm(request.POST or None, request.FILES or None)
 
-        if not title or not file:
-            messages.error(request, "Title and template file are required.")
+    if request.method == "POST" and form.is_valid():
+        storage_error = _template_storage_is_unavailable()
+        if storage_error:
+            logger.error("Document template upload blocked: %s", storage_error)
+            messages.error(request, "The template was not uploaded. File storage needs to be configured first.")
         else:
-            DocumentTemplate.objects.create(
-                title=title,
-                category=category,
-                description=description,
-                version_label=version_label,
-                is_active=is_active,
-                file=file,
+            template = _save_document_template(form, action="create", user=request.user)
+            if template:
+                messages.success(request, f'Template "{template.title}" uploaded successfully.')
+                return redirect("document_templates_list")
+            messages.error(
+                request,
+                "The template could not be uploaded to file storage. Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
             )
-            messages.success(request, f'Template "{title}" uploaded successfully.')
-            return redirect("document_templates_list")
+    elif request.method == "POST":
+        messages.error(request, "Please correct the errors below and try again.")
 
     return render(
         request,
         "dashboard/admin/document_template_form.html",
-        {
-            "mode": "create",
-            "category_choices": DocumentTemplate.Category.choices,
-        },
+        _document_template_form_context(mode="create", form=form),
     )
 
 
@@ -191,27 +231,36 @@ def document_template_create(request):
 @admin_required
 def document_template_edit(request, pk):
     template = get_object_or_404(DocumentTemplate, pk=pk)
+    form = DocumentTemplateForm(request.POST or None, request.FILES or None, instance=template)
 
-    if request.method == "POST":
-        template.title = (request.POST.get("title") or template.title).strip()
-        template.category = (request.POST.get("category") or template.category).strip()
-        template.description = (request.POST.get("description") or "").strip()
-        template.version_label = (request.POST.get("version_label") or "").strip()
-        template.is_active = request.POST.get("is_active") == "on"
-        if request.FILES.get("file"):
-            template.file = request.FILES["file"]
-        template.save()
-        messages.success(request, f'Template "{template.title}" updated successfully.')
-        return redirect("document_templates_list")
+    if request.method == "POST" and form.is_valid():
+        # Editing text/status does not require the file backend; only block a
+        # replacement upload while the remote storage configuration is invalid.
+        if request.FILES.get("file") and _template_storage_is_unavailable():
+            storage_error = _template_storage_is_unavailable()
+            logger.error("Document template replacement blocked: %s", storage_error)
+            messages.error(request, "The replacement file was not uploaded. File storage needs to be configured first.")
+            # ModelForm validation assigned the selected file to this instance.
+            # Restore it so the "Current file" link remains the stored file.
+            template.refresh_from_db()
+        else:
+            saved_template = _save_document_template(form, action="update", user=request.user)
+            if saved_template:
+                messages.success(request, f'Template "{saved_template.title}" updated successfully.')
+                return redirect("document_templates_list")
+            messages.error(
+                request,
+                "The template could not be saved to file storage. Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
+            )
+            # As above, do not render a link to an upload that did not save.
+            template.refresh_from_db()
+    elif request.method == "POST":
+        messages.error(request, "Please correct the errors below and try again.")
 
     return render(
         request,
         "dashboard/admin/document_template_form.html",
-        {
-            "mode": "edit",
-            "template_obj": template,
-            "category_choices": DocumentTemplate.Category.choices,
-        },
+        _document_template_form_context(mode="edit", form=form, template_obj=template),
     )
 
 

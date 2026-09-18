@@ -119,7 +119,10 @@ SUPABASE_S3_REGION_NAME=us-east-1
 SUPABASE_STORAGE_PUBLIC_URL=https://PROJECT_REF.supabase.co/storage/v1/object/public/nexus-media
 ```
 
-The project uses `django-storages` with Supabase's S3-compatible API.
+The project uses `django-storages` with Supabase's S3-compatible API. On Render, set
+**all** of these values and explicitly set `USE_SUPABASE_STORAGE=True` in the service's
+Environment page before deploying. The Blueprint deliberately leaves that switch unset so
+an incomplete first-time setup cannot send uploads to an empty S3 endpoint and return a 500.
 
 ## 4. Static files
 

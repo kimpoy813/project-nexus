@@ -14,6 +14,7 @@ from .campus_data import (
     is_valid_department_for_selection,
 )
 from .models import Profile
+from details.models import DocumentTemplate
 
 User = get_user_model()
 
@@ -59,6 +60,38 @@ class StyledFormMixin:
             elif isinstance(widget, (forms.TextInput, forms.EmailInput, forms.PasswordInput)):
                 existing = widget.attrs.get("class", "")
                 widget.attrs["class"] = f"{existing} {self.text_input_classes}".strip()
+
+
+class DocumentTemplateForm(StyledFormMixin, forms.ModelForm):
+    """Validate the Template Library input before it reaches storage/database."""
+
+    class Meta:
+        model = DocumentTemplate
+        fields = ["title", "category", "version_label", "description", "file", "is_active"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_styled_widgets()
+        self.fields["file"].widget.attrs["class"] = (
+            "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"
+        )
+        self.fields["is_active"].widget.attrs["class"] = "sr-only peer"
+
+        # Replacing the file is optional when changing an existing template.
+        if self.instance and self.instance.pk:
+            self.fields["file"].required = False
+
+    def clean_title(self):
+        return (self.cleaned_data.get("title") or "").strip()
+
+    def clean_version_label(self):
+        return (self.cleaned_data.get("version_label") or "").strip()
+
+    def clean_description(self):
+        return (self.cleaned_data.get("description") or "").strip()
 
 
 class CampusStructureMixin:
