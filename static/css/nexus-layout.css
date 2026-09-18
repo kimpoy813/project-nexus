@@ -123,6 +123,12 @@
   gap: var(--nx-stack);
   align-items: center;
   grid-template-columns: minmax(0, 1fr);
+  /* Auth cards must never hug the viewport edge: take a wider inset than the
+     ordinary page gutter (this overrides .nx-page's padding-inline for these
+     screens) and cap + centre the panel/card pair on very wide displays. */
+  padding-inline: clamp(1.5rem, .5rem + 4vw, 8rem);
+  max-width: 110rem;
+  margin-inline: auto;
 }
 @media (min-width: 1024px) {
   .nx-auth {
