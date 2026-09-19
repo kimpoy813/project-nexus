@@ -102,8 +102,13 @@ class ResearchFlowWalkTests(TestCase):
             (3, {}),
             (4, {"implementing_agency": "CTE"}),
             (5, {"beneficiaries_count": "35", "beneficiaries_who": "Farmers"}),
-            (6, {"sdg_codes": ["02"], "sdg_explanation_02": "hunger"}),
-            (7, {"thrust_names": ["Numeracy and Literacy"], "thrust_explanation_Numeracy and Literacy": "x"}),
+            (6, {"sdg_codes": ["02"]}),
+            (7, {
+                "thrust_names": ["Numeracy and Literacy"],
+                "technology_title": "Mobile Coffee Depulpering Machine",
+                "utility_model_registration_number": "2-2025-050123",
+                "utility_model_description": "A portable depulpering for upland farmers.",
+            }),
             (8, {"budgetary_requirement": "30,000.00"}),
             (9, {"sex_male": "35", "sex_female": "30", "g_lesbian": "35", "g_gay": "30"}),
             (10, {"gender_issue_keys": ["women_role_development"]}),
@@ -133,9 +138,30 @@ class ResearchFlowWalkTests(TestCase):
             sorted(self.proposal.completed_steps), list(range(1, 22))
         )
         self.assertTrue(self.proposal.monitoring_eval_file)
+        # Technology details under the ISPSC Extension Agenda step persist.
+        self.assertEqual(self.proposal.technology_title, "Mobile Coffee Depulpering Machine")
+        self.assertEqual(self.proposal.utility_model_registration_number, "2-2025-050123")
+        self.assertEqual(self.proposal.utility_model_description, "A portable depulpering for upland farmers.")
+        # Checklists: codes saved without explanations.
+        self.assertEqual(
+            set(self.proposal.sdg_links.values_list("sdg_code", flat=True)), {"02"}
+        )
+        self.assertEqual(
+            set(self.proposal.thrust_links.values_list("thrust_name", flat=True)),
+            {"Numeracy and Literacy"},
+        )
         # With every required step complete, the submit page opens.
         response = self.client.get(reverse("proposal_submit", args=[self.proposal.id]))
         self.assertEqual(response.status_code, 200)
+
+    def test_the_agenda_step_collects_technology_details(self):
+        self._post(1, {"extension_type": "RESEARCH_FACULTY", "scope_type": "ACTIVITY", "research_title": "T"})
+        page = self.client.get(reverse("proposal_wizard", args=[self.proposal.id, 7]))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Title of Technology")
+        self.assertContains(page, "Utility Model Registration Number")
+        self.assertContains(page, "Utility Model Description")
+        self.assertContains(page, "thrust-chip")
 
 
 class TrainingFlowWalkTests(TestCase):
@@ -167,8 +193,8 @@ class TrainingFlowWalkTests(TestCase):
             (3, {}),
             (4, {"implementing_agency": "CTE"}),
             (5, {"beneficiaries_count": "35", "beneficiaries_who": "Barangay Fisherfolk Association"}),
-            (6, {"sdg_codes": ["01"], "sdg_explanation_01": "poverty"}),
-            (7, {"thrust_names": ["Health and Nutrition"], "thrust_explanation_Health and Nutrition": "x"}),
+            (6, {"sdg_codes": ["01"]}),
+            (7, {"thrust_names": ["Health and Nutrition"]}),
             (8, {"duration": "October 23, 2025"}),
             (9, {"extension_venue": "ISPSC Main Campus"}),
             (10, {"funding_source": "CTE Extension Fund"}),
@@ -217,6 +243,22 @@ class TrainingFlowWalkTests(TestCase):
                 )
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, expected_text)
+
+    def test_sdg_and_agenda_steps_are_checklists_only(self):
+        """The updated forms made both checklists plain tick-boxes."""
+        self._post(1, {"extension_type": "REQUEST_BASED", "scope_type": "ACTIVITY"})
+
+        page = self.client.get(reverse("proposal_wizard", args=[self.proposal.id, 6]))
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, "sdg_explanation_")
+        self.assertContains(page, "sdg-chip")
+
+        page = self.client.get(reverse("proposal_wizard", args=[self.proposal.id, 7]))
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, "thrust_explanation_")
+        self.assertContains(page, "thrust-chip")
+        # The technology details belong to the Extension Proposal form only.
+        self.assertNotContains(page, "utility_model_registration_number")
 
     def test_switching_flow_resets_flow_specific_progress(self):
         walk = [

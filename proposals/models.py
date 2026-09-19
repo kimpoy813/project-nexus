@@ -196,6 +196,27 @@ class Proposal(models.Model):
         help_text="Training Design: funding source (e.g. 'CTE Extension Fund').",
     )
 
+    # Extension Proposal flow: technology / IP details collected under the
+    # ISPSC Extension Agenda section. Optional - not every proposal
+    # commercialises a technology or registers a utility model.
+    technology_title = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="Extension Proposal: title of the technology generated.",
+    )
+    utility_model_registration_number = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Extension Proposal: utility model registration number.",
+    )
+    utility_model_description = models.TextField(
+        blank=True,
+        default="",
+        help_text="Extension Proposal: description of the utility model.",
+    )
+
     beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
     beneficiaries_who = models.TextField(blank=True, default="")
 

@@ -156,6 +156,11 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
         ("ANY", 2): {"title"},
         ("ANY", 4): {"implementing_agency"},
         ("ANY", 5): {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
+        ("RESEARCH", 7): {
+            "technology_title",
+            "utility_model_registration_number",
+            "utility_model_description",
+        },
         ("RESEARCH", 8): {"budgetary_requirement"},
         ("RESEARCH", 11): {"extension_venue", "estimated_month", "estimated_year"},
         ("RESEARCH", 12): {"rationale_background"},

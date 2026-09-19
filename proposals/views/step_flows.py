@@ -179,17 +179,15 @@ def _is_training_step_complete(proposal, step):
 
 
 def _add_sdg_context(ctx, proposal):
+    """SDG checklist (the updated forms dropped per-item explanations)."""
     ctx["sdgs"] = SDG_LIST
-    sdg_links = proposal.sdg_links.all()
-    ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
-    ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
+    ctx["selected_sdg_codes"] = set(proposal.sdg_links.values_list("sdg_code", flat=True))
 
 
 def _add_thrust_context(ctx, proposal):
+    """ISPSC Extension Agenda checklist (no per-item explanations)."""
     ctx["thrusts"] = THRUST_LIST
-    thrust_links = proposal.thrust_links.all()
-    ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
-    ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
+    ctx["selected_thrust_names"] = set(proposal.thrust_links.values_list("thrust_name", flat=True))
 
 
 def _add_participants_context(ctx, proposal):
@@ -265,6 +263,11 @@ def _add_research_step_context_for_get(ctx, proposal, step):
 
     if step == 7:
         _add_thrust_context(ctx, proposal)
+        # Technology / IP details collected under the Extension Agenda
+        # section of the Extension Proposal form.
+        ctx["technology_title"] = proposal.technology_title or ""
+        ctx["utility_model_registration_number"] = proposal.utility_model_registration_number or ""
+        ctx["utility_model_description"] = proposal.utility_model_description or ""
 
     if step == 8:
         ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
@@ -365,31 +368,21 @@ def _add_training_step_context_for_get(ctx, proposal, step):
 
 
 def _save_sdg_links(proposal, request):
-    """Replace the proposal's SDG links from the step form's chips."""
+    """Replace the proposal's SDG checklist selections."""
     ProposalSDG.objects.filter(proposal=proposal).delete()
     for code in request.POST.getlist("sdg_codes"):
         code = (code or "").strip()
         if code:
-            explanation = (request.POST.get(f"sdg_explanation_{code}") or "").strip()
-            ProposalSDG.objects.create(
-                proposal=proposal,
-                sdg_code=code,
-                explanation=explanation,
-            )
+            ProposalSDG.objects.create(proposal=proposal, sdg_code=code)
 
 
 def _save_thrust_links(proposal, request):
-    """Replace the proposal's extension thrust links from the step form."""
+    """Replace the proposal's ISPSC Extension Agenda checklist selections."""
     ProposalThrust.objects.filter(proposal=proposal).delete()
     for name in request.POST.getlist("thrust_names"):
         name = (name or "").strip()
         if name:
-            explanation = (request.POST.get(f"thrust_explanation_{name}") or "").strip()
-            ProposalThrust.objects.create(
-                proposal=proposal,
-                thrust_name=name,
-                explanation=explanation,
-            )
+            ProposalThrust.objects.create(proposal=proposal, thrust_name=name)
 
 
 def _save_participants_profile(proposal, request):
@@ -539,6 +532,18 @@ def _save_research_step(proposal, step, request, action):
 
     elif step == 7:
         _save_thrust_links(proposal, request)
+        proposal.technology_title = (request.POST.get("technology_title") or "").strip()
+        proposal.utility_model_registration_number = (
+            request.POST.get("utility_model_registration_number") or ""
+        ).strip()
+        proposal.utility_model_description = (
+            request.POST.get("utility_model_description") or ""
+        ).strip()
+        proposal.save(update_fields=[
+            "technology_title",
+            "utility_model_registration_number",
+            "utility_model_description",
+        ])
 
     elif step == 8:
         proposal.budgetary_requirement = (request.POST.get("budgetary_requirement") or "").strip()
