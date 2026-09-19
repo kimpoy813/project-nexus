@@ -415,8 +415,6 @@ def proposal_file_preview(request, proposal_id, file_type, attachment_id=None):
         file_field = proposal.gantt_chart_file
     elif file_type == "funding":
         file_field = proposal.funding_file
-    elif file_type == "monitoring_evaluation":
-        file_field = proposal.monitoring_eval_file
     elif file_type == "research_abstract":
         file_field = proposal.research_abstract_file
     elif file_type == "certificate":

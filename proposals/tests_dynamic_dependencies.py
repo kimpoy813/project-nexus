@@ -247,21 +247,23 @@ class DynamicFieldRenderingTests(TestCase):
     def setUpTestData(cls):
         cls.owner = factories.make_user("render_owner", Profile.ROLE_FACULTY)
         # The wizard normalizes step numbers against visible step configs;
-        # without them every step collapses to step 1. Seeded rows are fine:
-        # the proposal picks a research type below so its steps stay visible.
+        # without them every step collapses to step 1.
         from details.models import ProposalWizardStepConfig
-        from .views.wizard import _wizard_step_config_map
 
-        sample = Proposal.objects.create(created_by=cls.owner, extension_type="RESEARCH_FACULTY", scope_type="ACTIVITY")
-        _wizard_step_config_map(sample)
+        ProposalWizardStepConfig.objects.bulk_create(
+            [
+                ProposalWizardStepConfig(
+                    step_no=no,
+                    title=f"Step {no}",
+                    is_visible=True,
+                    is_required=True,
+                )
+                for no in range(1, 20)
+            ]
+        )
 
     def test_wizard_step_renders_dependency_attributes(self):
-        proposal = Proposal.objects.create(
-            created_by=self.owner,
-            current_step=3,
-            extension_type="RESEARCH_FACULTY",
-            scope_type="ACTIVITY",
-        )
+        proposal = Proposal.objects.create(created_by=self.owner, current_step=3)
         form = DynamicFormTemplate.objects.create(
             name="Render Checklist",
             slug="render-checklist",

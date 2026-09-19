@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load proposal_extras %}
 {% block title %}Wizard Step Manager - NExUS{% endblock %}
 {% block content %}
 <div class="nx-page py-8">
@@ -20,7 +19,6 @@
       <table class="min-w-full divide-y divide-gray-100">
         <thead><tr>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Step</th>
-          <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Flow</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Title / Description</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Visible</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Required</th>
@@ -31,11 +29,6 @@
           <tr>
             <td class="px-6 py-4 text-sm font-black text-primary">{{ step.step_no }}</td>
             <td class="px-6 py-4">
-              <span class="rounded-full px-3 py-1 text-xs font-black {% if step.flow == 'TRAINING' %}bg-amber-50 text-amber-700{% elif step.flow == 'RESEARCH' %}bg-indigo-50 text-indigo-700{% else %}bg-gray-100 text-gray-600{% endif %}">
-                {{ flow_labels|get_item:step.flow|default:step.flow }}
-              </span>
-            </td>
-            <td class="px-6 py-4">
               <p class="font-bold text-gray-900">{{ step.title }}</p>
               <p class="text-xs text-gray-500">{{ step.description }}</p>
               {% if step.instructions %}<p class="mt-1 text-xs text-primary">Has custom instructions</p>{% endif %}
@@ -43,12 +36,12 @@
             <td class="px-6 py-4">{% if step.is_visible %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">Shown</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Hidden</span>{% endif %}</td>
             <td class="px-6 py-4">{% if step.is_required %}<span class="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">Required</span>{% else %}<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">Optional</span>{% endif %}</td>
             <td class="px-6 py-4 flex items-center gap-2">
-              <a href="{% url 'wizard_step_edit' step.step_no %}?flow={{ step.flow }}" title="Edit Step" class="p-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition flex items-center justify-center">
+              <a href="{% url 'wizard_step_edit' step.step_no %}" title="Edit Step" class="p-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h3.828l8.38-8.379-2.83-2.828z" />
                 </svg>
               </a>
-              <form method="post" action="{% url 'wizard_step_delete' step.step_no %}?flow={{ step.flow }}" onsubmit="return confirm('Are you sure you want to delete Step {{ step.step_no }}? This action cannot be undone.');" class="inline">
+              <form method="post" action="{% url 'wizard_step_delete' step.step_no %}" onsubmit="return confirm('Are you sure you want to delete Step {{ step.step_no }}? This action cannot be undone.');" class="inline">
                 {% csrf_token %}
                 <button type="submit" title="Delete Step" class="p-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

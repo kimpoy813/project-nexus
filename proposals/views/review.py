@@ -29,8 +29,7 @@ from ..models import ProposalCommentSummary
 from ..models import ProposalEvaluatorAssignment
 from ..models import ProposalSectionComment
 from accounts.decorators import role_required
-from details.models import WizardFlow
-from .constants import step_labels_for_flow, User
+from .constants import STEP_LABELS, User
 from .helpers import _extract_last_name, _extract_points, _get_signatory, _insert_paragraph_after, _proponent_line
 from .permissions import _can_view_proposal, _can_view_summary, _ensure_open_review_round, _is_campus_coordinator, _is_department_coordinator, _is_director, _is_staff
 
@@ -106,15 +105,11 @@ def proposal_review_comments(request, proposal_id, step=1):
         .order_by("step_no", "created_at")
     )
 
-    flow_labels = step_labels_for_flow(
-        WizardFlow.flow_for_extension_type(proposal.extension_type) or "ALL"
-    )
-
     grouped_comments = OrderedDict()
     for item in step_comments:
         step_no = item.step_no or 1
         if step_no not in grouped_comments:
-            step_meta = next((s for s in flow_labels if s["no"] == step_no), None)
+            step_meta = next((s for s in STEP_LABELS if s["no"] == step_no), None)
             grouped_comments[step_no] = {
                 "step_no": step_no,
                 "step_title": step_meta["title"] if step_meta else f"Step {step_no}",
@@ -482,7 +477,7 @@ def _get_director_name(proposal, review_round):
     return (getattr(profile, "full_name", "") or director_comment.reviewer.username or "Director")
 
 
-def summarize_comments(comments_queryset, *, include_step_labels=True, proposal=None):
+def summarize_comments(comments_queryset, *, include_step_labels=True):
     """
     Convert raw reviewer comments into concrete "key revision points".
 
@@ -491,9 +486,7 @@ def summarize_comments(comments_queryset, *, include_step_labels=True, proposal=
     - Group by step and extract 1–2 actionable points per step.
     - Keep output short and readable for the Summary letter.
     """
-    flow = WizardFlow.flow_for_extension_type(proposal.extension_type) if proposal else None
-    flow_labels = step_labels_for_flow(flow or "ALL")
-    step_title_map = {s.get("no"): s.get("title") for s in flow_labels if isinstance(s, dict)}
+    step_title_map = {s.get("no"): s.get("title") for s in STEP_LABELS if isinstance(s, dict)}
 
     ACTION_WORDS = (
         "should", "must", "please", "kindly", "revise", "update", "add", "include",
