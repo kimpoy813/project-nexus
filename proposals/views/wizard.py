@@ -12,6 +12,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.template.loader import select_template
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 from details.models import DynamicFormField
@@ -22,20 +23,13 @@ from details.models import RoleCapability
 from details.proponent_fields import ensure_proponent_repeater_form
 from ..models import ProgramProject
 from ..models import Proposal
-from ..models import ProposalAttachment
 from ..models import ProposalCollaborator
 from ..models import ProposalCommentSummary
 from ..models import ProposalEditorPresence
-from ..models import ProposalGenderIssue
-from ..models import ProposalMethodology
-from ..models import ProposalOutputOutcome
 from ..models import ProposalProponent
-from ..models import ProposalSDG
 from ..models import ProposalSectionComment
-from ..models import ProposalSpecificObjective
-from ..models import ProposalThrust
 from accounts.decorators import faculty_like_required, admin_required
-from .constants import GENDER_ISSUE_LIST, SDG_LIST, STEP_LABELS, THRUST_LIST, TOTAL_STEPS, User
+from .constants import TOTAL_STEPS, User
 from .dynamic_fields import (
     dependency_parent_value as _dependency_parent_value,
     dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
@@ -51,6 +45,14 @@ from .dynamic_answers import (
     _save_step_repeaters,
 )
 from .helpers import _strip_phase_prefix, _to_int, _to_roman
+from .step_flows import (
+    _add_research_step_context_for_get,
+    _add_training_step_context_for_get,
+    _is_research_step_complete,
+    _is_training_step_complete,
+    _save_research_step,
+    _save_training_step,
+)
 from .permissions import _can_edit, _can_review, _can_view_proposal, _ensure_open_review_round, _get_reviewer_role, _role_has_capability
 from .proponents import _update_creator_role, save_step_three_proponents
 
@@ -85,46 +87,90 @@ def unmark_step_completed(proposal, step_no):
     proposal.completed_steps = sorted(completed)
 
 
-def _wizard_step_config_map():
+def proposal_flow(proposal):
+    """The wizard flow a proposal belongs to, based on its extension type.
+
+    Research-based proposals answer the Extension Proposal form (RESEARCH
+    flow); community-based and request-based proposals answer the Training
+    Design form (TRAINING flow). Returns ``None`` while the type is unset -
+    the proposal has only reached the shared Step 1.
+    """
+    from details.models import WizardFlow
+    return WizardFlow.flow_for_extension_type(proposal.extension_type)
+
+
+def _wizard_step_config_map(proposal=None):
+    """Seed the step table on first use and return ``{step_no: config}``.
+
+    With a proposal, only the rows that proposal answers are returned: the
+    shared steps plus its flow's steps.
+    """
     if not ProposalWizardStepConfig.objects.exists():
-        from proposals.views.constants import INITIAL_STEP_LABELS
+        from proposals.views.constants import (
+            SHARED_STEP_LABELS,
+            INITIAL_RESEARCH_STEPS,
+            INITIAL_TRAINING_STEPS,
+        )
         to_create = []
-        for item in INITIAL_STEP_LABELS:
-            to_create.append(
-                ProposalWizardStepConfig(
-                    step_no=item["no"],
-                    title=item["title"],
-                    description=item["desc"],
-                    is_visible=True,
-                    is_required=True,
+        for flow, items in (
+            ("ALL", SHARED_STEP_LABELS),
+            ("RESEARCH", INITIAL_RESEARCH_STEPS),
+            ("TRAINING", INITIAL_TRAINING_STEPS),
+        ):
+            for item in items:
+                to_create.append(
+                    ProposalWizardStepConfig(
+                        step_no=item["no"],
+                        flow=flow,
+                        title=item["title"],
+                        description=item["desc"],
+                        is_visible=True,
+                        is_required=True,
+                    )
                 )
-            )
         if to_create:
             ProposalWizardStepConfig.objects.bulk_create(to_create)
         from accounts.views.builders import _seed_default_fields
         try:
             _seed_default_fields()
         except Exception:
-            pass
-    return {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
+            import traceback, sys
+            traceback.print_exc(file=sys.stderr)
+
+    rows = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("flow", "step_no")
+    if proposal is not None:
+        flow = proposal_flow(proposal)
+        if flow:
+            rows = rows.filter(flow__in=["ALL", flow])
+        else:
+            # Not picked a type yet: the classic list (shared + research).
+            rows = rows.filter(flow__in=["ALL", "RESEARCH"])
+    return {item.step_no: item for item in rows}
 
 
-def get_visible_wizard_step_numbers():
-    return [
-        item.step_no
-        for item in ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
-    ] or [1]
+def get_visible_wizard_step_numbers(proposal=None):
+    rows = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("flow", "step_no")
+    if proposal is not None:
+        # A draft that has not reached/picked a type yet keeps seeing the
+        # classic (Extension Proposal shaped) list, exactly as before the
+        # split; the flow locks in once Step 1 is saved.
+        flow = proposal_flow(proposal) or "RESEARCH"
+        rows = rows.filter(flow__in=["ALL", flow])
+    numbers = [item.step_no for item in rows]
+    # Step 1 (shared) first; flow steps may share its numbering space.
+    return sorted(set(numbers)) or [1]
 
 
-def get_required_wizard_step_numbers():
-    return [
-        item.step_no
-        for item in ProposalWizardStepConfig.objects.filter(is_visible=True, is_required=True).order_by("step_no")
-    ]
+def get_required_wizard_step_numbers(proposal=None):
+    rows = ProposalWizardStepConfig.objects.filter(is_visible=True, is_required=True).order_by("flow", "step_no")
+    if proposal is not None:
+        flow = proposal_flow(proposal) or "RESEARCH"
+        rows = rows.filter(flow__in=["ALL", flow])
+    return sorted({item.step_no for item in rows})
 
 
-def normalize_wizard_step(step):
-    visible = get_visible_wizard_step_numbers()
+def normalize_wizard_step(step, proposal=None):
+    visible = get_visible_wizard_step_numbers(proposal)
     if step in visible:
         return step
     for no in visible:
@@ -133,16 +179,16 @@ def normalize_wizard_step(step):
     return visible[-1]
 
 
-def next_visible_wizard_step(step):
-    visible = get_visible_wizard_step_numbers()
+def next_visible_wizard_step(step, proposal=None):
+    visible = get_visible_wizard_step_numbers(proposal)
     for no in visible:
         if no > step:
             return no
     return None
 
 
-def previous_visible_wizard_step(step):
-    visible = list(reversed(get_visible_wizard_step_numbers()))
+def previous_visible_wizard_step(step, proposal=None):
+    visible = list(reversed(get_visible_wizard_step_numbers(proposal)))
     for no in visible:
         if no < step:
             return no
@@ -157,6 +203,7 @@ def is_step_complete(proposal, step):
             return False
         return True
 
+    # Steps 2-4 mean the same thing in both flows.
     if step == 2:
         if not (proposal.title or "").strip():
             return False
@@ -175,90 +222,25 @@ def is_step_complete(proposal, step):
     if step == 4:
         return bool((proposal.implementing_agency or "").strip())
 
-    if step == 5:
-        return proposal.beneficiaries_count is not None and bool((proposal.beneficiaries_who or "").strip())
-
-    if step == 6:
-        return proposal.sdg_links.exists() or proposal.thrust_links.exists()
-
-    if step == 7:
-        return bool((proposal.budgetary_requirement or "").strip())
-
-    if step == 8:
-        sex_total = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        gender_total = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
-        return sex_total > 0 and sex_total == gender_total
-
-    if step == 9:
-        issues = proposal.gender_issue_links.all()
-        if not issues.exists():
-            return False
-        others = issues.filter(issue_key="others").first()
-        if others and not (others.other_text or "").strip():
-            return False
-        return True
-
-    if step == 10:
-        return bool((proposal.extension_venue or "").strip())
-
-    if step == 11:
-        return bool((proposal.rationale_background or "").strip())
-
-    if step == 12:
-        return bool((proposal.significance or "").strip())
-
-    if step == 13:
-        if not (proposal.general_objective or "").strip():
-            return False
-
-        if proposal.scope_type == "PROGRAM":
-            projects = proposal.program_projects.all()
-            if not projects.exists():
-                return False
-            for prj in projects:
-                if not proposal.specific_objectives.filter(program_project=prj).exists():
-                    return False
-            return True
-
-        return proposal.specific_objectives.filter(program_project__isnull=True).exists()
-
-    if step == 14:
-        return proposal.methodologies.exists()
-
-    if step == 15:
-        return proposal.output_outcomes.exists()
-
-    if step == 16:
-        return bool(proposal.work_plan_file) and bool(proposal.gantt_chart_file)
-
-    if step == 17:
-        return bool(proposal.funding_file)
-
-    if step == 18:
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            return bool(proposal.research_abstract_file)
-        return True
-
-    if step == 19:
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            return bool(proposal.certificate_of_completion_file)
-        return True
-
-    return _is_dynamic_step_complete(proposal, step)
+    # From step 5 on, the two flows diverge (the Training Design flow has no
+    # Significance or Date & Venue, for example).
+    if proposal_flow(proposal) == "TRAINING":
+        return _is_training_step_complete(proposal, step)
+    return _is_research_step_complete(proposal, step)
 
 
 def build_wizard_steps(proposal, current_step, comment_counts=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
-    configs = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
+
+    flow = proposal_flow(proposal)
+    configs = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("flow", "step_no")
+    if flow:
+        configs = configs.filter(flow__in=["ALL", flow])
+    else:
+        # Not picked a type yet: the classic list (shared + research).
+        configs = configs.filter(flow__in=["ALL", "RESEARCH"])
 
     steps = []
     for config in configs:
@@ -287,19 +269,22 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
 
 
 def _build_wizard_context(proposal, step, request_user, comment_counts=None):
-    required_steps = set(get_required_wizard_step_numbers())
+    required_steps = set(get_required_wizard_step_numbers(proposal))
     completed_required = required_steps.intersection(set(proposal.completed_steps or []))
     progress = int((len(completed_required) / len(required_steps)) * 100) if required_steps else 100
-    configs = _wizard_step_config_map()
+    configs = _wizard_step_config_map(proposal)
     step_config = configs.get(step)
 
     ctx = {
         "proposal": proposal,
         "step": step,
-        "total_steps": TOTAL_STEPS,
+        # Flow-aware total: the last step THIS proposal's form actually has,
+        # so "Step N of M" and the read-only next links match the flow.
+        "total_steps": max(get_visible_wizard_step_numbers(proposal), default=1),
         "progress": progress,
         "wizard_steps": build_wizard_steps(proposal, step, comment_counts=comment_counts),
         "wizard_step_config": step_config,
+        "wizard_flow": proposal_flow(proposal) or "",
     }
 
     active_cutoff = timezone.now() - timedelta(seconds=45)
@@ -415,95 +400,10 @@ def _add_step_context_for_get(ctx, proposal, step):
         if proposal.scope_type == "PROGRAM":
             ctx["program_projects"] = proposal.program_projects.select_related("leader_user").all().order_by("order", "id")
 
-    if step == 6:
-        ctx["sdgs"] = SDG_LIST
-        ctx["thrusts"] = THRUST_LIST
-        sdg_links = proposal.sdg_links.all()
-        thrust_links = proposal.thrust_links.all()
-        ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
-        ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
-        ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
-        ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
+    if proposal_flow(proposal) == "TRAINING":
+        return _add_training_step_context_for_get(ctx, proposal, step)
+    return _add_research_step_context_for_get(ctx, proposal, step)
 
-    if step == 7:
-        ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
-
-    if step == 8:
-        ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        ctx["gender_total"] = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
-
-    if step == 9:
-        ctx["gender_issues"] = GENDER_ISSUE_LIST
-        ctx["selected_gender_issue_keys"] = set(
-            proposal.gender_issue_links.values_list("issue_key", flat=True)
-        )
-        others_item = proposal.gender_issue_links.filter(issue_key="others").first()
-        ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
-
-    if step == 10:
-        ctx["estimated_month"] = proposal.estimated_month or ""
-        ctx["estimated_year"] = proposal.estimated_year or ""
-        ctx["extension_venue"] = proposal.extension_venue or ""
-        ctx["month_choices"] = [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December",
-        ]
-
-    if step == 11:
-        ctx["rationale_background"] = proposal.rationale_background or ""
-
-    if step == 12:
-        ctx["significance"] = proposal.significance or ""
-
-    if step == 13:
-        ctx["general_objective"] = proposal.general_objective or ""
-        if proposal.scope_type == "PROGRAM":
-            projects = proposal.program_projects.all().order_by("order", "id")
-            ctx["program_projects"] = projects
-            ctx["project_objectives_map"] = {
-                prj.id: list(
-                    proposal.specific_objectives.filter(program_project=prj)
-                    .values_list("objective", flat=True)
-                )
-                for prj in projects
-            }
-        else:
-            ctx["specific_objectives"] = list(
-                proposal.specific_objectives.filter(program_project__isnull=True)
-                .values_list("objective", flat=True)
-            )
-
-    if step == 14:
-        ctx["methodologies"] = list(proposal.methodologies.values_list("item", flat=True))
-
-    if step == 15:
-        ctx["output_outcomes"] = list(proposal.output_outcomes.values_list("item", flat=True))
-
-    if step == 16:
-        ctx["existing_attachments"] = proposal.attachments.filter(
-            category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES
-        ).order_by("id")
-        if proposal.scope_type == "PROGRAM":
-            ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
-
-    if step == 17:
-        ctx["existing_funding_attachments"] = proposal.attachments.filter(
-            category=ProposalAttachment.Category.OTHER
-        ).order_by("id")
-
-    if step == 18:
-        ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
-
-    if step == 19:
-        ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
-    return ctx
 
 def _handle_save_comment(request, proposal, step, current_round, reviewer_role):
     """Persist a reviewer's comment for one wizard step.
@@ -555,11 +455,11 @@ def proposal_wizard(request, proposal_id, step):
 
     # The step list is seeded on first use; do it before clamping the requested
     # step, otherwise an empty table makes every step clamp to step 1.
-    _wizard_step_config_map()
+    _wizard_step_config_map(proposal)
 
     # int() matters: min() returns the TOTAL_STEPS wrapper when the requested
     # step is past the end, and a wrapper is not a usable step number.
-    step = normalize_wizard_step(max(1, min(step, int(TOTAL_STEPS))))
+    step = normalize_wizard_step(max(1, min(step, int(TOTAL_STEPS))), proposal)
     can_edit = _can_edit(request.user, proposal)
     can_review = _can_review(request.user, proposal)
 
@@ -656,12 +556,17 @@ def proposal_wizard(request, proposal_id, step):
         ctx["existing_step_comment"] = None
         ctx["step_comments"] = []
 
-    template = f"services/wizard/step_{step}.html"
-    from django.template.loader import select_template
-    try:
-        select_template([template])
-    except Exception:
-        template = "services/wizard/step_dynamic.html"
+    # Flow-specific template first (the two forms ask for different things at
+    # the same step number), then the shared step template, then the generic
+    # admin-built page. A draft that has not picked a type yet is on the
+    # classic (research-shaped) list, so it gets the research templates.
+    flow = proposal_flow(proposal) or "RESEARCH"
+    candidates = [
+        f"services/wizard/step_{flow.lower()}_{step}.html",
+        f"services/wizard/step_{step}.html",
+        "services/wizard/step_dynamic.html",
+    ]
+    template = select_template(candidates).template.name
 
     if request.method == "GET":
         _add_step_context_for_get(ctx, proposal, step)
@@ -678,6 +583,7 @@ def proposal_wizard(request, proposal_id, step):
     step_missing = []
 
     if step == 1:
+        previous_flow = proposal_flow(proposal)
         proposal.extension_type = request.POST.get("extension_type", "")
         proposal.scope_type = request.POST.get("scope_type", "")
         research_title = (request.POST.get("research_title") or "").strip()
@@ -690,6 +596,20 @@ def proposal_wizard(request, proposal_id, step):
         if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"] and not research_title and action != "skip":
             messages.error(request, "Research Title is required for research-based extension type.")
             return redirect("proposal_wizard", proposal_id=proposal.id, step=1)
+
+        # Switching between the Extension Proposal and Training Design forms
+        # changes what steps 5+ mean, so progress above the shared steps is
+        # re-answered rather than carried across misleadingly.
+        new_flow = proposal_flow(proposal)
+        if previous_flow and new_flow and previous_flow != new_flow:
+            shared_end = 4
+            mark_step_completed(proposal, 1)
+            proposal.completed_steps = [
+                no for no in (proposal.completed_steps or []) if no <= shared_end
+            ] or [1]
+            proposal.skipped_steps = [
+                no for no in (proposal.skipped_steps or []) if no <= shared_end
+            ]
 
         proposal.save(update_fields=["extension_type", "scope_type", "research_title"])
         _update_creator_role(proposal)
@@ -767,198 +687,11 @@ def proposal_wizard(request, proposal_id, step):
         proposal.implementing_agency = (request.POST.get("implementing_agency") or "").strip()
         proposal.save(update_fields=["implementing_agency"])
 
-    elif step == 5:
-        raw_beneficiaries = request.POST.get("beneficiaries_count")
-        proposal.beneficiaries_count = _to_int(raw_beneficiaries, default=None)
-        if proposal.beneficiaries_count == 0 and (raw_beneficiaries or "").strip() == "":
-            proposal.beneficiaries_count = None
-        proposal.beneficiaries_who = (request.POST.get("beneficiaries_who") or "").strip()
-        proposal.save(update_fields=["beneficiaries_count", "beneficiaries_who"])
-
-    elif step == 6:
-        sdg_codes = request.POST.getlist("sdg_codes")
-        thrust_names = request.POST.getlist("thrust_names")
-
-        ProposalSDG.objects.filter(proposal=proposal).delete()
-        ProposalThrust.objects.filter(proposal=proposal).delete()
-
-        for code in sdg_codes:
-            code = (code or "").strip()
-            if code:
-                explanation = (request.POST.get(f"sdg_explanation_{code}") or "").strip()
-                ProposalSDG.objects.create(
-                    proposal=proposal,
-                    sdg_code=code,
-                    explanation=explanation,
-                )
-
-        for name in thrust_names:
-            name = (name or "").strip()
-            if name:
-                explanation = (request.POST.get(f"thrust_explanation_{name}") or "").strip()
-                ProposalThrust.objects.create(
-                    proposal=proposal,
-                    thrust_name=name,
-                    explanation=explanation,
-                )
-
-    elif step == 7:
-        proposal.budgetary_requirement = (request.POST.get("budgetary_requirement") or "").strip()
-        proposal.save(update_fields=["budgetary_requirement"])
-
-    elif step == 8:
-        sex_male = _to_int(request.POST.get("sex_male"))
-        sex_female = _to_int(request.POST.get("sex_female"))
-        g_lesbian = _to_int(request.POST.get("g_lesbian"))
-        g_gay = _to_int(request.POST.get("g_gay"))
-        g_bisexual = _to_int(request.POST.get("g_bisexual"))
-        g_transgender = _to_int(request.POST.get("g_transgender"))
-        g_straight = _to_int(request.POST.get("g_straight"))
-        g_others = _to_int(request.POST.get("g_others"))
-
-        sex_total = sex_male + sex_female
-        gender_total = g_lesbian + g_gay + g_bisexual + g_transgender + g_straight + g_others
-
-        proposal.sex_male = sex_male
-        proposal.sex_female = sex_female
-        proposal.g_lesbian = g_lesbian
-        proposal.g_gay = g_gay
-        proposal.g_bisexual = g_bisexual
-        proposal.g_transgender = g_transgender
-        proposal.g_straight = g_straight
-        proposal.g_others = g_others
-        proposal.save(update_fields=[
-            "sex_male", "sex_female", "g_lesbian", "g_gay",
-            "g_bisexual", "g_transgender", "g_straight", "g_others",
-        ])
-
-        if action == "next" and sex_total != gender_total:
-            messages.error(request, "Sex total and Gender total must be the same before you can proceed.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=8)
-
-    elif step == 9:
-        selected_keys = request.POST.getlist("gender_issue_keys")
-        other_text = (request.POST.get("gender_issue_other_text") or "").strip()
-
-        ProposalGenderIssue.objects.filter(proposal=proposal).delete()
-        label_map = dict(GENDER_ISSUE_LIST)
-
-        for key in selected_keys:
-            key = (key or "").strip()
-            if not key or key not in label_map:
-                continue
-
-            ProposalGenderIssue.objects.create(
-                proposal=proposal,
-                issue_key=key,
-                issue_label=label_map[key],
-                other_text=other_text if key == "others" else "",
-            )
-
-    elif step == 10:
-        estimated_month = (request.POST.get("estimated_month") or "").strip()
-        estimated_year_raw = (request.POST.get("estimated_year") or "").strip()
-        extension_venue = (request.POST.get("extension_venue") or "").strip()
-
-        proposal.estimated_month = estimated_month or ""
-        proposal.estimated_year = int(estimated_year_raw) if estimated_year_raw.isdigit() else None
-        proposal.extension_venue = extension_venue
-        proposal.save(update_fields=["estimated_month", "estimated_year", "extension_venue"])
-
-    elif step == 11:
-        proposal.rationale_background = (request.POST.get("rationale_background") or "").strip()
-        proposal.save(update_fields=["rationale_background"])
-
-    elif step == 12:
-        proposal.significance = (request.POST.get("significance") or "").strip()
-        proposal.save(update_fields=["significance"])
-
-    elif step == 13:
-        proposal.general_objective = (request.POST.get("general_objective") or "").strip()
-        proposal.save(update_fields=["general_objective"])
-
-        proposal.specific_objectives.all().delete()
-
-        if proposal.scope_type == "PROGRAM":
-            for prj in proposal.program_projects.all():
-                objectives = request.POST.getlist(f"specific_objectives_{prj.id}[]")
-                for obj in objectives:
-                    obj = (obj or "").strip()
-                    if obj:
-                        ProposalSpecificObjective.objects.create(
-                            proposal=proposal,
-                            program_project=prj,
-                            objective=obj,
-                        )
-        else:
-            objectives = request.POST.getlist("specific_objectives[]")
-            for obj in objectives:
-                obj = (obj or "").strip()
-                if obj:
-                    ProposalSpecificObjective.objects.create(
-                        proposal=proposal,
-                        program_project=None,
-                        objective=obj,
-                    )
-
-    elif step == 14:
-        proposal.methodologies.all().delete()
-        for item in request.POST.getlist("methodologies[]"):
-            item = (item or "").strip()
-            if item:
-                ProposalMethodology.objects.create(proposal=proposal, item=item)
-
-    elif step == 15:
-        proposal.output_outcomes.all().delete()
-        for item in request.POST.getlist("output_outcomes[]"):
-            item = (item or "").strip()
-            if item:
-                ProposalOutputOutcome.objects.create(proposal=proposal, item=item)
-
-    elif step == 16:
-        remove_attachment_ids = request.POST.getlist("remove_attachment_ids")
-        if remove_attachment_ids:
-            ProposalAttachment.objects.filter(
-                proposal=proposal,
-                category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES,
-                id__in=remove_attachment_ids,
-            ).delete()
-
-        changed_fields = []
-        if request.FILES.get("work_plan_file"):
-            proposal.work_plan_file = request.FILES["work_plan_file"]
-            changed_fields.append("work_plan_file")
-
-        if request.FILES.get("gantt_chart_file"):
-            proposal.gantt_chart_file = request.FILES["gantt_chart_file"]
-            changed_fields.append("gantt_chart_file")
-
-        if changed_fields:
-            proposal.save(update_fields=changed_fields)
-
-        for f in request.FILES.getlist("attachment_files"):
-            if f:
-                ProposalAttachment.objects.create(
-                    proposal=proposal,
-                    file=f,
-                    category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES,
-                    label=getattr(f, "name", ""),
-                )
-
-    elif step == 17:
-        if request.FILES.get("funding_file"):
-            proposal.funding_file = request.FILES["funding_file"]
-            proposal.save(update_fields=["funding_file"])
-
-    elif step == 18:
-        if request.FILES.get("research_abstract_file"):
-            proposal.research_abstract_file = request.FILES["research_abstract_file"]
-            proposal.save(update_fields=["research_abstract_file"])
-
-    elif step == 19:
-        if request.FILES.get("certificate_of_completion_file"):
-            proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
-            proposal.save(update_fields=["certificate_of_completion_file"])
+    else:
+        save_fn = _save_training_step if proposal_flow(proposal) == "TRAINING" else _save_research_step
+        early_redirect = save_fn(proposal, step, request, action)
+        if early_redirect is not None:
+            return early_redirect
 
     step_missing.extend(_save_step_repeaters(proposal, step, request, request.user))
     dynamic_missing = step_missing + _save_dynamic_form_answers(proposal, step, request.user, request)
@@ -972,13 +705,13 @@ def proposal_wizard(request, proposal_id, step):
         return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
 
     if action == "back":
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=previous_visible_wizard_step(step) or step)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=previous_visible_wizard_step(step, proposal) or step)
 
     if action == "skip":
         mark_step_skipped(proposal, step)
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
         messages.info(request, "Skipped.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step) or step)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step, proposal) or step)
 
     if is_step_complete(proposal, step):
         mark_step_completed(proposal, step)
@@ -987,7 +720,7 @@ def proposal_wizard(request, proposal_id, step):
 
     proposal.save(update_fields=["completed_steps", "skipped_steps"])
 
-    next_step = next_visible_wizard_step(step)
+    next_step = next_visible_wizard_step(step, proposal)
     if not next_step:
         messages.success(request, "All visible required steps completed.")
         return redirect("proposal_submit", proposal_id=proposal.id)
@@ -1013,7 +746,7 @@ def proposal_submit(request, proposal_id):
         messages.warning(request, "This proposal has already been submitted or is not editable.")
         return redirect("services_home")
 
-    all_required_steps = set(get_required_wizard_step_numbers())
+    all_required_steps = set(get_required_wizard_step_numbers(proposal))
     completed_steps = set(proposal.completed_steps or [])
 
     if not all_required_steps.issubset(completed_steps):

@@ -11,6 +11,14 @@
     {% csrf_token %}
     <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
       <div>
+        <label class="block text-sm font-bold text-gray-700 mb-1">Wizard Flow</label>
+        <select name="flow" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm bg-white">
+          <option value="RESEARCH" selected>Research-based — Extension Proposal</option>
+          <option value="TRAINING">Community/Request-based — Training Design</option>
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Which proposal type's wizard shows this step.</p>
+      </div>
+      <div>
         <label class="block text-sm font-bold text-gray-700 mb-1">Step Number</label>
         <input type="number" name="step_no" value="{{ next_step_no }}" min="1" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
         <p class="mt-1 text-xs text-gray-500">A unique positive number determining the order.</p>

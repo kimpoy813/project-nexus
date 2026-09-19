@@ -1846,14 +1846,24 @@ def _fill_form2_training_design(doc: Document, proposal) -> None:
     if len(t0.rows) > 5:
         _fill_list_cell(t0.rows[5].cells[1], _get_thrust_lines(proposal))
     if len(t0.rows) > 6:
-        month = (getattr(proposal, "estimated_month", "") or "").strip()
-        year = getattr(proposal, "estimated_year", None)
-        _fill_cell_single_paragraph(t0.rows[6].cells[1], f"{month} {year}".strip())
+        # Training Design wizard stores the duration text; fall back to the
+        # estimated month/year for drafts made before the flow split.
+        duration = (getattr(proposal, "duration", "") or "").strip()
+        if not duration:
+            month = (getattr(proposal, "estimated_month", "") or "").strip()
+            year = getattr(proposal, "estimated_year", None)
+            duration = f"{month} {year}".strip()
+        _fill_cell_single_paragraph(t0.rows[6].cells[1], duration)
     if len(t0.rows) > 7:
         venue = (getattr(proposal, "extension_venue", "") or "").strip()
         _fill_cell_single_paragraph(t0.rows[7].cells[1], venue)
     if len(t0.rows) > 8:
-        _fill_cell_single_paragraph(t0.rows[8].cells[1], (getattr(proposal, "budgetary_requirement", "") or "").strip())
+        # "Funding Source: ... Budget: ..." - the wizard's funding source and
+        # budget text, with the source first as the form shows it.
+        source = (getattr(proposal, "funding_source", "") or "").strip()
+        budget = (getattr(proposal, "budgetary_requirement", "") or "").strip()
+        combined = "\n".join(part for part in (source, budget) if part)
+        _fill_cell_single_paragraph(t0.rows[8].cells[1], combined)
     if len(t0.rows) > 9:
         _fill_cell_single_paragraph(t0.rows[9].cells[1], "")
 
