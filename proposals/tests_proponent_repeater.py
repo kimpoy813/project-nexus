@@ -27,6 +27,13 @@ def mapped_fields(form):
     return list(form.fields.order_by("order").values_list("field_key", "label", "maps_to"))
 
 
+def repeater_clone_template(html):
+    """The ``<template>`` the browser clones when "+ Add ..." is clicked."""
+    start = html.find("<template data-repeater-template>")
+    end = html.find("</template>", start)
+    return html[start:end] if start != -1 and end != -1 else ""
+
+
 class ProponentRepeaterSeedTests(TestCase):
     """The step must work before an admin ever opens the builder."""
 
@@ -221,6 +228,73 @@ class ProponentRepeaterFillTests(TestCase):
         self.assertEqual(self.proposal.proponents.count(), 1)
         self.assertEqual(self.proposal.proponents.get().full_name, "Juan D. Cruz")
 
+    def test_removing_a_row_that_is_still_on_the_page_does_not_bring_it_back(self):
+        """The Remove button only flags a row: its inputs are still submitted.
+
+        The browser leaves the removed row in the page, so its values arrive in
+        the same POST that asks for it to be deleted. Re-saving them used to
+        store the entry a second time, which made the roster impossible to
+        shrink.
+        """
+        self.client_owner.post(self.url, self._row_payload(0, full_name="Juan Dela Cruz"))
+        self.client_owner.post(self.url, self._row_payload(1, full_name="Ana Reyes"))
+        first, second = self.proposal.proponents.order_by("sort_order")
+        name_field = self.fields_by_key["full_name"]
+
+        payload = {
+            "action": "save_members",
+            f"repeater_{self.form.id}_rows": 2,
+            f"repeater_{self.form.id}_row_id_0": str(first.id),
+            f"repeater_{self.form.id}_row_id_1": str(second.id),
+            f"repeater_{self.form.id}_row_0_field_{name_field.id}": first.full_name,
+            f"repeater_{self.form.id}_row_1_field_{name_field.id}": second.full_name,
+            f"repeater_{self.form.id}_remove": str(second.id),
+        }
+
+        self.client_owner.post(self.url, payload)
+
+        self.assertEqual(
+            list(self.proposal.proponents.values_list("full_name", flat=True)),
+            ["Juan Dela Cruz"],
+        )
+
+    def test_the_row_the_add_button_clones_starts_blank(self):
+        """A new row must not open holding another row's answers.
+
+        The clone template used to be built from the first saved row, so every
+        "+ Add Proponent" card arrived pre-filled with that person's details
+        and saving it stored the same entry twice.
+        """
+        ProposalProponent.objects.create(
+            proposal=self.proposal,
+            full_name="Ben Cruz",
+            designation="Instructor I",
+            specialization="Agronomy",
+            cp_number="09171234567",
+            email="ben@example.com",
+            role="Project Leader",
+        )
+
+        html = self.client_owner.get(self.url).content.decode()
+        clone = repeater_clone_template(html)
+
+        self.assertTrue(clone, "the step rendered no row template to clone")
+        # Still a usable row: the inputs the script renumbers must be there.
+        self.assertIn(f"repeater_{self.form.id}_row___INDEX___field_", clone)
+        # ... but an empty one.
+        for value in (
+            "Ben Cruz",
+            "Instructor I",
+            "Agronomy",
+            "09171234567",
+            "ben@example.com",
+            " selected",
+            " checked",
+        ):
+            self.assertNotIn(value, clone)
+        # The Role dropdown still offers its choices.
+        self.assertIn("Project Leader", clone)
+
     def test_the_creator_row_cannot_be_removed(self):
         ProposalProponent.objects.create(
             proposal=self.proposal,
@@ -401,3 +475,51 @@ class GenericRepeaterTests(TestCase):
         )
 
         self.assertEqual(response.rows.count(), 0)
+
+    def test_a_row_removed_while_still_on_the_page_stays_removed(self):
+        """Free-standing rows have the same Remove contract as proponent rows."""
+        self.client_owner.post(
+            self.url,
+            {
+                "action": "next",
+                f"repeater_{self.form.id}_rows": 1,
+                f"repeater_{self.form.id}_row_id_0": "",
+                f"repeater_{self.form.id}_row_0_field_{self.name_field.id}": "ISPSC",
+                f"repeater_{self.form.id}_row_0_field_{self.contact_field.id}": "Dr. Reyes",
+            },
+        )
+        row = DynamicFormRow.objects.get()
+
+        self.client_owner.post(
+            self.url,
+            {
+                "action": "save_members",
+                f"repeater_{self.form.id}_rows": 1,
+                f"repeater_{self.form.id}_row_id_0": str(row.id),
+                f"repeater_{self.form.id}_row_0_field_{self.name_field.id}": "ISPSC",
+                f"repeater_{self.form.id}_row_0_field_{self.contact_field.id}": "Dr. Reyes",
+                f"repeater_{self.form.id}_remove": str(row.id),
+            },
+        )
+
+        self.assertEqual(DynamicFormRow.objects.count(), 0)
+
+    def test_the_row_the_add_button_clones_starts_blank(self):
+        self.client_owner.post(
+            self.url,
+            {
+                "action": "next",
+                f"repeater_{self.form.id}_rows": 1,
+                f"repeater_{self.form.id}_row_id_0": "",
+                f"repeater_{self.form.id}_row_0_field_{self.name_field.id}": "ISPSC",
+                f"repeater_{self.form.id}_row_0_field_{self.contact_field.id}": "Dr. Reyes",
+            },
+        )
+
+        html = self.client_owner.get(self.url).content.decode()
+        clone = repeater_clone_template(html)
+
+        self.assertTrue(clone, "the step rendered no row template to clone")
+        self.assertIn(f"repeater_{self.form.id}_row___INDEX___field_", clone)
+        self.assertNotIn("ISPSC", clone)
+        self.assertNotIn("Dr. Reyes", clone)
