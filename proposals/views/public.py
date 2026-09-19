@@ -13,7 +13,8 @@ from details.models import WorkflowPhase
 from ..models import ExtensionThrust
 from ..models import Proposal
 from ..models import SDG
-from .constants import STEP_LABELS, TOTAL_STEPS
+from details.models import WizardFlow
+from .constants import step_labels_for_flow
 
 
 def _build_status_flow(choices, progress_map):
@@ -74,8 +75,16 @@ def services_home(request):
         "process_records": process_records,
         "workflow_phases": workflow_phases,
         "workflow_weight_total": weight_total,
-        "wizard_steps": STEP_LABELS,
-        "total_wizard_steps": TOTAL_STEPS,
+        "wizard_flows": [
+            {
+                "label": "Research-based proposals — Extension Proposal form",
+                "steps": step_labels_for_flow(WizardFlow.RESEARCH),
+            },
+            {
+                "label": "Community/Request-based proposals — Extension Training Design form",
+                "steps": step_labels_for_flow(WizardFlow.TRAINING),
+            },
+        ],
         "office_templates": office_templates,
         "dynamic_form_templates": dynamic_form_templates,
         "page": SitePage.get_for(SitePage.Slug.SERVICES),

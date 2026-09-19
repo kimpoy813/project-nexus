@@ -153,6 +153,35 @@ class DocumentTemplate(models.Model):
         return self.title
 
 
+class WizardFlow(models.TextChoices):
+    """Which proposal wizard flow a step (or step-attached form) belongs to.
+
+    The office maintains two proposal forms with different sections and a
+    different order:
+
+    - RESEARCH: research-based proposals answer the **Extension Proposal**
+      form (``form1``).
+    - TRAINING: community-based and request-based proposals answer the
+      **Extension Training Design** form (``FORM 2``).
+
+    ``ALL`` marks the steps every proposal answers regardless of type - the
+    Step 1 "Extension Type and Scope" screen that decides the flow.
+    """
+
+    ALL = "ALL", "All proposal types"
+    RESEARCH = "RESEARCH", "Research-based (Extension Proposal)"
+    TRAINING = "TRAINING", "Community/Request-based (Training Design)"
+
+    @classmethod
+    def flow_for_extension_type(cls, extension_type):
+        """Map a ``Proposal.extension_type`` value to its wizard flow."""
+        if extension_type in ("RESEARCH_FACULTY", "RESEARCH_STUDENT"):
+            return cls.RESEARCH
+        if extension_type in ("REQUEST_BASED", "COMMUNITY_BASED"):
+            return cls.TRAINING
+        return None
+
+
 class DynamicFormTemplate(models.Model):
     """Admin-defined form blueprint for office checklists/intake forms.
 
@@ -228,6 +257,18 @@ class DynamicFormTemplate(models.Model):
         help_text=(
             "Only used for repeatable groups: store each row as a free-standing "
             "row, or as one of the proposal's proponents."
+        ),
+    )
+    wizard_flow = models.CharField(
+        max_length=20,
+        choices=WizardFlow.choices,
+        blank=True,
+        default="",
+        help_text=(
+            "For forms attached to a proposal wizard step: which wizard flow "
+            "this form belongs to. Blank means the form is shared by every "
+            "flow that has this step number (for example the shared Step 1 "
+            "and the proponent repeater on Step 3)."
         ),
     )
     created_at = models.DateTimeField(auto_now_add=True)
@@ -415,9 +456,23 @@ class DynamicFormRow(models.Model):
 
 
 class ProposalWizardStepConfig(models.Model):
-    """Admin overrides for the built-in 19 proposal wizard steps."""
+    """Admin overrides for the proposal wizard steps, per wizard flow.
 
-    step_no = models.PositiveSmallIntegerField(unique=True)
+    Steps tagged ``ALL`` are answered by every proposal (Step 1). Steps tagged
+    ``RESEARCH`` belong to the Extension Proposal flow answered by
+    research-based proposals; steps tagged ``TRAINING`` belong to the Training
+    Design flow answered by community-based and request-based proposals. The
+    two flows are numbered independently, so step 8 can be "Budgetary
+    Requirement" for one flow and "Duration" for the other.
+    """
+
+    step_no = models.PositiveSmallIntegerField()
+    flow = models.CharField(
+        max_length=20,
+        choices=WizardFlow.choices,
+        default=WizardFlow.ALL,
+        help_text="Which proposal type's wizard shows this step.",
+    )
     title = models.CharField(max_length=160)
     description = models.CharField(max_length=255, blank=True, default="")
     instructions = models.TextField(blank=True, default="")
@@ -426,10 +481,16 @@ class ProposalWizardStepConfig(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["step_no"]
+        ordering = ["flow", "step_no"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["flow", "step_no"],
+                name="unique_wizard_step_per_flow",
+            ),
+        ]
 
     def __str__(self):
-        return f"Step {self.step_no}: {self.title}"
+        return f"Step {self.step_no} ({self.get_flow_display()}): {self.title}"
 
 
 class RoleCapability(models.Model):

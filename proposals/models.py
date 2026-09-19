@@ -182,6 +182,20 @@ class Proposal(models.Model):
     implementing_agency = models.CharField(max_length=255, blank=True, default="")
     budgetary_requirement = models.CharField(max_length=255, blank=True, default="")
 
+    # Training Design flow (community/request-based proposals)
+    duration = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Training Design: activity duration (e.g. 'October 23, 2025' or '3 days').",
+    )
+    funding_source = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Training Design: funding source (e.g. 'CTE Extension Fund').",
+    )
+
     beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
     beneficiaries_who = models.TextField(blank=True, default="")
 
@@ -226,6 +240,12 @@ class Proposal(models.Model):
         upload_to="proposal_files/certificates_of_completion/",
         blank=True,
         null=True,
+    )
+    monitoring_eval_file = models.FileField(
+        upload_to="proposal_files/monitoring_evaluation/",
+        blank=True,
+        null=True,
+        help_text="Extension Proposal: Monitoring and Evaluation Mechanics attachment.",
     )
 
     is_locked = models.BooleanField(default=False)

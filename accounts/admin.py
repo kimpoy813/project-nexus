@@ -84,8 +84,8 @@ class DynamicFormResponseAdmin(admin.ModelAdmin):
 
 @admin.register(ProposalWizardStepConfig)
 class ProposalWizardStepConfigAdmin(admin.ModelAdmin):
-    list_display = ("step_no", "title", "is_visible", "is_required", "updated_at")
-    list_filter = ("is_visible", "is_required")
+    list_display = ("step_no", "flow", "title", "is_visible", "is_required", "updated_at")
+    list_filter = ("flow", "is_visible", "is_required")
     search_fields = ("title", "description", "instructions")
 
 

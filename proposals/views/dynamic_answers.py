@@ -12,6 +12,7 @@ records, so they are delegated to ``proposals.views.repeaters``.
 """
 
 from details.models import DynamicFormAnswer, DynamicFormField, DynamicFormResponse, DynamicFormTemplate
+from details.models import WizardFlow
 
 from .dynamic_fields import (
     dependency_parent_value as _dependency_parent_value,
@@ -27,13 +28,29 @@ from .repeaters import (
 )
 
 
+def _wizard_flow_filter(proposal):
+    """Q filter limiting step-attached forms to a proposal's wizard flow.
+
+    Forms with a blank ``wizard_flow`` are shared by every flow (the seeded
+    proponent repeater, for example); forms tagged RESEARCH or TRAINING only
+    belong to that flow's steps. While the extension type is unset the
+    proposal has only reached the shared Step 1, so only shared forms apply.
+    """
+    from django.db.models import Q
+
+    flow = WizardFlow.flow_for_extension_type(proposal.extension_type) if proposal else None
+    if flow:
+        return Q(wizard_flow="") | Q(wizard_flow=flow)
+    return Q(wizard_flow="")
+
+
 def _is_dynamic_step_complete(proposal, step):
     forms = DynamicFormTemplate.objects.filter(
         is_active=True,
         applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
         proposal_wizard_step=step,
         blocks_proposal_submission=True,
-    ).prefetch_related("fields")
+    ).filter(_wizard_flow_filter(proposal)).prefetch_related("fields")
     
     if not forms.exists():
         return True
@@ -70,20 +87,21 @@ def _is_dynamic_step_complete(proposal, step):
     return True
 
 
-def _dynamic_forms_for_proposal_step(step):
+def _dynamic_forms_for_proposal_step(step, proposal=None):
     return (
         DynamicFormTemplate.objects.filter(
             is_active=True,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
             proposal_wizard_step=step,
         )
+        .filter(_wizard_flow_filter(proposal))
         .prefetch_related("fields")
         .order_by("name")
     )
 
 
 def _attach_dynamic_forms_to_context(ctx, proposal, step):
-    forms = list(_dynamic_forms_for_proposal_step(step))
+    forms = list(_dynamic_forms_for_proposal_step(step, proposal))
 
     # Only the first form on a step may own the proposal's proponent rows: a
     # duplicate form would otherwise print - and save - the same rows twice.
@@ -130,18 +148,31 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
 
     ctx["step_fields"] = step_fields
 
-    hardcoded_keys_by_step = {
-        1: {"extension_type", "scope_type", "research_title"},
-        2: {"title"},
-        4: {"implementing_agency"},
-        5: {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
-        7: {"budgetary_requirement"},
-        10: {"extension_venue", "estimated_month", "estimated_year"},
-        11: {"rationale_background"},
-        12: {"significance"},
-        13: {"general_objective"},
+    # Native inputs the step templates render themselves, per flow: the same
+    # step number holds different sections in the two forms.
+    flow = WizardFlow.flow_for_extension_type(proposal.extension_type) if proposal else None
+    hardcoded_keys_by_flow_step = {
+        ("ANY", 1): {"extension_type", "scope_type", "research_title"},
+        ("ANY", 2): {"title"},
+        ("ANY", 4): {"implementing_agency"},
+        ("ANY", 5): {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
+        ("RESEARCH", 8): {"budgetary_requirement"},
+        ("RESEARCH", 11): {"extension_venue", "estimated_month", "estimated_year"},
+        ("RESEARCH", 12): {"rationale_background"},
+        ("RESEARCH", 13): {"significance"},
+        ("RESEARCH", 14): {"general_objective"},
+        ("RESEARCH", 19): {"monitoring_eval"},
+        ("TRAINING", 9): {"extension_venue"},
+        ("TRAINING", 11): {"budgetary_requirement"},
+        ("TRAINING", 12): {"rationale_background"},
+        ("TRAINING", 14): {"general_objective"},
     }
-    exclude_keys = hardcoded_keys_by_step.get(step, set())
+    exclude_keys = set(hardcoded_keys_by_flow_step.get(("ANY", step), set()))
+    if flow:
+        exclude_keys |= hardcoded_keys_by_flow_step.get((flow, step), set())
+    elif step > 1:
+        # Not picked a type yet: the classic research-shaped list.
+        exclude_keys |= hardcoded_keys_by_flow_step.get(("RESEARCH", step), set())
 
     for form in forms:
         response = responses.get(form.id)
@@ -175,7 +206,7 @@ def _save_dynamic_form_answers(proposal, step, user, request):
     ``proposals.views.repeaters`` because they do not live in
     ``DynamicFormAnswer``.
     """
-    forms = [form for form in _dynamic_forms_for_proposal_step(step) if not form.is_repeater]
+    forms = [form for form in _dynamic_forms_for_proposal_step(step, proposal) if not form.is_repeater]
     missing = []
     post_values = _dynamic_parent_values_from_post(forms, request)
 
@@ -223,7 +254,7 @@ def _save_step_repeaters(proposal, step, request, user):
     also drives the creator's role and the per-phase project leaders.
     """
     missing = []
-    for form in _dynamic_forms_for_proposal_step(step):
+    for form in _dynamic_forms_for_proposal_step(step, proposal):
         if not form.is_repeater:
             continue
         if step == 3 and form.is_proponent_repeater:
@@ -243,6 +274,7 @@ def _proposal_dynamic_requirements_missing(proposal):
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
             blocks_proposal_submission=True,
         )
+        .filter(_wizard_flow_filter(proposal))
         .exclude(proposal_wizard_step__isnull=True)
         .prefetch_related("fields")
     )
