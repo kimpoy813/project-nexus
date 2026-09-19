@@ -125,7 +125,7 @@ def _wizard_step_config_map(proposal=None):
                         title=item["title"],
                         description=item["desc"],
                         is_visible=True,
-                        is_required=True,
+                        is_required=item.get("required", True),
                     )
                 )
         if to_create:

@@ -15,7 +15,7 @@ SHARED_STEP_LABELS = [
 ]
 
 # Research-based (faculty/student) proposals answer the Extension Proposal
-# form (static/templates/form1.docx). Steps 2-21 follow its sections I-XVIII,
+# form (static/templates/form1.docx). Steps 2-22 follow its sections I-XVIII,
 # plus the office's two research-only uploads.
 INITIAL_RESEARCH_STEPS = [
     {"no": 2, "title": "Title", "desc": "Program, project, or activity title"},
@@ -23,21 +23,22 @@ INITIAL_RESEARCH_STEPS = [
     {"no": 4, "title": "Implementing Agency/Unit", "desc": "Office, agency, or unit responsible"},
     {"no": 5, "title": "Collaborators/Beneficiaries", "desc": "Beneficiary count and target group"},
     {"no": 6, "title": "SDGs Covered", "desc": "SDGs covered (check all that apply)"},
-    {"no": 7, "title": "ISPSC Extension Agenda", "desc": "Extension agenda covered + technology details (check all that apply)"},
-    {"no": 8, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
-    {"no": 9, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
-    {"no": 10, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
-    {"no": 11, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
-    {"no": 12, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
-    {"no": 13, "title": "Significance", "desc": "Importance of the proposed extension"},
-    {"no": 14, "title": "Objectives", "desc": "General and specific SMART objectives"},
-    {"no": 15, "title": "Methodology / Mechanics", "desc": "Implementation approach"},
-    {"no": 16, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
-    {"no": 17, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
-    {"no": 18, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
-    {"no": 19, "title": "Monitoring and Evaluation Mechanics", "desc": "M&E mechanics attachment"},
-    {"no": 20, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
-    {"no": 21, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
+    {"no": 7, "title": "ISPSC Extension Agenda", "desc": ""},
+    {"no": 8, "title": "Utility Model", "desc": "", "required": False},
+    {"no": 9, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
+    {"no": 10, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
+    {"no": 11, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
+    {"no": 12, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
+    {"no": 13, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
+    {"no": 14, "title": "Significance", "desc": "Importance of the proposed extension"},
+    {"no": 15, "title": "Objectives", "desc": "General and specific SMART objectives"},
+    {"no": 16, "title": "Methodology / Mechanics", "desc": "Implementation approach"},
+    {"no": 17, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
+    {"no": 18, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
+    {"no": 19, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
+    {"no": 20, "title": "Monitoring and Evaluation Mechanics", "desc": "M&E mechanics attachment"},
+    {"no": 21, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
+    {"no": 22, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
 ]
 
 # Community-based and request-based proposals answer the Extension Training
@@ -168,9 +169,9 @@ class _DynamicTotalSteps:
                 .order_by("-step_no")
                 .first()
             )
-            return max_step.step_no if max_step else 21
+            return max_step.step_no if max_step else 22
         except Exception:
-            return 21
+            return 22
 
     def __index__(self):
         return int(self)
