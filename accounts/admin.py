@@ -3,8 +3,7 @@ from django.contrib import admin
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog, Campus, College, Department
 from details.models import (
     AccomplishmentReport, DocumentTemplate, DynamicFormTemplate, DynamicFormField,
-    DynamicFormResponse, DynamicFormAnswer, MOAWizardStepConfig,
-    ProposalWizardStepConfig, RoleCapability,
+    DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig, RoleCapability,
 )
 
 
@@ -85,21 +84,9 @@ class DynamicFormResponseAdmin(admin.ModelAdmin):
 
 @admin.register(ProposalWizardStepConfig)
 class ProposalWizardStepConfigAdmin(admin.ModelAdmin):
-    list_display = ("step_no", "order", "title", "section_key", "is_visible", "is_required", "updated_at")
-    list_filter = ("is_visible", "is_required", "section_key")
+    list_display = ("step_no", "title", "is_visible", "is_required", "updated_at")
+    list_filter = ("is_visible", "is_required")
     search_fields = ("title", "description", "instructions")
-    ordering = ("order", "step_no")
-
-
-@admin.register(MOAWizardStepConfig)
-class MOAWizardStepConfigAdmin(admin.ModelAdmin):
-    """The MOA drafting steps - not to be confused with ``Proposal.MOA_FLOW``,
-    which is the approval status staff advance."""
-
-    list_display = ("step_no", "order", "title", "section_key", "is_visible", "is_required", "updated_at")
-    list_filter = ("is_visible", "is_required", "section_key")
-    search_fields = ("title", "description", "instructions")
-    ordering = ("order", "step_no")
 
 
 @admin.register(RoleCapability)

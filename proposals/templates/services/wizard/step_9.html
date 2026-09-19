@@ -13,13 +13,13 @@
 
         <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
             <span class="h-2 w-2 rounded-full bg-primary"></span>
-            You · Step {{ step_position }}
+            You · Step {{ step }}
         </span>
 
         {% for editor in active_editors %}
         <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
             <span class="h-2 w-2 rounded-full bg-primary"></span>
-            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step_position }}
+            {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
         </span>
         {% endfor %}
     </div>
@@ -146,9 +146,9 @@
         </p>
         {% else %}
         <div class="flex justify-end pt-2">
-            <a href="{% if next_step_no %}{% url 'proposal_wizard' proposal.id next_step_no %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
+            <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
-                {% if next_step_no %}Next Step{% else %}Back to Dashboard{% endif %}
+                {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>
         {% endif %}
