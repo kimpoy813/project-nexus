@@ -247,9 +247,12 @@ class DynamicFieldRenderingTests(TestCase):
     def setUpTestData(cls):
         cls.owner = factories.make_user("render_owner", Profile.ROLE_FACULTY)
         # The wizard normalizes step numbers against visible step configs;
-        # without them every step collapses to step 1.
+        # without them every step collapses to step 1. The migrations seed the
+        # built-in steps, so clear them first: this suite builds its own
+        # numbered list and step_no is unique.
         from details.models import ProposalWizardStepConfig
 
+        ProposalWizardStepConfig.objects.all().delete()
         ProposalWizardStepConfig.objects.bulk_create(
             [
                 ProposalWizardStepConfig(

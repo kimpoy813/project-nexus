@@ -1,3 +1,15 @@
+"""
+Move the Utility Model answers into their own optional research step (PR #33).
+
+Kept as frozen history after PR #33 was reverted (``0026`` folds the step back
+into the agenda section), with one patch: the reviewer-comment shift used to
+walk the rows in ascending step order, so moving a comment from step 8 onto 9
+could land on a comment from the same reviewer that had not moved yet and
+abort the migration on
+``unique_section_comment_per_reviewer_step_round``. It now walks downwards,
+like the step-table shift above it.
+"""
+
 from django.db import migrations
 
 
@@ -37,7 +49,7 @@ def split_utility_model_step(apps, schema_editor):
 
     for comment in Comment.objects.filter(
         proposal__extension_type__in=RESEARCH_TYPES, step_no__gte=8
-    ):
+    ).order_by("-step_no"):
         comment.step_no += 1
         comment.save(update_fields=["step_no"])
 

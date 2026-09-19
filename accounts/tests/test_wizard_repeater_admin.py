@@ -257,6 +257,10 @@ class DefaultFieldSeederTests(TestCase):
         from details.models import ProposalWizardStepConfig
         from proposals.views.constants import INITIAL_STEP_LABELS
 
+        # The migrations seed the built-in steps; rebuild them from the same
+        # list so the test does not depend on what a migration happened to
+        # write (step_no is unique).
+        ProposalWizardStepConfig.objects.all().delete()
         ProposalWizardStepConfig.objects.bulk_create(
             [
                 ProposalWizardStepConfig(
