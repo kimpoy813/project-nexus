@@ -70,25 +70,67 @@
     <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-4 space-y-6">
         {% csrf_token %}
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="estimated_month" class="block text-sm font-semibold text-gray-900 mb-2">
+                    {{ step_fields.estimated_month.label|default:"Estimated Month" }}{% if step_fields.estimated_month.required %} <span class="text-red-600">*</span>{% endif %}
+                </label>
+                <select
+                    id="estimated_month"
+                    name="estimated_month"
+                    {% if not is_edit_mode %}disabled{% endif %}
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}">
+                    <option value="">{{ step_fields.estimated_month.placeholder|default:"Select month" }}</option>
+                    {% for month in month_choices %}
+                    <option value="{{ month }}" {% if estimated_month == month %}selected{% endif %}>
+                        {{ month }}
+                    </option>
+                    {% endfor %}
+                </select>
+
+                {% if not is_edit_mode %}
+                <input type="hidden" name="estimated_month" value="{{ estimated_month }}">
+                {% endif %}
+                {% if step_fields.estimated_month.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ step_fields.estimated_month.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="estimated_year" class="block text-sm font-semibold text-gray-900 mb-2">
+                    {{ step_fields.estimated_year.label|default:"Estimated Year" }}{% if step_fields.estimated_year.required %} <span class="text-red-600">*</span>{% endif %}
+                </label>
+                <input
+                    type="number"
+                    id="estimated_year"
+                    name="estimated_year"
+                    value="{{ estimated_year }}"
+                    min="2024"
+                    max="2100"
+                    {% if not is_edit_mode %}readonly{% endif %}
+                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
+                    placeholder="{{ step_fields.estimated_year.placeholder|default:'e.g. 2026' }}">
+                {% if step_fields.estimated_year.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ step_fields.estimated_year.help_text }}</p>
+                {% endif %}
+            </div>
+        </div>
+
         <div>
-            <label for="rationale_background" class="block text-sm font-semibold text-gray-900 mb-2">
-                {{ step_fields.rationale_background.label|default:"Rationale / Background" }}{% if step_fields.rationale_background.required %} <span class="text-red-600">*</span>{% endif %}
+            <label for="extension_venue" class="block text-sm font-semibold text-gray-900 mb-2">
+                {{ step_fields.extension_venue.label|default:"Venue / Extension Site" }}{% if step_fields.extension_venue.required %} <span class="text-red-600">*</span>{% endif %}
             </label>
-            <textarea
-                name="rationale_background"
-                rows="8"
-                placeholder="{{ step_fields.rationale_background.placeholder|default:'Provide the background and rationale of the proposed extension.' }}"
-                oninput="autoResize(this); updateWordCount(this, 'wc-rationale')"
-                class="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm
-                        outline-none focus:ring-2 focus:ring-primary focus:border-primary
-                        resize-none overflow-hidden min-h-[200px]"
-                {% if not is_edit_mode %}readonly{% endif %}>{{ proposal.rationale_background }}</textarea>
-            {% if step_fields.rationale_background.help_text %}
-            <p class="text-xs text-gray-500 mt-1">{{ step_fields.rationale_background.help_text }}</p>
+            <input
+                type="text"
+                id="extension_venue"
+                name="extension_venue"
+                value="{{ extension_venue|default:'' }}"
+                {% if not is_edit_mode %}readonly{% endif %}
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
+                placeholder="{{ step_fields.extension_venue.placeholder|default:'Enter venue or extension site' }}">
+            {% if step_fields.extension_venue.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ step_fields.extension_venue.help_text }}</p>
             {% endif %}
-            <p class="text-xs text-gray-400 text-right mt-1">
-                <span id="wc-rationale">0</span> words
-            </p>
         </div>
 
 
@@ -127,18 +169,4 @@
         {% endif %}
     </form>
 </div>
-
-{% if is_edit_mode %}
-<script>
-    function autoResize(el) {
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-    }
-    function updateWordCount(el, counterId) {
-        const words = el.value.trim().split(/\s+/).filter(w => w.length > 0);
-        document.getElementById(counterId).textContent = words.length;
-    }
-    document.querySelectorAll('textarea[oninput]').forEach(autoResize);
-</script>
-{% endif %}
 {% endblock %}

@@ -80,45 +80,52 @@ def _is_research_step_complete(proposal, step):
         return proposal.thrust_links.exists()
 
     if step == 8:
-        return bool((proposal.budgetary_requirement or "").strip())
+        return bool(
+            (proposal.technology_title or "").strip()
+            or (proposal.utility_model_registration_number or "").strip()
+            or (proposal.utility_model_description or "").strip()
+        )
 
     if step == 9:
-        return _participants_profile_complete(proposal)
+        return bool((proposal.budgetary_requirement or "").strip())
 
     if step == 10:
-        return _gender_issues_complete(proposal)
+        return _participants_profile_complete(proposal)
 
     if step == 11:
-        return bool((proposal.extension_venue or "").strip())
+        return _gender_issues_complete(proposal)
 
     if step == 12:
-        return bool((proposal.rationale_background or "").strip())
+        return bool((proposal.extension_venue or "").strip())
 
     if step == 13:
-        return bool((proposal.significance or "").strip())
+        return bool((proposal.rationale_background or "").strip())
 
     if step == 14:
-        return _objectives_complete(proposal)
+        return bool((proposal.significance or "").strip())
 
     if step == 15:
-        return proposal.methodologies.exists()
+        return _objectives_complete(proposal)
 
     if step == 16:
-        return proposal.output_outcomes.exists()
+        return proposal.methodologies.exists()
 
     if step == 17:
-        return bool(proposal.work_plan_file) and bool(proposal.gantt_chart_file)
+        return proposal.output_outcomes.exists()
 
     if step == 18:
-        return bool(proposal.funding_file)
+        return bool(proposal.work_plan_file) and bool(proposal.gantt_chart_file)
 
     if step == 19:
-        return bool(proposal.monitoring_eval_file) or bool((proposal.monitoring_eval or "").strip())
+        return bool(proposal.funding_file)
 
     if step == 20:
-        return bool(proposal.research_abstract_file)
+        return bool(proposal.monitoring_eval_file) or bool((proposal.monitoring_eval or "").strip())
 
     if step == 21:
+        return bool(proposal.research_abstract_file)
+
+    if step == 22:
         return bool(proposal.certificate_of_completion_file)
 
     return _is_dynamic_step_complete(proposal, step)
@@ -263,58 +270,58 @@ def _add_research_step_context_for_get(ctx, proposal, step):
 
     if step == 7:
         _add_thrust_context(ctx, proposal)
-        # Technology / IP details collected under the Extension Agenda
-        # section of the Extension Proposal form.
+
+    if step == 8:
         ctx["technology_title"] = proposal.technology_title or ""
         ctx["utility_model_registration_number"] = proposal.utility_model_registration_number or ""
         ctx["utility_model_description"] = proposal.utility_model_description or ""
 
-    if step == 8:
+    if step == 9:
         ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
 
-    if step == 9:
+    if step == 10:
         _add_participants_context(ctx, proposal)
 
-    if step == 10:
+    if step == 11:
         _add_gender_issues_context(ctx, proposal)
 
-    if step == 11:
+    if step == 12:
         _add_date_venue_context(ctx, proposal)
 
-    if step == 12:
+    if step == 13:
         _add_rationale_context(ctx, proposal)
 
-    if step == 13:
+    if step == 14:
         ctx["significance"] = proposal.significance or ""
 
-    if step == 14:
+    if step == 15:
         _add_objectives_context(ctx, proposal)
 
-    if step == 15:
+    if step == 16:
         _add_methodology_context(ctx, proposal)
 
-    if step == 16:
+    if step == 17:
         _add_output_context(ctx, proposal)
 
-    if step == 17:
+    if step == 18:
         ctx["existing_attachments"] = proposal.attachments.filter(
             category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES
         ).order_by("id")
         if proposal.scope_type == "PROGRAM":
             ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
 
-    if step == 18:
+    if step == 19:
         ctx["existing_funding_attachments"] = proposal.attachments.filter(
             category=ProposalAttachment.Category.OTHER
         ).order_by("id")
 
-    if step == 19:
+    if step == 20:
         ctx["monitoring_eval"] = proposal.monitoring_eval or ""
 
-    if step == 20:
+    if step == 21:
         ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
 
-    if step == 21:
+    if step == 22:
         ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
     return ctx
 
@@ -532,6 +539,8 @@ def _save_research_step(proposal, step, request, action):
 
     elif step == 7:
         _save_thrust_links(proposal, request)
+
+    elif step == 8:
         proposal.technology_title = (request.POST.get("technology_title") or "").strip()
         proposal.utility_model_registration_number = (
             request.POST.get("utility_model_registration_number") or ""
@@ -545,20 +554,20 @@ def _save_research_step(proposal, step, request, action):
             "utility_model_description",
         ])
 
-    elif step == 8:
+    elif step == 9:
         proposal.budgetary_requirement = (request.POST.get("budgetary_requirement") or "").strip()
         proposal.save(update_fields=["budgetary_requirement"])
 
-    elif step == 9:
+    elif step == 10:
         sex_total, gender_total = _save_participants_profile(proposal, request)
         if action == "next" and sex_total != gender_total:
             messages.error(request, "Sex total and Gender total must be the same before you can proceed.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=9)
-
-    elif step == 10:
-        _save_gender_issues(proposal, request)
+            return redirect("proposal_wizard", proposal_id=proposal.id, step=10)
 
     elif step == 11:
+        _save_gender_issues(proposal, request)
+
+    elif step == 12:
         estimated_month = (request.POST.get("estimated_month") or "").strip()
         estimated_year_raw = (request.POST.get("estimated_year") or "").strip()
         extension_venue = (request.POST.get("extension_venue") or "").strip()
@@ -568,31 +577,31 @@ def _save_research_step(proposal, step, request, action):
         proposal.extension_venue = extension_venue
         proposal.save(update_fields=["estimated_month", "estimated_year", "extension_venue"])
 
-    elif step == 12:
+    elif step == 13:
         _save_rationale(proposal, request)
 
-    elif step == 13:
+    elif step == 14:
         proposal.significance = (request.POST.get("significance") or "").strip()
         proposal.save(update_fields=["significance"])
 
-    elif step == 14:
+    elif step == 15:
         _save_objectives(proposal, request)
 
-    elif step == 15:
+    elif step == 16:
         _save_methodologies(proposal, request)
 
-    elif step == 16:
+    elif step == 17:
         _save_output_outcomes(proposal, request)
 
-    elif step == 17:
+    elif step == 18:
         _save_details_of_activities_files(proposal, request, include_gantt=True)
 
-    elif step == 18:
+    elif step == 19:
         if request.FILES.get("funding_file"):
             proposal.funding_file = request.FILES["funding_file"]
             proposal.save(update_fields=["funding_file"])
 
-    elif step == 19:
+    elif step == 20:
         proposal.monitoring_eval = (request.POST.get("monitoring_eval") or "").strip()
         if request.FILES.get("monitoring_eval_file"):
             proposal.monitoring_eval_file = request.FILES["monitoring_eval_file"]
@@ -600,12 +609,12 @@ def _save_research_step(proposal, step, request, action):
         else:
             proposal.save(update_fields=["monitoring_eval"])
 
-    elif step == 20:
+    elif step == 21:
         if request.FILES.get("research_abstract_file"):
             proposal.research_abstract_file = request.FILES["research_abstract_file"]
             proposal.save(update_fields=["research_abstract_file"])
 
-    elif step == 21:
+    elif step == 22:
         if request.FILES.get("certificate_of_completion_file"):
             proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
             proposal.save(update_fields=["certificate_of_completion_file"])

@@ -71,20 +71,20 @@
         {% csrf_token %}
 
         <div>
-            <label for="significance" class="block text-sm font-semibold text-gray-900 mb-2">
-                {{ step_fields.significance.label|default:"Significance" }}{% if step_fields.significance.required %} <span class="text-red-600">*</span>{% endif %}
+            <label for="rationale_background" class="block text-sm font-semibold text-gray-900 mb-2">
+                {{ step_fields.rationale_background.label|default:"Rationale / Background" }}{% if step_fields.rationale_background.required %} <span class="text-red-600">*</span>{% endif %}
             </label>
             <textarea
-                name="significance"
+                name="rationale_background"
                 rows="8"
-                placeholder="{{ step_fields.significance.placeholder|default:'Explain the importance and expected contribution of the proposed extension initiative.' }}"
+                placeholder="{{ step_fields.rationale_background.placeholder|default:'Provide the background and rationale of the proposed extension.' }}"
                 oninput="autoResize(this); updateWordCount(this, 'wc-rationale')"
                 class="w-full rounded-xl border border-gray-300 px-3 py-3 text-sm
                         outline-none focus:ring-2 focus:ring-primary focus:border-primary
                         resize-none overflow-hidden min-h-[200px]"
-                {% if not is_edit_mode %}readonly{% endif %}>{{ proposal.significance }}</textarea>
-            {% if step_fields.significance.help_text %}
-            <p class="text-xs text-gray-500 mt-1">{{ step_fields.significance.help_text }}</p>
+                {% if not is_edit_mode %}readonly{% endif %}>{{ proposal.rationale_background }}</textarea>
+            {% if step_fields.rationale_background.help_text %}
+            <p class="text-xs text-gray-500 mt-1">{{ step_fields.rationale_background.help_text }}</p>
             {% endif %}
             <p class="text-xs text-gray-400 text-right mt-1">
                 <span id="wc-rationale">0</span> words
