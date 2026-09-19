@@ -470,36 +470,19 @@ class WizardHelperTests(TestCase):
     # ---- _add_step_context_for_get --------------------------------------
 
     def test_step_context_adds_the_sdg_and_thrust_lists(self):
-        """The two flows split SDGs (6) and thrusts (7) into their own steps."""
         from .views.wizard import _add_step_context_for_get
 
         ctx = _add_step_context_for_get({}, self.proposal, step=6)
         self.assertIn("sdgs", ctx)
-        self.assertNotIn("thrusts", ctx)
-
-        ctx = _add_step_context_for_get({}, self.proposal, step=7)
         self.assertIn("thrusts", ctx)
-        self.assertNotIn("sdgs", ctx)
 
     def test_step_context_adds_gender_totals(self):
-        """Participants moved to step 9 when the thrust got its own step."""
         from .views.wizard import _add_step_context_for_get
 
         self.proposal.sex_male = 3
         self.proposal.sex_female = 4
 
-        ctx = _add_step_context_for_get({}, self.proposal, step=9)
-        self.assertEqual(ctx["sex_total"], 7)
-
-    def test_step_context_matches_the_training_flow_step_numbers(self):
-        """The Training Design flow profiles participants on step 12."""
-        from .views.wizard import _add_step_context_for_get
-
-        self.proposal.extension_type = "COMMUNITY_BASED"
-        self.proposal.sex_male = 3
-        self.proposal.sex_female = 4
-
-        ctx = _add_step_context_for_get({}, self.proposal, step=12)
+        ctx = _add_step_context_for_get({}, self.proposal, step=8)
         self.assertEqual(ctx["sex_total"], 7)
 
     def test_step_context_is_harmless_for_a_step_with_no_extras(self):

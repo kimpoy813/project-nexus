@@ -76,53 +76,49 @@ def _storage_failure_message(headline, exc):
 def _seed_default_fields():
     from details.models import DynamicFormTemplate, DynamicFormField
     
-    # Shared steps keep untagged forms; the Extension Proposal-only steps are
-    # tagged RESEARCH so the Training Design flow can define its own fields
-    # for the same step number.
     default_fields_map = {
-        ("", 1): [
+        1: [
             {"key": "extension_type", "label": "Extension Type", "type": "SELECT", "choices": "RESEARCH_FACULTY|Research-based (Faculty)\nRESEARCH_STUDENT|Research-based (Student)\nREQUEST_BASED|Request-based\nCOMMUNITY_BASED|Community-based", "placeholder": "Choose extension type"},
             {"key": "scope_type", "label": "Scope", "type": "SELECT", "choices": "PROGRAM|Program\nPROJECT|Project\nACTIVITY|Activity", "placeholder": "Choose scope"},
             {"key": "research_title", "label": "Research Title", "type": "TEXT", "placeholder": "Enter research title if applicable", "required": False, "depends_on_key": "extension_type", "depends_on_value": "RESEARCH_FACULTY,RESEARCH_STUDENT"},
         ],
-        ("", 2): [
+        2: [
             {"key": "title", "label": "Title of the Program / Project / Activity", "type": "TEXT", "placeholder": "Enter official title"},
         ],
-        ("", 4): [
+        4: [
             {"key": "implementing_agency", "label": "Implementing Agency / Unit", "type": "TEXT", "placeholder": "Enter implementing agency"},
         ],
-        ("", 5): [
+        5: [
             {"key": "beneficiaries_count", "label": "Beneficiary Count", "type": "NUMBER", "placeholder": "Estimated count of beneficiaries"},
             {"key": "beneficiaries_who", "label": "Target Group / Beneficiaries Description", "type": "TEXT", "placeholder": "Describe who they are"},
         ],
-        ("RESEARCH", 8): [
+        7: [
             {"key": "budgetary_requirement", "label": "Budgetary Requirement", "type": "TEXTAREA", "placeholder": "Describe budget details"},
         ],
-        ("RESEARCH", 11): [
+        10: [
             {"key": "extension_venue", "label": "Extension Venue / Site", "type": "TEXT", "placeholder": "Enter venue"},
             {"key": "estimated_month", "label": "Estimated Month", "type": "SELECT", "choices": "January|January\nFebruary|February\nMarch|March\nApril|April\nMay|May\nJune|June\nJuly|July\nAugust|August\nSeptember|September\nOctober|October\nNovember|November\nDecember|December", "placeholder": "Choose month"},
             {"key": "estimated_year", "label": "Estimated Year", "type": "NUMBER", "placeholder": "e.g., 2026"},
         ],
-        ("RESEARCH", 12): [
+        11: [
             {"key": "rationale_background", "label": "Rationale / Background", "type": "TEXTAREA", "placeholder": "Provide rationale background"},
         ],
-        ("RESEARCH", 13): [
+        12: [
             {"key": "significance", "label": "Significance", "type": "TEXTAREA", "placeholder": "Describe significance"},
         ],
-        ("RESEARCH", 14): [
+        13: [
             {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
         ],
     }
 
-    for (flow, step_no), fields in default_fields_map.items():
+    for step_no, fields in default_fields_map.items():
         form_name = f"Fields for Step {step_no}"
         form_obj, created = DynamicFormTemplate.objects.get_or_create(
             proposal_wizard_step=step_no,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-            wizard_flow=flow,
             defaults={
                 "name": form_name,
-                "slug": f"step-{step_no}-fields" if not flow else f"step-{step_no}-{flow.lower()}-fields",
+                "slug": f"step-{step_no}-fields",
                 "is_active": True,
                 "blocks_proposal_submission": True,
             }
@@ -155,28 +151,18 @@ def _sync_default_wizard_step_configs():
     if ProposalWizardStepConfig.objects.exists():
         return
 
-    from proposals.views.constants import (
-        SHARED_STEP_LABELS,
-        INITIAL_RESEARCH_STEPS,
-        INITIAL_TRAINING_STEPS,
-    )
+    from proposals.views.constants import INITIAL_STEP_LABELS
     to_create = []
-    for flow, items in (
-        ("ALL", SHARED_STEP_LABELS),
-        ("RESEARCH", INITIAL_RESEARCH_STEPS),
-        ("TRAINING", INITIAL_TRAINING_STEPS),
-    ):
-        for item in items:
-            to_create.append(
-                ProposalWizardStepConfig(
-                    step_no=item["no"],
-                    flow=flow,
-                    title=item["title"],
-                    description=item["desc"],
-                    is_visible=True,
-                    is_required=True,
-                )
+    for item in INITIAL_STEP_LABELS:
+        to_create.append(
+            ProposalWizardStepConfig(
+                step_no=item["no"],
+                title=item["title"],
+                description=item["desc"],
+                is_visible=True,
+                is_required=True,
             )
+        )
     if to_create:
         ProposalWizardStepConfig.objects.bulk_create(to_create)
 
@@ -541,28 +527,12 @@ def dynamic_form_delete(request, pk):
     return redirect("dynamic_forms_list")
 
 
-FLOW_LABELS = {
-    "ALL": "All proposal types (Step 1)",
-    "RESEARCH": "Research-based - Extension Proposal",
-    "TRAINING": "Community/Request-based - Training Design",
-}
-
-
-def _flow_from_request(request):
-    flow = (request.POST.get("flow") or request.GET.get("flow") or "RESEARCH").strip().upper()
-    return flow if flow in FLOW_LABELS else "RESEARCH"
-
-
 @login_required
 @admin_required
 def wizard_steps_manager(request):
     _sync_default_wizard_step_configs()
-    steps = ProposalWizardStepConfig.objects.all().order_by("flow", "step_no")
-    return render(
-        request,
-        "dashboard/admin/wizard_steps_manager.html",
-        {"steps": steps, "flow_labels": FLOW_LABELS},
-    )
+    steps = ProposalWizardStepConfig.objects.all().order_by("step_no")
+    return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
 
 
 def _builder_context(form_obj=None, **extra):
@@ -585,17 +555,12 @@ def _builder_context(form_obj=None, **extra):
 @admin_required
 def wizard_step_edit(request, step_no):
     _sync_default_wizard_step_configs()
-    flow = _flow_from_request(request)
-    step_config = get_object_or_404(ProposalWizardStepConfig, flow=flow, step_no=step_no)
+    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
 
-    # Steps 1-3 mean the same thing in both flows, so their forms stay
-    # untagged; anything else gets (or creates) a form bound to this flow.
-    shared = step_no in (1, 2, 3) or flow == "ALL"
     form_obj = (
         DynamicFormTemplate.objects.filter(
             proposal_wizard_step=step_no,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-            wizard_flow="" if shared else flow,
         )
         .order_by("id")
         .first()
@@ -608,7 +573,6 @@ def wizard_step_edit(request, step_no):
             slug=slug,
             applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
             proposal_wizard_step=step_no,
-            wizard_flow="" if shared else flow,
             is_active=True,
             blocks_proposal_submission=True,
         )
@@ -633,7 +597,6 @@ def wizard_step_edit(request, step_no):
         form_obj.name = f"Fields for Step {step_no}: {step_config.title}"
         form_obj.save(update_fields=["name"])
 
-
         _save_repeater_settings(form_obj, request.POST)
         _save_dynamic_form_fields(form_obj, request.POST)
 
@@ -657,7 +620,6 @@ def wizard_step_create(request):
 
     if request.method == "POST":
         step_no = _safe_int(request.POST.get("step_no"), 0)
-        flow = _flow_from_request(request)
         title = (request.POST.get("title") or "").strip()
         description = (request.POST.get("description") or "").strip()
         instructions = (request.POST.get("instructions") or "").strip()
@@ -666,14 +628,13 @@ def wizard_step_create(request):
 
         if step_no <= 0:
             messages.error(request, "Step number must be a positive integer.")
-        elif ProposalWizardStepConfig.objects.filter(flow=flow, step_no=step_no).exists():
-            messages.error(request, f"Step number {step_no} already exists in the {FLOW_LABELS[flow]} flow.")
+        elif ProposalWizardStepConfig.objects.filter(step_no=step_no).exists():
+            messages.error(request, f"Step number {step_no} already exists.")
         elif not title:
             messages.error(request, "Title is required.")
         else:
             step_config = ProposalWizardStepConfig.objects.create(
                 step_no=step_no,
-                flow=flow,
                 title=title,
                 description=description,
                 instructions=instructions,
@@ -689,7 +650,6 @@ def wizard_step_create(request):
                 slug=slug,
                 applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
                 proposal_wizard_step=step_no,
-                wizard_flow="" if step_no in (1, 2, 3) else flow,
                 is_active=True,
                 blocks_proposal_submission=True,
             )
@@ -710,18 +670,14 @@ def wizard_step_create(request):
 @admin_required
 @require_POST
 def wizard_step_delete(request, step_no):
-    flow = _flow_from_request(request)
-    step_config = get_object_or_404(ProposalWizardStepConfig, flow=flow, step_no=step_no)
+    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
     title = step_config.title
     step_config.delete()
 
-    # Delete the step's DynamicFormTemplate - only the flow-tagged one, so a
-    # shared form (steps 1-3, used by both flows) is never taken down with a
-    # single flow's step.
+    # Delete corresponding DynamicFormTemplate
     DynamicFormTemplate.objects.filter(
         proposal_wizard_step=step_no,
         applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-        wizard_flow=flow,
     ).delete()
 
     messages.success(request, f"Wizard Step {step_no} ({title}) and its associated fields deleted successfully.")

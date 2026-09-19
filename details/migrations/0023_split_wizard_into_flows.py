@@ -17,6 +17,17 @@ nothing is silently reattached to a different section. Drafts that belong to
 the training flow lose their progress above step 6, because the old shared
 steps 7+ meant different things there; steps 2-6 mean the same thing in both
 flows (title, proponents, implementing unit, collaborators, SDG).
+
+Kept as frozen history after PR #32 was reverted (``0026`` collapses the two
+flows again), with one patch: the step-form and reviewer-comment renumbering
+used to run upwards, which moved step 7 onto 8 and then moved both onto 9, so
+every row from the old steps 7-18 piled onto a single step - and for comments
+the pile aborted the migration on
+``unique_section_comment_per_reviewer_step_round`` as soon as one reviewer had
+commented on two of those steps. It now runs downwards, like the step-table
+renumbering below always did, so a database that had not applied this
+migration yet - including one where it aborted - reaches exactly the numbering
+``0026`` inverts.
 """
 
 from django.db import migrations
@@ -146,18 +157,27 @@ def seed_training_steps(apps):
 
 
 def renumber_step_forms_and_comments(apps):
-    """Carry admin-built step forms and reviewer comments to the new numbers."""
+    """Carry admin-built step forms and reviewer comments to the new numbers.
+
+    Downwards, one step number at a time: an ascending in-place UPDATE moves
+    the rows on step 7 onto 8 and then moves both sets onto 9, which piles
+    every row from the old steps 7-18 onto one step and - for comments, which
+    are unique per reviewer and step - aborts the migration as soon as one
+    reviewer commented on two of those steps.
+    """
     FormTemplate = apps.get_model("details", "DynamicFormTemplate")
     SectionComment = apps.get_model("proposals", "ProposalSectionComment")
 
-    for old_no, new_no in RESEARCH_RENUMBER.items():
+    for old_no in sorted(RESEARCH_RENUMBER, reverse=True):
         FormTemplate.objects.filter(
             applies_to="PROPOSAL",
             proposal_wizard_step=old_no,
-        ).update(proposal_wizard_step=new_no, wizard_flow="RESEARCH")
+        ).update(proposal_wizard_step=RESEARCH_RENUMBER[old_no], wizard_flow="RESEARCH")
 
-    for old_no, new_no in RESEARCH_RENUMBER.items():
-        SectionComment.objects.filter(step_no=old_no).update(step_no=new_no)
+    for old_no in sorted(RESEARCH_RENUMBER, reverse=True):
+        SectionComment.objects.filter(step_no=old_no).update(
+            step_no=RESEARCH_RENUMBER[old_no]
+        )
 
 
 def renumber_proposal_progress(apps):

@@ -182,41 +182,6 @@ class Proposal(models.Model):
     implementing_agency = models.CharField(max_length=255, blank=True, default="")
     budgetary_requirement = models.CharField(max_length=255, blank=True, default="")
 
-    # Training Design flow (community/request-based proposals)
-    duration = models.CharField(
-        max_length=255,
-        blank=True,
-        default="",
-        help_text="Training Design: activity duration (e.g. 'October 23, 2025' or '3 days').",
-    )
-    funding_source = models.CharField(
-        max_length=255,
-        blank=True,
-        default="",
-        help_text="Training Design: funding source (e.g. 'CTE Extension Fund').",
-    )
-
-    # Extension Proposal flow: technology / IP details collected under the
-    # ISPSC Extension Agenda section. Optional - not every proposal
-    # commercialises a technology or registers a utility model.
-    technology_title = models.CharField(
-        max_length=300,
-        blank=True,
-        default="",
-        help_text="Extension Proposal: title of the technology generated.",
-    )
-    utility_model_registration_number = models.CharField(
-        max_length=120,
-        blank=True,
-        default="",
-        help_text="Extension Proposal: utility model registration number.",
-    )
-    utility_model_description = models.TextField(
-        blank=True,
-        default="",
-        help_text="Extension Proposal: description of the utility model.",
-    )
-
     beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
     beneficiaries_who = models.TextField(blank=True, default="")
 
@@ -261,12 +226,6 @@ class Proposal(models.Model):
         upload_to="proposal_files/certificates_of_completion/",
         blank=True,
         null=True,
-    )
-    monitoring_eval_file = models.FileField(
-        upload_to="proposal_files/monitoring_evaluation/",
-        blank=True,
-        null=True,
-        help_text="Extension Proposal: Monitoring and Evaluation Mechanics attachment.",
     )
 
     is_locked = models.BooleanField(default=False)

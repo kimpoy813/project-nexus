@@ -255,10 +255,24 @@ class DefaultFieldSeederTests(TestCase):
     def test_an_edited_form_is_left_alone_by_the_seeder(self):
         from accounts.views.builders import _seed_default_fields
         from details.models import ProposalWizardStepConfig
+        from proposals.views.constants import INITIAL_STEP_LABELS
 
-        # The built-in step rows exist from the flow-split migration; the
-        # seeder must still not touch an admin's own step-1 form.
-        self.assertTrue(ProposalWizardStepConfig.objects.filter(step_no=1).exists())
+        # The migrations seed the built-in steps; rebuild them from the same
+        # list so the test does not depend on what a migration happened to
+        # write (step_no is unique).
+        ProposalWizardStepConfig.objects.all().delete()
+        ProposalWizardStepConfig.objects.bulk_create(
+            [
+                ProposalWizardStepConfig(
+                    step_no=item["no"],
+                    title=item["title"],
+                    description=item["desc"],
+                    is_visible=True,
+                    is_required=True,
+                )
+                for item in INITIAL_STEP_LABELS
+            ]
+        )
 
         form = DynamicFormTemplate.objects.create(
             name="Office fields for step 1",
