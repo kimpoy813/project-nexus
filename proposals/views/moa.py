@@ -9,254 +9,140 @@ from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
-from ..forms import MOAAttachmentsForm
-from ..forms import MOADraftForm
-from ..forms import MOAPartiesForm
-from ..forms import MOATermsForm
 from ..moa_docx import build_moa_document
 from ..moa_forms import MOASubmissionForm
 from ..models import MOANotification
 from ..models import MOASubmission
 from ..models import Proposal
-from ..models import ProposalAttachment
 from ..models import ProposalFinalDocument
 from ..models import ProposalPhaseLog
 from accounts.decorators import faculty_like_required
-from .constants import MOA_DRAFT_CHECKBOX_FIELDS, MOA_DRAFT_TEXT_FIELDS, MOA_STEP_LABELS
+from .constants import MOA_DRAFT_CHECKBOX_FIELDS, MOA_DRAFT_TEXT_FIELDS
+from .dynamic_answers import (
+    _attach_moa_dynamic_forms,
+    _save_moa_dynamic_form_answers,
+)
+from .moa_sections import apply_moa_section, mark_moa_draft_complete, moa_section_initial
+from .wizard_flows import moa_flow
 from .helpers import _notify_proponent
 from .permissions import _can_edit, _can_manage_phase, _can_view_proposal, _is_staff
 
 
 def build_moa_wizard_steps(current_step):
-    steps = []
-    for item in MOA_STEP_LABELS:
-        no = item["no"]
-        if no == current_step:
-            state = "current"
-        elif no < current_step:
-            state = "completed"
-        else:
-            state = "upcoming"
-        steps.append({**item, "state": state})
-    return steps
+    """MOA stepper entries, in the order the office put the steps in.
+
+    State follows position, not step number: a hidden or deleted step leaves a
+    gap in the numbering, and "completed" would otherwise be decided by
+    comparing numbers that no longer run consecutively.
+    """
+    visible = moa_flow.visible_step_nos()
+    current_index = visible.index(current_step) if current_step in visible else -1
+
+    def state_for(config, current):
+        index = visible.index(config.step_no)
+        if index == current_index:
+            return "current"
+        return "completed" if index < current_index else "upcoming"
+
+    return moa_flow.build_steps(current_step, state_for=state_for)
 
 
 def _build_moa_wizard_context(proposal, step):
-    total_steps = len(MOA_STEP_LABELS)
-    progress = int(((step - 1) / total_steps) * 100) if total_steps else 0
+    moa_flow.ensure_defaults()
+    total_steps = moa_flow.total_visible()
+    position = moa_flow.position(step)
+    progress = int(((position - 1) / total_steps) * 100) if total_steps else 0
+    config = moa_flow.get(step)
     return {
         "proposal": proposal,
         "step": step,
         "total_steps": total_steps,
+        "step_position": position,
+        "step_total": total_steps,
+        "next_step_no": moa_flow.step_after(step),
+        "prev_step_no": moa_flow.step_before(step),
         "progress": progress,
         "wizard_steps": build_moa_wizard_steps(step),
+        "wizard_step_config": config,
     }
-
-
-def _set_moa_status_if_possible(proposal, status_value):
-    """
-    Safe setter for MOA status so the view won't crash if the model field/value
-    names differ slightly in your current branch.
-    """
-    if hasattr(proposal, "moa_status"):
-        proposal.moa_status = status_value
-        proposal.save(update_fields=["moa_status"])
-
-
-def _save_moa_step_1(proposal, cleaned):
-    changed_fields = []
-
-    for field_name, value in [
-        ("moa_title", cleaned.get("moa_title")),
-        ("moa_reference_no", cleaned.get("moa_reference_no")),
-        ("moa_start_date", cleaned.get("moa_start_date")),
-        ("moa_end_date", cleaned.get("moa_end_date")),
-        ("moa_purpose", cleaned.get("purpose")),
-        ("moa_background", cleaned.get("background")),
-    ]:
-        if hasattr(proposal, field_name):
-            setattr(proposal, field_name, value)
-            changed_fields.append(field_name)
-
-    if changed_fields:
-        proposal.save(update_fields=changed_fields)
-
-
-def _save_moa_step_2(proposal, cleaned):
-    changed_fields = []
-
-    for field_name, value in [
-        ("moa_party_one_name", cleaned.get("party_one_name")),
-        ("moa_party_one_representative", cleaned.get("party_one_representative")),
-        ("moa_party_two_name", cleaned.get("party_two_name")),
-        ("moa_party_two_representative", cleaned.get("party_two_representative")),
-        ("moa_signatories_notes", cleaned.get("signatories_notes")),
-    ]:
-        if hasattr(proposal, field_name):
-            setattr(proposal, field_name, value)
-            changed_fields.append(field_name)
-
-    if changed_fields:
-        proposal.save(update_fields=changed_fields)
-
-
-def _save_moa_step_3(proposal, cleaned):
-    changed_fields = []
-
-    for field_name, value in [
-        ("moa_obligations", cleaned.get("obligations")),
-        ("moa_deliverables", cleaned.get("deliverables")),
-        ("moa_confidentiality", cleaned.get("confidentiality")),
-    ]:
-        if hasattr(proposal, field_name):
-            setattr(proposal, field_name, value)
-            changed_fields.append(field_name)
-
-    if changed_fields:
-        proposal.save(update_fields=changed_fields)
-
-
-def _save_moa_step_4(proposal, request):
-    changed_fields = []
-
-    moa_file = request.FILES.get("moa_file")
-    if moa_file and hasattr(proposal, "moa_draft_file"):
-        proposal.moa_draft_file = moa_file
-        changed_fields.append("moa_draft_file")
-
-    if changed_fields:
-        proposal.save(update_fields=changed_fields)
-
-    if hasattr(ProposalAttachment, "Category"):
-        moa_category = getattr(ProposalAttachment.Category, "MOA", None)
-        other_category = getattr(ProposalAttachment.Category, "OTHER", None)
-    else:
-        moa_category = None
-        other_category = None
-
-    for uploaded in request.FILES.getlist("supporting_docs"):
-        kwargs = {
-            "proposal": proposal,
-            "file": uploaded,
-        }
-        if moa_category is not None:
-            kwargs["category"] = moa_category
-        elif other_category is not None:
-            kwargs["category"] = other_category
-
-        ProposalAttachment.objects.create(**kwargs)
 
 
 @login_required
 @faculty_like_required
 def proposal_moa_step(request, proposal_id, step):
+    """One step of the MOA drafting wizard.
+
+    The step decides what it shows through its :class:`MOAWizardSection`:
+    which Django form, which proposal columns it writes, which template, and
+    whether it is the part that closes the draft. A step with no section at all
+    is an office-built one, driven purely by the forms attached to it.
+    """
     proposal = get_object_or_404(Proposal, id=proposal_id)
 
-    step = int(step)
-    if step < 1:
-        step = 1
-    if step > 4:
-        step = 4
-
-    form_map = {
-        1: MOADraftForm,
-        2: MOAPartiesForm,
-        3: MOATermsForm,
-        4: MOAAttachmentsForm,
-    }
-    form_class = form_map[step]
-
-    if request.method == "POST":
-        form = form_class(request.POST, request.FILES if step == 4 else None)
-        if form.is_valid():
-            if step == 1:
-                _save_moa_step_1(proposal, form.cleaned_data)
-            elif step == 2:
-                _save_moa_step_2(proposal, form.cleaned_data)
-            elif step == 3:
-                _save_moa_step_3(proposal, form.cleaned_data)
-            elif step == 4:
-                _save_moa_step_4(proposal, request)
-                _set_moa_status_if_possible(proposal, getattr(Proposal.MOAStatus, "DRAFT", "DRAFT"))
-
-            if step < 4:
-                messages.success(request, "MOA step saved. Continue to the next part.")
-                return redirect("proposal_moa_step", proposal_id=proposal.id, step=step + 1)
-
-            messages.success(request, "MOA draft completed and queued for Staff review.")
-            return redirect("proposal_moa_summary", proposal_id=proposal.id)
-    else:
-        initial = {}
-
-        if step == 1:
-            for form_field, model_field in [
-                ("moa_title", "moa_title"),
-                ("moa_reference_no", "moa_reference_no"),
-                ("moa_start_date", "moa_start_date"),
-                ("moa_end_date", "moa_end_date"),
-                ("purpose", "moa_purpose"),
-                ("background", "moa_background"),
-            ]:
-                if hasattr(proposal, model_field):
-                    initial[form_field] = getattr(proposal, model_field, None)
-
-        elif step == 2:
-            for form_field, model_field in [
-                ("party_one_name", "moa_party_one_name"),
-                ("party_one_representative", "moa_party_one_representative"),
-                ("party_two_name", "moa_party_two_name"),
-                ("party_two_representative", "moa_party_two_representative"),
-                ("signatories_notes", "moa_signatories_notes"),
-            ]:
-                if hasattr(proposal, model_field):
-                    initial[form_field] = getattr(proposal, model_field, None)
-
-        elif step == 3:
-            for form_field, model_field in [
-                ("obligations", "moa_obligations"),
-                ("deliverables", "moa_deliverables"),
-                ("confidentiality", "moa_confidentiality"),
-            ]:
-                if hasattr(proposal, model_field):
-                    initial[form_field] = getattr(proposal, model_field, None)
-
-        form = form_class(initial=initial)
+    moa_flow.ensure_defaults()
+    step = moa_flow.normalize(step)
+    section = moa_flow.section(step)
 
     ctx = _build_moa_wizard_context(proposal, step)
-    ctx["form"] = form
-    ctx["step_help"] = {
-        1: [
-            "Write the formal title exactly as it should appear in the document.",
-            "Fill in only the dates and reference number you already know.",
-            "Use a clear, concise purpose statement.",
-        ],
-        2: [
-            "Enter the official names of both parties.",
-            "Add representatives if the signatory names are already assigned.",
-            "Use the notes box for signers, witnesses, and titles.",
-        ],
-        3: [
-            "Describe each party’s responsibilities using bullets if possible.",
-            "Include deliverables such as reports, outputs, or endorsements.",
-            "Add confidentiality or data-sharing rules if relevant.",
-        ],
-        4: [
-            "Upload the draft MOA if you already have the file.",
-            "Attach any endorsements, letters, or annexes.",
-            "This is the final review step before moving forward.",
-        ],
-    }.get(step, [])
+    _attach_moa_dynamic_forms(ctx, proposal, step)
 
-    template_name = f"services/moa/step_{step}.html"
-    return render(request, template_name, ctx)
+    form = None
+    if section is not None:
+        form = section.form_class(request.POST, request.FILES if section.binds_files else None) \
+            if request.method == "POST" \
+            else section.form_class(initial=moa_section_initial(section, proposal))
+        ctx["step_help"] = list(section.help_text)
+    else:
+        ctx["step_help"] = []
+    ctx["form"] = form
+
+    if request.method == "POST":
+        # A step with no built-in part is always "valid": there is nothing but
+        # the office's own fields to save.
+        section_valid = form.is_valid() if form is not None else True
+
+        if section_valid:
+            if section is not None:
+                if section.save_request is not None:
+                    section.save_request(proposal, request)
+                else:
+                    apply_moa_section(section, proposal, form.cleaned_data)
+
+            dynamic_missing = _save_moa_dynamic_form_answers(
+                proposal, step, request.user, request
+            )
+            if dynamic_missing:
+                messages.error(
+                    request,
+                    "Please complete the required admin-managed field(s): "
+                    + "; ".join(dynamic_missing[:5]),
+                )
+                return redirect("proposal_moa_step", proposal_id=proposal.id, step=step)
+
+            next_step = moa_flow.step_after(step)
+            if next_step is not None:
+                messages.success(request, "MOA step saved. Continue to the next part.")
+                return redirect(
+                    "proposal_moa_step", proposal_id=proposal.id, step=next_step
+                )
+
+            # The last step the office left in the wizard is the one that
+            # closes the draft, whichever part - or no part - it shows.
+            mark_moa_draft_complete(proposal)
+            messages.success(request, "MOA draft completed and queued for Staff review.")
+            return redirect("proposal_moa_summary", proposal_id=proposal.id)
+
+    return render(request, moa_flow.template_for(step), ctx)
 
 
 @login_required
 @faculty_like_required
 def proposal_moa_summary(request, proposal_id):
     proposal = get_object_or_404(Proposal, id=proposal_id)
+    moa_flow.ensure_defaults()
     ctx = {
         "proposal": proposal,
+        "moa_wizard_steps": moa_flow.ordered(),
     }
     return render(request, "services/moa/summary.html", ctx)
 

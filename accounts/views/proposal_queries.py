@@ -20,7 +20,18 @@ logger = logging.getLogger(__name__)
 
 
 def _get_total_proposal_steps():
-    return 19
+    """How many proposal wizard steps the office currently shows.
+
+    Was ``return 19`` - a number that went stale the first time an admin hid a
+    step or added one of the office's own.
+    """
+    from proposals.views.wizard_flows import proposal_flow
+
+    try:
+        return proposal_flow.total_visible()
+    except Exception:
+        logger.exception("Could not read the proposal wizard step table.")
+        return 19
 
 
 def _get_current_step(proposal):

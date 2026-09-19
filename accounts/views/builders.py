@@ -20,7 +20,6 @@ from details.models import DynamicFormField
 from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
-from details.proponent_fields import PROPONENT_STEP_NO, ensure_proponent_repeater_form
 from ..decorators import admin_required
 from ..forms import DocumentTemplateForm
 from ..storage_diagnostics import describe_storage_exception
@@ -74,44 +73,55 @@ def _storage_failure_message(headline, exc):
 
 
 def _seed_default_fields():
+    """Give each part-backed step a starting form, without touching an edited one."""
     from details.models import DynamicFormTemplate, DynamicFormField
     
     default_fields_map = {
-        1: [
+        "extension_type": [
             {"key": "extension_type", "label": "Extension Type", "type": "SELECT", "choices": "RESEARCH_FACULTY|Research-based (Faculty)\nRESEARCH_STUDENT|Research-based (Student)\nREQUEST_BASED|Request-based\nCOMMUNITY_BASED|Community-based", "placeholder": "Choose extension type"},
             {"key": "scope_type", "label": "Scope", "type": "SELECT", "choices": "PROGRAM|Program\nPROJECT|Project\nACTIVITY|Activity", "placeholder": "Choose scope"},
             {"key": "research_title", "label": "Research Title", "type": "TEXT", "placeholder": "Enter research title if applicable", "required": False, "depends_on_key": "extension_type", "depends_on_value": "RESEARCH_FACULTY,RESEARCH_STUDENT"},
         ],
-        2: [
+        "title": [
             {"key": "title", "label": "Title of the Program / Project / Activity", "type": "TEXT", "placeholder": "Enter official title"},
         ],
-        4: [
+        "implementing_agency": [
             {"key": "implementing_agency", "label": "Implementing Agency / Unit", "type": "TEXT", "placeholder": "Enter implementing agency"},
         ],
-        5: [
+        "beneficiaries": [
             {"key": "beneficiaries_count", "label": "Beneficiary Count", "type": "NUMBER", "placeholder": "Estimated count of beneficiaries"},
             {"key": "beneficiaries_who", "label": "Target Group / Beneficiaries Description", "type": "TEXT", "placeholder": "Describe who they are"},
         ],
-        7: [
+        "budgetary_requirement": [
             {"key": "budgetary_requirement", "label": "Budgetary Requirement", "type": "TEXTAREA", "placeholder": "Describe budget details"},
         ],
-        10: [
+        "schedule_venue": [
             {"key": "extension_venue", "label": "Extension Venue / Site", "type": "TEXT", "placeholder": "Enter venue"},
             {"key": "estimated_month", "label": "Estimated Month", "type": "SELECT", "choices": "January|January\nFebruary|February\nMarch|March\nApril|April\nMay|May\nJune|June\nJuly|July\nAugust|August\nSeptember|September\nOctober|October\nNovember|November\nDecember|December", "placeholder": "Choose month"},
             {"key": "estimated_year", "label": "Estimated Year", "type": "NUMBER", "placeholder": "e.g., 2026"},
         ],
-        11: [
+        "rationale_background": [
             {"key": "rationale_background", "label": "Rationale / Background", "type": "TEXTAREA", "placeholder": "Provide rationale background"},
         ],
-        12: [
+        "significance": [
             {"key": "significance", "label": "Significance", "type": "TEXTAREA", "placeholder": "Describe significance"},
         ],
-        13: [
+        "objectives": [
             {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
         ],
     }
 
-    for step_no, fields in default_fields_map.items():
+    # Keyed by built-in *part*, not by step number: the office decides which
+    # step shows a part, and two steps may show the same one.
+    from proposals.views.wizard_flows import proposal_flow
+
+    proposal_flow.ensure_defaults()
+
+    for step_config in proposal_flow.ordered():
+        fields = default_fields_map.get(step_config.section_key)
+        if not fields:
+            continue
+        step_no = step_config.step_no
         form_name = f"Fields for Step {step_no}"
         form_obj, created = DynamicFormTemplate.objects.get_or_create(
             proposal_wizard_step=step_no,
@@ -148,25 +158,19 @@ def _seed_default_fields():
 
 
 def _sync_default_wizard_step_configs():
-    if ProposalWizardStepConfig.objects.exists():
-        return
+    """Make sure the wizard has its default steps and default proponent fields.
 
-    from proposals.views.constants import INITIAL_STEP_LABELS
-    to_create = []
-    for item in INITIAL_STEP_LABELS:
-        to_create.append(
-            ProposalWizardStepConfig(
-                step_no=item["no"],
-                title=item["title"],
-                description=item["desc"],
-                is_visible=True,
-                is_required=True,
-            )
-        )
-    if to_create:
-        ProposalWizardStepConfig.objects.bulk_create(to_create)
+    The step rows themselves are the flow's business: it seeds what is missing
+    without touching what an admin has renamed, hidden, moved, or re-pointed.
+    """
+    from proposals.views.wizard_flows import moa_flow, proposal_flow
 
-    _seed_default_fields()
+    created = not ProposalWizardStepConfig.objects.exists()
+    proposal_flow.ensure_defaults()
+    moa_flow.ensure_defaults()
+
+    if created:
+        _seed_default_fields()
 
 
 def _sync_default_role_capabilities():
@@ -451,6 +455,22 @@ def _save_dynamic_form_fields(form_obj, post_data):
     DynamicFormField.objects.filter(form=form_obj).exclude(id__in=kept_ids).delete()
 
 
+def _builder_context(form_obj=None, **extra):
+    """Template context shared by the wizard step editors and the form builder.
+
+    All of these screens render the same field rows and the same "repeatable
+    group" panel, so the choices they need are assembled in one place.
+    """
+    ctx = {
+        "form_obj": form_obj,
+        "field_type_choices": DynamicFormField.FieldType.choices,
+        "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
+        "proponent_map_choices": DynamicFormField.MapsTo.choices,
+    }
+    ctx.update(extra)
+    return ctx
+
+
 @login_required
 @admin_required
 def dynamic_form_create(request):
@@ -525,163 +545,6 @@ def dynamic_form_delete(request, pk):
     form_obj.delete()
     messages.success(request, f'Form "{name}" deleted successfully.')
     return redirect("dynamic_forms_list")
-
-
-@login_required
-@admin_required
-def wizard_steps_manager(request):
-    _sync_default_wizard_step_configs()
-    steps = ProposalWizardStepConfig.objects.all().order_by("step_no")
-    return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
-
-
-def _builder_context(form_obj=None, **extra):
-    """Template context shared by the wizard step editor and the form builder.
-
-    Both screens render the same field rows and the same "repeatable group"
-    panel, so the choices they need are assembled in one place.
-    """
-    ctx = {
-        "form_obj": form_obj,
-        "field_type_choices": DynamicFormField.FieldType.choices,
-        "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
-        "proponent_map_choices": DynamicFormField.MapsTo.choices,
-    }
-    ctx.update(extra)
-    return ctx
-
-
-@login_required
-@admin_required
-def wizard_step_edit(request, step_no):
-    _sync_default_wizard_step_configs()
-    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
-
-    form_obj = (
-        DynamicFormTemplate.objects.filter(
-            proposal_wizard_step=step_no,
-            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-        )
-        .order_by("id")
-        .first()
-    )
-    if not form_obj:
-        name = f"Fields for Step {step_no}: {step_config.title}"
-        slug = _unique_dynamic_form_slug(name)
-        form_obj = DynamicFormTemplate.objects.create(
-            name=name,
-            slug=slug,
-            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-            proposal_wizard_step=step_no,
-            is_active=True,
-            blocks_proposal_submission=True,
-        )
-
-    if step_no == PROPONENT_STEP_NO:
-        # Show the office's default proponent fields instead of an empty
-        # builder. Seeding only fills a form with no fields, so an admin's own
-        # layout is never overwritten.
-        seeded = ensure_proponent_repeater_form(step_no)
-        if seeded is not None:
-            form_obj = seeded
-
-    if request.method == "POST":
-        step_config.title = (request.POST.get("title") or step_config.title).strip()
-        step_config.description = (request.POST.get("description") or "").strip()
-        step_config.instructions = (request.POST.get("instructions") or "").strip()
-        step_config.is_visible = request.POST.get("is_visible") == "on"
-        step_config.is_required = request.POST.get("is_required") == "on"
-        step_config.save()
-
-        # Update the dynamic form template name just in case the title changed
-        form_obj.name = f"Fields for Step {step_no}: {step_config.title}"
-        form_obj.save(update_fields=["name"])
-
-        _save_repeater_settings(form_obj, request.POST)
-        _save_dynamic_form_fields(form_obj, request.POST)
-
-        messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
-        return redirect("wizard_steps_manager")
-
-    return render(
-        request,
-        "dashboard/admin/wizard_step_form.html",
-        _builder_context(form_obj, step_config=step_config),
-    )
-
-
-@login_required
-@admin_required
-def wizard_step_create(request):
-    _sync_default_wizard_step_configs()
-
-    max_step = ProposalWizardStepConfig.objects.order_by("-step_no").first()
-    next_step_no = (max_step.step_no + 1) if max_step else 1
-
-    if request.method == "POST":
-        step_no = _safe_int(request.POST.get("step_no"), 0)
-        title = (request.POST.get("title") or "").strip()
-        description = (request.POST.get("description") or "").strip()
-        instructions = (request.POST.get("instructions") or "").strip()
-        is_visible = request.POST.get("is_visible") == "on"
-        is_required = request.POST.get("is_required") == "on"
-
-        if step_no <= 0:
-            messages.error(request, "Step number must be a positive integer.")
-        elif ProposalWizardStepConfig.objects.filter(step_no=step_no).exists():
-            messages.error(request, f"Step number {step_no} already exists.")
-        elif not title:
-            messages.error(request, "Title is required.")
-        else:
-            step_config = ProposalWizardStepConfig.objects.create(
-                step_no=step_no,
-                title=title,
-                description=description,
-                instructions=instructions,
-                is_visible=is_visible,
-                is_required=is_required,
-            )
-
-            # Create the dynamic form template for this step
-            name = f"Fields for Step {step_no}: {title}"
-            slug = _unique_dynamic_form_slug(name)
-            form_obj = DynamicFormTemplate.objects.create(
-                name=name,
-                slug=slug,
-                applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-                proposal_wizard_step=step_no,
-                is_active=True,
-                blocks_proposal_submission=True,
-            )
-            _save_repeater_settings(form_obj, request.POST)
-            _save_dynamic_form_fields(form_obj, request.POST)
-
-            messages.success(request, f"Wizard Step {step_no} and its fields created successfully.")
-            return redirect("wizard_steps_manager")
-
-    return render(
-        request,
-        "dashboard/admin/wizard_step_create_form.html",
-        _builder_context(next_step_no=next_step_no),
-    )
-
-
-@login_required
-@admin_required
-@require_POST
-def wizard_step_delete(request, step_no):
-    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
-    title = step_config.title
-    step_config.delete()
-
-    # Delete corresponding DynamicFormTemplate
-    DynamicFormTemplate.objects.filter(
-        proposal_wizard_step=step_no,
-        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-    ).delete()
-
-    messages.success(request, f"Wizard Step {step_no} ({title}) and its associated fields deleted successfully.")
-    return redirect("wizard_steps_manager")
 
 
 @login_required

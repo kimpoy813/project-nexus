@@ -1,5 +1,16 @@
 """
 Step labels and reference lists shared across the proposal views.
+
+The reference lists (SDGs, thrusts, GAD mandates, MOA draft fields) are plain
+constants. The *step* labels are not: they used to be a literal list of 19
+entries, which is what made the wizard impossible to reconfigure. They are now
+read from the office's step rows, with the literals below kept only as the seed
+a fresh install starts from and as a fallback if the table cannot be read.
+
+Import note: the flow objects live in :mod:`proposals.views.wizard_flows`,
+which imports the section registries, which import this module. The flow is
+therefore imported *inside* the accessors below rather than at module level —
+a top-level import here would be a cycle.
 """
 
 from django.contrib.auth import get_user_model
@@ -8,6 +19,8 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+#: Seed for a fresh install, in the order the wizard shipped with. The live
+#: wizard reads ``ProposalWizardStepConfig`` rows, not this list.
 INITIAL_STEP_LABELS = [
     {"no": 1, "title": "Extension Type and Scope", "desc": "Type of extension and proposal scope"},
     {"no": 2, "title": "Title", "desc": "Program, project, or activity title"},
@@ -31,28 +44,24 @@ INITIAL_STEP_LABELS = [
 ]
 
 
+#: Seed for a fresh install of the MOA drafting wizard.
+INITIAL_MOA_STEP_LABELS = [
+    {"no": 1, "title": "Agreement Basics", "desc": "Title, reference, dates, and purpose"},
+    {"no": 2, "title": "Parties and Signatories", "desc": "Names, representatives, and signers"},
+    {"no": 3, "title": "Scope and Terms", "desc": "Responsibilities, deliverables, and rules"},
+    {"no": 4, "title": "Attachments and Review", "desc": "Upload files and finalize the draft"},
+]
+
+
 class _DynamicStepLabels:
+    """The wizard's steps as ``{"no", "title", "desc"}`` dicts, admin order."""
+
     def _get_steps(self):
+        from .wizard_flows import proposal_flow
+
         try:
-            from details.models import ProposalWizardStepConfig
-            if not ProposalWizardStepConfig.objects.exists():
-                to_create = []
-                for item in INITIAL_STEP_LABELS:
-                    to_create.append(
-                        ProposalWizardStepConfig(
-                            step_no=item["no"],
-                            title=item["title"],
-                            description=item["desc"],
-                            is_visible=True,
-                            is_required=True,
-                        )
-                    )
-                ProposalWizardStepConfig.objects.bulk_create(to_create)
-            
-            return [
-                {"no": config.step_no, "title": config.title, "desc": config.description}
-                for config in ProposalWizardStepConfig.objects.all().order_by("step_no")
-            ]
+            proposal_flow.ensure_defaults()
+            return proposal_flow.step_labels()
         except Exception:
             return INITIAL_STEP_LABELS
 
@@ -81,8 +90,39 @@ class _DynamicStepLabels:
         return str(self._get_steps())
 
 
+class _DynamicMOAStepLabels:
+    """The MOA wizard's steps, read from the office's MOA step rows."""
+
+    def _get_steps(self):
+        from .wizard_flows import moa_flow
+
+        try:
+            moa_flow.ensure_defaults()
+            return moa_flow.step_labels()
+        except Exception:
+            return INITIAL_MOA_STEP_LABELS
+
+    def __iter__(self):
+        return iter(self._get_steps())
+
+    def __len__(self):
+        return len(self._get_steps())
+
+    def __getitem__(self, index):
+        return self._get_steps()[index]
+
+    def __contains__(self, item):
+        return item in self._get_steps()
+
+    def __repr__(self):
+        return repr(self._get_steps())
+
+    def __str__(self):
+        return str(self._get_steps())
+
+
 class _DynamicTotalSteps:
-    """Number of wizard steps, read from the admin's step table.
+    """Number of wizard steps the office currently shows.
 
     Behaves like an int in comparisons (see the rich-comparison methods below),
     which is why it needs ``__hash__``: Python drops the inherited one as soon
@@ -91,12 +131,12 @@ class _DynamicTotalSteps:
     """
 
     def __int__(self):
+        from .wizard_flows import proposal_flow
+
         try:
-            from details.models import ProposalWizardStepConfig
-            max_step = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("-step_no").first()
-            return max_step.step_no if max_step else 19
+            return proposal_flow.total_visible()
         except Exception:
-            return 19
+            return len(INITIAL_STEP_LABELS)
 
     def __index__(self):
         return int(self)
@@ -205,12 +245,7 @@ GENDER_ISSUE_LIST = [
 ]
 
 
-MOA_STEP_LABELS = [
-    {"no": 1, "title": "Agreement Basics", "desc": "Title, reference, dates, and purpose"},
-    {"no": 2, "title": "Parties and Signatories", "desc": "Names, representatives, and signers"},
-    {"no": 3, "title": "Scope and Terms", "desc": "Responsibilities, deliverables, and rules"},
-    {"no": 4, "title": "Attachments and Review", "desc": "Upload files and finalize the draft"},
-]
+MOA_STEP_LABELS = _DynamicMOAStepLabels()
 
 
 MOA_DRAFT_TEXT_FIELDS = [

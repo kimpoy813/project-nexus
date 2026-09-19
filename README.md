@@ -22,6 +22,53 @@ python manage.py migrate
 python manage.py runserver
 ```
 
+### Signing in for the first time
+
+`python manage.py createsuperuser` is **not enough to reach the admin
+dashboard**. A `post_save` signal gives every new user a `Profile` with
+`role=FACULTY`, and `@admin_required` checks that role — not `is_superuser`.
+Promote the profile after creating the user:
+
+```bash
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+from accounts.models import Profile
+u = get_user_model().objects.get(username='admin')
+u.set_password('change-me'); u.is_active = True; u.save()
+Profile.objects.update_or_create(user=u, defaults={'role': Profile.ROLE_ADMIN, 'email_verified': True})
+"
+```
+
+The same applies to `/register/`: a new account starts inactive until the
+verification email is clicked, and `EMAIL_BACKEND` defaults to SMTP. For local
+work set `EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend` and the
+verification link prints to the terminal instead.
+
+Two defaults that surprise people: sessions expire after **10 minutes** of
+inactivity (`SESSION_COOKIE_AGE=600`) and **5 failed logins** lock the account
+for an hour (`AXES_FAILURE_LIMIT=5`). Both are environment variables.
+
+### GitHub Codespaces
+
+The Codespace URL is not `localhost`, and this app validates both the `Host`
+header and the `Origin`, so two settings are required or you get `400
+DisallowedHost` on every page and a CSRF rejection on the login POST:
+
+```bash
+# your codespace host looks like  <workspace>-<id>-8000.app.github.dev
+echo "DEBUG=True" >> .env
+echo "ALLOWED_HOSTS=.app.github.dev,localhost,127.0.0.1" >> .env
+echo "CSRF_TRUSTED_ORIGINS=https://*.app.github.dev,http://localhost:8000" >> .env
+
+gh codespace ports forward 8000:8000
+```
+
+`runserver` must bind all interfaces for forwarding to reach it:
+`python manage.py runserver 0.0.0.0:8000`. Uploaded files go to local storage
+unless `USE_SUPABASE_STORAGE=True` with valid keys, so a Codespace with no
+`.env` storage block still runs — uploads just land on the container's disk and
+disappear with it.
+
 ### `DEBUG` defaults to `False`
 
 This is deliberate: an unset or misspelled `DEBUG` in production would
@@ -78,6 +125,8 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `proposals/tests.py` | Proposal progress weighting, phase labels, proposal access control |
 | `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
+| `proposals/tests_wizard_steps.py` | The configurable wizards: step ordering, part reassignment, office-built steps, attached forms, the MOA wizard |
+| `accounts/tests/test_wizard_admin.py` | The wizard builder screens: manager, create, edit, move, delete, permissions |
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
@@ -111,9 +160,46 @@ accounts/views/          proposals/views/
   admin_users.py           public.py
   content.py               review.py
   builders.py              moa.py
-  reports.py               implementation.py
-  cms.py                   documents.py
+  wizard_builder.py        implementation.py
+  reports.py               documents.py
+  cms.py                   step_flow.py
+                           step_sections.py
+                           moa_sections.py
+                           wizard_flows.py
 ```
+
+## Configurable wizards
+
+Neither the proposal wizard nor the MOA drafting wizard is a fixed list of
+screens any more. Both are rows in a step table the Extension Office edits from
+**Admin → Wizard Steps** (and **MOA Wizard Steps**):
+
+| An admin can | How it works |
+|---|---|
+| Rename a step, rewrite its instructions, hide it, make it optional | `ProposalWizardStepConfig` / `MOAWizardStepConfig` |
+| Add a step the code has never heard of | A step with no built-in part renders the office's own attached forms |
+| Move a step anywhere in the wizard | Only `order` changes; the step's number is its stable reference |
+| Point a step at a different built-in part | `section_key` selects the part: its template, its save logic, and its completion rule move together |
+| Attach any Form Builder form to any step | `attached_proposal_steps` / `attached_moa_steps` follow the step when it moves |
+
+Two ideas make that work, and they are worth knowing before editing this code:
+
+* **A step's number is not its position.** `step_no` is the handle used by
+  URLs, saved progress, reviewer comments, and attached forms, so it never
+  changes. `order` is where the step appears. Templates therefore show
+  `step_position` / `step_total` and link with `next_step_no` /
+  `prev_step_no` — never `step|add:1`, which assumes consecutive numbers.
+* **A built-in part owns its rendering, its saving, and its completion rule.**
+  They live together in one `WizardSection` (`proposals/views/step_sections.py`)
+  or `MOAWizardSection` (`proposals/views/moa_sections.py`) rather than in three
+  separate `if step == N` chains. To add a built-in part, register one there —
+  no view changes.
+
+`StepFlow` (`proposals/views/step_flow.py`) is the only reader of the step
+tables; ordering, visibility, requiredness, and "which part renders here" all
+resolve through it, so the wizard, the sidebar, the progress bar, the
+submission gate, and the admin screens cannot disagree. A required field in an
+attached form holds its step open, and holds submission too.
 
 Each `__init__.py` re-exports every public name, so `urls.py` refers to
 `views.some_view` exactly as before. **When you add a view to a submodule, add

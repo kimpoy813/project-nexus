@@ -106,6 +106,7 @@ refactor and nobody noticed, which is itself the clearest evidence the suite was
 | `proposals/tests.py` | 17 | Progress weighting, phase labels, access control |
 | `proposals/tests_permissions.py` | 30 | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | 24 | Wizard access and steps, status maps, review rounds, trackers |
+| `proposals/tests_wizard_steps.py` | 26 | The configurable wizards: ordering, part reassignment, office-built steps, attached forms |
 | `accounts/tests/test_structure.py` | 7 | URL resolution, no duplicate defs, re-exports, repo hygiene |
 | `accounts/tests/test_error_handling.py` | 11 | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | 35 | DOCX/XLSX generation, template routing, download access |
@@ -294,6 +295,42 @@ with the proposal table, plus noise in production logs.
 **Status:** removed. This was a clear bug rather than a judgement call, so I fixed it rather than
 just reporting it.
 
+### 2.5 ✅ The wizards were hardcoded three different ways — **fixed**
+
+The proposal wizard knew its 19 screens in three places that had to be kept in step by hand:
+`step_N.html` picked the markup, one `if step == N` chain in `proposal_wizard` saved the POST, and
+a second chain in `is_step_complete` decided whether the step counted as done. A third copy lived
+in `_add_step_context_for_get`, and a fourth in the templates themselves, which built the "next"
+link with `step|add:1` and read `Step {{ step }} of 19` from a `_get_total_proposal_steps()` that
+returned the literal `19`. The MOA wizard repeated the pattern with a `form_map` keyed 1-4.
+
+`ProposalWizardStepConfig` existed, but it could only rename or hide a step — the office could not
+add one, reorder them, or change what a step *showed*. Every new office form meant a code change.
+
+**Fixed.** Both wizards are now driven by the step table:
+
+* a **section registry** (`proposals/views/step_sections.py`, `moa_sections.py`) where each built-in
+  part owns its template, its save logic, and its completion rule in one object;
+* a **`StepFlow`** (`step_flow.py`) that is the only reader of the step tables, so ordering,
+  visibility, requiredness, and part lookup resolve identically in the wizard, the sidebar, the
+  progress bar, the submission gate, and the admin screens;
+* `order` (position) split from `step_no` (stable handle), so reordering breaks nothing stored
+  against a step, and templates link with `next_step_no` / `prev_step_no` instead of `step|add:1`;
+* forms **attached to step rows** (`attached_proposal_steps`, `attached_moa_steps`) rather than
+  pinned to a number, with the old number pin still honoured for existing installs;
+* an admin builder (`accounts/views/wizard_builder.py`) covering both wizards: rename, hide,
+  require, reorder, re-point at a different part, attach any Form Builder form, or build a step
+  with no built-in part at all.
+
+`proposal_wizard` fell from 1,172 to ~700 lines and `proposal_moa_step` from a four-way `if` chain
+to one registry dispatch. Two latent bugs surfaced and were fixed on the way: the MOA summary page
+(`services/moa/summary.html`) had never existed, so the wizard's last step redirected into a 500,
+and the submission gate ignored any form that was not pinned to a step *number*.
+
+**Covered by:** `proposals/tests_wizard_steps.py` (26 tests) and `accounts/tests/test_wizard_admin.py`.
+
+---
+
 ---
 
 ## Severity 3 — Consistency and maintainability
@@ -357,6 +394,7 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 10. ✅ Document generation covered; `docx_forms` handlers narrowed 42 → 28 *(1.4, 2.3)*
 11. ✅ `proposal_wizard` split 629 → 470 lines; MOA/implementation transitions covered *(2.1, 1.4)*
 12. ✅ `media/` untracked; Home page hardened for a fresh install *(1.3)*
+13. ✅ Both wizards rebuilt as admin-configurable step tables *(2.5)*
 
 **Every finding in this document is now closed.**
 
@@ -368,7 +406,7 @@ Deliberately **not** recommended as further work:
 * **Further splitting of `proposal_wizard`** *(2.1)* — see the note under that finding.
 * **Renaming the `details` app** *(3.4)* — migration risk outweighs the clarity gain.
 
-The codebase now has 266 tests, centralised permissions, structured logging, no module over
+The codebase now has 423 tests, centralised permissions, structured logging, no module over
 ~1,300 lines, and no generated or uploaded artefacts in version control.
 
 ---
