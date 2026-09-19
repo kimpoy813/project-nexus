@@ -40,55 +40,67 @@
             </div>
         </div>
 
-        <div class="rounded-2xl border border-gray-200 p-5 space-y-5">
-            <div>
-                <h3 class="text-sm font-semibold text-gray-900">Technology / Utility Model</h3>
-                <p class="text-xs text-gray-500 mt-1">
+        {# One optional group: only for proposals that generate a technology or register a utility model. Auto-expands when any value is already saved. #}
+        <details
+            class="rounded-2xl border border-gray-200 p-5"
+            {% if technology_title or utility_model_registration_number or utility_model_description %}open{% endif %}>
+            <summary class="cursor-pointer select-none list-none">
+                <span class="flex items-center justify-between gap-4">
+                    <span>
+                        <span class="text-sm font-semibold text-gray-900">Utility Model</span>
+                        <span class="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Optional</span>
+                    </span>
+                    <span class="text-xs text-gray-400">Click to expand</span>
+                </span>
+            </summary>
+
+            <div class="mt-4 space-y-5">
+                <p class="text-xs text-gray-500">
                     Fill this in only if the proposal generates a technology or registers a utility model.
                 </p>
-            </div>
 
-            <div>
-                <label for="technology_title" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Title of Technology
-                </label>
-                <input
-                    type="text"
-                    id="technology_title"
-                    name="technology_title"
-                    value="{{ technology_title }}"
-                    {% if not is_edit_mode %}readonly{% endif %}
-                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
-                    placeholder="e.g. Mobile Dual-Purpose Coffee Depulpering Machine">
-            </div>
+                <div>
+                    <label for="technology_title" class="block text-sm font-semibold text-gray-900 mb-2">
+                        Title of Technology
+                    </label>
+                    <input
+                        type="text"
+                        id="technology_title"
+                        name="technology_title"
+                        value="{{ technology_title }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="e.g. Mobile Dual-Purpose Coffee Depulpering Machine">
+                </div>
 
-            <div>
-                <label for="utility_model_registration_number" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Utility Model Registration Number
-                </label>
-                <input
-                    type="text"
-                    id="utility_model_registration_number"
-                    name="utility_model_registration_number"
-                    value="{{ utility_model_registration_number }}"
-                    {% if not is_edit_mode %}readonly{% endif %}
-                    class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
-                    placeholder="e.g. 2-2025-050123">
-            </div>
+                <div>
+                    <label for="utility_model_registration_number" class="block text-sm font-semibold text-gray-900 mb-2">
+                        Utility Model Registration Number
+                    </label>
+                    <input
+                        type="text"
+                        id="utility_model_registration_number"
+                        name="utility_model_registration_number"
+                        value="{{ utility_model_registration_number }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary bg-white{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="e.g. 2-2025-050123">
+                </div>
 
-            <div>
-                <label for="utility_model_description" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Utility Model Description
-                </label>
-                <textarea
-                    id="utility_model_description"
-                    name="utility_model_description"
-                    rows="4"
-                    {% if not is_edit_mode %}readonly{% endif %}
-                    class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
-                    placeholder="Briefly describe the utility model...">{{ utility_model_description }}</textarea>
+                <div>
+                    <label for="utility_model_description" class="block text-sm font-semibold text-gray-900 mb-2">
+                        Utility Model Description
+                    </label>
+                    <textarea
+                        id="utility_model_description"
+                        name="utility_model_description"
+                        rows="4"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="Briefly describe the utility model...">{{ utility_model_description }}</textarea>
+                </div>
             </div>
-        </div>
+        </details>
 
     {% include "services/wizard/_dynamic_fields.html" %}
 
