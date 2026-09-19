@@ -83,21 +83,15 @@ def step_title(step_no):
 
 
 def is_proponents_step(step_no=PROPONENT_STEP_NO):
-    """True when ``step_no`` renders the Proponents part.
+    """True when ``step_no`` is (still) the Proponents step.
 
-    Asked of the step's ``section_key``, which is what actually decides what
-    the step shows. The old check matched the word "proponent" in the title,
-    so renaming the step silently detached its roster, and pointing another
-    step at the proponent part did not attach one.
-
-    A missing row means an unseeded database, where step 3 is still the
-    built-in Proponents step.
+    On a fresh database the step configs are seeded lazily from
+    ``INITIAL_STEP_LABELS``, so a missing row means "the built-in step 3",
+    which is Proponents.
     """
     config = ProposalWizardStepConfig.objects.filter(step_no=step_no).first()
     if config is None:
         return step_no == PROPONENT_STEP_NO
-    if config.section_key:
-        return config.section_key == "proponents"
     return "proponent" in (config.title or "").lower()
 
 

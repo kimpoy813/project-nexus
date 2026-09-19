@@ -253,17 +253,7 @@
                             </span>
                             <span class="adm-tile__count">{{ wizard_step_config_count|default:0 }}</span>
                         </span>
-                        <span class="adm-tile__desc">Rename, reorder, hide, or rebuild proposal steps.</span>
-                    </a>
-                    <a href="{% url 'moa_wizard_steps_manager' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" /></svg>
-                                <span class="adm-tile__name">MOA Wizard Steps</span>
-                            </span>
-                            <span class="adm-tile__count">{{ moa_wizard_step_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Rename, reorder, hide, or rebuild MOA drafting steps.</span>
+                        <span class="adm-tile__desc">Rename, hide, or make proposal steps optional.</span>
                     </a>
                     <a href="{% url 'dynamic_forms_list' %}" class="adm-tile">
                         <span class="adm-tile__top">

@@ -1,7 +1,0 @@
-{# One labelled MOA form field: label, widget, errors, help text. #}
-<div>
-  <label class="block text-sm font-medium text-slate-700">{{ field.label }}</label>
-  {{ field }}
-  {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors|striptags }}</p>{% endif %}
-  {% if field.help_text %}<p class="mt-1 text-xs text-slate-500">{{ field.help_text }}</p>{% endif %}
-</div>

@@ -1,12 +1,113 @@
-{% extends "services/moa/_moa_shell.html" %}
-{% block moa_form %}
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-    {% include "services/moa/_moa_field.html" with field=form.moa_title %}
-    {% include "services/moa/_moa_field.html" with field=form.moa_reference_no %}
-    {% include "services/moa/_moa_field.html" with field=form.moa_start_date %}
-    {% include "services/moa/_moa_field.html" with field=form.moa_end_date %}
+{% extends "base.html" %}
+{% block content %}
+<div class="nx-page py-8">
+  <div class="flex flex-col gap-2 mb-6">
+    <p class="text-sm text-slate-500">MOA Wizard</p>
+    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">{{ proposal.title|default:"MOA Draft" }}</h1>
+    <p class="text-sm text-slate-600">Step {{ step }} of {{ total_steps }} — Agreement Basics</p>
   </div>
 
-  {% include "services/moa/_moa_field.html" with field=form.purpose %}
-  {% include "services/moa/_moa_field.html" with field=form.background %}
+  <div class="mb-6">
+    <div class="w-full rounded-full bg-slate-200 h-3 overflow-hidden">
+      <div class="h-3 rounded-full bg-emerald-600" style="width: {{ progress }}%"></div>
+    </div>
+  </div>
+
+  <div class="mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      {% for s in wizard_steps %}
+        <a href="{% url 'proposal_moa_step' proposal.id s.no %}"
+           class="group flex flex-col rounded-2xl border px-4 py-3 text-left transition
+             {% if s.state == 'current' %}border-emerald-600 bg-emerald-50 text-emerald-900{% elif s.state == 'completed' %}border-slate-200 bg-slate-50 text-slate-700{% else %}border-transparent bg-white text-slate-500 hover:border-slate-200 hover:bg-slate-50{% endif %}">
+          <p class="text-[11px] font-semibold uppercase tracking-[0.16em]">Step {{ s.no }}</p>
+          <p class="mt-2 text-sm font-semibold">{{ s.title }}</p>
+          <p class="mt-1 text-xs leading-5 text-slate-500">{{ s.desc }}</p>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <aside class="lg:col-span-1 space-y-4">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 class="text-base font-semibold text-slate-900">What to place here</h2>
+        <div class="mt-3 space-y-3 text-sm text-slate-600">
+          {% for item in step_help %}
+            <div class="rounded-xl bg-slate-50 px-4 py-3">{{ item }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+        <h3 class="text-sm font-semibold text-emerald-900">Guided input</h3>
+        <p class="mt-2 text-sm text-emerald-800">
+          Fill in the title, reference number, dates, and purpose so the next steps can reuse these details.
+        </p>
+      </div>
+    </aside>
+
+    <section class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-slate-700">{{ form.moa_title.label }}</label>
+            {{ form.moa_title }}
+            {% if form.moa_title.errors %}<p class="mt-1 text-sm text-red-600">{{ form.moa_title.errors|striptags }}</p>{% endif %}
+            {% if form.moa_title.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.moa_title.help_text }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700">{{ form.moa_reference_no.label }}</label>
+            {{ form.moa_reference_no }}
+            {% if form.moa_reference_no.errors %}<p class="mt-1 text-sm text-red-600">{{ form.moa_reference_no.errors|striptags }}</p>{% endif %}
+            {% if form.moa_reference_no.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.moa_reference_no.help_text }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700">{{ form.moa_start_date.label }}</label>
+            {{ form.moa_start_date }}
+            {% if form.moa_start_date.errors %}<p class="mt-1 text-sm text-red-600">{{ form.moa_start_date.errors|striptags }}</p>{% endif %}
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700">{{ form.moa_end_date.label }}</label>
+            {{ form.moa_end_date }}
+            {% if form.moa_end_date.errors %}<p class="mt-1 text-sm text-red-600">{{ form.moa_end_date.errors|striptags }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700">{{ form.purpose.label }}</label>
+          {{ form.purpose }}
+          {% if form.purpose.errors %}<p class="mt-1 text-sm text-red-600">{{ form.purpose.errors|striptags }}</p>{% endif %}
+          {% if form.purpose.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.purpose.help_text }}</p>{% endif %}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700">{{ form.background.label }}</label>
+          {{ form.background }}
+          {% if form.background.errors %}<p class="mt-1 text-sm text-red-600">{{ form.background.errors|striptags }}</p>{% endif %}
+          {% if form.background.help_text %}<p class="mt-1 text-xs text-slate-500">{{ form.background.help_text }}</p>{% endif %}
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+          <a href="{% url 'services_home' %}" class="inline-flex items-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            Cancel
+          </a>
+          <button type="submit" class="inline-flex items-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+            Save and continue
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
 {% endblock %}

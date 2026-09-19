@@ -175,12 +175,7 @@ class StepEditorRepeaterTests(TestCase):
         )
         self.assertEqual(form.fields.get(field_key="nickname").maps_to, "")
 
-    def test_renaming_the_step_keeps_its_proponent_group(self):
-        """Renaming is cosmetic: what the step *shows* is its part, not its title.
-
-        This used to be decided by looking for the word "proponent" in the
-        title, so renaming the step silently detached the roster it rendered.
-        """
+    def test_the_step_editor_does_not_seed_a_step_that_is_not_proponents(self):
         self.admin_client.post(
             reverse("wizard_step_edit", args=[3]),
             payload_from_rows([], title="Something Else", is_visible="on", is_required="on"),
@@ -189,25 +184,7 @@ class StepEditorRepeaterTests(TestCase):
         response = self._open_step(3)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(self._form().is_repeater)
-
-    def test_the_step_editor_does_not_seed_a_step_that_is_not_proponents(self):
-        """A step whose part is not the roster never gets a proponent group."""
-        self.admin_client.post(
-            reverse("wizard_step_edit", args=[5]),
-            payload_from_rows(
-                [],
-                title="Something Else",
-                section_key="beneficiaries",
-                is_visible="on",
-                is_required="on",
-            ),
-        )
-
-        response = self._open_step(5)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertFalse(self._form(5).is_repeater)
+        self.assertFalse(self._form().is_repeater)
 
 
 class FormBuilderRepeaterTests(TestCase):
