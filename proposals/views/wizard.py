@@ -8,44 +8,26 @@ import re
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_GET
-from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
-from details.proponent_fields import ensure_proponent_repeater_form
 from ..models import Proposal
 from ..models import ProposalCollaborator
 from ..models import ProposalCommentSummary
 from ..models import ProposalEditorPresence
 from ..models import ProposalProponent
 from ..models import ProposalSectionComment
-from accounts.decorators import faculty_like_required
-from .constants import User
-from .sections import get_section, is_proponents_step
-from .wizard_config import (
-    ensure_wizard_steps,
-    last_step_number,
-    next_step as next_visible_wizard_step,
-    normalize_step as normalize_wizard_step,
-    previous_step as previous_visible_wizard_step,
-    required_step_numbers as get_required_wizard_step_numbers,
-    seed_section_fields,
-    step_config_map as _wizard_step_config_map,
-    step_form,
-    visible_step_numbers as get_visible_wizard_step_numbers,
-)
-from .dynamic_fields import (
-    dependency_parent_value as _dependency_parent_value,
-    dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
-    dynamic_parent_values_from_post as _dynamic_parent_values_from_post,
-    dynamic_parent_values_from_saved as _dynamic_parent_values_from_saved,
-)
+from accounts.decorators import faculty_like_required, admin_required
+from .constants import TOTAL_STEPS, User
+from .wizard_flows import proposal_flow
 from .dynamic_answers import (
     _attach_dynamic_forms_to_context,
+    _attach_proposal_dynamic_forms,
     _dynamic_forms_for_proposal_step,
     _is_dynamic_step_complete,
     _proposal_dynamic_requirements_missing,
@@ -86,67 +68,83 @@ def unmark_step_completed(proposal, step_no):
     proposal.completed_steps = sorted(completed)
 
 
-def _step_fields(step):
-    """``{field_key: DynamicFormField}`` for the admin-editable fields on a step.
+def _wizard_step_config_map():
+    """``{step_no: config}`` for every step, seeding the defaults on first use.
 
-    Sections read the ``required`` flag of their native fields from here, so
-    an admin who un-requires "Research Title" is respected by the completion
-    check as well as by the template.
+    The wizard used to seed this table in three places; the flow owns it now so
+    the seed cannot drift between the wizard, the admin screens, and the
+    sidebar.
     """
-    config = ProposalWizardStepConfig.objects.filter(step_no=step).first()
-    if config is None:
-        return {}
-    form = step_form(config, create=False)
-    if form is None:
-        return {}
-    return {f.field_key: f for f in form.fields.all()}
+    proposal_flow.ensure_defaults()
+    return proposal_flow.config_map()
+
+
+def get_visible_wizard_step_numbers():
+    return proposal_flow.visible_step_nos()
+
+
+def get_required_wizard_step_numbers():
+    return proposal_flow.required_step_nos()
+
+
+def normalize_wizard_step(step):
+    return proposal_flow.normalize(step)
+
+
+def next_visible_wizard_step(step):
+    return proposal_flow.step_after(step)
+
+
+def previous_visible_wizard_step(step):
+    return proposal_flow.step_before(step)
+
+
+def wizard_section_for(step):
+    """The built-in part on this step, or ``None`` for an office-built step."""
+    return proposal_flow.section(step)
 
 
 def is_step_complete(proposal, step):
-    """Whether a step's built-in section *and* its admin-built fields are done."""
-    section = get_section(_section_key_for(step))
-    if section is not None and not section.is_complete(proposal, _step_fields(step)):
-        return False
-    # Admin-built required fields on the step (and, for Proponents, the
-    # repeatable group's required columns and minimum rows).
+    """Whether a step counts as done.
+
+    Two halves, because a step can now carry both:
+
+    * the completion rule of the built-in *part* the step points at (``None``
+      when the step is office-built only); and
+    * the required fields of any forms the office attached to that step.
+
+    The second half is new and deliberate: attaching a required office form to
+    a step must be able to hold the step open, or the admin's form would be
+    cosmetic.
+    """
+    section = wizard_section_for(step)
+    if section is not None and section.is_complete is not None:
+        if not section.is_complete(proposal, step):
+            return False
+
     return _is_dynamic_step_complete(proposal, step)
 
 
-def _section_key_for(step):
-    from .sections import section_key_for_step
-    return section_key_for_step(step)
-
-
 def build_wizard_steps(proposal, current_step, comment_counts=None):
+    """Sidebar entries for every visible step, in the office's order."""
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
-    configs = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
 
-    steps = []
-    for config in configs:
-        no = config.step_no
+    def state_for(config, current):
+        if config.step_no == current:
+            return "current"
+        if config.step_no in completed:
+            return "completed"
+        if config.step_no in skipped:
+            return "skipped"
+        return "upcoming"
 
-        if no == current_step:
-            state = "current"
-        elif no in completed:
-            state = "completed"
-        elif no in skipped:
-            state = "skipped"
-        else:
-            state = "upcoming"
-
-        ccount = int(comment_counts.get(no, 0) or 0)
-        steps.append({
-            "no": no,
-            "title": config.title,
-            "desc": config.description,
-            "section": config.section_key,
-            "is_required": config.is_required,
-            "state": state,
-            "comment_count": ccount,
-            "has_comment": ccount > 0,
-        })
+    steps = proposal_flow.build_steps(current_step, state_for=state_for)
+    for entry in steps:
+        count = int(comment_counts.get(entry["no"], 0) or 0)
+        entry["comment_count"] = count
+        entry["has_comment"] = count > 0
     return steps
 
 
@@ -156,19 +154,22 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
     progress = int((len(completed_required) / len(required_steps)) * 100) if required_steps else 100
     configs = _wizard_step_config_map()
     step_config = configs.get(step)
-    section = get_section(step_config.section_key) if step_config else None
 
     ctx = {
         "proposal": proposal,
         "step": step,
-        "total_steps": last_step_number(),
-        "prev_step_no": previous_visible_wizard_step(step),
-        "next_step_no": next_visible_wizard_step(step),
+        "total_steps": TOTAL_STEPS,
         "progress": progress,
         "wizard_steps": build_wizard_steps(proposal, step, comment_counts=comment_counts),
         "wizard_step_config": step_config,
-        "wizard_section": section,
-        "section_template": section.template if section else "",
+        # Step numbers are stable handles, not positions: the office can hide
+        # or delete a step, so "Step 6 of 19" would be a lie. Templates get the
+        # real position and the real neighbours to link to.
+        "step_position": proposal_flow.position(step),
+        "step_total": proposal_flow.total_visible(),
+        "step_section_key": step_config.section_key if step_config else "",
+        "next_step_no": proposal_flow.step_after(step),
+        "prev_step_no": proposal_flow.step_before(step),
     }
 
     active_cutoff = timezone.now() - timedelta(seconds=45)
@@ -178,6 +179,11 @@ def _build_wizard_context(proposal, step, request_user, comment_counts=None):
         .filter(last_seen__gte=active_cutoff)
         .exclude(user=request_user)
     )
+    # Presence chips say "Step 4", which has to be the *position* the sidebar
+    # shows, not the step number that happens to be stored on the row.
+    positions = {no: index for index, no in enumerate(proposal_flow.visible_step_nos(), start=1)}
+    for editor in active_editors:
+        editor.step_position = positions.get(editor.step, editor.step)
     ctx["active_editors"] = active_editors
     return ctx
 
@@ -271,14 +277,16 @@ def _proponent_review_panel(proposal, current_round, step, *, is_proponent):
 
 
 def _add_step_context_for_get(ctx, proposal, step):
-    """Attach the per-step data the section template needs on GET.
+    """Attach the per-step data the wizard templates need on GET.
 
-    Delegates to the section configured on ``step``; a fields-only step adds
-    nothing. Mutates and returns ``ctx``.
+    This was ~100 lines of ``if step == N`` inline in the view, and then a
+    second copy of the same knowledge in the POST handler. Both now ask the
+    step's built-in part, so a part carries its own rendering *and* its own
+    saving, and a step with no part simply needs nothing here.
     """
-    section = get_section(_section_key_for(step))
-    if section is not None:
-        section.context(proposal, ctx, _step_fields(step))
+    section = wizard_section_for(step)
+    if section is not None and section.add_context is not None:
+        section.add_context(ctx, proposal, step)
     return ctx
 
 
@@ -332,9 +340,11 @@ def proposal_wizard(request, proposal_id, step):
 
     # The step list is seeded on first use; do it before clamping the requested
     # step, otherwise an empty table makes every step clamp to step 1.
-    ensure_wizard_steps()
+    _wizard_step_config_map()
 
-    step = normalize_wizard_step(max(1, min(step, last_step_number())))
+    # int() matters: min() returns the TOTAL_STEPS wrapper when the requested
+    # step is past the end, and a wrapper is not a usable step number.
+    step = normalize_wizard_step(max(1, min(step, int(TOTAL_STEPS))))
     can_edit = _can_edit(request.user, proposal)
     can_review = _can_review(request.user, proposal)
 
@@ -406,18 +416,15 @@ def proposal_wizard(request, proposal_id, step):
     ctx["can_comment"] = can_comment
     ctx["reviewer_role"] = reviewer_role
     ctx["can_edit_proposal"] = can_edit
-    step_config = ctx.get("wizard_step_config")
-    if step_config is not None:
-        # Seeds the section's default editable fields (and, for Proponents,
-        # the default repeatable group) the first time the step is opened, so
-        # it works before an admin ever visits the builder. Admins who change
-        # or delete those fields are not overruled: seeding only fills a
-        # completely empty form.
-        if is_proponents_step(step):
-            ensure_proponent_repeater_form(step)
-        else:
-            seed_section_fields(step_config)
-    _attach_dynamic_forms_to_context(ctx, proposal, step)
+    step_section = wizard_section_for(step)
+    if step_section is not None and step_section.prepare is not None:
+        # Parts that need first-run defaults run them here. The Proponents part
+        # uses this to seed the office's default repeatable group (Name,
+        # Designation, ...) so the step works before an admin ever visits the
+        # builder; seeding only fills a completely empty form, so an admin's
+        # own layout is never overruled.
+        step_section.prepare(proposal, step)
+    _attach_proposal_dynamic_forms(ctx, proposal, step)
 
     if ctx["can_comment"]:
         ctx["existing_step_comment"] = ProposalSectionComment.objects.filter(
@@ -436,7 +443,9 @@ def proposal_wizard(request, proposal_id, step):
         ctx["existing_step_comment"] = None
         ctx["step_comments"] = []
 
-    template = "services/wizard/step.html"
+    # The part decides the template, so re-pointing a step at another part - or
+    # at no part at all - changes what renders without touching this view.
+    template = proposal_flow.template_for(step)
 
     if request.method == "GET":
         _add_step_context_for_get(ctx, proposal, step)
@@ -447,26 +456,20 @@ def proposal_wizard(request, proposal_id, step):
             request, proposal, step, current_round, reviewer_role
         )
 
-    # Required-field problems found by the section's own save path (e.g. the
-    # proponent group); merged with the admin-managed fields below so
+    # Required-field problems found by a step's own save path (currently the
+    # Step 3 proponent group); merged with the admin-managed fields below so
     # "Save & Next" blocks on both.
     step_missing = []
 
-    section = ctx.get("wizard_section")
-    if section is not None:
-        outcome = section.save(proposal, request, action, _step_fields(step), step)
-        step_missing.extend(outcome.missing or [])
-        if outcome.refresh_completion:
-            if is_step_complete(proposal, step):
-                mark_step_completed(proposal, step)
-            else:
-                unmark_step_completed(proposal, step)
-            proposal.save(update_fields=["completed_steps", "skipped_steps"])
-        if outcome.message:
-            level, text = outcome.message
-            getattr(messages, level)(request, text)
-        if outcome.stay:
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
+    section = wizard_section_for(step)
+    if section is not None and section.save is not None:
+        section_result = section.save(request, proposal, step, action)
+        if isinstance(section_result, HttpResponse):
+            # The part handled the request itself: an error to flash, or an
+            # action of its own (the Proponents part's "add member" button).
+            return section_result
+        if section_result:
+            step_missing.extend(section_result)
 
     step_missing.extend(_save_step_repeaters(proposal, step, request, request.user))
     dynamic_missing = step_missing + _save_dynamic_form_answers(proposal, step, request.user, request)

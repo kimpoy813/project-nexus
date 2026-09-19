@@ -22,6 +22,7 @@ from details.models import DocumentTemplate
 from details.models import DynamicFormTemplate
 from details.models import ExtensionProcess
 from details.models import Personnel
+from details.models import MOAWizardStepConfig
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from details.models import SitePage
@@ -994,6 +995,7 @@ def admin_dashboard(request):
         "document_template_count": DocumentTemplate.objects.count(),
         "dynamic_form_count": DynamicFormTemplate.objects.count(),
         "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
+        "moa_wizard_step_count": MOAWizardStepConfig.objects.count(),
         "campuses_count": Campus.objects.count(),
         "colleges_count": College.objects.count(),
         "departments_count": Department.objects.count(),

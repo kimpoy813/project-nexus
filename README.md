@@ -78,7 +78,8 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `proposals/tests.py` | Proposal progress weighting, phase labels, proposal access control |
 | `proposals/tests_permissions.py` | Characterisation of the proposal permission helpers |
 | `proposals/tests_workflow.py` | Wizard access and steps, status maps, review rounds, trackers |
-| `proposals/tests_sections.py` | The wizard follows the admin's layout: movable sections, fields-only steps, reorder, native-field validation |
+| `proposals/tests_wizard_steps.py` | The configurable wizards: step ordering, part reassignment, office-built steps, attached forms, the MOA wizard |
+| `accounts/tests/test_wizard_admin.py` | The wizard builder screens: manager, create, edit, move, delete, permissions |
 | `accounts/tests/test_structure.py` | URL resolution, no duplicate definitions, re-export contract |
 | `accounts/tests/test_error_handling.py` | Logging config, graceful degradation, no leaked error text |
 | `proposals/tests_documents.py` | DOCX/XLSX generation, template routing, download access |
@@ -108,53 +109,55 @@ accounts/views/          proposals/views/
   helpers.py               constants.py
   proposal_queries.py      helpers.py
   auth.py                  permissions.py
-  dashboards.py            wizard.py          the wizard view (GET/POST plumbing)
-  admin_users.py           wizard_config.py   step list: seeding, navigation, per-step forms
-  content.py               sections.py        the built-in parts of the proposal form
-  builders.py              public.py
-  reports.py               review.py
-  cms.py                   moa.py
-                           implementation.py
-                           documents.py
+  dashboards.py            wizard.py
+  admin_users.py           public.py
+  content.py               review.py
+  builders.py              moa.py
+  wizard_builder.py        implementation.py
+  reports.py               documents.py
+  cms.py                   step_flow.py
+                           step_sections.py
+                           moa_sections.py
+                           wizard_flows.py
 ```
+
+## Configurable wizards
+
+Neither the proposal wizard nor the MOA drafting wizard is a fixed list of
+screens any more. Both are rows in a step table the Extension Office edits from
+**Admin → Wizard Steps** (and **MOA Wizard Steps**):
+
+| An admin can | How it works |
+|---|---|
+| Rename a step, rewrite its instructions, hide it, make it optional | `ProposalWizardStepConfig` / `MOAWizardStepConfig` |
+| Add a step the code has never heard of | A step with no built-in part renders the office's own attached forms |
+| Move a step anywhere in the wizard | Only `order` changes; the step's number is its stable reference |
+| Point a step at a different built-in part | `section_key` selects the part: its template, its save logic, and its completion rule move together |
+| Attach any Form Builder form to any step | `attached_proposal_steps` / `attached_moa_steps` follow the step when it moves |
+
+Two ideas make that work, and they are worth knowing before editing this code:
+
+* **A step's number is not its position.** `step_no` is the handle used by
+  URLs, saved progress, reviewer comments, and attached forms, so it never
+  changes. `order` is where the step appears. Templates therefore show
+  `step_position` / `step_total` and link with `next_step_no` /
+  `prev_step_no` — never `step|add:1`, which assumes consecutive numbers.
+* **A built-in part owns its rendering, its saving, and its completion rule.**
+  They live together in one `WizardSection` (`proposals/views/step_sections.py`)
+  or `MOAWizardSection` (`proposals/views/moa_sections.py`) rather than in three
+  separate `if step == N` chains. To add a built-in part, register one there —
+  no view changes.
+
+`StepFlow` (`proposals/views/step_flow.py`) is the only reader of the step
+tables; ordering, visibility, requiredness, and "which part renders here" all
+resolve through it, so the wizard, the sidebar, the progress bar, the
+submission gate, and the admin screens cannot disagree. A required field in an
+attached form holds its step open, and holds submission too.
 
 Each `__init__.py` re-exports every public name, so `urls.py` refers to
 `views.some_view` exactly as before. **When you add a view to a submodule, add
 it to the package's `__init__.py` too** — otherwise the URLconf raises
 `AttributeError` at import. `accounts/tests/test_structure.py` guards this.
-
-## The proposal wizard is admin-configurable
-
-Nothing in the wizard keys behaviour off a step *number* any more. Each
-`ProposalWizardStepConfig` row (Admin → Wizard Steps) is a position in the
-wizard plus a **section** — one of the built-in parts of the proposal form
-(title, proponents, SDG picker, budget, uploads, …). The admin can:
-
-- rename a step, change its description and office instructions;
-- move steps up/down or renumber them 1…N (attached fields move with them);
-- choose which built-in section a step shows, or make a *fields-only* step
-  built entirely from the form builder (e.g. a new office checklist);
-- hide a step, or make it optional for submission;
-- edit the label / placeholder / help text / required flag of a section's own
-  inputs, and add extra fields (text, number, date, dropdown, file, …).
-
-Code-wise:
-
-- `details/wizard_defaults.py` — the built-in 19-step layout used to seed an
-  empty database. The `details` app never imports the proposal views.
-- `proposals/views/sections.py` — the `SECTIONS` registry. A `Section` knows
-  its template (`services/wizard/sections/<key>.html`), how to add context,
-  how to save a POST, and when it is complete. **To add a new built-in
-  section, register it here and write its partial** — no view changes.
-- `proposals/views/wizard_config.py` — the step list (seeding, visible /
-  required numbers, next / previous, the per-step field form).
-- `proposals/templates/services/wizard/step.html` — the one template every
-  step renders with; it includes the section partial, the admin-built fields
-  and the shared navigation.
-
-Section "native" fields (e.g. `budgetary_requirement`) appear in the step's
-field form so the admin can edit their labels, but their values live on the
-`Proposal` model, so they are never saved or validated as dynamic answers.
 
 ## Layout and spacing
 

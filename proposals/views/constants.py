@@ -1,61 +1,145 @@
 """
 Step labels and reference lists shared across the proposal views.
+
+The reference lists (SDGs, thrusts, GAD mandates, MOA draft fields) are plain
+constants. The *step* labels are not: they used to be a literal list of 19
+entries, which is what made the wizard impossible to reconfigure. They are now
+read from the office's step rows, with the literals below kept only as the seed
+a fresh install starts from and as a fallback if the table cannot be read.
+
+Import note: the flow objects live in :mod:`proposals.views.wizard_flows`,
+which imports the section registries, which import this module. The flow is
+therefore imported *inside* the accessors below rather than at module level —
+a top-level import here would be a cycle.
 """
 
 from django.contrib.auth import get_user_model
-
-from details.wizard_defaults import default_step_dicts
 
 
 User = get_user_model()
 
 
-def _step_labels():
-    """The wizard's visible steps as ``{"no", "title", "desc", "section"}``.
+#: Seed for a fresh install, in the order the wizard shipped with. The live
+#: wizard reads ``ProposalWizardStepConfig`` rows, not this list.
+INITIAL_STEP_LABELS = [
+    {"no": 1, "title": "Extension Type and Scope", "desc": "Type of extension and proposal scope"},
+    {"no": 2, "title": "Title", "desc": "Program, project, or activity title"},
+    {"no": 3, "title": "Proponents", "desc": "Proponent details and assigned roles"},
+    {"no": 4, "title": "Implementing Agency/Unit", "desc": "Office, agency, or unit responsible"},
+    {"no": 5, "title": "Collaborators/Beneficiaries", "desc": "Beneficiary count and target group"},
+    {"no": 6, "title": "SDGs / Extension Agenda", "desc": "SDGs covered and extension thrust"},
+    {"no": 7, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
+    {"no": 8, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
+    {"no": 9, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
+    {"no": 10, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
+    {"no": 11, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
+    {"no": 12, "title": "Significance", "desc": "Importance of the proposed extension"},
+    {"no": 13, "title": "Objectives", "desc": "General and specific SMART objectives"},
+    {"no": 14, "title": "Methodology / Mechanics", "desc": "Implementation approach"},
+    {"no": 15, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
+    {"no": 16, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
+    {"no": 17, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
+    {"no": 18, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
+    {"no": 19, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
+]
 
-    Backed by the admin's ``ProposalWizardStepConfig`` table (seeded from
-    ``details.wizard_defaults`` on first use). Kept as a function so callers
-    read the current layout, not the one at import time.
-    """
-    from .wizard_config import step_summaries
-    return step_summaries()
 
-
-def _total_steps():
-    from .wizard_config import last_step_number
-    return last_step_number()
+#: Seed for a fresh install of the MOA drafting wizard.
+INITIAL_MOA_STEP_LABELS = [
+    {"no": 1, "title": "Agreement Basics", "desc": "Title, reference, dates, and purpose"},
+    {"no": 2, "title": "Parties and Signatories", "desc": "Names, representatives, and signers"},
+    {"no": 3, "title": "Scope and Terms", "desc": "Responsibilities, deliverables, and rules"},
+    {"no": 4, "title": "Attachments and Review", "desc": "Upload files and finalize the draft"},
+]
 
 
 class _DynamicStepLabels:
-    """List-like view of ``_step_labels()`` for older call sites."""
+    """The wizard's steps as ``{"no", "title", "desc"}`` dicts, admin order."""
+
+    def _get_steps(self):
+        from .wizard_flows import proposal_flow
+
+        try:
+            proposal_flow.ensure_defaults()
+            return proposal_flow.step_labels()
+        except Exception:
+            return INITIAL_STEP_LABELS
 
     def __iter__(self):
-        return iter(_step_labels())
+        return iter(self._get_steps())
 
     def __len__(self):
-        return len(_step_labels())
+        return len(self._get_steps())
 
     def __getitem__(self, index):
-        return _step_labels()[index]
+        return self._get_steps()[index]
+
+    def __setitem__(self, index, value):
+        pass
+
+    def __delitem__(self, index):
+        pass
 
     def __contains__(self, item):
-        return item in _step_labels()
+        return item in self._get_steps()
 
     def __repr__(self):
-        return repr(_step_labels())
+        return repr(self._get_steps())
+
+    def __str__(self):
+        return str(self._get_steps())
+
+
+class _DynamicMOAStepLabels:
+    """The MOA wizard's steps, read from the office's MOA step rows."""
+
+    def _get_steps(self):
+        from .wizard_flows import moa_flow
+
+        try:
+            moa_flow.ensure_defaults()
+            return moa_flow.step_labels()
+        except Exception:
+            return INITIAL_MOA_STEP_LABELS
+
+    def __iter__(self):
+        return iter(self._get_steps())
+
+    def __len__(self):
+        return len(self._get_steps())
+
+    def __getitem__(self, index):
+        return self._get_steps()[index]
+
+    def __contains__(self, item):
+        return item in self._get_steps()
+
+    def __repr__(self):
+        return repr(self._get_steps())
+
+    def __str__(self):
+        return str(self._get_steps())
 
 
 class _DynamicTotalSteps:
-    """Int-like view of ``_total_steps()`` for older call sites.
+    """Number of wizard steps the office currently shows.
 
-    ``__hash__`` is defined because ``__eq__`` is: ``min(step, TOTAL_STEPS)``
-    can hand this object back and it must remain usable as a dict key.
+    Behaves like an int in comparisons (see the rich-comparison methods below),
+    which is why it needs ``__hash__``: Python drops the inherited one as soon
+    as ``__eq__`` is defined, and ``min(step, TOTAL_STEPS)`` can hand this
+    object back - it then blew up as a dict key in the wizard view.
     """
 
     def __int__(self):
-        return _total_steps()
+        from .wizard_flows import proposal_flow
 
-    __index__ = __int__
+        try:
+            return proposal_flow.total_visible()
+        except Exception:
+            return len(INITIAL_STEP_LABELS)
+
+    def __index__(self):
+        return int(self)
 
     def __hash__(self):
         return hash(int(self))
@@ -99,11 +183,6 @@ class _DynamicTotalSteps:
 
 STEP_LABELS = _DynamicStepLabels()
 TOTAL_STEPS = _DynamicTotalSteps()
-
-
-#: The built-in layout as ``{"no", "section", "title", "desc"}`` dicts. The
-#: canonical definition is ``details.wizard_defaults.DEFAULT_WIZARD_STEPS``.
-INITIAL_STEP_LABELS = default_step_dicts()
 
 
 SDG_LIST = [
@@ -166,12 +245,7 @@ GENDER_ISSUE_LIST = [
 ]
 
 
-MOA_STEP_LABELS = [
-    {"no": 1, "title": "Agreement Basics", "desc": "Title, reference, dates, and purpose"},
-    {"no": 2, "title": "Parties and Signatories", "desc": "Names, representatives, and signers"},
-    {"no": 3, "title": "Scope and Terms", "desc": "Responsibilities, deliverables, and rules"},
-    {"no": 4, "title": "Attachments and Review", "desc": "Upload files and finalize the draft"},
-]
+MOA_STEP_LABELS = _DynamicMOAStepLabels()
 
 
 MOA_DRAFT_TEXT_FIELDS = [

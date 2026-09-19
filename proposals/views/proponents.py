@@ -1,5 +1,5 @@
 """
-The Proponents section: saving the roster and the roles that follow from it.
+Wizard Step 3 (Proponents): saving the roster and the roles that follow from it.
 
 The admin decides which fields a proponent row shows (see
 ``proposals.views.repeaters``); this module owns what happens to the proposal
@@ -35,22 +35,16 @@ def _update_creator_role(proposal):
 
 
 
-def save_step_three_proponents(proposal, request, step=None):
-    """Persist the Proponents section and return the required problems left.
+def save_step_three_proponents(proposal, request):
+    """Persist everything on Step 3 and return the required problems left.
 
-    ``step`` is the wizard step the section currently sits on (the admin can
-    move it); it defaults to wherever the proponents section is configured.
     The step's repeatable proponent group (when the admin built one) owns the
     rows; otherwise the built-in ``p_<id>_...`` roster fields are saved, so a
     wizard whose repeatable group was turned off keeps working.
     """
-    if step is None:
-        from .sections import proponents_step_no
-        step = proponents_step_no()
-
     explicit_role_ids = set()
     missing = []
-    repeater_form = proponent_repeater_form_for_step(step) if step else None
+    repeater_form = proponent_repeater_form_for_step(3)
 
     if repeater_form is not None:
         repeater_problems, meta = save_repeater_rows(proposal, repeater_form, request, request.user)

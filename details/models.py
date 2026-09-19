@@ -193,6 +193,22 @@ class DynamicFormTemplate(models.Model):
         blank=True,
         help_text="Optional: show this form inside proposal wizard step when Applies To is Proposal.",
     )
+    attached_proposal_steps = models.ManyToManyField(
+        "details.ProposalWizardStepConfig",
+        related_name="attached_forms",
+        blank=True,
+        help_text=(
+            "Proposal wizard steps this form is shown on. Follows the step "
+            "when the office reorders the wizard, and one form can serve "
+            "several steps."
+        ),
+    )
+    attached_moa_steps = models.ManyToManyField(
+        "details.MOAWizardStepConfig",
+        related_name="attached_forms",
+        blank=True,
+        help_text="MOA drafting steps this form is shown on.",
+    )
     blocks_proposal_submission = models.BooleanField(
         default=True,
         help_text="If enabled, required fields in this form must be completed before proposal submission.",
@@ -414,28 +430,38 @@ class DynamicFormRow(models.Model):
         return (self.data or {}).get(field.field_key, "")
 
 
-class ProposalWizardStepConfig(models.Model):
-    """One step of the proposal wizard, as laid out by the admin.
+class BaseWizardStepConfig(models.Model):
+    """Shared shape of an admin-editable wizard step.
 
-    A step is a *position* in the wizard (``step_no``) plus the *section* it
-    renders. Sections are the built-in parts of the proposal form (title,
-    proponents, SDGs, budget, file uploads, ...) and are defined in
-    ``proposals.views.sections``; a step with an empty ``section_key`` shows
-    only the admin-built fields attached to it through the form builder.
+    A step is no longer "the Nth hardcoded screen": it is a row an office can
+    add, rename, reorder, hide, re-point at a different built-in *part*, or
+    fill entirely with forms of their own. Two identities live on the row and
+    they do different jobs:
 
-    Because behaviour hangs off ``section_key`` rather than ``step_no``, the
-    admin can renumber, reorder, insert, and remove steps freely.
+    ``step_no``
+        The stable handle. URLs, saved progress (``Proposal.completed_steps``),
+        reviewer comments and editor presence all reference it, so it never
+        changes after creation — deleting step 5 does not renumber step 6.
+    ``order``
+        Where the step sits in the wizard. Reordering swaps ``order`` values
+        only, which is what lets the office insert a new form between two
+        long-standing sections without breaking anything stored against them.
+
+    ``section_key`` names the built-in part rendered on the step (see
+    ``proposals.step_sections``). Blank means "no built-in part": the step is
+    driven purely by the office's own attached forms.
     """
 
     step_no = models.PositiveSmallIntegerField(unique=True)
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Position in the wizard. 0 falls back to the step number.",
+    )
     section_key = models.CharField(
         max_length=60,
         blank=True,
         default="",
-        help_text=(
-            "Built-in part of the proposal form shown on this step. "
-            "Leave blank for a step made only of admin-built fields."
-        ),
+        help_text="Built-in part rendered on this step. Blank = office-built forms only.",
     )
     title = models.CharField(max_length=160)
     description = models.CharField(max_length=255, blank=True, default="")
@@ -445,15 +471,37 @@ class ProposalWizardStepConfig(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["step_no"]
+        abstract = True
+        ordering = ["order", "step_no"]
 
     def __str__(self):
         return f"Step {self.step_no}: {self.title}"
 
     @property
-    def is_custom(self):
-        """True when the step has no built-in section (fields only)."""
-        return not (self.section_key or "").strip()
+    def sort_key(self):
+        """``(order, step_no)`` so unseeded rows (order 0) keep number order."""
+        return (self.order or self.step_no, self.step_no)
+
+
+class ProposalWizardStepConfig(BaseWizardStepConfig):
+    """One admin-editable step of the proposal drafting wizard."""
+
+    class Meta(BaseWizardStepConfig.Meta):
+        abstract = False
+        ordering = ["order", "step_no"]
+
+
+class MOAWizardStepConfig(BaseWizardStepConfig):
+    """One admin-editable step of the MOA drafting wizard.
+
+    Deliberately separate from :attr:`Proposal.MOA_FLOW`: that flow is the
+    approval *status* machine staff advance, while these rows are the screens a
+    proponent fills in while drafting.
+    """
+
+    class Meta(BaseWizardStepConfig.Meta):
+        abstract = False
+        ordering = ["order", "step_no"]
 
 
 class RoleCapability(models.Model):

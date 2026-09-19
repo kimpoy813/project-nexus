@@ -13,7 +13,7 @@ from details.models import WorkflowPhase
 from ..models import ExtensionThrust
 from ..models import Proposal
 from ..models import SDG
-from .wizard_config import last_step_number, step_summaries
+from .constants import STEP_LABELS, TOTAL_STEPS
 
 
 def _build_status_flow(choices, progress_map):
@@ -74,8 +74,8 @@ def services_home(request):
         "process_records": process_records,
         "workflow_phases": workflow_phases,
         "workflow_weight_total": weight_total,
-        "wizard_steps": step_summaries(),
-        "total_wizard_steps": last_step_number(),
+        "wizard_steps": STEP_LABELS,
+        "total_wizard_steps": TOTAL_STEPS,
         "office_templates": office_templates,
         "dynamic_form_templates": dynamic_form_templates,
         "page": SitePage.get_for(SitePage.Slug.SERVICES),

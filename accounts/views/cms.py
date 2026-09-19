@@ -32,7 +32,7 @@ PAGE_LINKED_DATA = {
         {"label": "Extension Processes", "url_name": "processes_list", "hint": "Drives the maintained process flow."},
         {"label": "Template Library", "url_name": "document_templates_list", "hint": "Downloadable office templates."},
         {"label": "Form Builder", "url_name": "dynamic_forms_list", "hint": "Configurable forms and checklists."},
-        {"label": "Wizard Steps", "url_name": "wizard_steps_manager", "hint": "Order, sections, and fields of the proposal wizard."},
+        {"label": "Wizard Steps", "url_name": "wizard_steps_manager", "hint": "Proposal wizard step labels."},
     ],
     "reports": [
         {"label": "Extension Targets", "url_name": "targets_list", "hint": "Planned vs. actual figures."},

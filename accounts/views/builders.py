@@ -20,7 +20,6 @@ from details.models import DynamicFormField
 from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
-from details.wizard_defaults import PROPONENTS_SECTION_KEY
 from ..decorators import admin_required
 from ..forms import DocumentTemplateForm
 from ..storage_diagnostics import describe_storage_exception
@@ -74,22 +73,104 @@ def _storage_failure_message(headline, exc):
 
 
 def _seed_default_fields():
-    """Seed each step's built-in section fields (no-op on forms with fields).
+    """Give each part-backed step a starting form, without touching an edited one."""
+    from details.models import DynamicFormTemplate, DynamicFormField
+    
+    default_fields_map = {
+        "extension_type": [
+            {"key": "extension_type", "label": "Extension Type", "type": "SELECT", "choices": "RESEARCH_FACULTY|Research-based (Faculty)\nRESEARCH_STUDENT|Research-based (Student)\nREQUEST_BASED|Request-based\nCOMMUNITY_BASED|Community-based", "placeholder": "Choose extension type"},
+            {"key": "scope_type", "label": "Scope", "type": "SELECT", "choices": "PROGRAM|Program\nPROJECT|Project\nACTIVITY|Activity", "placeholder": "Choose scope"},
+            {"key": "research_title", "label": "Research Title", "type": "TEXT", "placeholder": "Enter research title if applicable", "required": False, "depends_on_key": "extension_type", "depends_on_value": "RESEARCH_FACULTY,RESEARCH_STUDENT"},
+        ],
+        "title": [
+            {"key": "title", "label": "Title of the Program / Project / Activity", "type": "TEXT", "placeholder": "Enter official title"},
+        ],
+        "implementing_agency": [
+            {"key": "implementing_agency", "label": "Implementing Agency / Unit", "type": "TEXT", "placeholder": "Enter implementing agency"},
+        ],
+        "beneficiaries": [
+            {"key": "beneficiaries_count", "label": "Beneficiary Count", "type": "NUMBER", "placeholder": "Estimated count of beneficiaries"},
+            {"key": "beneficiaries_who", "label": "Target Group / Beneficiaries Description", "type": "TEXT", "placeholder": "Describe who they are"},
+        ],
+        "budgetary_requirement": [
+            {"key": "budgetary_requirement", "label": "Budgetary Requirement", "type": "TEXTAREA", "placeholder": "Describe budget details"},
+        ],
+        "schedule_venue": [
+            {"key": "extension_venue", "label": "Extension Venue / Site", "type": "TEXT", "placeholder": "Enter venue"},
+            {"key": "estimated_month", "label": "Estimated Month", "type": "SELECT", "choices": "January|January\nFebruary|February\nMarch|March\nApril|April\nMay|May\nJune|June\nJuly|July\nAugust|August\nSeptember|September\nOctober|October\nNovember|November\nDecember|December", "placeholder": "Choose month"},
+            {"key": "estimated_year", "label": "Estimated Year", "type": "NUMBER", "placeholder": "e.g., 2026"},
+        ],
+        "rationale_background": [
+            {"key": "rationale_background", "label": "Rationale / Background", "type": "TEXTAREA", "placeholder": "Provide rationale background"},
+        ],
+        "significance": [
+            {"key": "significance", "label": "Significance", "type": "TEXTAREA", "placeholder": "Describe significance"},
+        ],
+        "objectives": [
+            {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
+        ],
+    }
 
-    Kept under its historical name; the logic lives in
-    ``proposals.views.wizard_config`` next to the section registry.
-    """
-    from proposals.views.wizard_config import ensure_wizard_steps, seed_section_fields
+    # Keyed by built-in *part*, not by step number: the office decides which
+    # step shows a part, and two steps may show the same one.
+    from proposals.views.wizard_flows import proposal_flow
 
-    for config in ensure_wizard_steps():
-        seed_section_fields(config)
+    proposal_flow.ensure_defaults()
+
+    for step_config in proposal_flow.ordered():
+        fields = default_fields_map.get(step_config.section_key)
+        if not fields:
+            continue
+        step_no = step_config.step_no
+        form_name = f"Fields for Step {step_no}"
+        form_obj, created = DynamicFormTemplate.objects.get_or_create(
+            proposal_wizard_step=step_no,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            defaults={
+                "name": form_name,
+                "slug": f"step-{step_no}-fields",
+                "is_active": True,
+                "blocks_proposal_submission": True,
+            }
+        )
+
+        # A form the office already built or edited on this step is left alone:
+        # the defaults exist to give a fresh step a usable shape, not to add
+        # surprise fields to a custom one (including a repeatable group).
+        if not created and form_obj.fields.exists():
+            continue
+
+        for idx, f in enumerate(fields):
+            DynamicFormField.objects.get_or_create(
+                form=form_obj,
+                field_key=f["key"],
+                defaults={
+                    "label": f["label"],
+                    "field_type": f["type"],
+                    "choices_text": f.get("choices", ""),
+                    "placeholder": f.get("placeholder", ""),
+                    "required": f.get("required", True),
+                    "depends_on_key": f.get("depends_on_key", ""),
+                    "depends_on_value": f.get("depends_on_value", ""),
+                    "order": idx + 1,
+                }
+            )
 
 
 def _sync_default_wizard_step_configs():
-    """Create the built-in wizard on an empty table (admin owns it after)."""
-    from proposals.views.wizard_config import ensure_wizard_steps
+    """Make sure the wizard has its default steps and default proponent fields.
 
-    ensure_wizard_steps()
+    The step rows themselves are the flow's business: it seeds what is missing
+    without touching what an admin has renamed, hidden, moved, or re-pointed.
+    """
+    from proposals.views.wizard_flows import moa_flow, proposal_flow
+
+    created = not ProposalWizardStepConfig.objects.exists()
+    proposal_flow.ensure_defaults()
+    moa_flow.ensure_defaults()
+
+    if created:
+        _seed_default_fields()
 
 
 def _sync_default_role_capabilities():
@@ -374,6 +455,22 @@ def _save_dynamic_form_fields(form_obj, post_data):
     DynamicFormField.objects.filter(form=form_obj).exclude(id__in=kept_ids).delete()
 
 
+def _builder_context(form_obj=None, **extra):
+    """Template context shared by the wizard step editors and the form builder.
+
+    All of these screens render the same field rows and the same "repeatable
+    group" panel, so the choices they need are assembled in one place.
+    """
+    ctx = {
+        "form_obj": form_obj,
+        "field_type_choices": DynamicFormField.FieldType.choices,
+        "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
+        "proponent_map_choices": DynamicFormField.MapsTo.choices,
+    }
+    ctx.update(extra)
+    return ctx
+
+
 @login_required
 @admin_required
 def dynamic_form_create(request):
@@ -448,271 +545,6 @@ def dynamic_form_delete(request, pk):
     form_obj.delete()
     messages.success(request, f'Form "{name}" deleted successfully.')
     return redirect("dynamic_forms_list")
-
-
-@login_required
-@admin_required
-def wizard_steps_manager(request):
-    from proposals.views.sections import SECTIONS
-
-    _sync_default_wizard_step_configs()
-    steps = list(ProposalWizardStepConfig.objects.all().order_by("step_no"))
-
-    field_counts = {}
-    for form in DynamicFormTemplate.objects.filter(
-        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-        proposal_wizard_step__isnull=False,
-    ).prefetch_related("fields"):
-        field_counts[form.proposal_wizard_step] = field_counts.get(form.proposal_wizard_step, 0) + form.fields.count()
-
-    used_sections = {s.section_key for s in steps if s.section_key}
-    for step in steps:
-        section = SECTIONS.get(step.section_key)
-        step.section_label = section.label if section else ""
-        step.field_count = field_counts.get(step.step_no, 0)
-
-    unused_sections = [s for key, s in SECTIONS.items() if key not in used_sections]
-
-    return render(
-        request,
-        "dashboard/admin/wizard_steps_manager.html",
-        {
-            "steps": steps,
-            "unused_sections": unused_sections,
-            "can_reorder": len(steps) > 1,
-        },
-    )
-
-
-@login_required
-@admin_required
-@require_POST
-def wizard_steps_reorder(request):
-    """Move a step up or down, or renumber the whole wizard 1..N.
-
-    Steps are keyed by number everywhere - saved progress, reviewer comments,
-    attached field forms - so a move swaps numbers with the neighbour and
-    updates the attached forms in the same transaction.
-    """
-    from django.db import transaction
-
-    action = (request.POST.get("action") or "").strip()
-    step_no = _safe_int(request.POST.get("step_no"), 0)
-
-    steps = list(ProposalWizardStepConfig.objects.all().order_by("step_no"))
-    index = next((i for i, s in enumerate(steps) if s.step_no == step_no), None)
-
-    def _renumber(pairs):
-        # pairs: [(config, new_step_no)]. Go through a temporary offset so the
-        # unique constraint on step_no is never violated mid-way.
-        offset = 100000
-        with transaction.atomic():
-            for config, new_no in pairs:
-                _move_step(config, config.step_no + offset)
-            for config, new_no in pairs:
-                _move_step(config, new_no)
-
-    if action in ("up", "down") and index is not None:
-        swap_with = index - 1 if action == "up" else index + 1
-        if 0 <= swap_with < len(steps):
-            a, b = steps[index], steps[swap_with]
-            _renumber([(a, b.step_no), (b, a.step_no)])
-            messages.success(request, f"Moved “{a.title}” {action}.")
-        else:
-            messages.info(request, "That step is already at the end.")
-    elif action == "compact":
-        _renumber([(config, i) for i, config in enumerate(steps, start=1)])
-        messages.success(request, "Steps renumbered 1 to %d." % len(steps))
-    else:
-        messages.error(request, "Nothing to reorder.")
-    return redirect("wizard_steps_manager")
-
-
-def _move_step(config, new_step_no):
-    """Renumber a step together with the field forms attached to it."""
-    old = config.step_no
-    if old == new_step_no:
-        return
-    DynamicFormTemplate.objects.filter(
-        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-        proposal_wizard_step=old,
-    ).update(proposal_wizard_step=new_step_no)
-    config.step_no = new_step_no
-    config.save(update_fields=["step_no"])
-
-
-def _builder_context(form_obj=None, **extra):
-    """Template context shared by the wizard step editor and the form builder.
-
-    Both screens render the same field rows and the same "repeatable group"
-    panel, so the choices they need are assembled in one place.
-    """
-    from proposals.views.sections import section_choices
-
-    ctx = {
-        "form_obj": form_obj,
-        "field_type_choices": DynamicFormField.FieldType.choices,
-        "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
-        "proponent_map_choices": DynamicFormField.MapsTo.choices,
-        "section_choices": section_choices(),
-        "proponents_section_key": PROPONENTS_SECTION_KEY,
-    }
-    ctx.update(extra)
-    return ctx
-
-
-def _section_taken_elsewhere(section_key, *, exclude_step_no=None):
-    """Another step already carries ``section_key`` (each section is unique)."""
-    if not section_key:
-        return None
-    qs = ProposalWizardStepConfig.objects.filter(section_key=section_key)
-    if exclude_step_no is not None:
-        qs = qs.exclude(step_no=exclude_step_no)
-    return qs.first()
-
-
-def _apply_section_change(step_config, new_key):
-    """Validate and apply a section change. Returns an error message or None."""
-    from proposals.views.sections import get_section
-    from proposals.views.wizard_config import assign_section
-
-    new_key = (new_key or "").strip()
-    if new_key and get_section(new_key) is None:
-        return "Unknown section."
-    other = _section_taken_elsewhere(new_key, exclude_step_no=step_config.step_no)
-    if other is not None:
-        return f"“{get_section(new_key).label}” is already used by Step {other.step_no} ({other.title})."
-    assign_section(step_config, new_key)
-    return None
-
-
-@login_required
-@admin_required
-def wizard_step_edit(request, step_no):
-    from proposals.views.sections import get_section
-    from proposals.views.wizard_config import seed_section_fields, step_form, step_form_name
-
-    _sync_default_wizard_step_configs()
-    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
-
-    if request.method == "POST":
-        error = _apply_section_change(step_config, request.POST.get("section_key"))
-        if error:
-            messages.error(request, error)
-            return redirect("wizard_step_edit", step_no=step_no)
-
-        step_config.title = (request.POST.get("title") or step_config.title).strip()
-        step_config.description = (request.POST.get("description") or "").strip()
-        step_config.instructions = (request.POST.get("instructions") or "").strip()
-        step_config.is_visible = request.POST.get("is_visible") == "on"
-        step_config.is_required = request.POST.get("is_required") == "on"
-        step_config.save()
-
-        form_obj = step_form(step_config)
-        form_obj.name = step_form_name(step_config)
-        form_obj.save(update_fields=["name"])
-
-        _save_repeater_settings(form_obj, request.POST)
-        _save_dynamic_form_fields(form_obj, request.POST)
-
-        messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
-        return redirect("wizard_steps_manager")
-
-    # Show the section's default editable fields instead of an empty builder.
-    # Seeding only fills a form with no fields, so an admin's own layout is
-    # never overwritten.
-    form_obj = step_form(step_config)
-    seed_section_fields(step_config, form_obj)
-
-    return render(
-        request,
-        "dashboard/admin/wizard_step_form.html",
-        _builder_context(
-            form_obj,
-            step_config=step_config,
-            section=get_section(step_config.section_key),
-        ),
-    )
-
-
-@login_required
-@admin_required
-def wizard_step_create(request):
-    _sync_default_wizard_step_configs()
-
-    max_step = ProposalWizardStepConfig.objects.order_by("-step_no").first()
-    next_step_no = (max_step.step_no + 1) if max_step else 1
-
-    if request.method == "POST":
-        step_no = _safe_int(request.POST.get("step_no"), 0)
-        title = (request.POST.get("title") or "").strip()
-        description = (request.POST.get("description") or "").strip()
-        instructions = (request.POST.get("instructions") or "").strip()
-        is_visible = request.POST.get("is_visible") == "on"
-        is_required = request.POST.get("is_required") == "on"
-
-        from proposals.views.sections import get_section
-        from proposals.views.wizard_config import seed_section_fields, step_form
-
-        section_key = (request.POST.get("section_key") or "").strip()
-        taken = _section_taken_elsewhere(section_key)
-
-        if step_no <= 0:
-            messages.error(request, "Step number must be a positive integer.")
-        elif ProposalWizardStepConfig.objects.filter(step_no=step_no).exists():
-            messages.error(request, f"Step number {step_no} already exists.")
-        elif not title:
-            messages.error(request, "Title is required.")
-        elif section_key and get_section(section_key) is None:
-            messages.error(request, "Unknown section.")
-        elif taken is not None:
-            messages.error(
-                request,
-                f"“{get_section(section_key).label}” is already used by Step {taken.step_no} ({taken.title}).",
-            )
-        else:
-            step_config = ProposalWizardStepConfig.objects.create(
-                step_no=step_no,
-                section_key=section_key,
-                title=title,
-                description=description,
-                instructions=instructions,
-                is_visible=is_visible,
-                is_required=is_required,
-            )
-
-            form_obj = step_form(step_config)
-            _save_repeater_settings(form_obj, request.POST)
-            _save_dynamic_form_fields(form_obj, request.POST)
-            # A section's built-in fields, unless the admin already typed some.
-            seed_section_fields(step_config, form_obj)
-
-            messages.success(request, f"Wizard Step {step_no} and its fields created successfully.")
-            return redirect("wizard_steps_manager")
-
-    return render(
-        request,
-        "dashboard/admin/wizard_step_create_form.html",
-        _builder_context(next_step_no=next_step_no),
-    )
-
-
-@login_required
-@admin_required
-@require_POST
-def wizard_step_delete(request, step_no):
-    step_config = get_object_or_404(ProposalWizardStepConfig, step_no=step_no)
-    title = step_config.title
-    step_config.delete()
-
-    # Delete corresponding DynamicFormTemplate
-    DynamicFormTemplate.objects.filter(
-        proposal_wizard_step=step_no,
-        applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-    ).delete()
-
-    messages.success(request, f"Wizard Step {step_no} ({title}) and its associated fields deleted successfully.")
-    return redirect("wizard_steps_manager")
 
 
 @login_required
