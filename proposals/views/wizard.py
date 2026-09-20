@@ -701,6 +701,23 @@ def proposal_wizard(request, proposal_id, step):
     if step == 1:
         proposal.extension_type = request.POST.get("extension_type", "")
         proposal.scope_type = request.POST.get("scope_type", "")
+
+        # The office's format rule is type-driven: community-based proposals
+        # are always Training Design, while request-based proponents may still
+        # choose the Extension Proposal format. Research-based proposals use
+        # Extension Proposal as before.
+        requested_format = (request.POST.get("proposal_format") or "").strip()
+        if proposal.extension_type == "COMMUNITY_BASED":
+            proposal.proposal_format = "TRAINING_DESIGN"
+        elif proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
+            proposal.proposal_format = "EXTENSION_PROPOSAL"
+        elif proposal.extension_type == "REQUEST_BASED":
+            proposal.proposal_format = requested_format if requested_format in {
+                "EXTENSION_PROPOSAL", "TRAINING_DESIGN"
+            } else (proposal.proposal_format or "TRAINING_DESIGN")
+        else:
+            proposal.proposal_format = ""
+
         research_title = (request.POST.get("research_title") or "").strip()
 
         if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
@@ -712,7 +729,7 @@ def proposal_wizard(request, proposal_id, step):
             messages.error(request, "Research Title is required for research-based extension type.")
             return redirect("proposal_wizard", proposal_id=proposal.id, step=1)
 
-        proposal.save(update_fields=["extension_type", "scope_type", "research_title"])
+        proposal.save(update_fields=["extension_type", "proposal_format", "scope_type", "research_title"])
         _update_creator_role(proposal)
 
     elif step == 2:

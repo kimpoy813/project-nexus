@@ -1936,8 +1936,21 @@ def build_extension_form_docx(proposal, *args, **kwargs) -> bytes:
     scope_type = (getattr(proposal, "scope_type", "") or "").strip().upper()
 
     is_research = extension_type in {"RESEARCH_FACULTY", "RESEARCH_STUDENT"}
+    proposal_format = (getattr(proposal, "proposal_format", "") or "").strip().upper()
 
+    # Community-based is required to use Training Design. Request-based is
+    # intentionally flexible: older records default to Training Design, but a
+    # proponent can select the Extension Proposal format in Step 1.
     if is_research:
+        proposal_format = "EXTENSION_PROPOSAL"
+    elif extension_type == "COMMUNITY_BASED":
+        proposal_format = "TRAINING_DESIGN"
+    elif extension_type == "REQUEST_BASED" and proposal_format not in {
+        "EXTENSION_PROPOSAL", "TRAINING_DESIGN"
+    }:
+        proposal_format = "TRAINING_DESIGN"
+
+    if proposal_format == "EXTENSION_PROPOSAL":
         if scope_type == "PROGRAM":
             template_path = base_dir / "form1_program_template.docx"
         else:
