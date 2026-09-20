@@ -23,7 +23,13 @@ from django.urls import reverse
 from accounts.models import Profile
 from accounts.tests import factories
 from details.models import DynamicFormTemplate, ProposalWizardStepConfig
-from proposals.models import Proposal, ProposalReviewRound, ProposalSectionComment
+from proposals.models import (
+    Proposal,
+    ProposalReviewRound,
+    ProposalSDG,
+    ProposalSectionComment,
+    ProposalThrust,
+)
 from proposals.views.constants import (
     INITIAL_STEP_LABELS,
     LAST_BUILTIN_STEP_NO,
@@ -107,6 +113,39 @@ class ExtensionAgendaRenameTests(TestCase):
         html = response.content.decode()
         self.assertLess(html.index("SDGs / Extension Agenda"), html.index("Utility Model"))
         self.assertLess(html.index("Utility Model"), html.index("Budgetary Requirement"))
+
+    def test_sdgs_and_agenda_are_checklists_without_explanation_inputs(self):
+        response = self.client_owner.get(reverse("proposal_wizard", args=[self.proposal.id, 6]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Why is this related to the extension?")
+        self.assertNotContains(response, "sdg_explanation_")
+        self.assertNotContains(response, "thrust_explanation_")
+        self.assertNotContains(response, "Write a short explanation")
+
+    def test_saving_the_checklists_does_not_accept_explanations(self):
+        response = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 6]),
+            {
+                "action": "next",
+                "sdg_codes": ["01"],
+                "thrust_names": ["Environmental Protection"],
+                # These legacy names must not be persisted if sent by an old
+                # client or a stale browser tab.
+                "sdg_explanation_01": "Legacy SDG explanation",
+                "thrust_explanation_Environmental Protection": "Legacy agenda explanation",
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse("proposal_wizard", args=[self.proposal.id, UTILITY_MODEL_STEP_NO]),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(ProposalSDG.objects.filter(proposal=self.proposal, sdg_code="01").exists())
+        self.assertTrue(
+            ProposalThrust.objects.filter(
+                proposal=self.proposal, thrust_name="Environmental Protection"
+            ).exists()
+        )
 
 
 class UtilityModelStepTests(TestCase):
@@ -285,17 +324,26 @@ class ShiftedStepsStillSaveTests(TestCase):
         self.assertEqual(self.proposal.budgetary_requirement, "CTE Fund 30,000")
         self.assertIn(8, self.proposal.completed_steps)
 
-    def test_participants_is_step_nine(self):
+    def test_participants_step_shows_only_sex_disaggregation(self):
+        response = self.client_owner.get(reverse("proposal_wizard", args=[self.proposal.id, 9]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A. Sex Disaggregation")
+        self.assertNotContains(response, "B. Gender")
+        self.assertNotContains(response, 'name="g_straight"')
+        self.assertNotContains(response, "Gender total")
+
+    def test_participants_step_collects_sex_disaggregation_only(self):
         self._post(9, {"sex_male": 3, "sex_female": 2, "g_straight": 5})
         self.proposal.refresh_from_db()
         self.assertEqual((self.proposal.sex_male, self.proposal.sex_female), (3, 2))
+        self.assertNotIn("g_straight", {field.name for field in Proposal._meta.fields})
         self.assertIn(9, self.proposal.completed_steps)
 
-    def test_a_participants_mismatch_bounces_back_to_step_nine(self):
+    def test_participants_step_no_longer_requires_gender_totals_to_match(self):
         response = self._post(9, {"sex_male": 3, "sex_female": 2, "g_straight": 1})
         self.assertRedirects(
             response,
-            reverse("proposal_wizard", args=[self.proposal.id, 9]),
+            reverse("proposal_wizard", args=[self.proposal.id, 10]),
             fetch_redirect_response=False,
         )
 

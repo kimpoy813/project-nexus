@@ -205,25 +205,10 @@ def is_step_complete(proposal, step):
         return bool((proposal.budgetary_requirement or "").strip())
 
     if step == 9:
-        sex_total = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        gender_total = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
-        return sex_total > 0 and sex_total == gender_total
+        return (proposal.sex_male or 0) + (proposal.sex_female or 0) > 0
 
     if step == 10:
-        issues = proposal.gender_issue_links.all()
-        if not issues.exists():
-            return False
-        others = issues.filter(issue_key="others").first()
-        if others and not (others.other_text or "").strip():
-            return False
-        return True
+        return proposal.gender_issue_links.exists()
 
     if step == 11:
         return bool((proposal.extension_venue or "").strip())
@@ -438,12 +423,12 @@ def _add_step_context_for_get(ctx, proposal, step):
     if step == 6:
         ctx["sdgs"] = SDG_LIST
         ctx["thrusts"] = THRUST_LIST
-        sdg_links = proposal.sdg_links.all()
-        thrust_links = proposal.thrust_links.all()
-        ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
-        ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
-        ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
-        ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
+        ctx["selected_sdg_codes"] = set(
+            proposal.sdg_links.values_list("sdg_code", flat=True)
+        )
+        ctx["selected_thrust_names"] = set(
+            proposal.thrust_links.values_list("thrust_name", flat=True)
+        )
 
     if step == UTILITY_MODEL_STEP_NO:
         ctx["technology_title"] = proposal.technology_title or ""
@@ -455,22 +440,12 @@ def _add_step_context_for_get(ctx, proposal, step):
 
     if step == 9:
         ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        ctx["gender_total"] = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
 
     if step == 10:
         ctx["gender_issues"] = GENDER_ISSUE_LIST
         ctx["selected_gender_issue_keys"] = set(
             proposal.gender_issue_links.values_list("issue_key", flat=True)
         )
-        others_item = proposal.gender_issue_links.filter(issue_key="others").first()
-        ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
 
     if step == 11:
         ctx["estimated_month"] = proposal.estimated_month or ""
@@ -810,21 +785,17 @@ def proposal_wizard(request, proposal_id, step):
         for code in sdg_codes:
             code = (code or "").strip()
             if code:
-                explanation = (request.POST.get(f"sdg_explanation_{code}") or "").strip()
                 ProposalSDG.objects.create(
                     proposal=proposal,
                     sdg_code=code,
-                    explanation=explanation,
                 )
 
         for name in thrust_names:
             name = (name or "").strip()
             if name:
-                explanation = (request.POST.get(f"thrust_explanation_{name}") or "").strip()
                 ProposalThrust.objects.create(
                     proposal=proposal,
                     thrust_name=name,
-                    explanation=explanation,
                 )
 
     elif step == UTILITY_MODEL_STEP_NO:
@@ -844,38 +815,12 @@ def proposal_wizard(request, proposal_id, step):
         proposal.save(update_fields=["budgetary_requirement"])
 
     elif step == 9:
-        sex_male = _to_int(request.POST.get("sex_male"))
-        sex_female = _to_int(request.POST.get("sex_female"))
-        g_lesbian = _to_int(request.POST.get("g_lesbian"))
-        g_gay = _to_int(request.POST.get("g_gay"))
-        g_bisexual = _to_int(request.POST.get("g_bisexual"))
-        g_transgender = _to_int(request.POST.get("g_transgender"))
-        g_straight = _to_int(request.POST.get("g_straight"))
-        g_others = _to_int(request.POST.get("g_others"))
-
-        sex_total = sex_male + sex_female
-        gender_total = g_lesbian + g_gay + g_bisexual + g_transgender + g_straight + g_others
-
-        proposal.sex_male = sex_male
-        proposal.sex_female = sex_female
-        proposal.g_lesbian = g_lesbian
-        proposal.g_gay = g_gay
-        proposal.g_bisexual = g_bisexual
-        proposal.g_transgender = g_transgender
-        proposal.g_straight = g_straight
-        proposal.g_others = g_others
-        proposal.save(update_fields=[
-            "sex_male", "sex_female", "g_lesbian", "g_gay",
-            "g_bisexual", "g_transgender", "g_straight", "g_others",
-        ])
-
-        if action == "next" and sex_total != gender_total:
-            messages.error(request, "Sex total and Gender total must be the same before you can proceed.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=9)
+        proposal.sex_male = _to_int(request.POST.get("sex_male"))
+        proposal.sex_female = _to_int(request.POST.get("sex_female"))
+        proposal.save(update_fields=["sex_male", "sex_female"])
 
     elif step == 10:
         selected_keys = request.POST.getlist("gender_issue_keys")
-        other_text = (request.POST.get("gender_issue_other_text") or "").strip()
 
         ProposalGenderIssue.objects.filter(proposal=proposal).delete()
         label_map = dict(GENDER_ISSUE_LIST)
@@ -889,7 +834,6 @@ def proposal_wizard(request, proposal_id, step):
                 proposal=proposal,
                 issue_key=key,
                 issue_label=label_map[key],
-                other_text=other_text if key == "others" else "",
             )
 
     elif step == 11:

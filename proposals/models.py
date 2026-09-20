@@ -215,13 +215,6 @@ class Proposal(models.Model):
 
     sex_male = models.PositiveIntegerField(default=0, blank=True)
     sex_female = models.PositiveIntegerField(default=0, blank=True)
-    g_lesbian = models.PositiveIntegerField(default=0, blank=True)
-    g_gay = models.PositiveIntegerField(default=0, blank=True)
-    g_bisexual = models.PositiveIntegerField(default=0, blank=True)
-    g_transgender = models.PositiveIntegerField(default=0, blank=True)
-    g_straight = models.PositiveIntegerField(default=0, blank=True)
-    g_others = models.PositiveIntegerField(default=0, blank=True)
-
     work_plan_file = models.FileField(
         upload_to="proposal_files/work_plans/",
         blank=True,
@@ -289,16 +282,7 @@ class Proposal(models.Model):
 
     @property
     def total_participants_profiled(self):
-        return (
-            (self.sex_male or 0)
-            + (self.sex_female or 0)
-            + (self.g_lesbian or 0)
-            + (self.g_gay or 0)
-            + (self.g_bisexual or 0)
-            + (self.g_transgender or 0)
-            + (self.g_straight or 0)
-            + (self.g_others or 0)
-        )
+        return (self.sex_male or 0) + (self.sex_female or 0)
 
     def clean(self):
         if self.end_date and self.start_date and self.end_date < self.start_date:
@@ -1263,14 +1247,6 @@ class ParticipantsProfiling(models.Model):
     )
     sex_male = models.PositiveIntegerField(null=True, blank=True)
     sex_female = models.PositiveIntegerField(null=True, blank=True)
-    gender_lesbian = models.PositiveIntegerField(null=True, blank=True)
-    gender_gay = models.PositiveIntegerField(null=True, blank=True)
-    gender_bisexual = models.PositiveIntegerField(null=True, blank=True)
-    gender_transgender = models.PositiveIntegerField(null=True, blank=True)
-    gender_straight_male = models.PositiveIntegerField(null=True, blank=True)
-    gender_straight_female = models.PositiveIntegerField(null=True, blank=True)
-    gender_others = models.PositiveIntegerField(null=True, blank=True)
-    gender_others_specify = models.CharField(max_length=120, blank=True, default="")
 
     @property
     def sex_total(self):
@@ -1325,7 +1301,6 @@ class ProposalSDG(models.Model):
         related_name="sdg_links",
     )
     sdg_code = models.CharField(max_length=30, null=True, blank=True)
-    explanation = models.TextField(blank=True, default="")
 
     class Meta:
         constraints = [
@@ -1346,7 +1321,6 @@ class ProposalThrust(models.Model):
         related_name="thrust_links",
     )
     thrust_name = models.CharField(max_length=255, null=True, blank=True)
-    explanation = models.TextField(blank=True, default="")
 
     class Meta:
         constraints = [
@@ -1368,7 +1342,6 @@ class ProposalGenderIssue(models.Model):
     )
     issue_key = models.CharField(max_length=100)
     issue_label = models.TextField()
-    other_text = models.TextField(blank=True, default="")
 
     def __str__(self):
         return f"{self.proposal_id} - {self.issue_key}"

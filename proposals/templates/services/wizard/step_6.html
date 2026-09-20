@@ -1,6 +1,4 @@
 {% extends "services/wizard/_wizard_shell.html" %}
-{% load proposal_extras %}
-
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
     <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
@@ -76,14 +74,14 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-900">SDGs Covered</label>
                     <p class="text-xs text-gray-500 mt-1">
-                        Select all that apply. Add a short explanation for each selected SDG.
+                        Select all that apply.
                     </p>
                 </div>
 
                 {% if is_edit_mode %}
                 <button type="button"
                         class="text-xs font-semibold text-gray-600 hover:text-gray-900"
-                        onclick="clearChips('.sdg-chip', '.sdg-expl-box')">
+                        onclick="clearChips('.sdg-chip')">
                     Clear
                 </button>
                 {% endif %}
@@ -95,8 +93,7 @@
                     class="sdg-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
                     {% if code in selected_sdg_codes %}bg-primary text-white border-primary{% else %}bg-white text-gray-700 border-gray-300{% endif %}
                     {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-                    data-value="{{ code }}"
-                    data-target="sdg-expl-{{ code }}">
+                    data-value="{{ code }}">
                     SDG {{ code }} · {{ label }}
                 </div>
                 {% empty %}
@@ -104,22 +101,6 @@
                 {% endfor %}
             </div>
 
-            <div class="mt-5 space-y-4">
-                {% for code,label in sdgs %}
-                <div id="sdg-expl-{{ code }}"
-                     class="sdg-expl-box {% if code not in selected_sdg_codes %}hidden{% endif %}">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        SDG {{ code }} — Why is this related to the extension?
-                    </label>
-                    <textarea
-                        name="sdg_explanation_{{ code }}"
-                        rows="3"
-                        {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
-                        placeholder="Write a short explanation...">{{ sdg_explanations|get_item:code|default:'' }}</textarea>
-                </div>
-                {% endfor %}
-            </div>
         </div>
 
         <div>
@@ -127,14 +108,14 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-900">ISPSC Extension Agenda</label>
                     <p class="text-xs text-gray-500 mt-1">
-                        Select all that apply. Add a short explanation for each selected agenda.
+                        Select all that apply.
                     </p>
                 </div>
 
                 {% if is_edit_mode %}
                 <button type="button"
                         class="text-xs font-semibold text-gray-600 hover:text-gray-900"
-                        onclick="clearChips('.thrust-chip', '.thrust-expl-box')">
+                        onclick="clearChips('.thrust-chip')">
                     Clear
                 </button>
                 {% endif %}
@@ -146,8 +127,7 @@
                     class="thrust-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
                     {% if name in selected_thrust_names %}bg-primary text-white border-primary{% else %}bg-white text-gray-700 border-gray-300{% endif %}
                     {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-                    data-value="{{ name }}"
-                    data-target="thrust-expl-{{ forloop.counter }}">
+                    data-value="{{ name }}">
                     {{ name }}
                 </div>
                 {% empty %}
@@ -155,22 +135,6 @@
                 {% endfor %}
             </div>
 
-            <div class="mt-5 space-y-4">
-                {% for name in thrusts %}
-                <div id="thrust-expl-{{ forloop.counter }}"
-                     class="thrust-expl-box {% if name not in selected_thrust_names %}hidden{% endif %}">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                        {{ name }} — Why is this related to the extension?
-                    </label>
-                    <textarea
-                        name="thrust_explanation_{{ name }}"
-                        rows="3"
-                        {% if not is_edit_mode %}readonly{% endif %}
-                        class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
-                        placeholder="Write a short explanation...">{{ thrust_explanations|get_item:name|default:'' }}</textarea>
-                </div>
-                {% endfor %}
-            </div>
         </div>
 
 
@@ -226,11 +190,6 @@
         el.classList.toggle("text-gray-700", !on);
         el.classList.toggle("border-gray-300", !on);
 
-        const targetId = el.dataset.target;
-        const targetBox = document.getElementById(targetId);
-        if (targetBox) {
-            targetBox.classList.toggle("hidden", !on);
-        }
     }
 
     function attachToggle(selector) {
@@ -239,9 +198,8 @@
         });
     }
 
-    window.clearChips = function (selector, boxSelector) {
+    window.clearChips = function (selector) {
         document.querySelectorAll(selector).forEach(chip => setSelected(chip, false));
-        document.querySelectorAll(boxSelector).forEach(box => box.classList.add("hidden"));
     };
 
     attachToggle(".sdg-chip");
