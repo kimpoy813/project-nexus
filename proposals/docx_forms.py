@@ -319,11 +319,7 @@ def _get_sdg_lines(proposal) -> List[str]:
             continue
         code = code.zfill(2)
         title = SDG_TITLES.get(code, code)
-        expl = (getattr(item, "explanation", "") or "").strip()
-        if expl:
-            out.append(f"SDG {code} ({title}) – {expl}")
-        else:
-            out.append(f"SDG {code} ({title})")
+        out.append(f"SDG {code} ({title})")
     return out
 
 
@@ -334,8 +330,7 @@ def _get_thrust_lines(proposal) -> List[str]:
         name = (getattr(item, "thrust_name", "") or "").strip()
         if not name:
             continue
-        expl = (getattr(item, "explanation", "") or "").strip()
-        out.append(f"{name} – {expl}" if expl else name)
+        out.append(name)
     return out
 
 

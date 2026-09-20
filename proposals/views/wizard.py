@@ -438,12 +438,12 @@ def _add_step_context_for_get(ctx, proposal, step):
     if step == 6:
         ctx["sdgs"] = SDG_LIST
         ctx["thrusts"] = THRUST_LIST
-        sdg_links = proposal.sdg_links.all()
-        thrust_links = proposal.thrust_links.all()
-        ctx["selected_sdg_codes"] = set(sdg_links.values_list("sdg_code", flat=True))
-        ctx["selected_thrust_names"] = set(thrust_links.values_list("thrust_name", flat=True))
-        ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
-        ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
+        ctx["selected_sdg_codes"] = set(
+            proposal.sdg_links.values_list("sdg_code", flat=True)
+        )
+        ctx["selected_thrust_names"] = set(
+            proposal.thrust_links.values_list("thrust_name", flat=True)
+        )
 
     if step == UTILITY_MODEL_STEP_NO:
         ctx["technology_title"] = proposal.technology_title or ""
@@ -810,21 +810,17 @@ def proposal_wizard(request, proposal_id, step):
         for code in sdg_codes:
             code = (code or "").strip()
             if code:
-                explanation = (request.POST.get(f"sdg_explanation_{code}") or "").strip()
                 ProposalSDG.objects.create(
                     proposal=proposal,
                     sdg_code=code,
-                    explanation=explanation,
                 )
 
         for name in thrust_names:
             name = (name or "").strip()
             if name:
-                explanation = (request.POST.get(f"thrust_explanation_{name}") or "").strip()
                 ProposalThrust.objects.create(
                     proposal=proposal,
                     thrust_name=name,
-                    explanation=explanation,
                 )
 
     elif step == UTILITY_MODEL_STEP_NO:

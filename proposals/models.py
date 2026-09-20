@@ -1325,7 +1325,6 @@ class ProposalSDG(models.Model):
         related_name="sdg_links",
     )
     sdg_code = models.CharField(max_length=30, null=True, blank=True)
-    explanation = models.TextField(blank=True, default="")
 
     class Meta:
         constraints = [
@@ -1346,7 +1345,6 @@ class ProposalThrust(models.Model):
         related_name="thrust_links",
     )
     thrust_name = models.CharField(max_length=255, null=True, blank=True)
-    explanation = models.TextField(blank=True, default="")
 
     class Meta:
         constraints = [

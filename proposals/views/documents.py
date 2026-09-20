@@ -220,19 +220,14 @@ def download_work_plan_template(request, proposal_id):
     sdg_lines = []
     for item in proposal.sdg_links.all().order_by("sdg_code"):
         sdg_title = sdg_name_map.get(item.sdg_code, item.sdg_code)
-        line = f"SDG {item.sdg_code} - {sdg_title}"
-        if (item.explanation or "").strip():
-            line += f": {item.explanation.strip()}"
-        sdg_lines.append(line)
+        sdg_lines.append(f"SDG {item.sdg_code} - {sdg_title}")
     sdg_value = "\n".join(sdg_lines)
 
     thrust_lines = []
     for item in proposal.thrust_links.all().order_by("id"):
-        line = item.thrust_name or ""
-        if (item.explanation or "").strip():
-            line += f": {item.explanation.strip()}"
-        if line.strip():
-            thrust_lines.append(line)
+        name = (item.thrust_name or "").strip()
+        if name:
+            thrust_lines.append(name)
     thrust_value = "\n".join(thrust_lines)
 
     gender_lines = []

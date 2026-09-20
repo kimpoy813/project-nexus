@@ -23,7 +23,13 @@ from django.urls import reverse
 from accounts.models import Profile
 from accounts.tests import factories
 from details.models import DynamicFormTemplate, ProposalWizardStepConfig
-from proposals.models import Proposal, ProposalReviewRound, ProposalSectionComment
+from proposals.models import (
+    Proposal,
+    ProposalReviewRound,
+    ProposalSDG,
+    ProposalSectionComment,
+    ProposalThrust,
+)
 from proposals.views.constants import (
     INITIAL_STEP_LABELS,
     LAST_BUILTIN_STEP_NO,
@@ -107,6 +113,39 @@ class ExtensionAgendaRenameTests(TestCase):
         html = response.content.decode()
         self.assertLess(html.index("SDGs / Extension Agenda"), html.index("Utility Model"))
         self.assertLess(html.index("Utility Model"), html.index("Budgetary Requirement"))
+
+    def test_sdgs_and_agenda_are_checklists_without_explanation_inputs(self):
+        response = self.client_owner.get(reverse("proposal_wizard", args=[self.proposal.id, 6]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Why is this related to the extension?")
+        self.assertNotContains(response, "sdg_explanation_")
+        self.assertNotContains(response, "thrust_explanation_")
+        self.assertNotContains(response, "Write a short explanation")
+
+    def test_saving_the_checklists_does_not_accept_explanations(self):
+        response = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 6]),
+            {
+                "action": "next",
+                "sdg_codes": ["01"],
+                "thrust_names": ["Environmental Protection"],
+                # These legacy names must not be persisted if sent by an old
+                # client or a stale browser tab.
+                "sdg_explanation_01": "Legacy SDG explanation",
+                "thrust_explanation_Environmental Protection": "Legacy agenda explanation",
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse("proposal_wizard", args=[self.proposal.id, UTILITY_MODEL_STEP_NO]),
+            fetch_redirect_response=False,
+        )
+        self.assertTrue(ProposalSDG.objects.filter(proposal=self.proposal, sdg_code="01").exists())
+        self.assertTrue(
+            ProposalThrust.objects.filter(
+                proposal=self.proposal, thrust_name="Environmental Protection"
+            ).exists()
+        )
 
 
 class UtilityModelStepTests(TestCase):
