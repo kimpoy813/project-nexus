@@ -19,6 +19,11 @@ these tests run the real migration chain on the test database:
   on the numbers they had before the split, with the columns the restored
   models do not declare dropped.
 
+``details/0027`` (the Utility Model step) now sits on top of the chain, so
+"back on PR #28" means PR #28's 19 steps with Utility Model inserted at 7 -
+which is exactly ``INITIAL_STEP_LABELS`` - and every step number from the old
+Budgetary Requirement onwards one higher than PR #28 had it.
+
 ``MigrationExecutor`` moves the schema, so these are ``TransactionTestCase``s
 and each one leaves the database back at the leaves for the next test.
 """
@@ -34,7 +39,6 @@ from accounts.tests import factories
 from details.models import DynamicFormTemplate, ProposalWizardStepConfig
 from proposals.models import Proposal, ProposalReviewRound, ProposalSectionComment
 from proposals.views.constants import INITIAL_STEP_LABELS
-from proposals.views.wizard import _wizard_step_config_map
 
 
 # Migrations are importable by name even though the module names start with a
@@ -53,7 +57,28 @@ SPLIT = {
     "proposals": "0048_proposal_technology_title_and_more",
 }
 
+# The seeded list: PR #28's 19 steps plus Utility Model at step 7.
 PR28_STEPS = [(item["no"], item["title"], item["desc"]) for item in INITIAL_STEP_LABELS]
+
+# PR #28's own list, as a database that pre-dates the Utility Model step held
+# it: no step 7 "Utility Model", and everything from Budgetary Requirement on
+# one lower.
+PRE_UTILITY_STEPS = [
+    (no if no < 7 else no - 1, title, desc)
+    for no, title, desc in PR28_STEPS
+    if title != "Utility Model"
+]
+PRE_UTILITY_STEPS = [
+    (no, title, "SDGs covered and extension thrust" if no == 6 else desc)
+    for no, title, desc in PRE_UTILITY_STEPS
+]
+
+UTILITY_MODEL_MIGRATION = "0027_utility_model_step"
+
+
+def utility_shift(step_no):
+    """PR #28 step number -> number after the Utility Model insertion."""
+    return step_no + 1 if step_no >= 7 else step_no
 
 
 def migrate(pins=None):
@@ -91,12 +116,13 @@ def column_names(table):
 
 class FreshInstallStepTableTests(TestCase):
     def test_migrations_seed_pr_28s_step_list(self):
-        """A new database ends on the 19 steps the restored wizard renders.
+        """A new database ends on the 20 steps the wizard renders.
 
-        ``0023`` seeds both flows when the step table is empty and ``0026``
-        collapses them again, so the seed a fresh install gets has to be
-        ``INITIAL_STEP_LABELS`` - otherwise the wizard's step pages and the
-        admin's step manager disagree about what step 6 is.
+        ``0023`` seeds both flows when the step table is empty, ``0026``
+        collapses them again and ``0027`` inserts Utility Model at 7, so the
+        seed a fresh install gets has to be ``INITIAL_STEP_LABELS`` -
+        otherwise the wizard's step pages and the admin's step manager
+        disagree about what step 7 is.
         """
         self.assertEqual(step_table(), PR28_STEPS)
 
@@ -111,18 +137,17 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
         migrate()
 
     def _make_split_database(self):
-        """Build a database the way a deployed split left it."""
+        """Build a database the way a deployed split left it.
+
+        Called on a database pinned at PR #28 with PR #28's data in it, so
+        migrating forward to ``SPLIT`` runs what the deploy ran: ``0023``
+        splits the step table into two flows, ``0024`` retitles the
+        checklists and ``0025`` moves the utility model into its own step
+        (shifting the research steps, draft progress and comments up by one).
+        """
         apps = migrate(SPLIT)
         StepConfig = apps.get_model("details", "ProposalWizardStepConfig")
         Comment = apps.get_model("proposals", "ProposalSectionComment")
-
-        # Replay what the deploy ran: split the step table into two flows,
-        # retitle the checklists, then move the utility model into its own
-        # step (which shifts the research steps, draft progress and comments
-        # up by one).
-        split_wizard.apply(apps, None)
-        agenda_retitles.apply(apps, None)
-        utility_step.split_utility_model_step(apps, None)
 
         # Feedback the office wrote while the split was live, on the two
         # sections it added. A historical model only accepts its own
@@ -151,55 +176,79 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
         self.assertEqual(StepConfig.objects.filter(flow="TRAINING").count(), 18)
         self.assertEqual(StepConfig.objects.filter(flow="RESEARCH").count(), 21)
 
-    def _create_pr28_data(self):
-        """Data as it looked before the split, written with the real models."""
-        # A TransactionTestCase starts on an empty database: seed the step
-        # list the way the first wizard visit does in production, so the
-        # split's migrations meet a database that already has one.
-        _wizard_step_config_map()
+    def _create_pr28_data(self, apps):
+        """Data as it looked before the split, in PR #28's numbering.
+
+        Written through the historical models for the pinned state, because
+        the live ``Proposal`` model now declares the Utility Model columns
+        that a database at PR #28 does not have yet.
+        """
+        HistoricalStepConfig = apps.get_model("details", "ProposalWizardStepConfig")
+        HistoricalProposal = apps.get_model("proposals", "Proposal")
+        HistoricalRound = apps.get_model("proposals", "ProposalReviewRound")
+        HistoricalComment = apps.get_model("proposals", "ProposalSectionComment")
+        HistoricalForm = apps.get_model("details", "DynamicFormTemplate")
+
+        # Seed the step list the way PR #28's first wizard visit did in
+        # production, so the split's migrations meet a database that already
+        # has one. The table is rebuilt rather than topped up: it is empty
+        # after a TransactionTestCase flush, but the first test in the class
+        # inherits the rows the migrations seeded, and ``step_no`` is unique.
+        HistoricalStepConfig.objects.all().delete()
+        HistoricalStepConfig.objects.bulk_create(
+            [
+                HistoricalStepConfig(
+                    step_no=no,
+                    title=title,
+                    description=desc,
+                    is_visible=True,
+                    is_required=True,
+                )
+                for no, title, desc in PRE_UTILITY_STEPS
+            ]
+        )
         self.owner = factories.make_user("mig_owner", Profile.ROLE_FACULTY)
         self.reviewer = factories.make_user("mig_reviewer", Profile.ROLE_EVALUATOR)
         self.agenda_reviewer = factories.make_user("mig_agenda", Profile.ROLE_EVALUATOR)
         self.funding_reviewer = factories.make_user("mig_funding", Profile.ROLE_EVALUATOR)
 
-        self.research = Proposal.objects.create(
-            created_by=self.owner,
+        self.research = HistoricalProposal.objects.create(
+            created_by_id=self.owner.pk,
             extension_type="RESEARCH_FACULTY",
             completed_steps=[1, 2, 3, 6, 7, 12, 18, 19],
             skipped_steps=[8],
             current_step=12,
         )
-        self.training = Proposal.objects.create(
-            created_by=self.owner,
+        self.training = HistoricalProposal.objects.create(
+            created_by_id=self.owner.pk,
             extension_type="COMMUNITY_BASED",
             completed_steps=[1, 2, 3, 7, 11],
             skipped_steps=[5],
             current_step=11,
         )
-        self.review_round = ProposalReviewRound.objects.create(proposal=self.research, round_no=1)
-        review_round = self.review_round
+        self.review_round = HistoricalRound.objects.create(proposal_id=self.research.pk, round_no=1)
         self.comments = {}
         for step_no in (6, 7, 8, 9, 18, 19):
-            self.comments[step_no] = ProposalSectionComment.objects.create(
-                proposal=self.research,
-                review_round=review_round,
-                reviewer=self.reviewer,
+            self.comments[step_no] = HistoricalComment.objects.create(
+                proposal_id=self.research.pk,
+                review_round_id=self.review_round.pk,
+                reviewer_id=self.reviewer.pk,
                 reviewer_role="EVALUATOR",
                 step_no=step_no,
                 comment=f"note on step {step_no}",
             )
-        self.training_round = ProposalReviewRound.objects.create(proposal=self.training, round_no=1)
-        ProposalSectionComment.objects.create(
-            proposal=self.training,
-            review_round=self.training_round,
-            reviewer=self.reviewer,
+        self.training_round = HistoricalRound.objects.create(proposal_id=self.training.pk, round_no=1)
+        HistoricalComment.objects.create(
+            proposal_id=self.training.pk,
+            review_round_id=self.training_round.pk,
+            reviewer_id=self.reviewer.pk,
             reviewer_role="EVALUATOR",
             step_no=11,
             comment="training note",
         )
         # Admin-built step forms: one the seeder put on a shared step, one an
         # admin attached to a step the split renumbered.
-        DynamicFormTemplate.objects.create(
+        HistoricalForm.objects.create(
             name="Budget checklist",
             slug="budget-checklist",
             applies_to="PROPOSAL",
@@ -207,16 +256,17 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
         )
 
     def test_an_already_split_database_comes_back_to_pr_28(self):
-        migrate()
-        self._create_pr28_data()
-        before_steps = step_table()
-        before_progress = Proposal.objects.get(pk=self.research.pk)
+        # Pin to PR #28 first: that is the numbering the data is written in.
+        # (``0027`` on top would otherwise already have the Utility Model
+        # step in the table when the split's migrations replay.)
+        apps = migrate(PRE_SPLIT)
+        self._create_pr28_data(apps)
         before = {
-            "completed": list(before_progress.completed_steps),
-            "skipped": list(before_progress.skipped_steps),
-            "current": before_progress.current_step,
-            "comments": sorted(self.comments),
-            "budget_form": 7,
+            "completed": [utility_shift(no) for no in self.research.completed_steps],
+            "skipped": [utility_shift(no) for no in self.research.skipped_steps],
+            "current": utility_shift(self.research.current_step),
+            "comments": sorted(utility_shift(no) for no in self.comments),
+            "budget_form": utility_shift(7),
         }
 
         self._make_split_database()
@@ -224,7 +274,6 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
 
         with self.subTest("step table"):
             self.assertEqual(step_table(), PR28_STEPS)
-            self.assertEqual(step_table(), before_steps)
 
         with self.subTest("research draft progress"):
             research = Proposal.objects.get(pk=self.research.pk)
@@ -234,7 +283,7 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
 
         with self.subTest("reviewer comments"):
             steps = sorted(
-                ProposalSectionComment.objects.filter(proposal=self.research, reviewer=self.reviewer)
+                ProposalSectionComment.objects.filter(proposal_id=self.research.pk, reviewer=self.reviewer)
                 .values_list("step_no", flat=True)
             )
             self.assertEqual(steps, before["comments"])
@@ -247,15 +296,16 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
             # and one reviewer may only hold one comment per step, so they are
             # merged instead of one of them being dropped.
             merged = ProposalSectionComment.objects.get(
-                proposal=self.research, reviewer=self.agenda_reviewer
+                proposal_id=self.research.pk, reviewer=self.agenda_reviewer
             )
             self.assertEqual(merged.step_no, 6)
             self.assertIn("agenda note", merged.comment)
             self.assertIn("utility model note", merged.comment)
             funding = ProposalSectionComment.objects.get(
-                proposal=self.research, reviewer=self.funding_reviewer
+                proposal_id=self.research.pk, reviewer=self.funding_reviewer
             )
-            self.assertEqual(funding.step_no, 17)
+            # Funding Strategy: PR #28's 17, one higher since Utility Model.
+            self.assertEqual(funding.step_no, utility_shift(17))
             self.assertIn("funding note", funding.comment)
             self.assertIn("m and e note", funding.comment)
 
@@ -276,22 +326,25 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
             training = Proposal.objects.get(pk=self.training.pk)
             self.assertEqual(list(training.completed_steps), [1, 2, 3])
             self.assertEqual(
-                ProposalSectionComment.objects.get(proposal=self.training).step_no, 11
+                ProposalSectionComment.objects.get(proposal_id=self.training.pk).step_no,
+                utility_shift(11),
             )
 
         with self.subTest("the split's columns are gone"):
             self.assertNotIn("flow", column_names("details_proposalwizardstepconfig"))
             self.assertNotIn("wizard_flow", column_names("details_dynamicformtemplate"))
             proposal_columns = column_names("proposals_proposal")
+            for name in ("duration", "funding_source", "monitoring_eval_file"):
+                self.assertNotIn(name, proposal_columns)
+            # The Utility Model columns are back - added again by
+            # ``proposals/0050`` for the new step, after 0049 dropped the
+            # split's copies.
             for name in (
-                "duration",
-                "funding_source",
-                "monitoring_eval_file",
                 "technology_title",
                 "utility_model_registration_number",
                 "utility_model_description",
             ):
-                self.assertNotIn(name, proposal_columns)
+                self.assertIn(name, proposal_columns)
 
         with self.subTest("the restored code can still INSERT"):
             # The failure mode 0021 was written for: a NOT NULL column the
@@ -324,10 +377,11 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
 
         migrate()
 
-        self.assertEqual(step_table()[:19], PR28_STEPS)
+        self.assertEqual(step_table()[:20], PR28_STEPS)
+        # 0026 put them on 20 and 21; 0027 moved them up one more.
         self.assertEqual(
-            [(no, title) for no, title, _ in step_table()[19:]],
-            [(20, "Shared extra"), (21, "Research extra")],
+            [(no, title) for no, title, _ in step_table()[20:]],
+            [(21, "Shared extra"), (22, "Research extra")],
         )
         # The training flow's extra goes with the flow.
         self.assertFalse(
@@ -342,27 +396,33 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
         ``0026`` in one go, and the data has to come out the other end where
         it went in.
         """
-        migrate(PRE_SPLIT)
-        self._create_pr28_data()
-        before_steps = step_table()
-        before = Proposal.objects.get(pk=self.research.pk)
+        apps = migrate(PRE_SPLIT)
+        self._create_pr28_data(apps)
+        before = self.research
         before_comments = sorted(self.comments)
 
         migrate()
 
-        self.assertEqual(step_table(), before_steps)
+        # Everything comes out where it went in, plus the Utility Model
+        # insertion that 0027 applies on top.
         self.assertEqual(step_table(), PR28_STEPS)
         research = Proposal.objects.get(pk=self.research.pk)
-        self.assertEqual(list(research.completed_steps), list(before.completed_steps))
-        self.assertEqual(list(research.skipped_steps), list(before.skipped_steps))
-        self.assertEqual(research.current_step, before.current_step)
+        self.assertEqual(
+            list(research.completed_steps),
+            [utility_shift(no) for no in before.completed_steps],
+        )
+        self.assertEqual(
+            list(research.skipped_steps),
+            [utility_shift(no) for no in before.skipped_steps],
+        )
+        self.assertEqual(research.current_step, utility_shift(before.current_step))
         self.assertEqual(
             sorted(
                 ProposalSectionComment.objects.filter(
-                    proposal=self.research, reviewer=self.reviewer
+                    proposal_id=self.research.pk, reviewer=self.reviewer
                 ).values_list("step_no", flat=True)
             ),
-            before_comments,
+            [utility_shift(no) for no in before_comments],
         )
         for step_no, comment in self.comments.items():
             self.assertEqual(
@@ -370,6 +430,7 @@ class UndoFlowSplitMigrationTests(TransactionTestCase):
                 f"note on step {step_no}",
             )
         self.assertEqual(
-            DynamicFormTemplate.objects.get(slug="budget-checklist").proposal_wizard_step, 7
+            DynamicFormTemplate.objects.get(slug="budget-checklist").proposal_wizard_step,
+            utility_shift(7),
         )
         self.assertNotIn("flow", column_names("details_proposalwizardstepconfig"))

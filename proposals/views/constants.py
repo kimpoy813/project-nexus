@@ -14,21 +14,28 @@ INITIAL_STEP_LABELS = [
     {"no": 3, "title": "Proponents", "desc": "Proponent details and assigned roles"},
     {"no": 4, "title": "Implementing Agency/Unit", "desc": "Office, agency, or unit responsible"},
     {"no": 5, "title": "Collaborators/Beneficiaries", "desc": "Beneficiary count and target group"},
-    {"no": 6, "title": "SDGs / Extension Agenda", "desc": "SDGs covered and extension thrust"},
-    {"no": 7, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
-    {"no": 8, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
-    {"no": 9, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
-    {"no": 10, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
-    {"no": 11, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
-    {"no": 12, "title": "Significance", "desc": "Importance of the proposed extension"},
-    {"no": 13, "title": "Objectives", "desc": "General and specific SMART objectives"},
-    {"no": 14, "title": "Methodology / Mechanics", "desc": "Implementation approach"},
-    {"no": 15, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
-    {"no": 16, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
-    {"no": 17, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
-    {"no": 18, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
-    {"no": 19, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
+    {"no": 6, "title": "SDGs / Extension Agenda", "desc": "SDGs covered and extension agenda"},
+    {"no": 7, "title": "Utility Model", "desc": "Title of technology, registration number, and description (N/A if not applicable)"},
+    {"no": 8, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
+    {"no": 9, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
+    {"no": 10, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
+    {"no": 11, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
+    {"no": 12, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
+    {"no": 13, "title": "Significance", "desc": "Importance of the proposed extension"},
+    {"no": 14, "title": "Objectives", "desc": "General and specific SMART objectives"},
+    {"no": 15, "title": "Methodology / Mechanics", "desc": "Implementation approach"},
+    {"no": 16, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
+    {"no": 17, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
+    {"no": 18, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
+    {"no": 19, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
+    {"no": 20, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
 ]
+
+#: Step number of the Utility Model section, and the last built-in step. The
+#: wizard's native step pages are keyed by number, so these are the anchors
+#: the views and the data migrations agree on.
+UTILITY_MODEL_STEP_NO = 7
+LAST_BUILTIN_STEP_NO = INITIAL_STEP_LABELS[-1]["no"]
 
 
 class _DynamicStepLabels:
@@ -94,9 +101,9 @@ class _DynamicTotalSteps:
         try:
             from details.models import ProposalWizardStepConfig
             max_step = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("-step_no").first()
-            return max_step.step_no if max_step else 19
+            return max_step.step_no if max_step else LAST_BUILTIN_STEP_NO
         except Exception:
-            return 19
+            return LAST_BUILTIN_STEP_NO
 
     def __index__(self):
         return int(self)

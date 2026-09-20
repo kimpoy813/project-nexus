@@ -415,7 +415,7 @@ class DynamicFormRow(models.Model):
 
 
 class ProposalWizardStepConfig(models.Model):
-    """Admin overrides for the built-in 19 proposal wizard steps."""
+    """Admin overrides for the built-in 20 proposal wizard steps."""
 
     step_no = models.PositiveSmallIntegerField(unique=True)
     title = models.CharField(max_length=160)

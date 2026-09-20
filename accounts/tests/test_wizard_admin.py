@@ -14,7 +14,7 @@ class WizardAdminTests(TestCase):
 
         response = self.admin_client.get(reverse("wizard_steps_manager"))
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(ProposalWizardStepConfig.objects.count() >= 19)
+        self.assertTrue(ProposalWizardStepConfig.objects.count() >= 20)
 
     def test_create_and_delete_wizard_step(self):
         self.admin_client.get(reverse("wizard_steps_manager"))

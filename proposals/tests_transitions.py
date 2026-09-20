@@ -482,8 +482,22 @@ class WizardHelperTests(TestCase):
         self.proposal.sex_male = 3
         self.proposal.sex_female = 4
 
-        ctx = _add_step_context_for_get({}, self.proposal, step=8)
+        # Participants / Proposed Clients is step 9 since the Utility Model
+        # step was inserted at 7.
+        ctx = _add_step_context_for_get({}, self.proposal, step=9)
         self.assertEqual(ctx["sex_total"], 7)
+
+    def test_step_context_adds_the_utility_model_answers(self):
+        from .views.wizard import _add_step_context_for_get
+
+        self.proposal.technology_title = "Solar Rice Dryer"
+        self.proposal.utility_model_registration_number = "N/A"
+        self.proposal.utility_model_description = "N/A"
+
+        ctx = _add_step_context_for_get({}, self.proposal, step=7)
+        self.assertEqual(ctx["technology_title"], "Solar Rice Dryer")
+        self.assertEqual(ctx["utility_model_registration_number"], "N/A")
+        self.assertEqual(ctx["utility_model_description"], "N/A")
 
     def test_step_context_is_harmless_for_a_step_with_no_extras(self):
         from .views.wizard import _add_step_context_for_get

@@ -82,7 +82,7 @@
               </a>
             {% endif %}
 
-            {% if step < 19 %}
+            {% if step < total_steps %}
               <a href="{% url 'proposal_review_comments' proposal.id step|add:'1' %}"
                  class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
                 Next Step
@@ -112,7 +112,7 @@
               Previous Step
             </a>
           {% endif %}
-          {% if step < 19 %}
+          {% if step < total_steps %}
             <a href="{% url 'proposal_review_comments' proposal.id step|add:'1' %}"
                class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
               Next Step
