@@ -94,7 +94,21 @@
       </div>
 
       <p class="text-xs text-gray-500 mt-3">
-          {{ step_fields.extension_type.help_text|default:"Choose whether the proposal is research-based or request-based." }}
+          {{ step_fields.extension_type.help_text|default:"Choose whether the proposal is research-based, request-based, or community-based." }}
+      </p>
+    </div>
+
+    <div id="proposalFormatWrap" class="{% if proposal.extension_type != 'REQUEST_BASED' %}hidden{% endif %}">
+      <label class="block text-sm font-semibold text-gray-900 mb-2">
+        Proposal format <span class="text-red-600">*</span>
+      </label>
+      <select name="proposal_format" id="proposalFormatInput"
+              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+        <option value="TRAINING_DESIGN" {% if proposal.proposal_format == 'TRAINING_DESIGN' or not proposal.proposal_format %}selected{% endif %}>Training Design</option>
+        <option value="EXTENSION_PROPOSAL" {% if proposal.proposal_format == 'EXTENSION_PROPOSAL' %}selected{% endif %}>Extension Proposal</option>
+      </select>
+      <p class="text-xs text-gray-500 mt-2">
+        Request-based extensions may use either format. Community-based extensions always use Training Design.
       </p>
     </div>
 
@@ -192,6 +206,8 @@
 
   const rWrap = document.getElementById("researchTitleWrap");
   const rInput = document.getElementById("researchTitleInput");
+  const formatWrap = document.getElementById("proposalFormatWrap");
+  const formatInput = document.getElementById("proposalFormatInput");
 
   function setActiveChip(chips, activeChip) {
     chips.forEach(chip => {
@@ -209,6 +225,12 @@
   function syncResearch(extValue){
     const isResearch = (extValue === "RESEARCH_FACULTY" || extValue === "RESEARCH_STUDENT");
     rWrap.classList.toggle("hidden", !isResearch);
+    const isRequest = extValue === "REQUEST_BASED";
+    formatWrap.classList.toggle("hidden", !isRequest);
+    // Community-based is never allowed to retain a request-based selection.
+    if (!isRequest && formatInput) {
+      formatInput.value = isResearch ? "EXTENSION_PROPOSAL" : "TRAINING_DESIGN";
+    }
   }
 
   const scopeTitle = document.getElementById("scopeTitle");

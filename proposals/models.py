@@ -73,6 +73,10 @@ class Proposal(models.Model):
         PROJECT = "PROJECT", "Project"
         ACTIVITY = "ACTIVITY", "Activity only"
 
+    class ProposalFormat(models.TextChoices):
+        EXTENSION_PROPOSAL = "EXTENSION_PROPOSAL", "Extension Proposal"
+        TRAINING_DESIGN = "TRAINING_DESIGN", "Training Design"
+
     class ReviewLevel(models.TextChoices):
         DEPARTMENT = "DEPARTMENT", "Department"
         CAMPUS = "CAMPUS", "Campus"
@@ -168,6 +172,16 @@ class Proposal(models.Model):
         choices=ExtensionType.choices,
         blank=True,
         default="",
+    )
+    proposal_format = models.CharField(
+        max_length=30,
+        choices=ProposalFormat.choices,
+        blank=True,
+        default="",
+        help_text=(
+            "Community-based extensions must use Training Design. Request-based "
+            "extensions may use Training Design or the Extension Proposal format."
+        ),
     )
     scope_type = models.CharField(
         max_length=20,
