@@ -324,17 +324,26 @@ class ShiftedStepsStillSaveTests(TestCase):
         self.assertEqual(self.proposal.budgetary_requirement, "CTE Fund 30,000")
         self.assertIn(8, self.proposal.completed_steps)
 
-    def test_participants_is_step_nine(self):
+    def test_participants_step_shows_only_sex_disaggregation(self):
+        response = self.client_owner.get(reverse("proposal_wizard", args=[self.proposal.id, 9]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A. Sex Disaggregation")
+        self.assertNotContains(response, "B. Gender")
+        self.assertNotContains(response, 'name="g_straight"')
+        self.assertNotContains(response, "Gender total")
+
+    def test_participants_step_collects_sex_disaggregation_only(self):
         self._post(9, {"sex_male": 3, "sex_female": 2, "g_straight": 5})
         self.proposal.refresh_from_db()
         self.assertEqual((self.proposal.sex_male, self.proposal.sex_female), (3, 2))
+        self.assertNotIn("g_straight", {field.name for field in Proposal._meta.fields})
         self.assertIn(9, self.proposal.completed_steps)
 
-    def test_a_participants_mismatch_bounces_back_to_step_nine(self):
+    def test_participants_step_no_longer_requires_gender_totals_to_match(self):
         response = self._post(9, {"sex_male": 3, "sex_female": 2, "g_straight": 1})
         self.assertRedirects(
             response,
-            reverse("proposal_wizard", args=[self.proposal.id, 9]),
+            reverse("proposal_wizard", args=[self.proposal.id, 10]),
             fetch_redirect_response=False,
         )
 

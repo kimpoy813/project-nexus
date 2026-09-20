@@ -205,16 +205,7 @@ def is_step_complete(proposal, step):
         return bool((proposal.budgetary_requirement or "").strip())
 
     if step == 9:
-        sex_total = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        gender_total = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
-        return sex_total > 0 and sex_total == gender_total
+        return (proposal.sex_male or 0) + (proposal.sex_female or 0) > 0
 
     if step == 10:
         return proposal.gender_issue_links.exists()
@@ -449,14 +440,6 @@ def _add_step_context_for_get(ctx, proposal, step):
 
     if step == 9:
         ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
-        ctx["gender_total"] = (
-            (proposal.g_lesbian or 0)
-            + (proposal.g_gay or 0)
-            + (proposal.g_bisexual or 0)
-            + (proposal.g_transgender or 0)
-            + (proposal.g_straight or 0)
-            + (proposal.g_others or 0)
-        )
 
     if step == 10:
         ctx["gender_issues"] = GENDER_ISSUE_LIST
@@ -832,34 +815,9 @@ def proposal_wizard(request, proposal_id, step):
         proposal.save(update_fields=["budgetary_requirement"])
 
     elif step == 9:
-        sex_male = _to_int(request.POST.get("sex_male"))
-        sex_female = _to_int(request.POST.get("sex_female"))
-        g_lesbian = _to_int(request.POST.get("g_lesbian"))
-        g_gay = _to_int(request.POST.get("g_gay"))
-        g_bisexual = _to_int(request.POST.get("g_bisexual"))
-        g_transgender = _to_int(request.POST.get("g_transgender"))
-        g_straight = _to_int(request.POST.get("g_straight"))
-        g_others = _to_int(request.POST.get("g_others"))
-
-        sex_total = sex_male + sex_female
-        gender_total = g_lesbian + g_gay + g_bisexual + g_transgender + g_straight + g_others
-
-        proposal.sex_male = sex_male
-        proposal.sex_female = sex_female
-        proposal.g_lesbian = g_lesbian
-        proposal.g_gay = g_gay
-        proposal.g_bisexual = g_bisexual
-        proposal.g_transgender = g_transgender
-        proposal.g_straight = g_straight
-        proposal.g_others = g_others
-        proposal.save(update_fields=[
-            "sex_male", "sex_female", "g_lesbian", "g_gay",
-            "g_bisexual", "g_transgender", "g_straight", "g_others",
-        ])
-
-        if action == "next" and sex_total != gender_total:
-            messages.error(request, "Sex total and Gender total must be the same before you can proceed.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=9)
+        proposal.sex_male = _to_int(request.POST.get("sex_male"))
+        proposal.sex_female = _to_int(request.POST.get("sex_female"))
+        proposal.save(update_fields=["sex_male", "sex_female"])
 
     elif step == 10:
         selected_keys = request.POST.getlist("gender_issue_keys")

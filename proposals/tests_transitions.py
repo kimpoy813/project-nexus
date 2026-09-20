@@ -476,7 +476,7 @@ class WizardHelperTests(TestCase):
         self.assertIn("sdgs", ctx)
         self.assertIn("thrusts", ctx)
 
-    def test_step_context_adds_gender_totals(self):
+    def test_step_context_adds_only_the_sex_disaggregation_total(self):
         from .views.wizard import _add_step_context_for_get
 
         self.proposal.sex_male = 3
@@ -486,6 +486,7 @@ class WizardHelperTests(TestCase):
         # step was inserted at 7.
         ctx = _add_step_context_for_get({}, self.proposal, step=9)
         self.assertEqual(ctx["sex_total"], 7)
+        self.assertNotIn("gender_total", ctx)
 
     def test_step_context_adds_the_utility_model_answers(self):
         from .views.wizard import _add_step_context_for_get

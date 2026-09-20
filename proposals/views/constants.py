@@ -17,7 +17,7 @@ INITIAL_STEP_LABELS = [
     {"no": 6, "title": "SDGs / Extension Agenda", "desc": "SDGs covered and extension agenda"},
     {"no": 7, "title": "Utility Model", "desc": "Title of technology, registration number, and description (N/A if not applicable)"},
     {"no": 8, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
-    {"no": 9, "title": "Participants / Proposed Clients", "desc": "Participant profiling and counts"},
+    {"no": 9, "title": "Participants / Proposed Clients", "desc": "Sex-disaggregated participant counts"},
     {"no": 10, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
     {"no": 11, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
     {"no": 12, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},

@@ -1218,6 +1218,31 @@ def _fill_proponents_row(proposal, left_cell, right_cell) -> None:
                 _set_paragraph_text_keep_style(right_paras[start + off], txt)
 
 
+def _remove_table_columns(table, start_index: int) -> None:
+    """Remove columns at and after ``start_index`` from a python-docx table.
+
+    The proposal templates currently put the participant sex counts in the
+    first two columns and the retired gender breakdown in the remaining two.
+    Remove the latter at generation time so downloaded forms match the wizard
+    without having to rewrite the large binary templates.
+    """
+    columns = list(table.columns)
+    if start_index >= len(columns):
+        return
+
+    for column in reversed(columns[start_index:]):
+        for cell in list(column.cells):
+            tc = cell._tc
+            parent = tc.getparent()
+            if parent is not None:
+                parent.remove(tc)
+
+        grid_col = column._gridCol
+        parent = grid_col.getparent()
+        if parent is not None:
+            parent.remove(grid_col)
+
+
 def _fill_participants_and_gender(proposal, parent_cell) -> None:
     """
     Fill the nested VI (participants) table and VII (gender issues) table.
@@ -1235,19 +1260,17 @@ def _fill_participants_and_gender(proposal, parent_cell) -> None:
     sex_female = _safe_int(getattr(proposal, "sex_female", 0), 0)
     sex_total = sex_male + sex_female
 
-    g_lesbian = _safe_int(getattr(proposal, "g_lesbian", 0), 0)
-    g_gay = _safe_int(getattr(proposal, "g_gay", 0), 0)
-    g_bisexual = _safe_int(getattr(proposal, "g_bisexual", 0), 0)
-    g_transgender = _safe_int(getattr(proposal, "g_transgender", 0), 0)
-    g_straight = _safe_int(getattr(proposal, "g_straight", 0), 0)
-    g_others = _safe_int(getattr(proposal, "g_others", 0), 0)
-    g_total = g_lesbian + g_gay + g_bisexual + g_transgender + g_straight + g_others
-
     # --- VI participants table ---
     t = parent_cell.tables[0]
 
     def set_cell_text(cell, text: str) -> None:
         _fill_cell_single_paragraph(cell, _normalize_text_preserve_newlines(text))
+
+    # The participant section now contains only sex disaggregation. Remove
+    # the retired gender columns and update the surviving heading.
+    _remove_table_columns(t, 2)
+    if t.rows and t.rows[0].cells:
+        set_cell_text(t.rows[0].cells[0], "Sex Disaggregation")
 
     # Sex section: labels usually in col 0, values in col 1
     sex_map = {"male": sex_male, "female": sex_female, "total": sex_total}
@@ -1257,42 +1280,6 @@ def _fill_participants_and_gender(proposal, parent_cell) -> None:
         label = (r.cells[0].text or "").strip().lower()
         if label in sex_map:
             set_cell_text(r.cells[1], str(sex_map[label]))
-
-    # Gender section: labels usually in col 2, values in col 3
-    gender_map = {
-        "lesbian": g_lesbian,
-        "gay": g_gay,
-        "bisexual": g_bisexual,
-        "transgender": g_transgender,
-        "straight": g_straight,
-        "others": g_others,
-        "total": g_total,
-    }
-
-    def gender_key_from_label(text: str) -> str:
-        label = (text or "").strip().lower()
-        if "straight" in label:
-            return "straight"
-        if "others" in label:
-            return "others"
-        if "transgender" in label:
-            return "transgender"
-        if "bisexual" in label:
-            return "bisexual"
-        if label == "gay":
-            return "gay"
-        if "lesbian" in label:
-            return "lesbian"
-        if label == "total":
-            return "total"
-        return label
-
-    for r in t.rows:
-        if len(r.cells) < 4:
-            continue
-        label = gender_key_from_label(r.cells[2].text)
-        if label in gender_map:
-            set_cell_text(r.cells[3], str(gender_map[label]))
 
     # --- VII gender issues table ---
     issues = _get_gender_issues(proposal)
