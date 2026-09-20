@@ -334,14 +334,27 @@ def _get_thrust_lines(proposal) -> List[str]:
     return out
 
 
-def _get_gender_issues(proposal) -> set:
+def _get_gender_issues(proposal) -> List[Tuple[str, str]]:
+    """Typed gender issues / mandates as ``(canonical key, text)`` pairs, in entry order.
+
+    Step 10 is a free-text repeater, so the text is what the proponent typed.
+    The key is empty unless that text matches one of the mandates the templates
+    print as fixed rows (see ``canonical_gender_issue_key``).
+    """
     links = _get_related_list(proposal, "gender_issue_links")
-    keys = set()
+    try:
+        links.sort(key=lambda x: getattr(x, "id", 0))
+    except TypeError:
+        # Incomparable ids; keep the queryset's own ordering.
+        pass
+
+    entries = []
     for item in links:
-        k = (getattr(item, "issue_key", "") or "").strip()
-        if k:
-            keys.add(k)
-    return keys
+        label = (getattr(item, "issue_label", "") or "").strip()
+        if not label:
+            continue
+        entries.append(((getattr(item, "issue_key", "") or "").strip(), label))
+    return entries
 
 
 def _strip_leading_bullets(text: str) -> str:
@@ -1282,7 +1295,7 @@ def _fill_participants_and_gender(proposal, parent_cell) -> None:
             set_cell_text(r.cells[1], str(sex_map[label]))
 
     # --- VII gender issues table ---
-    issues = _get_gender_issues(proposal)
+    entries = _get_gender_issues(proposal)
     gi = parent_cell.tables[1]
 
     def issue_key_from_text(text: str) -> str:
@@ -1299,18 +1312,60 @@ def _fill_participants_and_gender(proposal, parent_cell) -> None:
             return "others"
         return ""
 
+    def normalise(text: str) -> str:
+        return " ".join((text or "").split()).strip().lower().rstrip(".")
+
+    # The four fixed rows are ticked when a typed entry matches them; every
+    # other entry is collected for the template's "Others" row. An entry is
+    # claimed by the first row it matches, so it can never be listed twice.
+    others_row = None
+    claimed = set()
+
     for r in list(gi.rows):
         if len(r.cells) < 2:
             continue
+
         key = issue_key_from_text(r.cells[1].text)
         if key == "others":
-            row_el = r._tr
+            others_row = r
+            continue
+
+        row_text = normalise(r.cells[1].text)
+        matched = None
+        for index, (entry_key, entry_text) in enumerate(entries):
+            if index in claimed:
+                continue
+            if (key and entry_key == key) or (row_text and row_text == normalise(entry_text)):
+                matched = index
+                break
+
+        if matched is None:
+            set_cell_text(r.cells[0], "")
+        else:
+            claimed.add(matched)
+            set_cell_text(r.cells[0], "/")
+
+    leftovers = [text for index, (_key, text) in enumerate(entries) if index not in claimed]
+
+    if others_row is not None:
+        if leftovers:
+            set_cell_text(others_row.cells[0], "/")
+
+            # Keep the row's "Others:" caption and list the typed entries under
+            # it, one per line, replacing the template's placeholder text.
+            paras = list(others_row.cells[1].paragraphs)
+            text = _normalize_text_preserve_newlines("\n".join(leftovers))
+            if len(paras) >= 2:
+                _set_paragraph_text_keep_style(paras[1], text)
+                for p in paras[2:]:
+                    _set_paragraph_text_keep_style(p, "")
+            else:
+                set_cell_text(others_row.cells[1], text)
+        else:
+            row_el = others_row._tr
             parent = row_el.getparent()
             if parent is not None:
                 parent.remove(row_el)
-            continue
-        mark = "/" if key and (key in issues) else ""
-        set_cell_text(r.cells[0], mark)
 
 
 def _fill_objectives_program(proposal, cell) -> None:

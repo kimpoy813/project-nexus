@@ -76,6 +76,7 @@ from .repeaters import (  # noqa: F401
 )
 from .wizard import (  # noqa: F401
     build_wizard_steps,
+    canonical_gender_issue_key,
     get_required_wizard_step_numbers,
     get_visible_wizard_step_numbers,
     is_step_complete,
@@ -184,6 +185,7 @@ __all__ = [
     "attach_repeater_rows",
     "build_moa_wizard_steps",
     "build_wizard_steps",
+    "canonical_gender_issue_key",
     "copy_block",
     "copy_cell_style",
     "copy_merged_ranges_for_block",
