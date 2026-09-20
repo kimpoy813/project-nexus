@@ -217,13 +217,7 @@ def is_step_complete(proposal, step):
         return sex_total > 0 and sex_total == gender_total
 
     if step == 10:
-        issues = proposal.gender_issue_links.all()
-        if not issues.exists():
-            return False
-        others = issues.filter(issue_key="others").first()
-        if others and not (others.other_text or "").strip():
-            return False
-        return True
+        return proposal.gender_issue_links.exists()
 
     if step == 11:
         return bool((proposal.extension_venue or "").strip())
@@ -469,8 +463,6 @@ def _add_step_context_for_get(ctx, proposal, step):
         ctx["selected_gender_issue_keys"] = set(
             proposal.gender_issue_links.values_list("issue_key", flat=True)
         )
-        others_item = proposal.gender_issue_links.filter(issue_key="others").first()
-        ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
 
     if step == 11:
         ctx["estimated_month"] = proposal.estimated_month or ""
@@ -871,7 +863,6 @@ def proposal_wizard(request, proposal_id, step):
 
     elif step == 10:
         selected_keys = request.POST.getlist("gender_issue_keys")
-        other_text = (request.POST.get("gender_issue_other_text") or "").strip()
 
         ProposalGenderIssue.objects.filter(proposal=proposal).delete()
         label_map = dict(GENDER_ISSUE_LIST)
@@ -885,7 +876,6 @@ def proposal_wizard(request, proposal_id, step):
                 proposal=proposal,
                 issue_key=key,
                 issue_label=label_map[key],
-                other_text=other_text if key == "others" else "",
             )
 
     elif step == 11:

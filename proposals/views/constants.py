@@ -208,7 +208,6 @@ GENDER_ISSUE_LIST = [
         "gad_awareness_safe_spaces",
         "The activity enhances the level of awareness on GAD issues and concepts including related laws specifically Safe Space Act.",
     ),
-    ("others", "Others"),
 ]
 
 

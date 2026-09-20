@@ -232,11 +232,9 @@ def download_work_plan_template(request, proposal_id):
 
     gender_lines = []
     for item in proposal.gender_issue_links.all().order_by("id"):
-        if item.issue_key == "others":
-            if (item.other_text or "").strip():
-                gender_lines.append(f"• Others:\n      {item.other_text.strip()}")
-        else:
-            gender_lines.append(f"• {item.issue_label}")
+        label = (item.issue_label or "").strip()
+        if label:
+            gender_lines.append(f"• {label}")
     gender_value = "\n".join(gender_lines)
 
     ws["A3"] = title_value

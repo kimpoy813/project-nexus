@@ -1366,7 +1366,6 @@ class ProposalGenderIssue(models.Model):
     )
     issue_key = models.CharField(max_length=100)
     issue_label = models.TextField()
-    other_text = models.TextField(blank=True, default="")
 
     def __str__(self):
         return f"{self.proposal_id} - {self.issue_key}"

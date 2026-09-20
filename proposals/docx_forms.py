@@ -334,18 +334,14 @@ def _get_thrust_lines(proposal) -> List[str]:
     return out
 
 
-def _get_gender_issues(proposal) -> Tuple[set, str]:
+def _get_gender_issues(proposal) -> set:
     links = _get_related_list(proposal, "gender_issue_links")
     keys = set()
-    others = ""
     for item in links:
         k = (getattr(item, "issue_key", "") or "").strip()
-        if not k:
-            continue
-        keys.add(k)
-        if k == "others":
-            others = (getattr(item, "other_text", "") or "").strip()
-    return keys, others
+        if k:
+            keys.add(k)
+    return keys
 
 
 def _strip_leading_bullets(text: str) -> str:
@@ -354,21 +350,6 @@ def _strip_leading_bullets(text: str) -> str:
         stripped = line.strip()
         while stripped.startswith(("-", "•", "*", "·")):
             stripped = stripped[1:].strip()
-        lines.append(stripped)
-    return "\n".join(lines).strip()
-
-
-def _clean_others_text(text: str) -> str:
-    lines = []
-    for line in (text or "").splitlines():
-        stripped = line.strip()
-        content = stripped
-        while content.startswith(("-", "•", "*", "·")):
-            content = content[1:].strip()
-        if not content:
-            continue
-        if "mandates placed in others" in content.lower():
-            continue
         lines.append(stripped)
     return "\n".join(lines).strip()
 
@@ -1314,7 +1295,7 @@ def _fill_participants_and_gender(proposal, parent_cell) -> None:
             set_cell_text(r.cells[3], str(gender_map[label]))
 
     # --- VII gender issues table ---
-    issues, others_text = _get_gender_issues(proposal)
+    issues = _get_gender_issues(proposal)
     gi = parent_cell.tables[1]
 
     def issue_key_from_text(text: str) -> str:
@@ -1335,17 +1316,14 @@ def _fill_participants_and_gender(proposal, parent_cell) -> None:
         if len(r.cells) < 2:
             continue
         key = issue_key_from_text(r.cells[1].text)
-        mark = "✓" if key and (key in issues) else ""
+        if key == "others":
+            row_el = r._tr
+            parent = row_el.getparent()
+            if parent is not None:
+                parent.remove(row_el)
+            continue
         mark = "/" if key and (key in issues) else ""
         set_cell_text(r.cells[0], mark)
-        if key == "others":
-            if "others" in issues and others_text:
-                set_cell_text(r.cells[1], f"Others:\n{_clean_others_text(others_text)}".strip())
-            else:
-                row_el = r._tr
-                parent = row_el.getparent()
-                if parent is not None:
-                    parent.remove(row_el)
 
 
 def _fill_objectives_program(proposal, cell) -> None:
