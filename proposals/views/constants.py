@@ -38,6 +38,154 @@ UTILITY_MODEL_STEP_NO = 7
 LAST_BUILTIN_STEP_NO = INITIAL_STEP_LABELS[-1]["no"]
 
 
+#: What each built-in step already asks for and how it decides it is complete.
+#:
+#: Shown in the admin's step editor so the office edits the *existing*
+#: hardcoded inputs (via a field whose Key matches ``editable_keys``) instead
+#: of unknowingly adding a duplicate input that asks the proponent for the
+#: same thing twice. ``editable_keys`` mirrors
+#: ``proposals.views.dynamic_fields.NATIVE_STEP_FIELDS``; the completion text
+#: mirrors ``proposals.views.wizard.is_step_complete``.
+BUILTIN_STEP_LOGIC = {
+    1: {
+        "inputs": [
+            "Extension Type (choice chips: Research-based Faculty/Student, Request-based, Community-based)",
+            "Scope (choice chips: Program / Project / Activity)",
+            "Research Title (text — only shown for research-based types)",
+            "Proposal Format (dropdown — only shown for request-based type)",
+        ],
+        "completion": "Complete when an Extension Type and a Scope are chosen; research-based types also need a Research Title. The proposal format is derived from the type (community-based → Training Design, research-based → Extension Proposal).",
+        "editable_keys": ["extension_type", "scope_type", "research_title"],
+    },
+    2: {
+        "inputs": [
+            "Title of the Program / Project / Activity (text)",
+            "Project phases list (only when Scope is Program)",
+        ],
+        "completion": "Complete when a title is saved; a Program-scoped proposal also needs at least one project phase.",
+        "editable_keys": ["title"],
+    },
+    3: {
+        "inputs": [
+            "Proponents repeatable group (Name, Designation, Specialization, Role, CP Number, Email by default — fully admin-editable below)",
+            "Project leader assignment (only when Scope is Program)",
+        ],
+        "completion": "Complete when at least one proponent exists and the repeatable group's required columns and minimum row count are satisfied.",
+        "editable_keys": [],
+    },
+    4: {
+        "inputs": ["Implementing Agency / Unit (text)"],
+        "completion": "Complete when the implementing agency is filled in.",
+        "editable_keys": ["implementing_agency"],
+    },
+    5: {
+        "inputs": [
+            "Number of Beneficiaries (number)",
+            "Who are the beneficiaries? (text)",
+        ],
+        "completion": "Complete when both the count and the description are filled in.",
+        "editable_keys": ["beneficiaries_count", "beneficiaries_who"],
+    },
+    6: {
+        "inputs": [
+            "SDGs Covered (chip checklist from the fixed SDG list)",
+            "ISPSC Extension Agenda (chip checklist from the fixed agenda list)",
+        ],
+        "completion": "Complete when at least one SDG or one Extension Agenda item is selected.",
+        "editable_keys": [],
+    },
+    7: {
+        "inputs": [
+            "Title of Technology (text)",
+            "Utility Model Registration Number (text)",
+            "Utility Model Description (long text)",
+        ],
+        "completion": "Complete when all three are answered — “N/A” is a valid answer when the proposal has no technology or utility model behind it.",
+        "editable_keys": [
+            "technology_title",
+            "utility_model_registration_number",
+            "utility_model_description",
+        ],
+    },
+    8: {
+        "inputs": ["Budgetary Requirement (long text)"],
+        "completion": "Complete when the budgetary requirement is filled in.",
+        "editable_keys": ["budgetary_requirement"],
+    },
+    9: {
+        "inputs": ["Male count (number)", "Female count (number)", "Auto-computed total"],
+        "completion": "Complete when the male + female total is greater than zero.",
+        "editable_keys": [],
+    },
+    10: {
+        "inputs": ["Gender issues / mandates (free-text rows, add as many as needed)"],
+        "completion": "Complete when at least one gender issue or mandate is entered. Entries matching a canonical mandate wording tick that mandate's row in the generated DOCX.",
+        "editable_keys": [],
+    },
+    11: {
+        "inputs": [
+            "Estimated Month (dropdown)",
+            "Estimated Year (number)",
+            "Venue / Extension Site (text)",
+        ],
+        "completion": "Complete when the venue / extension site is filled in.",
+        "editable_keys": ["extension_venue", "estimated_month", "estimated_year"],
+    },
+    12: {
+        "inputs": ["Rationale / Background (long text)"],
+        "completion": "Complete when the rationale / background is filled in.",
+        "editable_keys": ["rationale_background"],
+    },
+    13: {
+        "inputs": ["Significance (long text)"],
+        "completion": "Complete when the significance is filled in.",
+        "editable_keys": ["significance"],
+    },
+    14: {
+        "inputs": [
+            "General Objective (long text)",
+            "Specific objectives (rows; grouped per project phase when Scope is Program)",
+        ],
+        "completion": "Complete when the general objective is saved and there is at least one specific objective (one per project phase for Program-scoped proposals).",
+        "editable_keys": ["general_objective"],
+    },
+    15: {
+        "inputs": ["Methodology / mechanics items (free-text rows)"],
+        "completion": "Complete when at least one methodology item is entered.",
+        "editable_keys": [],
+    },
+    16: {
+        "inputs": ["Output / outcome items (free-text rows)"],
+        "completion": "Complete when at least one output / outcome is entered.",
+        "editable_keys": [],
+    },
+    17: {
+        "inputs": [
+            "Work Plan file upload",
+            "Gantt Chart file upload",
+            "Additional supporting attachments (optional, multiple)",
+        ],
+        "completion": "Complete when both the work plan and the Gantt chart files are uploaded.",
+        "editable_keys": [],
+    },
+    18: {
+        "inputs": ["Funding Strategy file upload"],
+        "completion": "Complete when the funding strategy file is uploaded.",
+        "editable_keys": [],
+    },
+    19: {
+        "inputs": ["Research Abstract file upload"],
+        "completion": "Required (and shown) only for research-based proposals; other types pass automatically.",
+        "editable_keys": [],
+    },
+    20: {
+        "inputs": ["Certificate of Completion file upload"],
+        "completion": "Required (and shown) only for research-based proposals; other types pass automatically.",
+        "editable_keys": [],
+    },
+}
+
+
 class _DynamicStepLabels:
     def _get_steps(self):
         try:
