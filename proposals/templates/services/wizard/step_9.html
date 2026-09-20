@@ -67,55 +67,157 @@
 </div>
 
 <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-    <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-4 space-y-6">
+    <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-1 space-y-8">
         {% csrf_token %}
 
         <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-3">
-                Select all applicable gender issues or mandates
-            </label>
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-900">A. Sex</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                    Enter the number of participants by sex.
+                </p>
+            </div>
 
-            <div class="space-y-4">
-                {% for key, label in gender_issues %}
-                <label class="block {% if is_edit_mode %}cursor-pointer{% else %}cursor-default{% endif %}">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="sex_male" class="block text-sm font-medium text-gray-700 mb-2">Male</label>
                     <input
-                        type="checkbox"
-                        name="gender_issue_keys"
-                        value="{{ key }}"
-                        class="hidden peer gender-issue-checkbox"
-                        {% if key in selected_gender_issue_keys %}checked{% endif %}
-                        {% if key == "others" %}id="gender_issue_others"{% endif %}
-                        {% if not is_edit_mode %}disabled{% endif %}>
+                        type="number"
+                        min="0"
+                        name="sex_male"
+                        id="sex_male"
+                        value="{{ proposal.sex_male|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
 
-                    <div class="rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-200
-                                peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:shadow-sm
-                                {% if is_edit_mode %}hover:border-gray-300 hover:bg-gray-50{% else %}opacity-95{% endif %}">
-                        <p class="text-sm leading-6 text-gray-700">
-                            {{ label }}
-                        </p>
-                    </div>
-                </label>
-                {% endfor %}
+                <div>
+                    <label for="sex_female" class="block text-sm font-medium text-gray-700 mb-2">Female</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="sex_female"
+                        id="sex_female"
+                        value="{{ proposal.sex_female|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Total No. of Beneficiaries</label>
+                    <input
+                        type="text"
+                        id="sex_total"
+                        value="{{ sex_total }}"
+                        readonly
+                        class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+                </div>
             </div>
         </div>
 
-        <div id="others_description_wrap" class="{% if 'others' not in selected_gender_issue_keys %}hidden{% endif %}">
-            <label for="gender_issue_other_text" class="block text-sm font-semibold text-gray-900 mb-2">
-                Others Description
-            </label>
-
-            {% if is_edit_mode %}
-            <textarea
-                id="gender_issue_other_text"
-                name="gender_issue_other_text"
-                rows="5"
-                class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden focus:ring-2 focus:ring-primary focus:border-primary"
-                placeholder="Describe the other gender issue or mandate addressed by the proposal...">{{ gender_issue_other_text|default:'' }}</textarea>
-            {% else %}
-            <div class="w-full rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-700 whitespace-pre-line break-words">
-                {{ gender_issue_other_text|default:"No description provided." }}
+        <div>
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-900">B. Gender</h3>
+                <p class="text-xs text-gray-500 mt-1">
+                    Enter the number of participants by gender classification.
+                </p>
             </div>
-            {% endif %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="g_lesbian" class="block text-sm font-medium text-gray-700 mb-2">Lesbian</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_lesbian"
+                        id="g_lesbian"
+                        value="{{ proposal.g_lesbian|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_gay" class="block text-sm font-medium text-gray-700 mb-2">Gay</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_gay"
+                        id="g_gay"
+                        value="{{ proposal.g_gay|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_bisexual" class="block text-sm font-medium text-gray-700 mb-2">Bisexual</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_bisexual"
+                        id="g_bisexual"
+                        value="{{ proposal.g_bisexual|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_transgender" class="block text-sm font-medium text-gray-700 mb-2">Transgender</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_transgender"
+                        id="g_transgender"
+                        value="{{ proposal.g_transgender|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_straight" class="block text-sm font-medium text-gray-700 mb-2">Straight (Male/Female)</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_straight"
+                        id="g_straight"
+                        value="{{ proposal.g_straight|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+
+                <div>
+                    <label for="g_others" class="block text-sm font-medium text-gray-700 mb-2">Others</label>
+                    <input
+                        type="number"
+                        min="0"
+                        name="g_others"
+                        id="g_others"
+                        value="{{ proposal.g_others|default:0 }}"
+                        {% if not is_edit_mode %}readonly{% endif %}
+                        class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                        placeholder="0">
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Total</label>
+                <input
+                    type="text"
+                    id="gender_total"
+                    value="{{ gender_total }}"
+                    readonly
+                    class="w-full md:w-64 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none">
+            </div>
+        </div>
+
+        <div id="totals_warning" class="hidden mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            Sex total and Gender total must be the same.
         </div>
 
 
@@ -158,51 +260,50 @@
 {% if is_edit_mode %}
 <script>
 (function () {
-    const othersCheckbox = document.getElementById("gender_issue_others");
-    const othersWrap = document.getElementById("others_description_wrap");
-    const othersTextarea = document.getElementById("gender_issue_other_text");
+    const sexMale = document.getElementById("sex_male");
+    const sexFemale = document.getElementById("sex_female");
+    const sexTotal = document.getElementById("sex_total");
 
-    function syncOthersField() {
-        if (!othersCheckbox || !othersWrap) return;
-        const show = othersCheckbox.checked;
-        othersWrap.classList.toggle("hidden", !show);
+    const gLesbian = document.getElementById("g_lesbian");
+    const gGay = document.getElementById("g_gay");
+    const gBisexual = document.getElementById("g_bisexual");
+    const gTransgender = document.getElementById("g_transgender");
+    const gStraight = document.getElementById("g_straight");
+    const gOthers = document.getElementById("g_others");
+    const genderTotal = document.getElementById("gender_total");
+    const totalsWarning = document.getElementById("totals_warning");
+
+    function num(el) {
+        return parseInt(el.value || 0, 10) || 0;
     }
 
-    function autoResize(el) {
-        if (!el) return;
-        el.style.height = "auto";
-        el.style.height = el.scrollHeight + "px";
+    function updateTotals() {
+        const sex = num(sexMale) + num(sexFemale);
+        const gender =
+            num(gLesbian) +
+            num(gGay) +
+            num(gBisexual) +
+            num(gTransgender) +
+            num(gStraight) +
+            num(gOthers);
+
+        sexTotal.value = sex;
+        genderTotal.value = gender;
+
+        const hasValues = sex > 0 || gender > 0;
+        const mismatch = sex !== gender;
+
+        totalsWarning.classList.toggle("hidden", !(hasValues && mismatch));
     }
 
-    if (othersCheckbox) {
-        othersCheckbox.addEventListener("change", syncOthersField);
-        syncOthersField();
-    }
+    [
+        sexMale, sexFemale,
+        gLesbian, gGay, gBisexual, gTransgender, gStraight, gOthers
+    ].forEach(el => {
+        el.addEventListener("input", updateTotals);
+    });
 
-    if (othersTextarea) {
-        othersTextarea.addEventListener("input", function () {
-            autoResize(othersTextarea);
-        });
-
-        othersTextarea.addEventListener("keydown", function (e) {
-            if (e.key === "Tab") {
-                e.preventDefault();
-                const start = othersTextarea.selectionStart;
-                const end = othersTextarea.selectionEnd;
-                const indent = "    ";
-
-                othersTextarea.value =
-                    othersTextarea.value.substring(0, start) +
-                    indent +
-                    othersTextarea.value.substring(end);
-
-                othersTextarea.selectionStart = othersTextarea.selectionEnd = start + indent.length;
-                autoResize(othersTextarea);
-            }
-        });
-
-        autoResize(othersTextarea);
-    }
+    updateTotals();
 })();
 </script>
 {% endif %}

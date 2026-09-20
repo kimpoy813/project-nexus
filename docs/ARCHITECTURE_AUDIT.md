@@ -123,7 +123,7 @@ template crash (3 errors). The suite returned to green when each was reverted.
 *every* viewer whenever any report had a null `submitted_by` — which the model explicitly allows
 via `on_delete=SET_NULL`. Deleting a user would have broken the page for everyone. Fixed.
 
-**Now covered:** the wizard's access rules and all 19 steps, status/progress maps, review round
+**Now covered:** the wizard's access rules and all 20 steps, status/progress maps, review round
 constraints, tracker access, and document generation (both DOCX entry points, template routing,
 and the download endpoints).
 

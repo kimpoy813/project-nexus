@@ -29,7 +29,7 @@ from ..models import ProposalCommentSummary
 from ..models import ProposalEvaluatorAssignment
 from ..models import ProposalSectionComment
 from accounts.decorators import role_required
-from .constants import STEP_LABELS, User
+from .constants import STEP_LABELS, TOTAL_STEPS, User
 from .helpers import _extract_last_name, _extract_points, _get_signatory, _insert_paragraph_after, _proponent_line
 from .permissions import _can_view_proposal, _can_view_summary, _ensure_open_review_round, _is_campus_coordinator, _is_department_coordinator, _is_director, _is_staff
 
@@ -129,6 +129,8 @@ def proposal_review_comments(request, proposal_id, step=1):
         "review_round": current_round,
         "grouped_comments": grouped_comments,
         "current_step": int(step or 1),
+        "step": int(step or 1),
+        "total_steps": int(TOTAL_STEPS),
         "summary": summary,
     }
     return render(request, "services/review/proposal_review_summary.html", context)

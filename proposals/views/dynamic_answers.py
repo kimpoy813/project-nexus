@@ -135,11 +135,12 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
         2: {"title"},
         4: {"implementing_agency"},
         5: {"beneficiaries_count", "who_beneficiaries", "beneficiaries_who"},
-        7: {"budgetary_requirement"},
-        10: {"extension_venue", "estimated_month", "estimated_year"},
-        11: {"rationale_background"},
-        12: {"significance"},
-        13: {"general_objective"},
+        7: {"technology_title", "utility_model_registration_number", "utility_model_description"},
+        8: {"budgetary_requirement"},
+        11: {"extension_venue", "estimated_month", "estimated_year"},
+        12: {"rationale_background"},
+        13: {"significance"},
+        14: {"general_objective"},
     }
     exclude_keys = hardcoded_keys_by_step.get(step, set())
 

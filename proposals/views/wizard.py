@@ -35,7 +35,15 @@ from ..models import ProposalSectionComment
 from ..models import ProposalSpecificObjective
 from ..models import ProposalThrust
 from accounts.decorators import faculty_like_required, admin_required
-from .constants import GENDER_ISSUE_LIST, SDG_LIST, STEP_LABELS, THRUST_LIST, TOTAL_STEPS, User
+from .constants import (
+    GENDER_ISSUE_LIST,
+    SDG_LIST,
+    STEP_LABELS,
+    THRUST_LIST,
+    TOTAL_STEPS,
+    UTILITY_MODEL_STEP_NO,
+    User,
+)
 from .dynamic_fields import (
     dependency_parent_value as _dependency_parent_value,
     dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
@@ -181,10 +189,22 @@ def is_step_complete(proposal, step):
     if step == 6:
         return proposal.sdg_links.exists() or proposal.thrust_links.exists()
 
-    if step == 7:
-        return bool((proposal.budgetary_requirement or "").strip())
+    if step == UTILITY_MODEL_STEP_NO:
+        # Every field is answered; "N/A" is a valid answer for a proposal
+        # with no technology or utility model behind it.
+        return all(
+            (value or "").strip()
+            for value in (
+                proposal.technology_title,
+                proposal.utility_model_registration_number,
+                proposal.utility_model_description,
+            )
+        )
 
     if step == 8:
+        return bool((proposal.budgetary_requirement or "").strip())
+
+    if step == 9:
         sex_total = (proposal.sex_male or 0) + (proposal.sex_female or 0)
         gender_total = (
             (proposal.g_lesbian or 0)
@@ -196,7 +216,7 @@ def is_step_complete(proposal, step):
         )
         return sex_total > 0 and sex_total == gender_total
 
-    if step == 9:
+    if step == 10:
         issues = proposal.gender_issue_links.all()
         if not issues.exists():
             return False
@@ -205,16 +225,16 @@ def is_step_complete(proposal, step):
             return False
         return True
 
-    if step == 10:
+    if step == 11:
         return bool((proposal.extension_venue or "").strip())
 
-    if step == 11:
+    if step == 12:
         return bool((proposal.rationale_background or "").strip())
 
-    if step == 12:
+    if step == 13:
         return bool((proposal.significance or "").strip())
 
-    if step == 13:
+    if step == 14:
         if not (proposal.general_objective or "").strip():
             return False
 
@@ -229,24 +249,24 @@ def is_step_complete(proposal, step):
 
         return proposal.specific_objectives.filter(program_project__isnull=True).exists()
 
-    if step == 14:
+    if step == 15:
         return proposal.methodologies.exists()
 
-    if step == 15:
+    if step == 16:
         return proposal.output_outcomes.exists()
 
-    if step == 16:
+    if step == 17:
         return bool(proposal.work_plan_file) and bool(proposal.gantt_chart_file)
 
-    if step == 17:
+    if step == 18:
         return bool(proposal.funding_file)
 
-    if step == 18:
+    if step == 19:
         if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
             return bool(proposal.research_abstract_file)
         return True
 
-    if step == 19:
+    if step == 20:
         if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
             return bool(proposal.certificate_of_completion_file)
         return True
@@ -425,10 +445,15 @@ def _add_step_context_for_get(ctx, proposal, step):
         ctx["sdg_explanations"] = {item.sdg_code: item.explanation for item in sdg_links}
         ctx["thrust_explanations"] = {item.thrust_name: item.explanation for item in thrust_links}
 
-    if step == 7:
-        ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
+    if step == UTILITY_MODEL_STEP_NO:
+        ctx["technology_title"] = proposal.technology_title or ""
+        ctx["utility_model_registration_number"] = proposal.utility_model_registration_number or ""
+        ctx["utility_model_description"] = proposal.utility_model_description or ""
 
     if step == 8:
+        ctx["budgetary_requirement"] = proposal.budgetary_requirement or ""
+
+    if step == 9:
         ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
         ctx["gender_total"] = (
             (proposal.g_lesbian or 0)
@@ -439,7 +464,7 @@ def _add_step_context_for_get(ctx, proposal, step):
             + (proposal.g_others or 0)
         )
 
-    if step == 9:
+    if step == 10:
         ctx["gender_issues"] = GENDER_ISSUE_LIST
         ctx["selected_gender_issue_keys"] = set(
             proposal.gender_issue_links.values_list("issue_key", flat=True)
@@ -447,7 +472,7 @@ def _add_step_context_for_get(ctx, proposal, step):
         others_item = proposal.gender_issue_links.filter(issue_key="others").first()
         ctx["gender_issue_other_text"] = others_item.other_text if others_item else ""
 
-    if step == 10:
+    if step == 11:
         ctx["estimated_month"] = proposal.estimated_month or ""
         ctx["estimated_year"] = proposal.estimated_year or ""
         ctx["extension_venue"] = proposal.extension_venue or ""
@@ -456,13 +481,13 @@ def _add_step_context_for_get(ctx, proposal, step):
             "July", "August", "September", "October", "November", "December",
         ]
 
-    if step == 11:
+    if step == 12:
         ctx["rationale_background"] = proposal.rationale_background or ""
 
-    if step == 12:
+    if step == 13:
         ctx["significance"] = proposal.significance or ""
 
-    if step == 13:
+    if step == 14:
         ctx["general_objective"] = proposal.general_objective or ""
         if proposal.scope_type == "PROGRAM":
             projects = proposal.program_projects.all().order_by("order", "id")
@@ -480,28 +505,28 @@ def _add_step_context_for_get(ctx, proposal, step):
                 .values_list("objective", flat=True)
             )
 
-    if step == 14:
+    if step == 15:
         ctx["methodologies"] = list(proposal.methodologies.values_list("item", flat=True))
 
-    if step == 15:
+    if step == 16:
         ctx["output_outcomes"] = list(proposal.output_outcomes.values_list("item", flat=True))
 
-    if step == 16:
+    if step == 17:
         ctx["existing_attachments"] = proposal.attachments.filter(
             category=ProposalAttachment.Category.DETAILS_OF_ACTIVITIES
         ).order_by("id")
         if proposal.scope_type == "PROGRAM":
             ctx["program_projects"] = proposal.program_projects.all().order_by("order", "id")
 
-    if step == 17:
+    if step == 18:
         ctx["existing_funding_attachments"] = proposal.attachments.filter(
             category=ProposalAttachment.Category.OTHER
         ).order_by("id")
 
-    if step == 18:
+    if step == 19:
         ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
 
-    if step == 19:
+    if step == 20:
         ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
     return ctx
 
@@ -802,11 +827,23 @@ def proposal_wizard(request, proposal_id, step):
                     explanation=explanation,
                 )
 
-    elif step == 7:
+    elif step == UTILITY_MODEL_STEP_NO:
+        proposal.technology_title = (request.POST.get("technology_title") or "").strip()
+        proposal.utility_model_registration_number = (
+            request.POST.get("utility_model_registration_number") or ""
+        ).strip()
+        proposal.utility_model_description = (request.POST.get("utility_model_description") or "").strip()
+        proposal.save(update_fields=[
+            "technology_title",
+            "utility_model_registration_number",
+            "utility_model_description",
+        ])
+
+    elif step == 8:
         proposal.budgetary_requirement = (request.POST.get("budgetary_requirement") or "").strip()
         proposal.save(update_fields=["budgetary_requirement"])
 
-    elif step == 8:
+    elif step == 9:
         sex_male = _to_int(request.POST.get("sex_male"))
         sex_female = _to_int(request.POST.get("sex_female"))
         g_lesbian = _to_int(request.POST.get("g_lesbian"))
@@ -834,9 +871,9 @@ def proposal_wizard(request, proposal_id, step):
 
         if action == "next" and sex_total != gender_total:
             messages.error(request, "Sex total and Gender total must be the same before you can proceed.")
-            return redirect("proposal_wizard", proposal_id=proposal.id, step=8)
+            return redirect("proposal_wizard", proposal_id=proposal.id, step=9)
 
-    elif step == 9:
+    elif step == 10:
         selected_keys = request.POST.getlist("gender_issue_keys")
         other_text = (request.POST.get("gender_issue_other_text") or "").strip()
 
@@ -855,7 +892,7 @@ def proposal_wizard(request, proposal_id, step):
                 other_text=other_text if key == "others" else "",
             )
 
-    elif step == 10:
+    elif step == 11:
         estimated_month = (request.POST.get("estimated_month") or "").strip()
         estimated_year_raw = (request.POST.get("estimated_year") or "").strip()
         extension_venue = (request.POST.get("extension_venue") or "").strip()
@@ -865,15 +902,15 @@ def proposal_wizard(request, proposal_id, step):
         proposal.extension_venue = extension_venue
         proposal.save(update_fields=["estimated_month", "estimated_year", "extension_venue"])
 
-    elif step == 11:
+    elif step == 12:
         proposal.rationale_background = (request.POST.get("rationale_background") or "").strip()
         proposal.save(update_fields=["rationale_background"])
 
-    elif step == 12:
+    elif step == 13:
         proposal.significance = (request.POST.get("significance") or "").strip()
         proposal.save(update_fields=["significance"])
 
-    elif step == 13:
+    elif step == 14:
         proposal.general_objective = (request.POST.get("general_objective") or "").strip()
         proposal.save(update_fields=["general_objective"])
 
@@ -901,21 +938,21 @@ def proposal_wizard(request, proposal_id, step):
                         objective=obj,
                     )
 
-    elif step == 14:
+    elif step == 15:
         proposal.methodologies.all().delete()
         for item in request.POST.getlist("methodologies[]"):
             item = (item or "").strip()
             if item:
                 ProposalMethodology.objects.create(proposal=proposal, item=item)
 
-    elif step == 15:
+    elif step == 16:
         proposal.output_outcomes.all().delete()
         for item in request.POST.getlist("output_outcomes[]"):
             item = (item or "").strip()
             if item:
                 ProposalOutputOutcome.objects.create(proposal=proposal, item=item)
 
-    elif step == 16:
+    elif step == 17:
         remove_attachment_ids = request.POST.getlist("remove_attachment_ids")
         if remove_attachment_ids:
             ProposalAttachment.objects.filter(
@@ -945,17 +982,17 @@ def proposal_wizard(request, proposal_id, step):
                     label=getattr(f, "name", ""),
                 )
 
-    elif step == 17:
+    elif step == 18:
         if request.FILES.get("funding_file"):
             proposal.funding_file = request.FILES["funding_file"]
             proposal.save(update_fields=["funding_file"])
 
-    elif step == 18:
+    elif step == 19:
         if request.FILES.get("research_abstract_file"):
             proposal.research_abstract_file = request.FILES["research_abstract_file"]
             proposal.save(update_fields=["research_abstract_file"])
 
-    elif step == 19:
+    elif step == 20:
         if request.FILES.get("certificate_of_completion_file"):
             proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
             proposal.save(update_fields=["certificate_of_completion_file"])

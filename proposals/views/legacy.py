@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from accounts.decorators import admin_required
 from ..models import Proposal, ProposalAttachment
+from .constants import LAST_BUILTIN_STEP_NO
 from .helpers import _to_int
 
 
@@ -43,7 +44,7 @@ def admin_legacy_proposal_create(request):
                 extension_venue=extension_venue,
                 proposal_status=proposal_status,
                 is_legacy=True,
-                current_step=19,
+                current_step=LAST_BUILTIN_STEP_NO,
             )
 
             # Handle files

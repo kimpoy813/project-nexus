@@ -209,7 +209,7 @@ def download_work_plan_template(request, proposal_id):
 
     if not template_path.exists():
         messages.error(request, "Work Plan template file not found.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=16)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=17)
 
     wb = load_workbook(template_path)
     ws = get_best_sheet(wb, preferred_sheet_names)
@@ -303,7 +303,7 @@ def download_gantt_chart_template(request, proposal_id):
 
     if not template_path.exists():
         messages.error(request, "Gantt Chart template file not found.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=16)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=17)
 
     if proposal.scope_type != "PROGRAM":
         return FileResponse(
@@ -357,7 +357,7 @@ def download_funding_template(request, proposal_id):
 
     if not template_path.exists():
         messages.error(request, "Funding template file not found.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=17)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=18)
 
     wb = load_workbook(template_path)
     ws = wb["Work Plan Template"]

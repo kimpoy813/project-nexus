@@ -21,7 +21,7 @@ from django.db import transaction
 from .models import DynamicFormField, DynamicFormTemplate, ProposalWizardStepConfig
 
 
-#: The default step number of "Proponents" in the built-in 19-step wizard.
+#: The default step number of "Proponents" in the built-in 20-step wizard.
 PROPONENT_STEP_NO = 3
 
 #: Label used for one row of the repeatable group.

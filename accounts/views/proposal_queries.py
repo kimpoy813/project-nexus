@@ -20,7 +20,15 @@ logger = logging.getLogger(__name__)
 
 
 def _get_total_proposal_steps():
-    return 19
+    """Highest visible wizard step, for the dashboards' "Step X of N".
+
+    Read from the admin's step table so the count follows the steps the
+    wizard actually shows (it was a literal 19 before the Utility Model step
+    was added, and drifted as soon as an admin added or hid a step).
+    """
+    from proposals.views.constants import TOTAL_STEPS
+
+    return int(TOTAL_STEPS)
 
 
 def _get_current_step(proposal):

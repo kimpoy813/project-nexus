@@ -182,6 +182,26 @@ class Proposal(models.Model):
     implementing_agency = models.CharField(max_length=255, blank=True, default="")
     budgetary_requirement = models.CharField(max_length=255, blank=True, default="")
 
+    # Utility Model step. Every field is answered; proponents write "N/A"
+    # when the proposal has no technology or utility model behind it.
+    technology_title = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text="Utility Model step: title of the technology (N/A if not applicable).",
+    )
+    utility_model_registration_number = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Utility Model step: utility model registration number (N/A if not applicable).",
+    )
+    utility_model_description = models.TextField(
+        blank=True,
+        default="",
+        help_text="Utility Model step: description of the utility model (N/A if not applicable).",
+    )
+
     beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
     beneficiaries_who = models.TextField(blank=True, default="")
 

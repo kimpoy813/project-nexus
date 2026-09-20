@@ -93,20 +93,25 @@ def _seed_default_fields():
             {"key": "beneficiaries_who", "label": "Target Group / Beneficiaries Description", "type": "TEXT", "placeholder": "Describe who they are"},
         ],
         7: [
+            {"key": "technology_title", "label": "Title of Technology", "type": "TEXT", "placeholder": "Enter the title of the technology, or N/A"},
+            {"key": "utility_model_registration_number", "label": "Utility Model Registration Number", "type": "TEXT", "placeholder": "Enter the registration number, or N/A"},
+            {"key": "utility_model_description", "label": "Utility Model Description", "type": "TEXTAREA", "placeholder": "Describe the utility model, or N/A"},
+        ],
+        8: [
             {"key": "budgetary_requirement", "label": "Budgetary Requirement", "type": "TEXTAREA", "placeholder": "Describe budget details"},
         ],
-        10: [
+        11: [
             {"key": "extension_venue", "label": "Extension Venue / Site", "type": "TEXT", "placeholder": "Enter venue"},
             {"key": "estimated_month", "label": "Estimated Month", "type": "SELECT", "choices": "January|January\nFebruary|February\nMarch|March\nApril|April\nMay|May\nJune|June\nJuly|July\nAugust|August\nSeptember|September\nOctober|October\nNovember|November\nDecember|December", "placeholder": "Choose month"},
             {"key": "estimated_year", "label": "Estimated Year", "type": "NUMBER", "placeholder": "e.g., 2026"},
         ],
-        11: [
+        12: [
             {"key": "rationale_background", "label": "Rationale / Background", "type": "TEXTAREA", "placeholder": "Provide rationale background"},
         ],
-        12: [
+        13: [
             {"key": "significance", "label": "Significance", "type": "TEXTAREA", "placeholder": "Describe significance"},
         ],
-        13: [
+        14: [
             {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
         ],
     }

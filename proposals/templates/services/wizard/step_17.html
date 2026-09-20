@@ -72,45 +72,132 @@
 
         {% if is_edit_mode %}
         <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 class="text-sm font-semibold text-gray-900">Template Download</h3>
+            <h3 class="text-sm font-semibold text-gray-900">Template Downloads</h3>
             <p class="text-xs text-gray-500 mt-1">
-                Download the funding template based on the proposal scope.
+                Download the template workbook for the required formats.
             </p>
 
-            <div class="mt-4">
-                <a href="{% url 'download_funding_template' proposal.id %}"
+            <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                <a href="{% url 'download_work_plan_template' proposal.id %}"
                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
-                    Download Line-Item Budget Template
+                    Download Work Plan Template
+                </a>
+
+                <a href="{% url 'download_gantt_chart_template' proposal.id %}"
+                   class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
+                    Download Gantt Chart Template
                 </a>
             </div>
         </div>
         {% endif %}
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="rounded-2xl border border-gray-200 p-5">
+                <label for="work_plan_file" class="block text-sm font-semibold text-gray-900 mb-2">
+                    Work Plan File
+                </label>
+
+                {% if is_edit_mode %}
+                <input
+                    type="file"
+                    id="work_plan_file"
+                    name="work_plan_file"
+                    class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                {% endif %}
+
+                {% if proposal.work_plan_file %}
+                <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p class="text-xs text-gray-500">
+                        {% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
+                    </p>
+                    <a href="{% url 'proposal_file_preview' proposal.id 'work_plan' %}" target="_blank" class="mt-1 block text-sm text-primary underline break-all">
+                        {{ proposal.work_plan_file.name|cut:"proposal_files/work_plans/" }}
+                    </a>
+                </div>
+                {% elif not is_edit_mode %}
+                <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                    No file uploaded.
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 p-5">
+                <label for="gantt_chart_file" class="block text-sm font-semibold text-gray-900 mb-2">
+                    Gantt Chart File
+                </label>
+
+                {% if is_edit_mode %}
+                <input
+                    type="file"
+                    id="gantt_chart_file"
+                    name="gantt_chart_file"
+                    class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                {% endif %}
+
+                {% if proposal.gantt_chart_file %}
+                <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p class="text-xs text-gray-500">
+                        {% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
+                    </p>
+                    <a href="{% url 'proposal_file_preview' proposal.id 'gantt_chart' %}" target="_blank" class="mt-1 block text-sm text-primary underline break-all">
+                        {{ proposal.gantt_chart_file.name|cut:"proposal_files/gantt_charts/" }}
+                    </a>
+                </div>
+                {% elif not is_edit_mode %}
+                <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                    No file uploaded.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
         <div class="rounded-2xl border border-gray-200 p-5">
-            <label for="funding_file" class="block text-sm font-semibold text-gray-900 mb-2">
-                Funding Strategy
+            <label for="attachment_files" class="block text-sm font-semibold text-gray-900 mb-2">
+                Additional Attachments
             </label>
+            <p class="text-xs text-gray-500 mb-3">
+                Upload any additional supporting files needed for this proposal.
+            </p>
 
             {% if is_edit_mode %}
             <input
                 type="file"
-                id="funding_file"
-                name="funding_file"
+                id="attachment_files"
+                name="attachment_files"
+                multiple
                 class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
             {% endif %}
 
-            {% if proposal.funding_file %}
-            <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <p class="text-xs text-gray-500">
-                    {% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
-                </p>
-                <a href="{% url 'proposal_file_preview' proposal.id 'funding' %}" target="_blank" class="mt-1 block text-sm text-primary underline break-all">
-                    {{ proposal.funding_file.name|cut:"proposal_files/funding/" }}
-                </a>
+            {% if existing_attachments %}
+            <div class="mt-4 space-y-2">
+                <p class="text-sm font-medium text-gray-700">Existing attachments</p>
+
+                {% for attachment in existing_attachments %}
+                <div class="flex items-start justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3">
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs text-gray-500 mb-1">
+                            {% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
+                        </p>
+                        <a href="{% url 'proposal_attachment_preview' proposal.id 'attachment' attachment.id %}" target="_blank" class="block text-sm text-primary underline break-all">
+                            {{ attachment.file.name|cut:"proposal_files/attachments/" }}
+                        </a>
+                    </div>
+
+                    {% if is_edit_mode %}
+                    <div class="flex items-center gap-2 shrink-0">
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input type="checkbox" name="remove_attachment_ids" value="{{ attachment.id }}" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                            <span class="ml-3 text-xs font-bold text-red-500">Remove</span>
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
             {% elif not is_edit_mode %}
-            <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
-                No file uploaded.
+            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500">
+                No additional attachments uploaded.
             </div>
             {% endif %}
         </div>
