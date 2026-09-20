@@ -71,31 +71,60 @@
         {% csrf_token %}
 
         <div>
-            <label class="block text-sm font-semibold text-gray-900 mb-3">
-                Select all applicable gender issues or mandates (you may select more than one)
-            </label>
-
-            <div class="space-y-4">
-                {% for key, label in gender_issues %}
-                <label class="block {% if is_edit_mode %}cursor-pointer{% else %}cursor-default{% endif %}">
-                    <input
-                        type="checkbox"
-                        name="gender_issue_keys"
-                        value="{{ key }}"
-                        class="hidden peer gender-issue-checkbox"
-                        {% if key in selected_gender_issue_keys %}checked{% endif %}
-                        {% if not is_edit_mode %}disabled{% endif %}>
-
-                    <div class="rounded-2xl border border-gray-200 bg-white p-5 transition-all duration-200
-                                peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:shadow-sm
-                                {% if is_edit_mode %}hover:border-gray-300 hover:bg-gray-50{% else %}opacity-95{% endif %}">
-                        <p class="text-sm leading-6 text-gray-700">
-                            {{ label }}
-                        </p>
-                    </div>
-                </label>
-                {% endfor %}
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-900">Gender Issues / Mandates Addressed</label>
+                <p class="mt-1 text-sm leading-5 text-gray-600">
+                    Type the gender issue or mandate your activity addresses. Add as many entries as you need.
+                </p>
             </div>
+
+            <div class="space-y-3 gender-issues-group" data-group="gender_issues">
+                {% if gender_issues %}
+                    {% for item in gender_issues %}
+                    <div class="flex gap-2 items-start gender-issue-row">
+                        <textarea
+                            name="gender_issues[]"
+                            rows="2"
+                            {% if not is_edit_mode %}readonly{% endif %}
+                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-gender-issue {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                            placeholder="Enter a gender issue or mandate...">{{ item }}</textarea>
+
+                        {% if is_edit_mode %}
+                        <button type="button"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                onclick="removeGenderIssueRow(this)">
+                            Remove
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="flex gap-2 items-start gender-issue-row">
+                        <textarea
+                            name="gender_issues[]"
+                            rows="2"
+                            {% if not is_edit_mode %}readonly{% endif %}
+                            class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 outline-none resize-none overflow-hidden auto-resize-gender-issue {% if is_edit_mode %}focus:ring-2 focus:ring-primary focus:border-primary{% else %}bg-gray-50 text-gray-700{% endif %}"
+                            placeholder="Enter a gender issue or mandate..."></textarea>
+
+                        {% if is_edit_mode %}
+                        <button type="button"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                onclick="removeGenderIssueRow(this)">
+                            Remove
+                        </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if is_edit_mode %}
+            <button type="button"
+                    class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    onclick="addGenderIssueRow()">
+                Add Gender Issue / Mandate
+            </button>
+            {% endif %}
         </div>
 
     {% include "services/wizard/_dynamic_fields.html" %}
@@ -134,4 +163,80 @@
     </form>
 </div>
 
+{% if is_edit_mode %}
+<script>
+(function () {
+    function autoResize(el) {
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
+    }
+
+    function handleTabIndent(e) {
+        if (e.key === "Tab") {
+            e.preventDefault();
+            const textarea = e.target;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const indent = "    ";
+
+            textarea.value =
+                textarea.value.substring(0, start) +
+                indent +
+                textarea.value.substring(end);
+
+            textarea.selectionStart = textarea.selectionEnd = start + indent.length;
+            autoResize(textarea);
+        }
+    }
+
+    window.addGenderIssueRow = function () {
+        const group = document.querySelector('.gender-issues-group[data-group="gender_issues"]');
+        if (!group) return;
+
+        const row = document.createElement("div");
+        row.className = "flex gap-2 items-start gender-issue-row";
+        row.innerHTML = `
+            <textarea
+                name="gender_issues[]"
+                rows="2"
+                class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden auto-resize-gender-issue"
+                placeholder="Enter a gender issue or mandate..."></textarea>
+            <button type="button"
+                    class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                    onclick="removeGenderIssueRow(this)">
+                Remove
+            </button>
+        `;
+        group.appendChild(row);
+
+        const textarea = row.querySelector("textarea");
+        textarea.addEventListener("input", function () { autoResize(textarea); });
+        textarea.addEventListener("keydown", handleTabIndent);
+        autoResize(textarea);
+    };
+
+    window.removeGenderIssueRow = function (btn) {
+        const row = btn.closest(".gender-issue-row");
+        if (!row) return;
+
+        const group = row.parentElement;
+        if (group.querySelectorAll(".gender-issue-row").length > 1) {
+            row.remove();
+        } else {
+            const textarea = row.querySelector("textarea");
+            if (textarea) {
+                textarea.value = "";
+                autoResize(textarea);
+            }
+        }
+    };
+
+    document.querySelectorAll(".auto-resize-gender-issue").forEach(textarea => {
+        textarea.addEventListener("input", function () { autoResize(textarea); });
+        textarea.addEventListener("keydown", handleTabIndent);
+        autoResize(textarea);
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

@@ -1335,16 +1335,28 @@ class ProposalThrust(models.Model):
 
 
 class ProposalGenderIssue(models.Model):
+    """One gender issue / mandate the proponent typed on step 10.
+
+    The step is a free-text repeater (same shape as the Methodology step), so
+    ``issue_label`` holds exactly what was typed and rows are kept in entry
+    order.  ``issue_key`` is only filled when the typed text matches one of the
+    canonical mandates in ``GENDER_ISSUE_LIST``; the DOCX templates still list
+    those four as fixed rows, and the key is what ticks them off.
+    """
+
     proposal = models.ForeignKey(
         Proposal,
         on_delete=models.CASCADE,
         related_name="gender_issue_links",
     )
-    issue_key = models.CharField(max_length=100)
+    issue_key = models.CharField(max_length=100, blank=True, default="")
     issue_label = models.TextField()
 
+    class Meta:
+        ordering = ["id"]
+
     def __str__(self):
-        return f"{self.proposal_id} - {self.issue_key}"
+        return self.issue_label[:50]
 
 
 class ProposalEditorPresence(models.Model):

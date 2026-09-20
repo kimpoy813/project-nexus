@@ -157,6 +157,28 @@ def previous_visible_wizard_step(step):
     return None
 
 
+def _normalized_mandate_text(text):
+    """Collapse whitespace / casing / a trailing period so texts can be compared."""
+    return " ".join((text or "").split()).strip().lower().rstrip(".")
+
+
+def canonical_gender_issue_key(text):
+    """Return the mandate key for typed text, or "" when it is not a canonical mandate.
+
+    Gender issues are typed freely now, but the DOCX templates still print the
+    four standard mandates as fixed rows; recognising the canonical wording is
+    what lets a typed entry tick its own row instead of landing in "Others".
+    """
+    typed = _normalized_mandate_text(text)
+    if not typed:
+        return ""
+
+    for key, label in GENDER_ISSUE_LIST:
+        if _normalized_mandate_text(label) == typed:
+            return key
+    return ""
+
+
 def is_step_complete(proposal, step):
     if step == 1:
         if not proposal.extension_type or not proposal.scope_type:
@@ -442,9 +464,8 @@ def _add_step_context_for_get(ctx, proposal, step):
         ctx["sex_total"] = (proposal.sex_male or 0) + (proposal.sex_female or 0)
 
     if step == 10:
-        ctx["gender_issues"] = GENDER_ISSUE_LIST
-        ctx["selected_gender_issue_keys"] = set(
-            proposal.gender_issue_links.values_list("issue_key", flat=True)
+        ctx["gender_issues"] = list(
+            proposal.gender_issue_links.values_list("issue_label", flat=True)
         )
 
     if step == 11:
@@ -820,20 +841,17 @@ def proposal_wizard(request, proposal_id, step):
         proposal.save(update_fields=["sex_male", "sex_female"])
 
     elif step == 10:
-        selected_keys = request.POST.getlist("gender_issue_keys")
+        proposal.gender_issue_links.all().delete()
 
-        ProposalGenderIssue.objects.filter(proposal=proposal).delete()
-        label_map = dict(GENDER_ISSUE_LIST)
-
-        for key in selected_keys:
-            key = (key or "").strip()
-            if not key or key not in label_map:
+        for item in request.POST.getlist("gender_issues[]"):
+            item = (item or "").strip()
+            if not item:
                 continue
 
             ProposalGenderIssue.objects.create(
                 proposal=proposal,
-                issue_key=key,
-                issue_label=label_map[key],
+                issue_key=canonical_gender_issue_key(item),
+                issue_label=item,
             )
 
     elif step == 11:

@@ -18,7 +18,7 @@ INITIAL_STEP_LABELS = [
     {"no": 7, "title": "Utility Model", "desc": "Title of technology, registration number, and description (N/A if not applicable)"},
     {"no": 8, "title": "Budgetary Requirement", "desc": "Funding source and budget"},
     {"no": 9, "title": "Participants / Proposed Clients", "desc": "Sex-disaggregated participant counts"},
-    {"no": 10, "title": "Gender Issues / Mandates Addressed", "desc": "Applicable GAD mandates"},
+    {"no": 10, "title": "Gender Issues / Mandates Addressed", "desc": "Type the GAD issues or mandates addressed"},
     {"no": 11, "title": "Date and Venue / Extension Site", "desc": "Schedule and implementation site"},
     {"no": 12, "title": "Rationale / Background", "desc": "Context and alignment with SDG / thrust / GAD"},
     {"no": 13, "title": "Significance", "desc": "Importance of the proposed extension"},
@@ -191,6 +191,10 @@ THRUST_LIST = [
 ]
 
 
+#: The mandates the DOCX templates print as fixed rows. The wizard no longer
+#: offers them as checkboxes - step 10 is a free-text repeater - but typed text
+#: that matches one of these wordings is mapped back to its key so the right
+#: row gets ticked off in the generated form (see canonical_gender_issue_key).
 GENDER_ISSUE_LIST = [
     (
         "women_role_development",
