@@ -6,13 +6,16 @@ browser is the same row the server would have rendered - the only substitutions
 are __INDEX__ (input names) and __NUMBER__ (the visible caption).
 
 Removing a row:
-  * an unsaved row is dropped from the DOM (it was never stored),
-  * a saved row flags its own hidden "remove" input and submits the step, so
-    the deletion is persisted straight away.
+  * an unsaved row (no row_id) is dropped from the DOM immediately,
+  * a saved row is *marked* for deletion in the browser (it shows a "Removed
+    on save" badge and an Undo button). Its inputs are disabled so they don't
+    POST stale values, and a hidden repeater_<id>_remove input is injected at
+    submit time. Nothing is sent to the server until the user clicks
+    Save & Next / Save Changes, so the page never refreshes on its own.
 
-Moving a row fills the single "move" input with "<row id>:<up|down>" and
-submits. All three paths end in a normal form POST, which keeps the feature
-working without any custom endpoints.
+Moving a row swaps it with its neighbour in the DOM and then renumbers all
+inputs. Reordering is applied server-side by reading the submitted order, so
+again no round-trip happens until an explicit save.
 {% endcomment %}
 <script>
 (function () {
@@ -21,6 +24,10 @@ working without any custom endpoints.
 
   function rowsOf(root) {
     return root.querySelector('[data-repeater-rows]');
+  }
+
+  function formIdOf(root) {
+    return root.getAttribute('data-form-id');
   }
 
   function renumber(root) {
@@ -34,9 +41,12 @@ working without any custom endpoints.
       const caption = row.querySelector('[data-repeater-row-title]');
       if (caption) caption.textContent = label + ' ' + (index + 1);
 
-      // Keep the submitted order in step with the visible order: input names
-      // carry the row index, so they are rewritten after every change.
+      // Keep submitted names/counts in step with the visible order.
       row.querySelectorAll('input[name], select[name], textarea[name]').forEach(function (input) {
+        // Skip the per-row remove flag inputs — those are injected at submit
+        // time and must not be rewritten as field names.
+        if (input.matches('[data-repeater-remove-flag]')) return;
+
         input.name = input.name
           .replace(/(_row_)\d+(_field_)/, '$1' + index + '$2')
           .replace(/(_row_id_)\d+$/, '$1' + index);
@@ -85,12 +95,75 @@ working without any custom endpoints.
     if (firstInput) firstInput.focus();
   }
 
-  function moveRow(root, rowId, direction) {
-    const input = root.querySelector('[data-repeater-move]');
-    const form = root.closest('form');
-    if (!input || !form) return;
-    input.value = rowId + ':' + direction;
-    form.submit();
+  function dropUnsavedRow(root, row) {
+    // A row with no database id is dropped straight away - it was never saved.
+    row.remove();
+    renumber(root);
+  }
+
+  function markRowRemoved(row) {
+    row.setAttribute('data-repeater-removed', '1');
+    row.classList.add('opacity-60', 'ring-2', 'ring-red-200');
+
+    // Disable every field in the row so stale values don't POST.
+    row.querySelectorAll('input, select, textarea').forEach(function (input) {
+      if (input.dataset.repeaterRemoveFlag === '1') return;
+      input.disabled = true;
+    });
+
+    const removeBtn = row.querySelector('[data-repeater-remove]');
+    const undoBtn = row.querySelector('[data-repeater-undo]');
+    const badge = row.querySelector('[data-repeater-removed-badge]');
+    const moveBtns = row.querySelectorAll('[data-repeater-move-up], [data-repeater-move-down]');
+
+    if (removeBtn) removeBtn.classList.add('hidden');
+    if (undoBtn) undoBtn.classList.remove('hidden');
+    if (badge) badge.classList.remove('hidden');
+    moveBtns.forEach(function (btn) { btn.disabled = true; btn.classList.add('opacity-40', 'pointer-events-none'); });
+  }
+
+  function unmarkRowRemoved(row) {
+    row.removeAttribute('data-repeater-removed');
+    row.classList.remove('opacity-60', 'ring-2', 'ring-red-200');
+
+    row.querySelectorAll('input, select, textarea').forEach(function (input) {
+      if (input.dataset.repeaterRemoveFlag === '1') return;
+      // Re-enable only if the repeater as a whole is still editable.
+      if (row.closest('[data-edit-mode="1"]')) input.disabled = false;
+    });
+
+    const removeBtn = row.querySelector('[data-repeater-remove]');
+    const undoBtn = row.querySelector('[data-repeater-undo]');
+    const badge = row.querySelector('[data-repeater-removed-badge]');
+    const moveBtns = row.querySelectorAll('[data-repeater-move-up], [data-repeater-move-down]');
+
+    if (removeBtn) removeBtn.classList.remove('hidden');
+    if (undoBtn) undoBtn.classList.add('hidden');
+    if (badge) badge.classList.add('hidden');
+    moveBtns.forEach(function (btn) { btn.disabled = false; btn.classList.remove('opacity-40', 'pointer-events-none'); });
+  }
+
+  function moveRow(root, row, direction) {
+    const container = rowsOf(root);
+    if (!container || !row) return;
+    const rows = Array.from(container.querySelectorAll('[data-repeater-row]'));
+    const index = rows.indexOf(row);
+    if (index === -1) return;
+
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= rows.length) return;
+
+    // Skip over rows already marked for removal - moving past a ghost row
+    // would feel broken to the user.
+    const neighbour = rows[target];
+    if (neighbour && neighbour.getAttribute('data-repeater-removed') === '1') return;
+
+    if (direction === 'up') {
+      container.insertBefore(row, neighbour);
+    } else {
+      container.insertBefore(neighbour, row);
+    }
+    renumber(root);
   }
 
   function valueOf(container, key) {
@@ -101,9 +174,6 @@ working without any custom endpoints.
     return input.value;
   }
 
-  // A row's dependency resolves inside that row first, so one proponent's
-  // answer can never hide another proponent's field; the whole form is the
-  // fallback, matching the server in proposals/views/repeaters.py.
   function checkDependencies(root, row) {
     (row || root).querySelectorAll('.repeater-field[data-depends-on]').forEach(function (field) {
       const key = field.getAttribute('data-depends-on');
@@ -125,16 +195,44 @@ working without any custom endpoints.
     return text;
   }
 
+  function flushRemoveFlags(form, root) {
+    // Remove any flags we added on a previous submit attempt, then inject one
+    // `repeater_<id>_remove` hidden input per saved row the user marked.
+    const fid = formIdOf(root);
+    form.querySelectorAll('[data-repeater-remove-flag][data-form-id="' + fid + '"]').forEach(function (el) {
+      el.remove();
+    });
+
+    rowsOf(root).querySelectorAll('[data-repeater-row][data-repeater-removed="1"]').forEach(function (row) {
+      const btn = row.querySelector('[data-repeater-remove]');
+      const rowId = btn ? btn.getAttribute('data-repeater-remove') : '';
+      if (!rowId) return; // unsaved rows were already dropped from the DOM
+
+      const flag = document.createElement('input');
+      flag.type = 'hidden';
+      flag.name = 'repeater_' + fid + '_remove';
+      flag.value = rowId;
+      flag.setAttribute('data-repeater-remove-flag', '1');
+      flag.setAttribute('data-form-id', fid);
+      form.appendChild(flag);
+    });
+  }
+
   function bind(root) {
     if (root.dataset.repeaterBound === '1') return;
     root.dataset.repeaterBound = '1';
 
     root.addEventListener('click', function (event) {
       const addButton = event.target.closest('[data-repeater-add]');
-      if (addButton) { addRow(root); return; }
+      if (addButton) {
+        event.preventDefault();
+        addRow(root);
+        return;
+      }
 
       const dropButton = event.target.closest('[data-repeater-drop]');
       if (dropButton) {
+        event.preventDefault();
         const row = dropButton.closest('[data-repeater-row]');
         if (row) { row.remove(); renumber(root); }
         return;
@@ -142,24 +240,41 @@ working without any custom endpoints.
 
       const removeButton = event.target.closest('[data-repeater-remove]');
       if (removeButton) {
-        // Flag the row for deletion, then let the button submit the step.
+        event.preventDefault();
         const row = removeButton.closest('[data-repeater-row]');
-        const flag = row && row.querySelector('[data-repeater-remove-input]');
-        if (flag) flag.value = removeButton.dataset.repeaterRemove || '';
+        if (!row) return;
+        const rowId = removeButton.getAttribute('data-repeater-remove');
+        if (!rowId) {
+          // No id => the row was added client-side and never saved. Drop it.
+          dropUnsavedRow(root, row);
+        } else {
+          // Saved row: mark it, don't submit yet.
+          markRowRemoved(row);
+        }
+        return;
+      }
+
+      const undoButton = event.target.closest('[data-repeater-undo]');
+      if (undoButton) {
+        event.preventDefault();
+        const row = undoButton.closest('[data-repeater-row]');
+        if (row) unmarkRowRemoved(row);
         return;
       }
 
       const upButton = event.target.closest('[data-repeater-move-up]');
       if (upButton) {
         event.preventDefault();
-        moveRow(root, upButton.dataset.repeaterMoveUp, 'up');
+        const row = upButton.closest('[data-repeater-row]');
+        moveRow(root, row, 'up');
         return;
       }
 
       const downButton = event.target.closest('[data-repeater-move-down]');
       if (downButton) {
         event.preventDefault();
-        moveRow(root, downButton.dataset.repeaterMoveDown, 'down');
+        const row = downButton.closest('[data-repeater-row]');
+        moveRow(root, row, 'down');
       }
     });
 
@@ -168,12 +283,28 @@ working without any custom endpoints.
         checkDependencies(root, event.target.closest('[data-repeater-row]'));
       });
     });
+
+    // Before the form submits (Save & Next / Back / Skip / Save Changes),
+    // translate any "removed" visual marks into real hidden inputs the
+    // backend understands.
+    const form = root.closest('form');
+    if (form) {
+      form.addEventListener('submit', function () {
+        flushRemoveFlags(form, root);
+        // Clear the legacy move input - reordering is now derived from the
+        // submitted DOM order, not from a single "move" value.
+        const moveInput = root.querySelector('[data-repeater-move]');
+        if (moveInput) moveInput.value = '';
+      });
+    }
   }
 
   function init() {
     document.querySelectorAll('[data-repeater]').forEach(function (root) {
       bind(root);
       renumber(root);
+      // A new repeater's dependency visibility starts correct even without clicks.
+      checkDependencies(root, null);
     });
   }
 

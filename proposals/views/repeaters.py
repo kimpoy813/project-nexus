@@ -357,16 +357,27 @@ def _save_proponent_rows(proposal, form, request):
     row_count = _posted_row_count(form, request)
     post_parent_values = dynamic_parent_values_from_post([form], request)
 
+    # save_repeater_rows() already ran _apply_row_commands() (which deletes
+    # rows the user marked "Removed on save"), so query after that to avoid
+    # processing rows that are about to go away.
     existing = {row.id: row for row in proposal.proponents.all()}
     missing = []
     explicit_role_ids = set()
     saved_count = len(existing)
     next_sort = max([row.sort_order or 0 for row in existing.values()], default=0)
+    # Track ids we've seen so each row only saves once (the POST is indexed by
+    # screen position, not by row id).
+    seen_ids = set()
 
     for index in range(row_count):
         row_id = _to_int(request.POST.get(_row_id_input(form, index)))
         values = _row_values(form, request, index, editable_fields)
-        proponent = existing.get(row_id)
+        proponent = existing.get(row_id) if row_id else None
+
+        # Skip rows already removed by the browser-side "Remove on save" flag
+        # (their values are disabled so empty, but guard here for safety).
+        if proponent and row_id in set(_int_list(request.POST.getlist(_remove_input(form)))):
+            continue
 
         if proponent is None:
             if not _row_has_content(values):
@@ -383,6 +394,13 @@ def _save_proponent_rows(proposal, form, request):
                 sort_order=next_sort,
             )
             saved_count += 1
+        else:
+            if row_id in seen_ids:
+                continue
+            seen_ids.add(row_id)
+            # Reorder based on the submitted position - this is what makes
+            # client-side ↑/↓ actually persist without an extra round-trip.
+            proponent.sort_order = index + 1
 
         missing.extend(
             _row_missing_labels(
@@ -428,20 +446,27 @@ def _save_generic_rows(proposal, form, request, user):
     row_count = _posted_row_count(form, request)
     post_parent_values = dynamic_parent_values_from_post([form], request)
 
+    # save_repeater_rows() already called _apply_row_commands() which deleted
+    # any rows the user marked "Removed on save", so query after that.
     response, _ = DynamicFormResponse.objects.get_or_create(
         form=form,
         proposal=proposal,
         defaults={"submitted_by": user if getattr(user, "is_authenticated", False) else None},
     )
     existing = {row.id: row for row in response.rows.all()}
+    removed_ids = set(_int_list(request.POST.getlist(_remove_input(form))))
 
     missing = []
-    saved_count = len(existing)
+    saved_count = len(existing) - len(removed_ids)
+    seen_ids = set()
 
     for index in range(row_count):
         row_id = _to_int(request.POST.get(_row_id_input(form, index)))
         values = _row_values(form, request, index, fields)
-        row = existing.get(row_id)
+        row = existing.get(row_id) if row_id else None
+
+        if row and row_id in removed_ids:
+            continue
 
         if row is None:
             if not _row_has_content(values):
@@ -451,8 +476,12 @@ def _save_generic_rows(proposal, form, request, user):
                     f"{form.name}: a maximum of {form.max_rows} {form.row_label.lower()} row(s) is allowed."
                 )
                 continue
-            row = DynamicFormRow(response=response, row_index=saved_count + 1)
+            row = DynamicFormRow(response=response, row_index=index + 1)
             saved_count += 1
+        else:
+            if row_id in seen_ids:
+                continue
+            seen_ids.add(row_id)
 
         missing.extend(
             _row_missing_labels(form, index, values, fields, _fallback_parent(post_parent_values))
