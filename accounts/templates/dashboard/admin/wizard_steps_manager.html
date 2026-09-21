@@ -6,7 +6,7 @@
     <div>
       <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Wizard Manager</p>
       <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Proposal Wizard Steps</h1>
-      <p class="mt-2 text-sm text-gray-600">Rename steps, change instructions, hide optional steps, and decide which steps are required for submission.</p>
+      <p class="mt-2 text-sm text-gray-600">Rename steps, change instructions, hide optional steps, and decide which steps are required for submission. Drag a row to change the sequence proponents walk through.</p>
     </div>
     <div class="flex flex-wrap gap-2">
       <a href="{% url 'wizard_step_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Add New Step</a>
@@ -14,20 +14,31 @@
     </div>
   </div>
 
+  {% csrf_token %}
+  <p id="wizard-order-status" class="mb-3 text-xs font-semibold text-gray-500">Drag a row by the handle to change the sequence.</p>
+
   <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-100">
         <thead><tr>
+          <th class="px-4 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500 w-12"><span class="sr-only">Reorder</span></th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Step</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Title / Description</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Visible</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Required</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Action</th>
         </tr></thead>
-        <tbody class="divide-y divide-gray-100">
+        <tbody id="wizard-steps-list" class="divide-y divide-gray-100">
           {% for step in steps %}
-          <tr>
-            <td class="px-6 py-4 text-sm font-black text-primary">{{ step.step_no }}</td>
+          <tr class="bg-white" data-step-no="{{ step.step_no }}">
+            <td class="px-4 py-4">
+              <button type="button" class="js-step-handle cursor-grab active:cursor-grabbing rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700" title="Drag to reorder" aria-label="Drag to reorder step {{ forloop.counter }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M7 5a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 11a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 17a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2z" />
+                </svg>
+              </button>
+            </td>
+            <td class="px-6 py-4 text-sm font-black text-primary"><span class="js-step-position">{{ forloop.counter }}</span></td>
             <td class="px-6 py-4">
               <p class="font-bold text-gray-900">{{ step.title }}</p>
               <p class="text-xs text-gray-500">{{ step.description }}</p>
@@ -57,4 +68,62 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+  var list = document.getElementById("wizard-steps-list");
+  if (!list || typeof Sortable === "undefined") return;
+
+  var statusEl = document.getElementById("wizard-order-status");
+  var csrfToken = document.querySelector("[name=csrfmiddlewaretoken]");
+  var reorderUrl = "{% url 'wizard_steps_reorder' %}";
+
+  function setStatus(text, kind) {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.className = "mb-3 text-xs font-semibold " + (
+      kind === "ok" ? "text-green-700" : kind === "err" ? "text-red-700" : "text-gray-500"
+    );
+  }
+
+  function renumber() {
+    list.querySelectorAll(".js-step-position").forEach(function (el, index) {
+      el.textContent = String(index + 1);
+    });
+  }
+
+  new Sortable(list, {
+    handle: ".js-step-handle",
+    animation: 150,
+    ghostClass: "bg-primary/5",
+    onEnd: function () {
+      renumber();
+      var stepNos = Array.prototype.map.call(
+        list.querySelectorAll("[data-step-no]"),
+        function (row) { return Number(row.getAttribute("data-step-no")); }
+      );
+      setStatus("Saving order…");
+      fetch(reorderUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrfToken ? csrfToken.value : ""
+        },
+        body: JSON.stringify({ step_nos: stepNos })
+      }).then(function (response) {
+        if (!response.ok) throw new Error("save failed");
+        return response.json();
+      }).then(function (data) {
+        if (data && data.ok) setStatus("Order saved. This is the sequence proponents will see.", "ok");
+        else throw new Error("save failed");
+      }).catch(function () {
+        setStatus("Could not save the new order. Reload the page and try again.", "err");
+      });
+    }
+  });
+})();
+</script>
 {% endblock %}

@@ -19,7 +19,7 @@
                 {% else %}
                     <span class="adm-pill adm-pill--ok">Site online</span>
                 {% endif %}
-                <a href="{% url 'admin_create_account' %}" class="adm-btn-primary">Create Account</a>
+                <a href="{% url 'admin_create_account' %}" class="adm-btn-primary" data-nx-skeleton="form">Create Account</a>
             </div>
         </header>
 
@@ -187,7 +187,7 @@
                                 </td>
                                 <td class="adm-td text-sm text-slate-600">{{ profile.campus|default:"—" }}</td>
                                 <td class="adm-td">
-                                    <form method="POST" action="{% url 'manage_roles' %}">
+                                    <form method="POST" action="{% url 'manage_roles' %}" data-nx-skeleton="dashboard">
                                         {% csrf_token %}
                                         <input type="hidden" name="user_id" value="{{ profile.user.id }}">
                                         <select name="role" onchange="this.form.submit()" class="adm-input adm-input--sm">
@@ -207,9 +207,9 @@
                                     </span>
                                 </td>
                                 <td class="adm-td text-right whitespace-nowrap">
-                                    <a href="{% url 'admin_user_detail' profile.user.id %}" class="adm-link">View</a>
+                                    <a href="{% url 'admin_user_detail' profile.user.id %}" class="adm-link" data-nx-skeleton="record">View</a>
                                     <span class="mx-1.5 text-slate-200">|</span>
-                                    <a href="{% url 'admin_edit_user' profile.user.id %}" class="adm-link">Edit</a>
+                                    <a href="{% url 'admin_edit_user' profile.user.id %}" class="adm-link" data-nx-skeleton="form">Edit</a>
                                 </td>
                             </tr>
                             {% empty %}
@@ -416,7 +416,7 @@
              SITE SETTINGS
         ================================================================ -->
         <section class="adm-panel hidden" data-tab-panel="settings">
-            <form method="POST" action="{% url 'admin_site_control' %}">
+            <form method="POST" action="{% url 'admin_site_control' %}" data-nx-skeleton="dashboard">
                 {% csrf_token %}
 
                 <div class="adm-card mb-5">

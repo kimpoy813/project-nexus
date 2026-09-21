@@ -10,7 +10,7 @@ can see and do — so they keep holding if the wizard is later split into
 smaller functions.
 """
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from accounts.models import Profile
@@ -235,6 +235,74 @@ class PhaseManagementAccessTests(TestCase):
             with self.subTest(url=name):
                 response = self.client.get(reverse(name, args=[self.proposal.id]))
                 self.assertIn(response.status_code, DENIED)
+
+
+class WizardInPageNavigationTests(TestCase):
+    """Step changes stay inside the wizard instead of reloading the site.
+
+    The server still renders a full page (so no-JS browsers work). The
+    in-page navigator in ``static/js/nexus-wizard.js`` swaps ``#nx-wizard-root``
+    for stepper clicks and Save/Back/Skip posts. These tests pin the markup
+    and the controller that make that possible, plus that a save still lands
+    on the server.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = factories.make_user("wiz_nav", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.proposal = Proposal.objects.create(created_by=self.owner)
+        self.client_owner = factories.make_client(self.owner)
+
+    def _url(self, step=1):
+        return reverse("proposal_wizard", args=[self.proposal.id, step])
+
+    def test_the_wizard_marks_its_body_for_in_page_swaps(self):
+        html = self.client_owner.get(self._url()).content.decode()
+        self.assertIn('id="nx-wizard-root"', html)
+        self.assertIn("data-nx-wizard", html)
+        self.assertIn("js/nexus-wizard.js", html)
+        self.assertIn("wizard-stepper-scroll", html)
+
+    def test_saving_a_step_still_persists_on_the_server(self):
+        response = self.client_owner.post(
+            self._url(1),
+            {
+                "action": "next",
+                "extension_type": "REQUEST_BASED",
+                "scope_type": "PROJECT",
+                "proposal_format": "TRAINING_DESIGN",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.extension_type, "REQUEST_BASED")
+        self.assertEqual(self.proposal.scope_type, "PROJECT")
+        self.assertIn("/edit/step/", response["Location"])
+
+
+class WizardNavigatorAssetTests(SimpleTestCase):
+    """The in-page wizard controller keeps the hooks the templates rely on."""
+
+    def test_the_controller_intercepts_wizard_links_and_forms(self):
+        from pathlib import Path
+        from django.conf import settings
+
+        path = Path(settings.BASE_DIR) / "static" / "js" / "nexus-wizard.js"
+        self.assertTrue(path.exists(), "nexus-wizard.js is missing")
+        js = path.read_text(encoding="utf-8")
+        for marker in (
+            "nx-wizard-root",
+            "isWizardUrl",
+            "FormData",
+            "pushState",
+            "popstate",
+            "NexusWizard",
+            "activateScripts",
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, js)
 
 
 class ProposalListingTests(TestCase):

@@ -105,6 +105,7 @@ def _wizard_step_config_map():
                     description=item["desc"],
                     is_visible=True,
                     is_required=True,
+                    display_order=item["no"],
                 )
             )
         if to_create:
@@ -117,43 +118,65 @@ def _wizard_step_config_map():
     return {item.step_no: item for item in ProposalWizardStepConfig.objects.all()}
 
 
+def _wizard_steps_in_sequence(visible_only=False, required_only=False):
+    qs = ProposalWizardStepConfig.objects.all()
+    if visible_only:
+        qs = qs.filter(is_visible=True)
+    if required_only:
+        qs = qs.filter(is_required=True)
+    return qs.order_by("display_order", "step_no")
+
+
 def get_visible_wizard_step_numbers():
-    return [
-        item.step_no
-        for item in ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
-    ] or [1]
+    return list(_wizard_steps_in_sequence(visible_only=True).values_list("step_no", flat=True)) or [1]
 
 
 def get_required_wizard_step_numbers():
-    return [
-        item.step_no
-        for item in ProposalWizardStepConfig.objects.filter(is_visible=True, is_required=True).order_by("step_no")
-    ]
+    return list(
+        _wizard_steps_in_sequence(visible_only=True, required_only=True).values_list(
+            "step_no", flat=True
+        )
+    )
 
 
 def normalize_wizard_step(step):
     visible = get_visible_wizard_step_numbers()
     if step in visible:
         return step
+    ordered = list(_wizard_steps_in_sequence().values_list("step_no", flat=True))
+    if step in ordered:
+        idx = ordered.index(step)
+        for no in ordered[idx + 1:]:
+            if no in visible:
+                return no
+        for no in reversed(ordered[:idx]):
+            if no in visible:
+                return no
     for no in visible:
-        if no > step:
+        if no >= step:
             return no
     return visible[-1]
 
 
 def next_visible_wizard_step(step):
     visible = get_visible_wizard_step_numbers()
-    for no in visible:
-        if no > step:
-            return no
+    try:
+        idx = visible.index(step)
+    except ValueError:
+        return visible[0] if visible else None
+    if idx + 1 < len(visible):
+        return visible[idx + 1]
     return None
 
 
 def previous_visible_wizard_step(step):
-    visible = list(reversed(get_visible_wizard_step_numbers()))
-    for no in visible:
-        if no < step:
-            return no
+    visible = get_visible_wizard_step_numbers()
+    try:
+        idx = visible.index(step)
+    except ValueError:
+        return None
+    if idx > 0:
+        return visible[idx - 1]
     return None
 
 
@@ -285,7 +308,7 @@ def build_wizard_steps(proposal, current_step, comment_counts=None):
     completed = set(proposal.completed_steps or [])
     skipped = set(proposal.skipped_steps or [])
     comment_counts = comment_counts or {}
-    configs = ProposalWizardStepConfig.objects.filter(is_visible=True).order_by("step_no")
+    configs = _wizard_steps_in_sequence(visible_only=True)
 
     steps = []
     for config in configs:
@@ -349,12 +372,15 @@ def proposal_create(request):
 
     profile = getattr(request.user, "profile", None)
 
+    _wizard_step_config_map()
+    first_step = get_visible_wizard_step_numbers()[0]
+
     proposal = Proposal.objects.create(
         created_by=request.user,
         campus=getattr(profile, "campus", "") or "",
         college=getattr(profile, "college", "") or "",
         department=getattr(profile, "department", "") or "",
-        current_step=1,
+        current_step=first_step,
     )
 
     ProposalProponent.objects.get_or_create(
@@ -368,7 +394,7 @@ def proposal_create(request):
     )
 
     _update_creator_role(proposal)
-    return redirect("proposal_wizard", proposal_id=proposal.id, step=1)
+    return redirect("proposal_wizard", proposal_id=proposal.id, step=first_step)
 
 
 def _sidebar_comment_counts(proposal, current_round):

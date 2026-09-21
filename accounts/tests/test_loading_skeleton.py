@@ -24,11 +24,18 @@ These tests pin the things that are easy to break:
 * the controller keeps its opt-out hooks and reduced-motion handling.
 """
 
+import json
+import re
+import shutil
+import subprocess
+import tempfile
+import uuid
 from pathlib import Path
 
 from django.conf import settings
 from django.test import RequestFactory, SimpleTestCase, TestCase
-from django.urls import ResolverMatch, reverse
+from django.urls import NoReverseMatch, ResolverMatch, get_resolver, resolve, reverse
+from django.urls.resolvers import URLPattern, URLResolver
 
 from accounts import context_processors
 from accounts.models import Profile
@@ -224,6 +231,11 @@ class PageSkeletonVariantTests(SkeletonVariantAssertions, TestCase):
         form_url = reverse("wizard_step_edit", args=[1])
         self.assertSkeletonVariant(admin_client.get(list_url), "list", where=list_url)
         self.assertSkeletonVariant(admin_client.get(form_url), "form", where=form_url)
+        self.assertSkeletonVariant(
+            admin_client.get(reverse("admin_create_account")),
+            "form",
+            where="admin create account",
+        )
 
     def test_accomplishment_report_screens_split_into_list_and_form(self):
         coordinator = factories.make_user(
@@ -290,8 +302,13 @@ class SkeletonVariantResolverTests(SimpleTestCase):
             "details_page": "marketing",
             "services_home": "marketing",
             "login": "auth",
+            "logout": "auth",
+            "logout_idle": "auth",
             "password_reset_confirm": "auth",
             "director_dashboard": "dashboard",
+            "admin_edit_user": "form",
+            "admin_create_account": "form",
+            "admin_site_control": "dashboard",
             "proposal_wizard": "wizard",
             "proposal_moa_tracker": "tracker",
             "manage_roles": "record",
@@ -320,9 +337,12 @@ class SkeletonVariantResolverTests(SimpleTestCase):
         self.assertEqual(self._variant_for("admin_content_dashboard"), "record")
 
     def test_unmatched_routes_fall_back_by_area_then_default(self):
-        self.assertEqual(self._variant_for("brand_new_thing", "/somewhere/new/"), "record")
+        self.assertEqual(self._variant_for("brand_new_thing", "/somewhere/else/"), "record")
         self.assertEqual(self._variant_for("", "/dashboard/something-new/"), "dashboard")
         self.assertEqual(self._variant_for("", "/admin/something-new/"), "list")
+        # CRUD path endings beat the /admin/ list prefix when the url name is unknown.
+        self.assertEqual(self._variant_for("", "/admin/widgets/1/edit/"), "form")
+        self.assertEqual(self._variant_for("", "/admin/widgets/new/"), "form")
 
     def test_a_request_without_a_resolved_route_never_raises(self):
         """Runs on error pages too, where nothing matched."""
@@ -376,3 +396,184 @@ class SkeletonLayoutMarkupTests(SimpleTestCase):
         self.assertIn("data-nx-variant", js)
         # `?nx-skeleton` holds the overlay up so a layout can be reviewed.
         self.assertIn("nx-skeleton", js)
+        # Navigation paints the page being gone *to*, not the one being left.
+        self.assertIn("variantForPath", js)
+        self.assertIn("POST /login/", js)
+        self.assertIn('p === "/logout"', js)
+        # In-wizard step changes are not a page load, so they must not cover the site.
+        self.assertIn("[data-nx-wizard]", js)
+
+
+class SkeletonDestinationTests(TestCase):
+    """Navigation must paint the *next* page, not the current one.
+
+    The login form posts back to itself, so without a destination hint the
+    overlay would keep the auth layout while the dashboard is loading. Logout
+    is a GET of the current session that then redirects to login, so without
+    a hint it would keep whatever page the user was on. The same pattern
+    applies to every other POST-then-redirect form in the system.
+    """
+
+    def test_login_form_declares_the_dashboard_it_redirects_to(self):
+        html = self.client.get(reverse("login")).content.decode()
+        self.assertRegex(html, r"<form[^>]*data-nx-skeleton=\"dashboard\"")
+
+    def test_register_form_stays_on_the_auth_family(self):
+        html = self.client.get(reverse("register")).content.decode()
+        self.assertRegex(html, r"<form[^>]*data-nx-skeleton=\"auth\"")
+
+    def test_logout_links_declare_the_auth_screen_they_redirect_to(self):
+        user = factories.make_user("skel_logout", Profile.ROLE_FACULTY)
+        html = factories.make_client(user).get("/").content.decode()
+        tags = re.findall(r"<a\b[^>]*href=\"[^\"]*logout[^\"]*\"[^>]*>", html, flags=re.I)
+        self.assertGreaterEqual(len(tags), 2, "desktop and mobile logout links")
+        for tag in tags:
+            self.assertIn('data-nx-skeleton="auth"', tag, tag)
+
+    def test_idle_logout_paints_the_auth_skeleton_before_redirecting(self):
+        user = factories.make_user("skel_idle", Profile.ROLE_FACULTY)
+        html = factories.make_client(user).get("/").content.decode()
+        self.assertIn('NexusSkeleton.show("auth")', html)
+
+    def test_brand_home_link_declares_the_marketing_landing(self):
+        html = self.client.get("/").content.decode()
+        self.assertRegex(html, r"<a[^>]*aria-label=\"NExUS Home\"[^>]*data-nx-skeleton=\"marketing\"")
+
+    def test_profile_edit_form_declares_the_record_it_redirects_to(self):
+        user = factories.make_user("skel_profile_dest", Profile.ROLE_FACULTY)
+        html = factories.make_client(user).get(reverse("profile_edit")).content.decode()
+        self.assertRegex(html, r"<form[^>]*data-nx-skeleton=\"record\"")
+
+    def test_admin_create_account_form_declares_the_dashboard_it_redirects_to(self):
+        _, admin_client = factories.admin()
+        html = admin_client.get(reverse("admin_create_account")).content.decode()
+        self.assertRegex(html, r"<form[^>]*data-nx-skeleton=\"dashboard\"")
+
+    def test_admin_dashboard_post_bounces_paint_the_dashboard(self):
+        _, admin_client = factories.admin()
+        html = admin_client.get(reverse("admin_dashboard")).content.decode()
+        self.assertRegex(html, r"<form[^>]*action=\"[^\"]*manage-roles[^\"]*\"[^>]*data-nx-skeleton=\"dashboard\"")
+        self.assertRegex(html, r"<form[^>]*action=\"[^\"]*site-control[^\"]*\"[^>]*data-nx-skeleton=\"dashboard\"")
+
+    def test_services_start_proposal_declares_the_wizard(self):
+        html = self.client.get(reverse("services_home")).content.decode()
+        self.assertRegex(html, r"<a[^>]*href=\"[^\"]*proposals/new[^\"]*\"[^>]*data-nx-skeleton=\"wizard\"")
+
+
+_JS_DEST_HARNESS = r"""
+const fs = require("fs");
+const src = fs.readFileSync(process.argv[2], "utf8");
+const start = src.indexOf("function normalizePath");
+const end = src.indexOf("function variantForUrl");
+if (start < 0 || end < 0) {
+  console.error("could not extract functions", start, end);
+  process.exit(1);
+}
+eval(src.slice(start, end));
+const paths = JSON.parse(fs.readFileSync(0, "utf8"));
+const out = {};
+for (const p of paths) out[p] = variantForPath(p);
+process.stdout.write(JSON.stringify(out));
+"""
+
+
+def _walk_named_patterns(resolver, found):
+    for pattern in resolver.url_patterns:
+        if isinstance(pattern, URLResolver):
+            _walk_named_patterns(pattern, found)
+        elif isinstance(pattern, URLPattern) and pattern.name:
+            found.append(pattern)
+
+
+_SAMPLE_KWARGS = {
+    "proposal_id": uuid.UUID("11111111-1111-1111-1111-111111111111"),
+    "step": 1,
+    "pk": 1,
+    "user_id": 1,
+    "step_no": 1,
+    "evaluator_id": 1,
+    "uidb64": "MQ",
+    "token": "abc-def",
+    "slug": "home",
+    "round_no": 1,
+    "file_type": "docx",
+    "attachment_id": 1,
+    "document_type": "endorsement",
+}
+
+
+def _sample_kwargs(pattern):
+    converters = getattr(pattern.pattern, "converters", None) or {}
+    return {name: _SAMPLE_KWARGS[name] for name in converters if name in _SAMPLE_KWARGS}
+
+
+class SkeletonClientDestinationParityTests(SimpleTestCase):
+    """Every named app URL: JS dest inference matches the Python page layout.
+
+    The overlay on the way *out* is keyed by path (the click only has a URL).
+    The overlay on the way *in* is keyed by Django url name. If those two
+    disagree, login/logout-style bugs reappear on whichever screen drifted.
+    """
+
+    def test_js_path_rules_match_python_for_every_named_url(self):
+        if not shutil.which("node"):
+            self.skipTest("node is required to evaluate variantForPath")
+
+        patterns = []
+        _walk_named_patterns(get_resolver(), patterns)
+
+        paths = {}
+        for pattern in patterns:
+            try:
+                path = reverse(pattern.name, kwargs=_sample_kwargs(pattern))
+            except NoReverseMatch:
+                continue
+            paths.setdefault(path, pattern.name)
+
+        self.assertGreater(len(paths), 80, "too few named URLs reversed; walker is broken")
+
+        loader = Path(settings.BASE_DIR) / "static" / "js" / "nexus-loader.js"
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as harness:
+            harness.write(_JS_DEST_HARNESS)
+            harness_path = harness.name
+        try:
+            proc = subprocess.run(
+                ["node", harness_path, str(loader)],
+                input=json.dumps(list(paths)).encode(),
+                capture_output=True,
+                check=False,
+            )
+        finally:
+            Path(harness_path).unlink(missing_ok=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr.decode())
+        js_map = json.loads(proc.stdout)
+
+        factory = RequestFactory()
+        mismatches = []
+        for path, name in paths.items():
+            request = factory.get(path)
+            try:
+                request.resolver_match = resolve(path)
+            except Exception:
+                request.resolver_match = None
+            python = context_processors._resolve_skeleton_variant(request)
+            javascript = js_map.get(path)
+            if python != javascript:
+                mismatches.append(f"{name} {path} py={python} js={javascript}")
+        self.assertEqual(mismatches, [], "JS dest != Python layout:\n" + "\n".join(mismatches))
+
+    def test_controller_covers_the_paths_that_used_to_drift(self):
+        js = (Path(settings.BASE_DIR) / "static" / "js" / "nexus-loader.js").read_text(
+            encoding="utf-8"
+        )
+        for marker in (
+            'p === "/logout"',
+            "/(create|edit|new)$",
+            "/admin/pages/",
+            "/admin/create-account",
+            "/admin/site-control",
+            'normalizePath(path) === "/login" && method === "POST"',
+            'normalizePath(path) === "/manage-roles" && method === "POST"',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, js)

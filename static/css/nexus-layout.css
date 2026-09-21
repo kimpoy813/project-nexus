@@ -166,6 +166,16 @@
 }
 .nexus-wizard-layout > * { min-width: 0; }
 
+/* In-page step changes dim the rails instead of covering the whole screen. */
+#nx-wizard-root.is-nx-wizard-loading {
+  pointer-events: none;
+  opacity: 0.62;
+  transition: opacity 120ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  #nx-wizard-root.is-nx-wizard-loading { transition: none; }
+}
+
 /* ── Tables and long content ────────────────────────────────────────────── */
 /* Wide tables scroll inside their card instead of pushing the page wider. */
 .nx-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }

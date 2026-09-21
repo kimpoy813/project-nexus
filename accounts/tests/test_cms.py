@@ -36,10 +36,10 @@ class SeedDataTests(TestCase):
         self.assertEqual(slugs, {"home", "services", "reports", "achievements"})
 
     def test_home_thrust_cards_are_seeded(self):
-        self.assertEqual(HomeThrust.objects.count(), 14)
+        self.assertEqual(HomeThrust.objects.count(), 8)
         self.assertEqual(
             HomeThrust.objects.order_by("order").first().title,
-            "Indigenous Heritage Protection",
+            "Sustainable Community Development and Livelihood Enhancement",
         )
 
     def test_isem_ni_aran_is_seeded_as_the_thrust_subtitle(self):
@@ -75,7 +75,7 @@ class PublicPageTests(TestCase):
     def test_home_renders_the_seeded_thrust_cards(self):
         response = self.client.get("/")
         self.assertContains(response, "Isem Ni Aran")
-        self.assertContains(response, "Indigenous Heritage Protection")
+        self.assertContains(response, "Sustainable Community Development and Livelihood Enhancement")
 
 
 class PageContentEditorTests(TestCase):

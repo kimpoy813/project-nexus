@@ -181,6 +181,7 @@ urlpatterns = [
 
     path("admin/wizard-steps/", views.wizard_steps_manager, name="wizard_steps_manager"),
     path("admin/wizard-steps/create/", views.wizard_step_create, name="wizard_step_create"),
+    path("admin/wizard-steps/reorder/", views.wizard_steps_reorder, name="wizard_steps_reorder"),
     path("admin/wizard-steps/<int:step_no>/edit/", views.wizard_step_edit, name="wizard_step_edit"),
     path("admin/wizard-steps/<int:step_no>/delete/", views.wizard_step_delete, name="wizard_step_delete"),
     path("admin/role-capabilities/", views.role_capabilities_manager, name="role_capabilities_manager"),

@@ -15,9 +15,9 @@
       </p>
     </div>
     <div class="flex gap-2">
-      <a href="{% url 'dashboard_redirect' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Dashboard</a>
+      <a href="{% url 'dashboard_redirect' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50" data-nx-skeleton="dashboard">Dashboard</a>
       {% if can_submit_accomplishment %}
-        <a href="{% url 'accomplishment_report_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Submit Report</a>
+        <a href="{% url 'accomplishment_report_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary" data-nx-skeleton="form">Submit Report</a>
       {% endif %}
     </div>
   </div>

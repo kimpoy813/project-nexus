@@ -5,7 +5,8 @@
             <p class="text-sm text-gray-500">Manage your drafts and submitted extension proposals.</p>
         </div>
         <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800">
+           class="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800"
+           data-nx-skeleton="wizard">
             + New Proposal
         </a>
     </div>
@@ -51,7 +52,8 @@
                                     </p>
                                 </div>
                                 <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-                                   class="text-green-700 font-medium hover:underline">
+                                   class="text-green-700 font-medium hover:underline"
+                                   data-nx-skeleton="wizard">
                                     Continue
                                 </a>
                             </div>
@@ -86,7 +88,8 @@
 
                                 {% if proposal.requires_moa and proposal.moa_status != "NOT_STARTED" %}
                                     <a href="{% url 'proposal_moa_tracker' proposal.id %}"
-                                       class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                                       class="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                                       data-nx-skeleton="tracker">
                                         MOA: {{ proposal.get_moa_status_display }} ({{ proposal.moa_progress }}%)
                                     </a>
                                     <br>

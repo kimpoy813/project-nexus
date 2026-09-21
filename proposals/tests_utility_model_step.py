@@ -108,6 +108,24 @@ class ExtensionAgendaRenameTests(TestCase):
         self.assertContains(response, "ISPSC Extension Agenda")
         self.assertNotContains(response, "ISPSC Extension Thrust")
 
+    def test_step_six_offers_the_current_extension_agenda(self):
+        response = self.client_owner.get(reverse("proposal_wizard", args=[self.proposal.id, 6]))
+        self.assertEqual(response.status_code, 200)
+        for name in (
+            "Sustainable Community Development and Livelihood Enhancement",
+            "Agriculture, Fisheries, and Food Security Extension",
+            "Environmental Conservation and Climate Resilience",
+            "Education, Literacy, and Human Resource Development",
+            "Health, Nutrition, and Wellness Promotion",
+            "Technology Transfer and Innovation Extension",
+            "Governance, Policy Advocacy, and Institutional Partnership",
+            "Cultural Preservation and Social Inclusion",
+        ):
+            with self.subTest(agenda=name):
+                self.assertContains(response, name)
+        self.assertNotContains(response, "Indigenous Heritage Protection")
+        self.assertNotContains(response, "IP-TBM Office Establishment")
+
     def test_the_sidebar_shows_utility_model_right_after_extension_agenda(self):
         response = self.client_owner.get(reverse("proposal_wizard", args=[self.proposal.id, 6]))
         html = response.content.decode()
@@ -128,11 +146,11 @@ class ExtensionAgendaRenameTests(TestCase):
             {
                 "action": "next",
                 "sdg_codes": ["01"],
-                "thrust_names": ["Environmental Protection"],
+                "thrust_names": ["Environmental Conservation and Climate Resilience"],
                 # These legacy names must not be persisted if sent by an old
                 # client or a stale browser tab.
                 "sdg_explanation_01": "Legacy SDG explanation",
-                "thrust_explanation_Environmental Protection": "Legacy agenda explanation",
+                "thrust_explanation_Environmental Conservation and Climate Resilience": "Legacy agenda explanation",
             },
         )
         self.assertRedirects(
@@ -143,7 +161,8 @@ class ExtensionAgendaRenameTests(TestCase):
         self.assertTrue(ProposalSDG.objects.filter(proposal=self.proposal, sdg_code="01").exists())
         self.assertTrue(
             ProposalThrust.objects.filter(
-                proposal=self.proposal, thrust_name="Environmental Protection"
+                proposal=self.proposal,
+                thrust_name="Environmental Conservation and Climate Resilience",
             ).exists()
         )
 

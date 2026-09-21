@@ -415,7 +415,12 @@ class DynamicFormRow(models.Model):
 
 
 class ProposalWizardStepConfig(models.Model):
-    """Admin overrides for the built-in 20 proposal wizard steps."""
+    """Admin overrides for the built-in 20 proposal wizard steps.
+
+    ``step_no`` is the stable identity of a step (URLs, native forms,
+    attached dynamic fields). ``display_order`` is the sequence proponents
+    walk through, and is what the admin list's drag-and-drop edits.
+    """
 
     step_no = models.PositiveSmallIntegerField(unique=True)
     title = models.CharField(max_length=160)
@@ -423,13 +428,25 @@ class ProposalWizardStepConfig(models.Model):
     instructions = models.TextField(blank=True, default="")
     is_visible = models.BooleanField(default=True)
     is_required = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Position in the proposal wizard. Lower numbers appear first.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["step_no"]
+        ordering = ["display_order", "step_no"]
 
     def __str__(self):
         return f"Step {self.step_no}: {self.title}"
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and not self.display_order:
+            last = ProposalWizardStepConfig.objects.aggregate(Max("display_order"))[
+                "display_order__max"
+            ]
+            self.display_order = (last or 0) + 1
+        super().save(*args, **kwargs)
 
 
 class RoleCapability(models.Model):

@@ -134,6 +134,7 @@ from .builders import (  # noqa: F401
     wizard_step_delete,
     wizard_step_edit,
     wizard_steps_manager,
+    wizard_steps_reorder,
     _save_dynamic_form_fields,
     _sync_default_role_capabilities,
     _sync_default_wizard_step_configs,
@@ -267,5 +268,6 @@ __all__ = [
     "wizard_step_delete",
     "wizard_step_edit",
     "wizard_steps_manager",
+    "wizard_steps_reorder",
     "workflow_phases_manager",
 ]

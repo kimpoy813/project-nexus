@@ -110,10 +110,13 @@ _SKELETON_BY_URL_NAME.update(dict.fromkeys(
 ))
 _SKELETON_BY_URL_NAME.update(dict.fromkeys(
     # Every screen built on `.nx-auth`: brand panel left, form card right.
+    # Logout never renders a page of its own — it redirects to login — so the
+    # skeleton painted *on the way out* must be the auth screen, not whatever
+    # the user was looking at.
     (
         "login", "register", "debug_login", "verify_email", "change_password",
         "password_reset", "password_reset_done", "password_reset_confirm",
-        "password_reset_complete",
+        "password_reset_complete", "logout", "logout_idle",
     ),
     "auth",
 ))
@@ -149,6 +152,16 @@ _SKELETON_BY_URL_NAME.update(dict.fromkeys(
         "proposal_version_summary", "admin_content_dashboard",
     ),
     "record",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # Field-grid screens whose url names do not end in `_create` / `_edit`.
+    ("admin_edit_user", "admin_create_account"),
+    "form",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # POST endpoints that bounce straight back to a role dashboard.
+    ("admin_site_control",),
+    "dashboard",
 ))
 
 #: Name endings that reliably identify the two admin CRUD shapes. They are
@@ -193,6 +206,10 @@ def _resolve_skeleton_variant(request):
                 return candidate
 
         path = getattr(request, "path", "") or ""
+        stripped = path.rstrip("/")
+        if stripped.endswith(("/edit", "/new", "/create")):
+            return "form"
+
         for prefix, candidate in _SKELETON_PATH_PREFIXES:
             if path.startswith(prefix):
                 return candidate
