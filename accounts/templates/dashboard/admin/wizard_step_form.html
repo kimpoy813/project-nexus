@@ -43,53 +43,11 @@
 
     {% include "dashboard/admin/_repeater_settings.html" %}
 
-    {% if builtin_logic %}
-    <!-- BUILT-IN STEP LOGIC -->
-    <section class="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-      <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Built-in step logic</p>
-      <h2 class="mt-1 text-base font-black text-gray-900">What this step already asks for</h2>
-      <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <p class="text-xs font-bold text-gray-600 mb-1.5">Hardcoded inputs on this step</p>
-          <ul class="space-y-1">
-            {% for item in builtin_logic.inputs %}
-              <li class="text-xs text-gray-700 flex gap-2"><span class="text-primary font-black">&bull;</span><span>{{ item }}</span></li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs font-bold text-gray-600 mb-1.5">When the step counts as complete</p>
-          <p class="text-xs leading-5 text-gray-700">{{ builtin_logic.completion }}</p>
-          {% if builtin_keys %}
-            <p class="mt-3 text-xs font-bold text-gray-600 mb-1.5">Editing the built-in inputs</p>
-            <p class="text-xs leading-5 text-gray-700">
-              Fields below whose <span class="font-bold">Key</span> matches one of these edit the existing hardcoded input
-              (its label, placeholder, help text, choices, required mark) instead of adding a new question:
-            </p>
-            <div class="mt-1.5 flex flex-wrap gap-1.5">
-              {% for key in builtin_keys %}
-                <code class="rounded-lg bg-white border border-primary/20 px-2 py-0.5 text-[11px] font-bold text-primary">{{ key }}</code>
-              {% endfor %}
-            </div>
-          {% else %}
-            <p class="mt-3 text-xs leading-5 text-gray-700">
-              This step's built-in inputs are not key-editable; any field you add below appears as an <span class="font-bold">extra</span> question under the built-in ones.
-            </p>
-          {% endif %}
-        </div>
-      </div>
-    </section>
-    {% endif %}
-
     <!-- FIELDS BUILDER SECTION -->
     <section class="border-t border-gray-100 pt-6">
       <div class="flex items-center justify-between gap-3 mb-4">
         <div>
           <h2 class="text-lg font-black text-gray-900">Fields (Inputs / Elements)</h2>
-          <p class="text-sm text-gray-500">
-            Configure the inputs on this step. A field whose Key matches a built-in input <span class="font-bold">edits that existing input</span>;
-            any other field is shown as an additional question under it.
-          </p>
         </div>
         <button type="button" onclick="addFieldRow()" class="rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white">+ Add Field</button>
       </div>
@@ -98,11 +56,6 @@
           {% for field in form_obj.fields.all %}
             <div class="field-row rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
               <input type="hidden" name="field_id[]" value="{{ field.id }}">
-              {% if builtin_keys and field.field_key in builtin_keys %}
-                <p class="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-black text-primary">
-                  Edits the built-in “{{ field.label }}” input on this step
-                </p>
-              {% endif %}
               <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
                 <div class="md:col-span-2">
                   <label class="text-xs font-bold text-gray-600">Label</label>

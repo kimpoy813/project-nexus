@@ -99,15 +99,35 @@
     </div>
 
     <div id="proposalFormatWrap" class="{% if proposal.extension_type != 'REQUEST_BASED' %}hidden{% endif %}">
-      <label class="block text-sm font-semibold text-gray-900 mb-2">
-        Proposal format <span class="text-red-600">*</span>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+        Proposal Format <span class="text-red-600">*</span>
       </label>
-      <select name="proposal_format" id="proposalFormatInput"
-              class="w-full border border-gray-300 rounded-xl px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-        <option value="TRAINING_DESIGN" {% if proposal.proposal_format == 'TRAINING_DESIGN' or not proposal.proposal_format %}selected{% endif %}>Training Design</option>
-        <option value="EXTENSION_PROPOSAL" {% if proposal.proposal_format == 'EXTENSION_PROPOSAL' %}selected{% endif %}>Extension Proposal</option>
-      </select>
-      <p class="text-xs text-gray-500 mt-2">
+
+      {# Same selection UI as Extension Type / Scope: chips backed by a hidden #}
+      {# input, defaulted the way the view and the document generator do. #}
+      <input type="hidden" name="proposal_format" id="proposalFormatValue"
+             value="{% if proposal.proposal_format %}{{ proposal.proposal_format }}{% elif proposal.extension_type == 'RESEARCH_FACULTY' or proposal.extension_type == 'RESEARCH_STUDENT' %}EXTENSION_PROPOSAL{% else %}TRAINING_DESIGN{% endif %}">
+
+      <div class="flex flex-wrap gap-3">
+        {# Reversed so Training Design — the format a blank request-based pick #}
+        {# is saved as — leads, exactly like the dropdown this replaced. #}
+        {% for value, label in proposal.ProposalFormat.choices reversed %}
+          <div
+            class="format-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
+              {% if proposal.proposal_format == value or not proposal.proposal_format and value == 'TRAINING_DESIGN' %}
+                bg-primary text-white border-primary
+              {% else %}
+                bg-white text-gray-700 border-gray-300
+              {% endif %}
+              {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+            data-value="{{ value }}"
+            data-label="{{ label }}">
+            {{ label }}
+          </div>
+        {% endfor %}
+      </div>
+
+      <p class="text-xs text-gray-500 mt-3">
         Request-based extensions may use either format. Community-based extensions always use Training Design.
       </p>
     </div>
@@ -207,7 +227,7 @@
   const rWrap = document.getElementById("researchTitleWrap");
   const rInput = document.getElementById("researchTitleInput");
   const formatWrap = document.getElementById("proposalFormatWrap");
-  const formatInput = document.getElementById("proposalFormatInput");
+  const formatHidden = document.getElementById("proposalFormatValue");
 
   function setActiveChip(chips, activeChip) {
     chips.forEach(chip => {
@@ -222,14 +242,32 @@
     });
   }
 
+  const extChips = document.querySelectorAll(".ext-chip");
+  const scopeChips = document.querySelectorAll(".scope-chip");
+  const formatChips = document.querySelectorAll(".format-chip");
+
+  // Proposal format uses the same chips-plus-hidden-input pattern as the
+  // Extension Type chips above, so both the click handler and the
+  // type-driven sync go through here.
+  function setFormatValue(value){
+    if (!formatHidden || !value) return;
+    formatHidden.value = value;
+    if (!formatChips.length) return;
+    let active = null;
+    formatChips.forEach(chip => {
+      if (chip.getAttribute("data-value") === value) active = chip;
+    });
+    setActiveChip(formatChips, active);
+  }
+
   function syncResearch(extValue){
     const isResearch = (extValue === "RESEARCH_FACULTY" || extValue === "RESEARCH_STUDENT");
     rWrap.classList.toggle("hidden", !isResearch);
     const isRequest = extValue === "REQUEST_BASED";
     formatWrap.classList.toggle("hidden", !isRequest);
     // Community-based is never allowed to retain a request-based selection.
-    if (!isRequest && formatInput) {
-      formatInput.value = isResearch ? "EXTENSION_PROPOSAL" : "TRAINING_DESIGN";
+    if (!isRequest) {
+      setFormatValue(isResearch ? "EXTENSION_PROPOSAL" : "TRAINING_DESIGN");
     }
   }
 
@@ -267,9 +305,6 @@
     scopeNote.textContent = MAP[scopeValue].note;
   }
 
-  const extChips = document.querySelectorAll(".ext-chip");
-  const scopeChips = document.querySelectorAll(".scope-chip");
-
   extChips.forEach(chip => {
     chip.addEventListener("click", () => {
       const prev = (extHidden.value || "").trim();
@@ -295,9 +330,16 @@
     });
   });
 
+  formatChips.forEach(chip => {
+    chip.addEventListener("click", () => {
+      setFormatValue(chip.getAttribute("data-value"));
+    });
+  });
+
   (function restoreFromSaved(){
     const extValue = (extHidden?.value || "").trim();
     const scopeValue = (scopeHidden?.value || "").trim();
+    const formatValue = (formatHidden?.value || "").trim();
 
     if (extValue) {
       const activeExt = [...extChips].find(c => c.getAttribute("data-value") === extValue);
@@ -305,6 +347,12 @@
       syncResearch(extValue);
     } else {
       syncResearch("");
+    }
+
+    // Request-based formats are the proponent's own pick, so highlight the
+    // saved chip; every other type was already derived by syncResearch above.
+    if (formatValue && extValue === "REQUEST_BASED") {
+      setFormatValue(formatValue);
     }
 
     if (scopeValue) {

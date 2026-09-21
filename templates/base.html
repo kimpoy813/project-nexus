@@ -26,6 +26,8 @@
     <link href="{% static 'css/nexus-layout.css' %}" rel="stylesheet">
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
+    <!-- Loading skeletons (plain CSS so they paint without the CDN bundle) -->
+    <link href="{% static 'css/nexus-skeleton.css' %}" rel="stylesheet">
     {% if site_control %}
     <style>
         :root {
@@ -55,6 +57,58 @@
 </head>
 
 <body class="bg-gray-50 text-gray-800 font-sans {% block body_class %}{% endblock %}">
+    {% comment %}
+        Page skeleton. It is the first thing in the body and is visible by
+        default, so a page that is still being fetched/parsed shows a skeleton
+        of the layout instead of a blank screen. js/nexus-loader.js hides it on
+        load (and paints it again on the next navigation). Without JavaScript it
+        is hidden immediately by the <noscript> rule below.
+    {% endcomment %}
+    <div id="nx-page-skeleton" class="nx-skel-overlay" role="status" aria-live="polite" aria-label="Loading page">
+        <span class="nx-skel-overlay__label">Loading…</span>
+        <div aria-hidden="true">
+            <div class="nx-skel-overlay__bar">
+                <div class="nx-skel-overlay__brand">
+                    <div class="nx-skel nx-skel--circle"></div>
+                    <div class="nx-skel nx-skel--text nx-skel--w-40" style="width: 7rem;"></div>
+                </div>
+                <div class="nx-skel-overlay__nav">
+                    <div class="nx-skel nx-skel--chip" style="width: 4.5rem;"></div>
+                    <div class="nx-skel nx-skel--chip" style="width: 5.5rem;"></div>
+                    <div class="nx-skel nx-skel--chip" style="width: 4rem;"></div>
+                    <div class="nx-skel nx-skel--chip" style="width: 6rem;"></div>
+                    <div class="nx-skel nx-skel--avatar" style="margin-left: .5rem;"></div>
+                </div>
+            </div>
+
+            <div class="nx-skel-overlay__body">
+                <div class="nx-skel-overlay__hero">
+                    <div class="nx-skel nx-skel--title nx-skel--w-55"></div>
+                    <div class="nx-skel nx-skel--text nx-skel--w-85"></div>
+                    <div class="nx-skel nx-skel--text nx-skel--w-40"></div>
+                </div>
+
+                <div class="nx-skel-overlay__stats">
+                    <div class="nx-skel nx-skel--card"></div>
+                    <div class="nx-skel nx-skel--card"></div>
+                    <div class="nx-skel nx-skel--card"></div>
+                    <div class="nx-skel nx-skel--card"></div>
+                </div>
+
+                <div class="nx-skel-overlay__panel">
+                    <div class="nx-skel nx-skel--text nx-skel--w-25"></div>
+                    <div class="nx-skel nx-skel--block"></div>
+                    <div class="nx-skel nx-skel--text nx-skel--w-85"></div>
+                    <div class="nx-skel nx-skel--text nx-skel--w-70"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <noscript>
+        <style>#nx-page-skeleton { display: none !important; }</style>
+    </noscript>
+    <script src="{% static 'js/nexus-loader.js' %}"></script>
+
     <a href="#main-content" class="skip-link">Skip to content</a>
 
     <!-- Toast Container -->

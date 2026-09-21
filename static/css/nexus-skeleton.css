@@ -1,0 +1,235 @@
+/* NExUS loading skeletons
+   ────────────────────────────────────────────────────────────────────────────
+   Placeholder shapes shown while the system is still fetching or rendering.
+
+   Two layers, both driven from here:
+
+   1. The page skeleton (`.nx-skel-overlay`) — rendered at the top of
+      `templates/base.html`, so *every* page shows it while it loads and while
+      the next page is being fetched. `js/nexus-loader.js` hides it.
+
+   2. Content skeletons (`.nx-skel` and friends) — drop them into any region
+      that fills in later (an AJAX list, a chart, a table). The usual pattern is
+      to render the shape in the template and let the script hide/remove it, or
+      to build one on the fly with `NexusSkeleton.fill(element)`.
+
+   Everything here is plain CSS (no Tailwind classes) so the skeleton can paint
+   before/without the Tailwind CDN bundle.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --nx-skel-bg: rgba(15, 23, 42, 0.07);
+  --nx-skel-bg-strong: rgba(15, 23, 42, 0.11);
+  --nx-skel-sheen: rgba(255, 255, 255, 0.72);
+  --nx-skel-radius: 0.75rem;
+  --nx-skel-speed: 1.4s;
+  --nx-skel-overlay-bg: #f7faf4;
+}
+
+/* ── Shapes ─────────────────────────────────────────────────────────────── */
+.nx-skel {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--nx-skel-bg);
+  border-radius: var(--nx-skel-radius);
+}
+.nx-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--nx-skel-sheen) 50%,
+    transparent 100%
+  );
+  animation: nx-skel-sweep var(--nx-skel-speed) ease-in-out infinite;
+}
+
+@keyframes nx-skel-sweep {
+  100% { transform: translateX(100%); }
+}
+
+/* Sizes. Text lines default to a full row; pair with a width helper. */
+.nx-skel--text  { height: 0.75rem;  border-radius: 999px; }
+.nx-skel--text-sm { height: 0.6rem; border-radius: 999px; }
+.nx-skel--title { height: 1.75rem;  border-radius: 0.6rem; }
+.nx-skel--chip  { height: 1.9rem;   border-radius: 999px; }
+.nx-skel--button { height: 2.6rem;  border-radius: 0.85rem; }
+.nx-skel--field { height: 2.75rem;  border-radius: 0.85rem; }
+.nx-skel--block { height: 8rem; }
+.nx-skel--card  { height: 9.5rem; }
+.nx-skel--avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  flex: none;
+}
+.nx-skel--circle {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  flex: none;
+}
+
+/* Width helpers (percentage of the shape's container). */
+.nx-skel--w-25 { width: 25%; }
+.nx-skel--w-40 { width: 40%; }
+.nx-skel--w-55 { width: 55%; }
+.nx-skel--w-70 { width: 70%; }
+.nx-skel--w-85 { width: 85%; }
+
+/* ── Groups ─────────────────────────────────────────────────────────────── */
+/* A stack of text lines. */
+.nx-skel-lines { display: grid; gap: 0.6rem; }
+
+/* Avatar + two lines: the "list row" shape used by search results, activity
+   feeds, and member lists. */
+.nx-skel-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+}
+.nx-skel-row + .nx-skel-row { border-top: 1px solid var(--nexus-line, rgba(15, 23, 42, 0.08)); }
+
+/* Grid of cards, mirroring the dashboard stat/proposal grids. */
+.nx-skel-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+}
+
+/* A region that swaps between its skeleton and its real content. */
+.nx-skel-region[data-loading="true"] > .nx-skel-real { display: none; }
+.nx-skel-region[data-loading="false"] > .nx-skel-placeholder { display: none; }
+
+/* Shimmer applied to a control that is waiting on the server (a select whose
+   options are still being fetched). */
+.is-nx-loading {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+.is-nx-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--nx-skel-sheen) 50%,
+    transparent 100%
+  );
+  animation: nx-skel-sweep var(--nx-skel-speed) ease-in-out infinite;
+}
+
+/* ── Page skeleton overlay ──────────────────────────────────────────────── */
+.nx-skel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  background: var(--nx-skel-overlay-bg);
+  opacity: 1;
+  transition: opacity 0.18s ease-out;
+}
+/* `hidden` wins over the display below, so the controller can take it away. */
+.nx-skel-overlay[hidden] { display: none; }
+.nx-skel-overlay.is-leaving { opacity: 0; }
+
+/* The "Loading…" label is for screen readers only. It is hidden here rather
+   than with Tailwind's `.sr-only` so the overlay renders correctly even if the
+   CDN bundle is slow or unavailable. */
+.nx-skel-overlay__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.nx-skel-overlay__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: 5.5rem;
+  padding-inline: var(--nx-bar-gutter, clamp(1rem, .35rem + 2.2vw, 3.5rem));
+  border-bottom: 1px solid var(--nexus-line, rgba(15, 23, 42, 0.08));
+  background: rgba(255, 255, 255, 0.65);
+}
+.nx-skel-overlay__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.nx-skel-overlay__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.nx-skel-overlay__body {
+  display: grid;
+  gap: 1.25rem;
+  padding: 2.25rem var(--nx-gutter, clamp(1rem, .35rem + 2.2vw, 3.5rem)) 3rem;
+}
+.nx-skel-overlay__hero {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 44rem;
+}
+.nx-skel-overlay__stats {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+}
+.nx-skel-overlay__panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--nexus-line, rgba(15, 23, 42, 0.08));
+  border-radius: var(--nexus-radius, 1.25rem);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* Hide the nav links on small screens, like the real navbar does. */
+@media (max-width: 1023px) {
+  .nx-skel-overlay__nav { display: none; }
+}
+
+/* ── Motion / print / older engines ─────────────────────────────────────── */
+/* Shimmer is decoration: users who ask for less motion get a static block. */
+@media (prefers-reduced-motion: reduce) {
+  .nx-skel::after,
+  .is-nx-loading::after {
+    animation: none;
+    opacity: 0;
+  }
+  .nx-skel-overlay { transition: none; }
+}
+
+/* Never let the skeleton reach paper or a "print view". */
+@media print {
+  .nx-skel-overlay { display: none !important; }
+}
+
+/* While a page is loading the screen belongs to the skeleton: swallow clicks
+   and drags so a half-painted page cannot be interacted with, and keep the
+   placeholder text from being selected or copied. */
+.nx-skel-overlay {
+  cursor: progress;
+}
+.nx-skel-overlay,
+.nx-skel-overlay * {
+  user-select: none;
+  -webkit-user-select: none;
+}

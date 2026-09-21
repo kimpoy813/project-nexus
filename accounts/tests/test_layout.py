@@ -71,12 +71,27 @@ class AuthScreenLayoutTests(FluidContainerAssertions, TestCase):
 
     PAGES = ("login", "register", "password_reset")
 
+    #: The sign-in and sign-up screens sit lower than the password-reset ones,
+    #: which already carried their own top offset. The offset lives on each
+    #: page's own section instead of ``.nx-auth``, so the screens that share
+    #: that class are left alone.
+    LOWERED_SECTIONS = {
+        "login": '<section class="pb-16 pt-16">',
+        "register": '<section class="bg-gray-50 pt-16 pb-10">',
+    }
+
     def test_auth_pages_render_the_split_layout(self):
         for name in self.PAGES:
             with self.subTest(page=name):
                 html = self.assertFluidPage(self.client.get(reverse(name)), fluid_marker="nx-auth")
                 self.assertIn("nx-auth__panel", html)
                 self.assertIn("nx-auth__form", html)
+
+    def test_login_and_register_sit_lower_on_the_page(self):
+        for name, section in self.LOWERED_SECTIONS.items():
+            with self.subTest(page=name):
+                html = self.client.get(reverse(name)).content.decode()
+                self.assertIn(section, html)
 
 
 class DashboardLayoutTests(FluidContainerAssertions, TestCase):

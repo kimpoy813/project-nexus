@@ -333,8 +333,21 @@ async function doSearch(q) {
         return;
     }
 
-    const resp = await fetch("{% url 'proponent_search' %}?q=" + encodeURIComponent(q.trim()));
-    const data = await resp.json();
+    // Paint the skeleton while the search request is in flight.
+    box.classList.remove("hidden");
+    if (window.NexusSkeleton) {
+        window.NexusSkeleton.fill(box, { rows: 3 });
+    }
+
+    let data;
+    try {
+        const resp = await fetch("{% url 'proponent_search' %}?q=" + encodeURIComponent(q.trim()));
+        data = await resp.json();
+    } catch (error) {
+        console.error("Proponent search failed:", error);
+        box.innerHTML = `<div class="px-4 py-3 text-sm text-gray-500">Search failed. Try again.</div>`;
+        return;
+    }
     resultsCache = data.results || [];
 
     if (!resultsCache.length) {

@@ -621,23 +621,12 @@ def wizard_step_edit(request, step_no):
         messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
         return redirect("wizard_steps_manager")
 
-    # What the hardcoded step already asks for and how it decides completion,
-    # plus which field keys *edit* those built-in inputs instead of adding a
-    # new one. Shown in the editor so the admin customises the existing step
-    # rather than unknowingly bolting a duplicate "admin managed" section on
-    # top of it.
-    from proposals.views.constants import BUILTIN_STEP_LOGIC
-    builtin_logic = BUILTIN_STEP_LOGIC.get(step_no)
-    builtin_keys = list((builtin_logic or {}).get("editable_keys", []))
-
     return render(
         request,
         "dashboard/admin/wizard_step_form.html",
         _builder_context(
             form_obj,
             step_config=step_config,
-            builtin_logic=builtin_logic,
-            builtin_keys=builtin_keys,
         ),
     )
 
