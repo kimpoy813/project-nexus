@@ -694,8 +694,8 @@ def proposal_wizard(request, proposal_id, step):
         )
 
     # Required-field problems found by a step's own save path (currently the
-    # Step 3 proponent group); merged with the admin-managed fields below so
-    # "Save & Next" blocks on both.
+    # Step 3 proponent group) are merged with the rest of the configured step
+    # fields so "Save & Next" blocks on both.
     step_missing = []
 
     if step == 1:
@@ -983,7 +983,7 @@ def proposal_wizard(request, proposal_id, step):
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
         messages.error(
             request,
-            "Please complete the required admin-managed field(s): " + "; ".join(dynamic_missing[:5]),
+            "Please complete the required field(s): " + "; ".join(dynamic_missing[:5]),
         )
         return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
 
@@ -1040,7 +1040,7 @@ def proposal_submit(request, proposal_id):
     if dynamic_missing:
         messages.error(
             request,
-            "Please complete the admin-managed requirement(s): " + "; ".join(dynamic_missing[:5]),
+            "Please complete the required proposal field(s): " + "; ".join(dynamic_missing[:5]),
         )
         first_missing_step = None
         for item in dynamic_missing:

@@ -104,12 +104,22 @@ def _dynamic_forms_for_proposal_step(step):
             proposal_wizard_step=step,
         )
         .prefetch_related("fields")
-        .order_by("name")
+        # The step editor edits the oldest attached form, so use the same
+        # ordering in the proposal wizard.  That form is the step's own field
+        # definition; any later forms are supplementary groups.
+        .order_by("id")
     )
 
 
 def _attach_dynamic_forms_to_context(ctx, proposal, step):
     forms = list(_dynamic_forms_for_proposal_step(step))
+    primary_form_id = forms[0].id if forms else None
+    for form in forms:
+        # Templates use this only for presentation.  The primary form is the
+        # field list edited on Admin -> Wizard Steps, so its generated form
+        # name stays hidden and its fields read as part of the step itself.
+        form.is_primary_step_form = form.id == primary_form_id
+        form.show_heading = not form.is_primary_step_form
 
     # Only the first form on a step may own the proposal's proponent rows: a
     # duplicate form would otherwise print - and save - the same rows twice.
@@ -152,7 +162,10 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
     step_fields = {}
     for form in forms:
         for field in form.fields.all():
-            step_fields[field.field_key] = field
+            # The primary step form owns the built-in field customisations.
+            # A separately attached form may reuse a key for dependencies, but
+            # it must not silently replace what the Wizard Step editor saved.
+            step_fields.setdefault(field.field_key, field)
 
     ctx["step_fields"] = step_fields
 
@@ -240,7 +253,7 @@ def _save_dynamic_form_answers(proposal, step, user, request):
                     not native_saved_value(proposal, step, field.field_key)
                     and _dynamic_field_blocks_submission(form, field, parent_value)
                 ):
-                    missing.append(f"{form.name}: {field.label}")
+                    missing.append(field.label)
                 continue
 
             answer, _ = DynamicFormAnswer.objects.get_or_create(
@@ -263,7 +276,9 @@ def _save_dynamic_form_answers(proposal, step, user, request):
 
             parent_value = _dependency_parent_value(proposal, field.depends_on_key, post_values=post_values)
             if not answer.has_value and _dynamic_field_blocks_submission(form, field, parent_value):
-                missing.append(f"{form.name}: {field.label}")
+                # This field is part of the wizard step itself.  Keep internal
+                # DynamicFormTemplate names out of proponent-facing errors.
+                missing.append(field.label)
 
     return missing
 
@@ -322,7 +337,7 @@ def _proposal_dynamic_requirements_missing(proposal):
 
         if form.is_repeater:
             missing.extend(
-                f"{step_label} — {form.name}: {item}" for item in repeater_missing(proposal, form)
+                f"{step_label} — {item}" for item in repeater_missing(proposal, form)
             )
             continue
 
@@ -342,10 +357,10 @@ def _proposal_dynamic_requirements_missing(proposal):
             if field.field_key in native_keys:
                 # Mirror of a built-in input: read the proposal's own field.
                 if not native_saved_value(proposal, step_no, field.field_key):
-                    missing.append(f"{step_label} — {form.name}: {field.label}")
+                    missing.append(f"{step_label} — {field.label}")
                 continue
             answer = answer_map.get(field.id)
             if not answer or not answer.has_value:
-                missing.append(f"{step_label} — {form.name}: {field.label}")
+                missing.append(f"{step_label} — {field.label}")
 
     return missing

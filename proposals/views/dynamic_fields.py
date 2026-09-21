@@ -19,8 +19,8 @@ DEPENDENCY_PARENT_NOT_FOUND = object()
 #: The step editor lets the office relabel the hardcoded inputs (label,
 #: placeholder, help text, choices) by editing a dynamic field whose
 #: ``field_key`` matches the native input's name. Those mirror fields must
-#: never be rendered a second time in the "Admin-managed requirements"
-#: section, and must never demand their own ``dynamic_field_<id>`` answer -
+#: never be rendered a second time by the configured-fields partial, and must
+#: never demand their own ``dynamic_field_<id>`` answer -
 #: the native save path already collects and stores the value on the
 #: ``Proposal`` record itself.
 #:

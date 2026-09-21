@@ -1,6 +1,6 @@
 """
-Admin edits to the built-in wizard steps must EDIT the hardcoded inputs, not
-add a second "Admin-managed requirements" copy of them.
+Admin edits to wizard steps must change the fields proponents see on the step
+itself, not add a separate "Admin-managed requirements" form beneath it.
 
 The wizard steps that have built-in inputs (Title, Implementing Agency, ...)
 are seeded with a "Fields for Step N" form whose field keys mirror the native
@@ -81,8 +81,32 @@ class MirrorFieldRenderingTests(TestCase):
         html = response.content.decode()
         self.assertEqual(html.count('name="title"'), 1)
 
-    def test_extra_admin_field_still_renders_below_the_builtin_ones(self):
-        """A genuinely new field is an *additional* question, shown once."""
+    def test_wizard_step_editor_form_owns_builtin_customisations(self):
+        """A second attached form cannot override what Wizard Steps saved."""
+        primary = DynamicFormTemplate.objects.get(proposal_wizard_step=2)
+        title = primary.fields.get(field_key="title")
+        title.label = "Official PPA Title"
+        title.save(update_fields=["label"])
+
+        other = DynamicFormTemplate.objects.create(
+            name="ZZZ Supplement",
+            slug="zzz-supplement",
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            proposal_wizard_step=2,
+        )
+        other.fields.create(
+            label="Wrong title override",
+            field_key="title",
+            field_type="TEXT",
+            order=1,
+        )
+
+        response = self._get(2)
+        self.assertContains(response, "Official PPA Title")
+        self.assertNotContains(response, "Wrong title override")
+
+    def test_new_step_field_renders_as_part_of_the_step(self):
+        """A new field is part of the step, not a separate admin form."""
         form = DynamicFormTemplate.objects.get(proposal_wizard_step=2)
         form.fields.create(
             label="Acronym of the PPA",
@@ -92,8 +116,12 @@ class MirrorFieldRenderingTests(TestCase):
             order=99,
         )
         response = self._get(2)
-        self.assertContains(response, "Admin-managed requirements")
         self.assertContains(response, "Acronym of the PPA")
+        self.assertNotContains(response, "Admin-managed requirements")
+        self.assertNotContains(response, "Additional Extension Office fields")
+        self.assertNotContains(response, "controlled by the Admin/Form Builder")
+        # The generated template name is admin plumbing, not user-facing copy.
+        self.assertNotContains(response, form.name)
         html = response.content.decode()
         self.assertEqual(html.count('name="title"'), 1)
 
@@ -161,6 +189,26 @@ class MirrorFieldSaveTests(TestCase):
         self.assertFalse(
             DynamicFormAnswer.objects.filter(field=title_field).exists()
         )
+
+    def test_missing_configured_field_uses_normal_step_validation_copy(self):
+        form = DynamicFormTemplate.objects.get(proposal_wizard_step=2)
+        form.fields.create(
+            label="PPA Acronym",
+            field_key="ppa_acronym",
+            field_type="TEXT",
+            required=True,
+            order=99,
+        )
+
+        response = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 2]),
+            {"action": "next", "title": "Community Literacy Caravan"},
+            follow=True,
+        )
+
+        self.assertContains(response, "Please complete the required field(s): PPA Acronym")
+        self.assertNotContains(response, "admin-managed")
+        self.assertNotContains(response, form.name)
 
     def test_missing_native_value_still_blocks(self):
         """Emptying a required built-in input is still caught."""
