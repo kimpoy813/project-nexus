@@ -21,6 +21,7 @@
           /* Institutional brand — sampled from the Extension Office logo */
           primary: '#103b07',   /* forest green  (logo gear greens)   */
           secondary: '#5a1113', /* maroon        (logo gear / hands)  */
+          tertiary: '#e8c31e',  /* gold          (logo rim outline)   */
           accent: '#f5e587',    /* cream yellow  (logo inner quadrants) */
           gold: '#e8c31e',      /* vivid gold    (logo rim outline)   */
           cream: '#fdf9e3',     /* soft paper tint of the accent      */

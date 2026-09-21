@@ -1,15 +1,15 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "base.html" %}
 {% block title %}{% if mode == "edit" %}Edit Department{% else %}Add Department{% endif %} - NExUS{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-[#f6f7f5] py-8">
   <div class="nx-page space-y-6">
 
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">
+      <h1 class="nx-dash__title">
         {% if mode == "edit" %}Edit Department{% else %}Add Department{% endif %}
       </h1>
-      <p class="mt-1 text-sm text-gray-600">Associate a department with a campus and optional college.</p>
+      <p class="nx-dash__subtitle">Associate a department with a campus and optional college.</p>
     </div>
 
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
@@ -66,11 +66,11 @@
 
         <div class="nx-full flex justify-end gap-3 pt-2">
           <a href="{% url 'departments_list' %}"
-             class="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+             class="nx-btn">
             Cancel
           </a>
           <button type="submit"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm">
             {% if mode == "edit" %}Save Changes{% else %}Create Department{% endif %}
           </button>
         </div>

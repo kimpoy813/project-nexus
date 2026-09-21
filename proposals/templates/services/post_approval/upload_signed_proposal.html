@@ -2,7 +2,7 @@
 {% block content %}
 <div class="nx-page py-8">
   <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-    <h1 class="text-xl font-semibold text-gray-900">Upload Signed Proposal</h1>
+    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Upload Signed Proposal</h1>
     <p class="mt-2 text-sm text-gray-600">
       Please upload the signed copy of your proposal. After upload, the proposal will move to <span class="font-semibold">APPROVED</span>.
     </p>
@@ -31,10 +31,10 @@
 
       <div class="flex items-center gap-3">
         <button type="submit"
-                class="bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-secondary">
+                class="bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold">
           Upload Signed Proposal
         </button>
-        <a href="{% url 'dashboard_redirect' %}" class="text-sm text-gray-600 hover:text-gray-900">
+        <a href="{% url 'dashboard_redirect' %}" class="nx-link">
           Cancel
         </a>
       </div>

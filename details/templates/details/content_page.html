@@ -121,7 +121,7 @@ Anchor navigation, shown only when sections define anchors.
             <p class="text-gray-500">This page has no content yet.</p>
             {% if user.is_authenticated and user.profile.role == 'ADMIN' %}
                 <a href="{% url 'page_content_edit' page.slug %}"
-                   class="mt-6 inline-flex items-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-secondary">
+                   class="mt-6 inline-flex items-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition">
                     Add content
                 </a>
             {% endif %}

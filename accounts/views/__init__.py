@@ -151,7 +151,6 @@ from .reports import (  # noqa: F401
     user_has_capability,
 )
 from .cms import (  # noqa: F401
-    PAGE_LINKED_DATA,
     PAGE_PUBLIC_URL_NAMES,
     home_sections_manager,
     home_thrust_create,
@@ -175,7 +174,6 @@ __all__ = [
     "BLOCK_TIMEOUT",
     "FAILED_LOGIN_LIMIT",
     "FAILED_LOGIN_WINDOW",
-    "PAGE_LINKED_DATA",
     "PAGE_PUBLIC_URL_NAMES",
     "User",
     "accomplishment_report_create",

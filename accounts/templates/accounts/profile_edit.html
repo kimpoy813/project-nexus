@@ -1,11 +1,11 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="nx-page py-8">
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="border-b border-gray-100 px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-900">Edit Profile</h1>
-            <p class="mt-1 text-sm text-gray-600">
+            <h1 class="nx-dash__title">Edit Profile</h1>
+            <p class="nx-dash__subtitle">
                 Update your personal and organizational details.
             </p>
         </div>
@@ -68,14 +68,14 @@
             <div class="flex gap-3 pt-2">
                 <button
                     type="submit"
-                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary"
+                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition"
                 >
                     Save Changes
                 </button>
 
                 <a
                     href="{% url 'profile_view' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    class="nx-btn"
                     data-nx-skeleton="record"
                 >
                     Cancel

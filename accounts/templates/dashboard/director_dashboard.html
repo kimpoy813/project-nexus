@@ -113,169 +113,6 @@
             <main>
 
 <!-- ================================================================
-     GLOBAL STYLES
-================================================================ -->
-<style>
-:root {
-    /* Aliases onto the shared design tokens in css/dashboard-views.css so this
-       dashboard stays visually in step with the others. */
-    --green:  var(--nx-green, #103b07);
-    --green-l:var(--nx-green-soft, #eaf3de);
-    --red:    #5a1113;
-    --red-l:  #fcebeb;
-    --amber:  #854F0B;
-    --amber-l:#faeeda;
-    --blue:   #0c447c;
-    --blue-l: #e6f1fb;
-    --purple: #3C3489;
-    --purple-l:#eeedfe;
-    --border: rgba(0,0,0,.07);
-    --text:   #0f172a;
-    --muted:  #64748b;
-    --subtle: #94a3b8;
-}
-
-/* Layout */
-.dir-card {
-    background:var(--nx-surface, #fff);
-    border:1px solid var(--nx-border, #e2e8f0);
-    border-radius:var(--nx-radius, 14px);
-}
-.dir-card-accent {
-    height:3px;
-    border-radius:var(--nx-radius, 14px) var(--nx-radius, 14px) 0 0;
-}
-
-/* Buttons */
-.dir-btn-primary {
-    display:inline-flex;align-items:center;justify-content:center;
-    padding:.55rem 1.1rem;border-radius:8px;
-    background:var(--green);color:#fff;font-size:.8rem;font-weight:600;
-    transition:opacity .15s;
-}
-.dir-btn-primary:hover { opacity:.85; }
-
-.dir-btn {
-    display:inline-flex;align-items:center;justify-content:center;
-    padding:.45rem .9rem;border-radius:8px;font-size:.75rem;font-weight:500;
-    border:1px solid rgba(16,59,7,.14);color:var(--green);background:#fff;
-    transition:all .15s;white-space:nowrap;
-}
-.dir-btn:hover { background:var(--green);color:#fff; }
-.dir-btn.filled { background:var(--green);color:#fff; }
-.dir-btn.filled:hover { opacity:.85; }
-
-/* Navigation */
-.dashboard-nav-btn {
-    display:flex;width:100%;align-items:center;
-    padding:.65rem .85rem;border-radius:8px;font-size:.85rem;font-weight:500;
-    color:var(--muted);background:transparent;border:none;text-align:left;
-    transition:all .15s;
-}
-.dashboard-nav-btn:hover { background:#f1f5f9;color:var(--text); }
-.dashboard-nav-btn.active { background:var(--green-l);color:var(--green);font-weight:600; }
-
-/* Quick nav */
-.quick-tab-btn {
-    display:inline-flex;align-items:center;justify-content:center;
-    padding:.4rem .85rem;border-radius:8px;font-size:.75rem;font-weight:500;
-    border:1px solid rgba(16,59,7,.14);color:var(--green);background:transparent;
-    transition:all .15s;
-}
-.quick-tab-btn:hover { background:var(--green);color:#fff; }
-
-/* Inputs */
-.dir-input {
-    display:block;width:100%;
-    padding:.5rem .75rem;border-radius:8px;font-size:.8rem;color:var(--text);
-    border:1px solid rgba(0,0,0,.1);background:#fff;outline:none;
-    transition:border-color .15s;
-}
-.dir-input:focus { border-color:var(--green); }
-select.dir-input {
-    appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-    background-position:right .6rem center;background-repeat:no-repeat;background-size:1.1rem;
-    padding-right:2rem;
-}
-
-/* KPI cards */
-.kpi-card {
-    background:#fff;border:1px solid var(--border);border-radius:12px;
-    padding:18px 20px;border-top:3px solid transparent;
-    transition:box-shadow .15s,transform .15s;
-}
-.kpi-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.07);transform:translateY(-1px); }
-
-/* Badges */
-.badge {
-    font-size:10px;font-weight:600;padding:3px 10px;border-radius:6px;
-    white-space:nowrap;display:inline-block;flex-shrink:0;
-}
-.badge-green  { background:var(--green-l);color:var(--green); }
-.badge-red    { background:var(--red-l);color:var(--red); }
-.badge-amber  { background:var(--amber-l);color:var(--amber); }
-.badge-blue   { background:var(--blue-l);color:var(--blue); }
-.badge-purple { background:var(--purple-l);color:var(--purple); }
-.badge-gray   { background:#f1f5f9;color:#475569; }
-
-/* Section label */
-.section-label {
-    font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    color:var(--subtle);margin-bottom:14px;display:block;
-}
-
-/* Stage bar */
-.stage-bar-track { height:4px;border-radius:4px;background:#f1f5f9;overflow:hidden;margin-top:8px; }
-.stage-bar-fill  { height:100%;border-radius:4px;width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1); }
-
-/* Segment bar */
-.seg-bar { height:6px;border-radius:4px;background:#f1f5f9;overflow:hidden;display:flex; }
-.seg-fill { height:100%;width:0;transition:width 1.6s cubic-bezier(.4,0,.2,1); }
-
-/* Proposal rows */
-.prop-row {
-    display:flex;align-items:center;gap:10px;padding:10px 12px;
-    border-radius:10px;border:1px solid rgba(0,0,0,.06);background:#fafafa;
-    transition:all .15s;
-}
-.prop-row:hover { background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06); }
-
-/* Extension / proposal cards */
-.ext-card, .rq-card, .mine-card {
-    background:#fafafa;border:1px solid rgba(0,0,0,.07);border-radius:12px;
-    padding:16px;transition:all .15s;
-}
-.ext-card:hover, .rq-card:hover, .mine-card:hover {
-    background:#fff;box-shadow:0 3px 12px rgba(0,0,0,.07);
-}
-
-/* Section containers */
-.section-block {
-    background:#fff;border:1px solid var(--border);border-radius:12px;
-    overflow:hidden;
-}
-.section-block-head {
-    padding:16px 20px;border-bottom:1px solid rgba(0,0,0,.06);
-    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-}
-
-/* Chip colors */
-.ev-chip {
-    display:inline-flex;align-items:center;gap:6px;
-    border-radius:6px;background:var(--green-l);border:1px solid rgba(16,59,7,.12);
-    padding:3px 8px;font-size:11px;font-weight:500;color:var(--green);
-}
-
-/* Utility */
-.line-clamp-2 { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
-@keyframes rise { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-.anim { animation:rise .4s ease both; }
-.a1{animation-delay:.05s}.a2{animation-delay:.1s}.a3{animation-delay:.17s}.a4{animation-delay:.24s}
-</style>
-
-
-<!-- ================================================================
      OVERVIEW TAB
 ================================================================ -->
 <section class="dashboard-tab-panel" data-tab-panel="overview">
@@ -996,26 +833,47 @@ select.dir-input {
 
 <!-- Delete Draft Modal -->
 <div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]" onclick="closeDeleteModal()"></div>
+    <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px]" onclick="closeDeleteModal()"></div>
+
     <div class="relative flex min-h-full items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
-            <div class="px-6 py-5 border-b border-slate-100">
-                <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.742-2.98l5.58-9.921ZM11 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1-6a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z" clip-rule="evenodd"/></svg>
+        <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+            <div class="px-6 py-5 border-b border-gray-100 bg-white">
+                <div class="flex items-start gap-4">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.742-2.98l5.58-9.921ZM11 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1-6a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z" clip-rule="evenodd"/>
+                        </svg>
                     </div>
-                    <div>
-                        <h3 class="text-base font-semibold" style="color:var(--text);">Delete Draft</h3>
-                        <p class="mt-0.5 text-sm text-slate-400">This will permanently remove the draft.</p>
+
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900">Delete Draft</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            This will permanently remove the draft from your dashboard.
+                        </p>
                     </div>
                 </div>
             </div>
-            <div class="px-6 py-4">
-                <p class="text-sm text-slate-500">You are about to delete <span id="deleteDraftTitle" class="font-semibold" style="color:var(--text);"></span>. This action cannot be undone.</p>
+
+            <div class="px-6 py-5">
+                <p class="text-sm leading-7 text-gray-600">
+                    You are about to delete
+                    <span id="deleteDraftTitle" class="font-semibold text-gray-900"></span>.
+                    This action cannot be undone.
+                </p>
             </div>
-            <div class="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4">
-                <button type="button" onclick="closeDeleteModal()" class="dir-btn">Cancel</button>
-                <button type="button" id="confirmDeleteDraftBtn" class="dir-btn filled">Delete Draft</button>
+
+            <div class="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
+                <button type="button"
+                        onclick="closeDeleteModal()"
+                        class="nx-btn">
+                    Cancel
+                </button>
+
+                <button type="button"
+                        id="confirmDeleteDraftBtn"
+                        class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition">
+                    Delete Draft
+                </button>
             </div>
         </div>
     </div>

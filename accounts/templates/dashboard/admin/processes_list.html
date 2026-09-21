@@ -1,9 +1,12 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "base.html" %}
 {% block content %}
-<div class="nx-page py-6">
-    <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-bold">Processes</h1>
-        <a href="{% url 'process_create' %}" class="px-4 py-2 rounded bg-primary text-white">Add Process</a>
+<div class="nx-page py-8">
+    {% if back_url %}
+    <a href="{{ back_url }}" class="text-xs font-medium text-slate-500 hover:text-primary">← Back to page editor</a>
+    {% endif %}
+    <div class="flex items-center justify-between mb-4 {% if back_url %}mt-1{% endif %}">
+        <h1 class="nx-dash__title">Processes</h1>
+        <a href="{% url 'process_create' %}{% if next %}?next={{ next|urlencode }}{% endif %}" class="px-4 py-2 rounded bg-primary text-white">Add Process</a>
     </div>
 
     <div class="bg-white border rounded-lg overflow-hidden">
@@ -23,8 +26,8 @@
             <td class="p-3">{{ p.order }}</td>
             <td class="p-3">{{ p.steps.count }}</td>
             <td class="p-3 space-x-2">
-                <a class="text-primary font-semibold hover:text-secondary transition" href="{% url 'process_edit' p.id %}">Edit</a>
-                <a class="text-red-600" href="{% url 'process_delete' p.id %}">Delete</a>
+                <a class="text-primary font-semibold hover:text-secondary transition" href="{% url 'process_edit' p.id %}{% if next %}?next={{ next|urlencode }}{% endif %}">Edit</a>
+                <a class="nx-link nx-link--danger" href="{% url 'process_delete' p.id %}{% if next %}?next={{ next|urlencode }}{% endif %}">Delete</a>
             </td>
             </tr>
             {% empty %}
