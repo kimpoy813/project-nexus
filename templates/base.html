@@ -755,7 +755,10 @@
     </div>
     {% endif %}
 
-    <main id="main-content" ">
+    {# `.nexus-shell` owns the fixed-navbar offset (see static/css/nexus-ui.css),
+       so every page starts *below* the header instead of sliding under it.
+       Pages keep their own py-* rhythm on top of that. #}
+    <main id="main-content" class="nexus-shell">
         {% block content %}{% endblock %}
     </main>
 

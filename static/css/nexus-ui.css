@@ -24,12 +24,19 @@
   --nexus-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.14);
   --nexus-radius: 1.25rem;
   --nexus-radius-lg: 1.75rem;
+
+  /* Height of the fixed navbar. `.nexus-shell` (the <main> in base.html) uses
+     it as its top padding, so page content can never slide under the header,
+     and in-page anchors clear it too. Keep it in step with `.nexus-navbar`. */
+  --nx-header-h: 5rem;
 }
 
 html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Anchor targets and scrollIntoView calls land below the fixed navbar. */
+  scroll-padding-top: calc(var(--nx-header-h) + 1rem);
 }
 
 /* ONE typeface for the entire system (paired with the Inter webfont loaded
@@ -79,8 +86,14 @@ body {
 .skip-link:focus { transform: translateY(0); outline: 3px solid rgba(245, 229, 135, .9); }
 
 /* Layout shells */
+/* The navbar is `fixed top-0`, so the page shell carries its height as top
+   padding. Without this, every screen renders its first row underneath the
+   header (the proposal wizard step pages made that obvious). Pages add their
+   own py-* rhythm on top of this offset. */
 .nexus-shell {
-  min-height: calc(100vh - 5rem);
+  padding-top: var(--nx-header-h);
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* Page containers fade in as one, whatever width they span. */
@@ -97,7 +110,7 @@ body {
 
 /* Navbar */
 .nexus-navbar {
-  height: 5rem;
+  height: var(--nx-header-h);
   background: rgba(255, 255, 255, 0.86) !important;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
@@ -483,8 +496,8 @@ tbody tr:hover {
 
 /* Mobile refinements */
 @media (max-width: 768px) {
-  .nexus-navbar { height: 4.5rem; }
-  .nexus-shell { padding-top: 4.5rem !important; }
+  /* One knob: the shell's offset and the anchor clearance follow the bar. */
+  :root { --nx-header-h: 4.5rem; }
   #toast-container { top: 5.25rem !important; left: 1rem; right: 1rem; }
   .section-block,
   .dir-card,
