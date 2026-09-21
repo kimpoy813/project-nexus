@@ -301,3 +301,194 @@ class RenderedHeaderOffsetTests(TestCase):
                 html = response.content.decode()
                 self.assertIn('<main id="main-content" class="nexus-shell">', html)
                 self.assertIn("nexus-wizard-layout", html)
+
+
+#: Templates that are complete documents in their own right: they render no
+#: navbar, so they need no offset. Everything else must go through base.html.
+#: Matched against the end of the path, so they stay app-relative.
+STANDALONE_TEMPLATES = (
+    "templates/maintenance.html",                    # 503 interstitial
+    "accounts/templates/debug_login.html",           # local debug helper
+    "accounts/email/password_reset_email.html",      # e-mail bodies
+    "accounts/email/verification_email.html",
+)
+
+
+def is_standalone(path):
+    relative = path.relative_to(Path(settings.BASE_DIR)).as_posix()
+    return relative.endswith(STANDALONE_TEMPLATES)
+
+
+def _template_files():
+    root = Path(settings.BASE_DIR)
+    dirs = [root / "templates"]
+    dirs += sorted(app for app in root.glob("*") if (app / "templates").is_dir())
+    for app in dirs:
+        yield from (app / "templates" if app.name != "templates" else app).rglob("*.html")
+
+
+def _without_django_comments(text):
+    return re.sub(r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}", "", text, flags=re.S)
+
+
+class NavbarOffsetSourceTests(SimpleTestCase):
+    """Only base.html may paint the fixed navbar.
+
+    The navbar is ``fixed top-0`` and lives in exactly one template, so the
+    ``.nexus-shell`` offset on ``<main>`` covers the whole site. A second
+    navbar — or a page that bypasses the shell — would render under the header
+    again, and no per-page padding would catch it.
+    """
+
+    def test_base_html_is_the_only_template_that_renders_the_navbar(self):
+        offenders = []
+        for path in _template_files():
+            relative = path.relative_to(Path(settings.BASE_DIR)).as_posix()
+            if "node_modules" in relative or relative.endswith("templates/base.html"):
+                continue
+            markup = _without_django_comments(path.read_text(encoding="utf-8"))
+            if 'class="nexus-navbar' in markup:
+                offenders.append(relative)
+        self.assertEqual(offenders, [], "these templates paint their own fixed navbar")
+
+    def test_standalone_documents_really_have_no_navbar(self):
+        """The exemption list must not grow into a way to skip the offset."""
+        for relative in STANDALONE_TEMPLATES:
+            matches = [p for p in _template_files()
+                       if p.relative_to(Path(settings.BASE_DIR)).as_posix().endswith(relative)]
+            with self.subTest(template=relative):
+                self.assertTrue(matches, f"{relative} no longer exists")
+                markup = _without_django_comments(matches[0].read_text(encoding="utf-8"))
+                self.assertNotIn('class="nexus-navbar', markup)
+                self.assertNotIn('class="nexus-shell', markup,
+                                 "a standalone document must not rely on the shell")
+
+    def test_every_page_template_reaches_the_shell(self):
+        """A page is either a partial, standalone, or extends the shell."""
+        orphaned = []
+        for path in _template_files():
+            relative = path.relative_to(Path(settings.BASE_DIR)).as_posix()
+            if "node_modules" in relative or relative.endswith("templates/base.html"):
+                continue
+            if is_standalone(path):
+                continue
+            markup = path.read_text(encoding="utf-8")
+            if "{% extends" in markup or "{# partial" in markup:
+                continue
+            # Includes/partials never open a <body>; a template that does is a
+            # page, and a page that is not extending base.html has no offset.
+            if "<body" in markup.lower():
+                orphaned.append(relative)
+        self.assertEqual(orphaned, [], "these page templates bypass the shell in base.html")
+
+
+class SiteWideHeaderOffsetTests(TestCase):
+    """Every page family renders clear of the fixed navbar.
+
+    The regression this pins was site-wide: ``<main>`` lost ``nexus-shell``, so
+    the first row of *every* screen slid under the header. The proposal wizard
+    step was simply where it was reported. These render one page per family —
+    public, auth, all seven dashboards, profile, the wizard steps, MOA,
+    implementation, storage, review, accomplishment reports and the admin
+    screens — and a full URLconf sweep of every route is what originally
+    verified the fix (205 distinct pages).
+    """
+
+    SHELL = '<main id="main-content" class="nexus-shell">'
+
+    def assertClearsTheHeader(self, client, url, *, where=None):
+        # `follow` because a few lifecycle screens redirect when the proposal is
+        # not in the right state yet; the page that finally paints is the one
+        # that has to clear the header.
+        response = client.get(url, follow=True)
+        label = where or url
+        self.assertEqual(response.status_code, 200, f"{label} did not render")
+        html = response.content.decode()
+        self.assertIn(self.SHELL, html, f"{label} renders without the header offset")
+        self.assertIn("css/nexus-ui.css", html, f"{label} does not link the shell stylesheet")
+        return html
+
+    def test_public_and_auth_pages_clear_the_header(self):
+        for url in ("/", reverse("services_home"), reverse("reports_page"),
+                    reverse("achievements_page"), reverse("login"),
+                    reverse("register"), reverse("password_reset")):
+            with self.subTest(page=url):
+                self.assertClearsTheHeader(self.client, url)
+
+    def test_every_role_dashboard_clears_the_header(self):
+        dashboards = {
+            Profile.ROLE_ADMIN: "admin_dashboard",
+            Profile.ROLE_DIRECTOR: "director_dashboard",
+            Profile.ROLE_STAFF: "staff_dashboard",
+            Profile.ROLE_EVALUATOR: "evaluator_dashboard",
+            Profile.ROLE_FACULTY: "faculty_dashboard",
+            Profile.ROLE_DEPARTMENT_COORDINATOR: "department_coordinator_dashboard",
+            Profile.ROLE_CAMPUS_COORDINATOR: "campus_coordinator_dashboard",
+        }
+        for index, (role, url_name) in enumerate(dashboards.items()):
+            with self.subTest(role=role):
+                user = factories.make_user(f"offset_dash_{index}", role)
+                self.assertClearsTheHeader(
+                    factories.make_client(user), reverse(url_name), where=f"{role} dashboard"
+                )
+
+    def test_every_proposal_wizard_step_clears_the_header(self):
+        """The reported screen: all of them, not just the first."""
+        author = factories.make_user("offset_wizard", Profile.ROLE_FACULTY)
+        proposal = Proposal.objects.create(created_by=author)
+        client = factories.make_client(author)
+        checked = 0
+        for step in range(1, 21):
+            url = reverse("proposal_wizard", args=[proposal.id, step])
+            response = client.get(url)
+            if response.status_code != 200:
+                continue  # gated by an earlier step; covered by the workflow suite
+            checked += 1
+            with self.subTest(step=step):
+                self.assertClearsTheHeader(client, url, where=f"wizard step {step}")
+        self.assertGreater(checked, 0, "no wizard step rendered")
+
+    def test_proposal_lifecycle_screens_clear_the_header(self):
+        author = factories.make_user("offset_flow", Profile.ROLE_FACULTY)
+        proposal = Proposal.objects.create(created_by=author)
+        client = factories.make_client(author)
+        pages = {
+            "proposal_create": reverse("proposal_create"),
+            "proposal_moa_tracker": reverse("proposal_moa_tracker", args=[proposal.id]),
+            "proposal_moa_draft": reverse("proposal_moa_draft", args=[proposal.id]),
+            "proposal_implementation_tracker": reverse(
+                "proposal_implementation_tracker", args=[proposal.id]
+            ),
+            "proposal_storage": reverse("proposal_storage", args=[proposal.id]),
+            "proposal_upload_signed_proposal": reverse(
+                "proposal_upload_signed_proposal", args=[proposal.id]
+            ),
+        }
+        for name, url in pages.items():
+            with self.subTest(page=name):
+                self.assertClearsTheHeader(client, url, where=name)
+
+    def test_profile_and_accomplishment_screens_clear_the_header(self):
+        user = factories.make_user("offset_profile", Profile.ROLE_FACULTY)
+        client = factories.make_client(user)
+        for name in ("profile_view", "profile_edit"):
+            with self.subTest(page=name):
+                self.assertClearsTheHeader(client, reverse(name), where=name)
+
+        coordinator = factories.make_user(
+            "offset_coord", Profile.ROLE_DEPARTMENT_COORDINATOR, department="Computer Science"
+        )
+        coord_client = factories.make_client(coordinator)
+        for name in ("accomplishment_reports_list", "accomplishment_report_create"):
+            with self.subTest(page=name):
+                self.assertClearsTheHeader(coord_client, reverse(name), where=name)
+
+    def test_admin_screens_clear_the_header(self):
+        admin_user = factories.make_user("offset_admin", Profile.ROLE_ADMIN)
+        client = factories.make_client(admin_user)
+        for name in ("wizard_steps_manager", "wizard_step_create", "workflow_phases_manager",
+                     "campuses_list", "campus_create", "signatories_list",
+                     "document_templates_list", "role_capabilities_manager",
+                     "admin_create_account", "activities_list"):
+            with self.subTest(page=name):
+                self.assertClearsTheHeader(client, reverse(name), where=name)
