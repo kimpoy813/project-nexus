@@ -63,14 +63,22 @@
         of the layout instead of a blank screen. js/nexus-loader.js hides it on
         load (and paints it again on the next navigation). Without JavaScript it
         is hidden immediately by the <noscript> rule below.
+
+        The navbar shape is shared by every screen; below it, one layout per
+        page family is rendered and `data-nx-variant` (set by the
+        `skeleton_variant` context processor from the current route) decides
+        which one is visible. Shipping all of them is what lets the controller
+        switch to the shape of the page being navigated *to* — see the
+        `data-nx-skeleton` hints on the navbar links below.
     {% endcomment %}
-    <div id="nx-page-skeleton" class="nx-skel-overlay" role="status" aria-live="polite" aria-label="Loading page">
+    <div id="nx-page-skeleton" class="nx-skel-overlay" role="status" aria-live="polite" aria-label="Loading page"
+         data-nx-variant="{{ nx_skeleton_variant }}" data-nx-variant-default="{{ nx_skeleton_variant }}">
         <span class="nx-skel-overlay__label">Loading…</span>
-        <div aria-hidden="true">
+        <div class="nx-skel-overlay__frame" aria-hidden="true">
             <div class="nx-skel-overlay__bar">
                 <div class="nx-skel-overlay__brand">
                     <div class="nx-skel nx-skel--circle"></div>
-                    <div class="nx-skel nx-skel--text nx-skel--w-40" style="width: 7rem;"></div>
+                    <div class="nx-skel nx-skel--text" style="width: 7rem;"></div>
                 </div>
                 <div class="nx-skel-overlay__nav">
                     <div class="nx-skel nx-skel--chip" style="width: 4.5rem;"></div>
@@ -81,25 +89,472 @@
                 </div>
             </div>
 
-            <div class="nx-skel-overlay__body">
-                <div class="nx-skel-overlay__hero">
-                    <div class="nx-skel nx-skel--title nx-skel--w-55"></div>
-                    <div class="nx-skel nx-skel--text nx-skel--w-85"></div>
-                    <div class="nx-skel nx-skel--text nx-skel--w-40"></div>
+            {% comment %} 1. Landing / CMS pages: full-bleed hero band, section
+               nav, then stacked full-width sections with centred headings. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--marketing">
+                <div class="nx-skel-mkt__hero">
+                    <div class="nx-skel-mkt__measure">
+                        <div class="nx-skel nx-skel--title" style="width: 46%;"></div>
+                        <div class="nx-skel nx-skel--text" style="width: 74%;"></div>
+                        <div class="nx-skel nx-skel--text" style="width: 52%;"></div>
+                        <div class="nx-skel-mkt__cta">
+                            <div class="nx-skel nx-skel--chip" style="width: 9.5rem;"></div>
+                            <div class="nx-skel nx-skel--chip" style="width: 7rem;"></div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="nx-skel-overlay__stats">
-                    <div class="nx-skel nx-skel--card"></div>
-                    <div class="nx-skel nx-skel--card"></div>
-                    <div class="nx-skel nx-skel--card"></div>
-                    <div class="nx-skel nx-skel--card"></div>
+                <div class="nx-skel-mkt__nav">
+                    <div class="nx-skel nx-skel--text" style="width: 5rem;"></div>
+                    <div class="nx-skel nx-skel--text" style="width: 6.5rem;"></div>
+                    <div class="nx-skel nx-skel--text" style="width: 4rem;"></div>
+                    <div class="nx-skel nx-skel--text" style="width: 7rem;"></div>
+                    <div class="nx-skel nx-skel--text" style="width: 5.5rem;"></div>
                 </div>
+                <div class="nx-skel-mkt__section">
+                    <div class="nx-skel nx-skel--title" style="width: 24%;"></div>
+                    <div class="nx-skel-cards">
+                        <div class="nx-skel nx-skel--card"></div>
+                        <div class="nx-skel nx-skel--card"></div>
+                        <div class="nx-skel nx-skel--card"></div>
+                        <div class="nx-skel nx-skel--card"></div>
+                    </div>
+                </div>
+            </div>
 
-                <div class="nx-skel-overlay__panel">
-                    <div class="nx-skel nx-skel--text nx-skel--w-25"></div>
-                    <div class="nx-skel nx-skel--block"></div>
-                    <div class="nx-skel nx-skel--text nx-skel--w-85"></div>
-                    <div class="nx-skel nx-skel--text nx-skel--w-70"></div>
+            {% comment %} 2. Auth screens: `.nx-auth` — brand panel beside the
+               form card, which opens with a coloured header block. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--auth">
+                <div class="nx-skel-auth">
+                    <div class="nx-skel-auth__panel">
+                        <div class="nx-skel-auth__brand">
+                            <div class="nx-skel nx-skel--circle"></div>
+                            <div class="nx-skel-lines" style="gap: .45rem;">
+                                <div class="nx-skel nx-skel--title" style="width: 7.5rem; height: 1.25rem;"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 12rem;"></div>
+                            </div>
+                        </div>
+                        <div class="nx-skel nx-skel--title" style="width: 78%;"></div>
+                        <div class="nx-skel nx-skel--text" style="width: 96%;"></div>
+                        <div class="nx-skel nx-skel--text" style="width: 62%;"></div>
+                        <div class="nx-skel-auth__bullets">
+                            <div class="nx-skel-row" style="padding-inline: 0;">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 82%;"></div>
+                            </div>
+                            <div class="nx-skel-row" style="padding-inline: 0;">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 70%;"></div>
+                            </div>
+                            <div class="nx-skel-row" style="padding-inline: 0;">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 76%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nx-skel-auth__card">
+                        <div class="nx-skel-auth__head">
+                            <div class="nx-skel nx-skel--circle"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 9rem;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 6.5rem;"></div>
+                        </div>
+                        <div class="nx-skel-auth__body">
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 32%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 24%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel nx-skel--button"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} 3. Role dashboards: title bar, then a 240px navigation
+               rail beside the KPI row and queue panels. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--dashboard">
+                <div class="nx-skel-page">
+                    <div class="nx-skel-page__head">
+                        <div class="nx-skel-lines">
+                            <div class="nx-skel nx-skel--title" style="width: 13rem;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 22rem;"></div>
+                        </div>
+                        <div class="nx-skel nx-skel--button" style="width: 9.5rem;"></div>
+                    </div>
+                    <div class="nx-skel-dash">
+                        <aside class="nx-skel-card nx-skel-dash__side">
+                            <div class="nx-skel-card__head">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 5.5rem;"></div>
+                            </div>
+                            <div class="nx-skel-dash__nav">
+                                <div class="nx-skel nx-skel--chip"></div>
+                                <div class="nx-skel nx-skel--chip"></div>
+                                <div class="nx-skel nx-skel--chip"></div>
+                                <div class="nx-skel nx-skel--chip"></div>
+                                <div class="nx-skel nx-skel--chip"></div>
+                            </div>
+                        </aside>
+                        <div class="nx-skel-dash__main">
+                            <div class="nx-skel-cards">
+                                <div class="nx-skel nx-skel--block"></div>
+                                <div class="nx-skel nx-skel--block"></div>
+                                <div class="nx-skel nx-skel--block"></div>
+                                <div class="nx-skel nx-skel--block"></div>
+                            </div>
+                            <div class="nx-skel-card">
+                                <div class="nx-skel-card__head">
+                                    <div class="nx-skel nx-skel--text" style="width: 9rem;"></div>
+                                </div>
+                                <div class="nx-skel-row">
+                                    <div class="nx-skel nx-skel--avatar"></div>
+                                    <div class="nx-skel-lines">
+                                        <div class="nx-skel nx-skel--text" style="width: 55%;"></div>
+                                        <div class="nx-skel nx-skel--text-sm" style="width: 30%;"></div>
+                                    </div>
+                                </div>
+                                <div class="nx-skel-row">
+                                    <div class="nx-skel nx-skel--avatar"></div>
+                                    <div class="nx-skel-lines">
+                                        <div class="nx-skel nx-skel--text" style="width: 42%;"></div>
+                                        <div class="nx-skel nx-skel--text-sm" style="width: 34%;"></div>
+                                    </div>
+                                </div>
+                                <div class="nx-skel-row">
+                                    <div class="nx-skel nx-skel--avatar"></div>
+                                    <div class="nx-skel-lines">
+                                        <div class="nx-skel nx-skel--text" style="width: 61%;"></div>
+                                        <div class="nx-skel nx-skel--text-sm" style="width: 26%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} 4. Admin/console lists: page head with actions, then a
+               card holding a table (header row + body rows). {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--list">
+                <div class="nx-skel-page">
+                    <div class="nx-skel-page__head">
+                        <div class="nx-skel-lines">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 7rem;"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 17rem;"></div>
+                        </div>
+                        <div class="nx-skel-page__actions">
+                            <div class="nx-skel nx-skel--button" style="width: 7rem;"></div>
+                            <div class="nx-skel nx-skel--button" style="width: 8.5rem;"></div>
+                        </div>
+                    </div>
+                    <div class="nx-skel-card">
+                        <div class="nx-skel-table__head">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 40%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 55%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 45%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 60%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 35%;"></div>
+                        </div>
+                        <div class="nx-skel-table__row">
+                            <div class="nx-skel nx-skel--text" style="width: 70%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 50%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 60%;"></div>
+                            <div class="nx-skel nx-skel--chip" style="width: 5.5rem;"></div>
+                            <div class="nx-skel nx-skel--dot"></div>
+                        </div>
+                        <div class="nx-skel-table__row">
+                            <div class="nx-skel nx-skel--text" style="width: 52%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 64%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 42%;"></div>
+                            <div class="nx-skel nx-skel--chip" style="width: 6rem;"></div>
+                            <div class="nx-skel nx-skel--dot"></div>
+                        </div>
+                        <div class="nx-skel-table__row">
+                            <div class="nx-skel nx-skel--text" style="width: 63%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 47%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 55%;"></div>
+                            <div class="nx-skel nx-skel--chip" style="width: 5rem;"></div>
+                            <div class="nx-skel nx-skel--dot"></div>
+                        </div>
+                        <div class="nx-skel-table__row">
+                            <div class="nx-skel nx-skel--text" style="width: 45%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 58%;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 38%;"></div>
+                            <div class="nx-skel nx-skel--chip" style="width: 6.5rem;"></div>
+                            <div class="nx-skel nx-skel--dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} 5. Admin/console forms: page head, then a card with a
+               header, a two/three-column field grid and a full-width field. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--form">
+                <div class="nx-skel-page">
+                    <div class="nx-skel-page__head">
+                        <div class="nx-skel-lines">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 6rem;"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 14rem;"></div>
+                        </div>
+                        <div class="nx-skel nx-skel--button" style="width: 6.5rem;"></div>
+                    </div>
+                    <div class="nx-skel-card">
+                        <div class="nx-skel-card__head">
+                            <div class="nx-skel nx-skel--title" style="width: 12rem;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 24rem;"></div>
+                        </div>
+                        <div class="nx-skel-fields">
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 34%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 26%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 41%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 29%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 37%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                            <div class="nx-skel-field">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 22%;"></div>
+                                <div class="nx-skel nx-skel--field"></div>
+                            </div>
+                        </div>
+                        <div class="nx-skel-field nx-skel-field--full">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 18%;"></div>
+                            <div class="nx-skel nx-skel--block" style="height: 6rem;"></div>
+                        </div>
+                        <div class="nx-skel-card__foot">
+                            <div class="nx-skel nx-skel--button" style="width: 8rem;"></div>
+                            <div class="nx-skel nx-skel--button" style="width: 6rem;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} 6. Proposal wizard: `.nexus-wizard-layout` — stepper
+               rail | form column | context rail. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--wizard">
+                <div class="nx-skel-wiz">
+                    <aside class="nx-skel-card nx-skel-wiz__rail">
+                        <div class="nx-skel-card__head">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 5rem;"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 9.5rem;"></div>
+                            <div class="nx-skel-progress"><span style="width: 35%;"></span></div>
+                        </div>
+                        <div class="nx-skel-wiz__steps">
+                            <div class="nx-skel-step">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 62%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 38%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-step">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 54%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 44%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-step">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 68%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 32%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-step">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 47%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 41%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-step">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 59%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 36%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-step">
+                                <div class="nx-skel nx-skel--dot"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 51%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 43%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                    <div class="nx-skel-wiz__main">
+                        <div class="nx-skel-notice">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 22%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 88%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 64%;"></div>
+                        </div>
+                        <div class="nx-skel-card">
+                            <div class="nx-skel-card__head">
+                                <div class="nx-skel nx-skel--title" style="width: 15rem;"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 26rem;"></div>
+                            </div>
+                            <div class="nx-skel-fields">
+                                <div class="nx-skel-field">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 30%;"></div>
+                                    <div class="nx-skel nx-skel--field"></div>
+                                </div>
+                                <div class="nx-skel-field">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 24%;"></div>
+                                    <div class="nx-skel nx-skel--field"></div>
+                                </div>
+                                <div class="nx-skel-field">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 38%;"></div>
+                                    <div class="nx-skel nx-skel--field"></div>
+                                </div>
+                                <div class="nx-skel-field">
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 27%;"></div>
+                                    <div class="nx-skel nx-skel--field"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-field nx-skel-field--full">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 16%;"></div>
+                                <div class="nx-skel nx-skel--block" style="height: 5.5rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="nx-skel-card nx-skel-wiz__aside">
+                        <div class="nx-skel-card__head">
+                            <div class="nx-skel nx-skel--title" style="width: 8rem; height: 1.2rem;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 11rem;"></div>
+                        </div>
+                        <div class="nx-skel-lines" style="padding: 1.25rem;">
+                            <div class="nx-skel nx-skel--block" style="height: 4.5rem;"></div>
+                            <div class="nx-skel nx-skel--block" style="height: 4.5rem;"></div>
+                            <div class="nx-skel nx-skel--block" style="height: 4.5rem;"></div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            {% comment %} 7. MOA / implementation / post-approval: progress
+               header, then a two-thirds main card beside stacked side cards. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--tracker">
+                <div class="nx-skel-page">
+                    <div class="nx-skel-trk__head">
+                        <div class="nx-skel-trk__title">
+                            <div class="nx-skel nx-skel--circle"></div>
+                            <div class="nx-skel-lines">
+                                <div class="nx-skel nx-skel--title" style="width: 18rem;"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 26rem;"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 13rem;"></div>
+                            </div>
+                        </div>
+                        <div class="nx-skel-page__actions">
+                            <div class="nx-skel nx-skel--button" style="width: 7rem;"></div>
+                            <div class="nx-skel nx-skel--button" style="width: 8rem;"></div>
+                        </div>
+                    </div>
+                    <div class="nx-skel-progress"><span style="width: 45%;"></span></div>
+                    <div class="nx-skel-trk__grid">
+                        <div class="nx-skel-card nx-skel-trk__main">
+                            <div class="nx-skel-card__head">
+                                <div class="nx-skel nx-skel--title" style="width: 12rem; height: 1.2rem;"></div>
+                            </div>
+                            <div class="nx-skel-row">
+                                <div class="nx-skel nx-skel--avatar"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text" style="width: 58%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 33%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-row">
+                                <div class="nx-skel nx-skel--avatar"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text" style="width: 44%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 29%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-row">
+                                <div class="nx-skel nx-skel--avatar"></div>
+                                <div class="nx-skel-lines">
+                                    <div class="nx-skel nx-skel--text" style="width: 51%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 37%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="nx-skel-trk__side">
+                            <div class="nx-skel-card">
+                                <div class="nx-skel-lines" style="padding: 1.25rem;">
+                                    <div class="nx-skel nx-skel--title" style="width: 7rem; height: 1.1rem;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 88%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 62%;"></div>
+                                </div>
+                            </div>
+                            <div class="nx-skel-card">
+                                <div class="nx-skel-lines" style="padding: 1.25rem;">
+                                    <div class="nx-skel nx-skel--title" style="width: 8rem; height: 1.1rem;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 76%;"></div>
+                                    <div class="nx-skel nx-skel--text-sm" style="width: 54%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% comment %} 8. Record/detail screens (and anything unlisted): a
+               heading over stacked full-width cards of label/value rows. {% endcomment %}
+            <div class="nx-skel-l nx-skel-l--record">
+                <div class="nx-skel-page">
+                    <div class="nx-skel-trk__head">
+                        <div class="nx-skel-trk__title">
+                            <div class="nx-skel nx-skel--circle"></div>
+                            <div class="nx-skel-lines">
+                                <div class="nx-skel nx-skel--title" style="width: 15rem;"></div>
+                                <div class="nx-skel nx-skel--text-sm" style="width: 21rem;"></div>
+                            </div>
+                        </div>
+                        <div class="nx-skel nx-skel--button" style="width: 7.5rem;"></div>
+                    </div>
+                    <div class="nx-skel-card">
+                        <div class="nx-skel-card__head">
+                            <div class="nx-skel nx-skel--title" style="width: 11rem; height: 1.2rem;"></div>
+                        </div>
+                        <div class="nx-skel-rows">
+                            <div class="nx-skel-row" style="grid-template-columns: 12rem minmax(0, 1fr);">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 70%;"></div>
+                                <div class="nx-skel nx-skel--text" style="width: 45%;"></div>
+                            </div>
+                            <div class="nx-skel-row" style="grid-template-columns: 12rem minmax(0, 1fr);">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 55%;"></div>
+                                <div class="nx-skel nx-skel--text" style="width: 62%;"></div>
+                            </div>
+                            <div class="nx-skel-row" style="grid-template-columns: 12rem minmax(0, 1fr);">
+                                <div class="nx-skel nx-skel--text-sm" style="width: 63%;"></div>
+                                <div class="nx-skel nx-skel--text" style="width: 38%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nx-skel-card">
+                        <div class="nx-skel-card__head">
+                            <div class="nx-skel nx-skel--title" style="width: 9rem; height: 1.2rem;"></div>
+                        </div>
+                        <div class="nx-skel-lines" style="padding: 1.25rem;">
+                            <div class="nx-skel nx-skel--block" style="height: 4rem;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 84%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 68%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -131,14 +586,14 @@
 
             <!-- Main Menu -->
             <div class="hidden lg:flex items-center gap-1 text-sm">
-                <a href="/" class="nexus-menu-link">Home</a>
-                <a href="/proposals/" class="nexus-menu-link">Services</a>
-                <a href="{% url 'reports_page' %}" class="nexus-menu-link">Reports</a>
-                <a href="{% url 'achievements_page' %}" class="nexus-menu-link">Achievements</a>
+                <a href="/" class="nexus-menu-link" data-nx-skeleton="marketing">Home</a>
+                <a href="/proposals/" class="nexus-menu-link" data-nx-skeleton="marketing">Services</a>
+                <a href="{% url 'reports_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Reports</a>
+                <a href="{% url 'achievements_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Achievements</a>
 
                 {% if user.is_authenticated %}
                     <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
-                       class="nexus-menu-link is-strong">
+                       class="nexus-menu-link is-strong" data-nx-skeleton="dashboard">
                         Dashboard
                     </a>
 
@@ -222,18 +677,18 @@
                                     <p class="truncate text-sm font-black text-gray-900">{{ request.user.profile.full_name|default:request.user.username }}</p>
                                     <p class="text-xs font-semibold text-primary">{{ request.user.profile.get_role_display|default:request.user.profile.role }}</p>
                                 </div>
-                                <a href="{% url 'profile_view' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50">View Profile</a>
-                                <a href="{% url 'profile_edit' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100">Edit Profile</a>
-                                <a href="{% url 'change_password' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100">Change Password</a>
+                                <a href="{% url 'profile_view' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50" data-nx-skeleton="record">View Profile</a>
+                                <a href="{% url 'profile_edit' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="form">Edit Profile</a>
+                                <a href="{% url 'change_password' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="auth">Change Password</a>
                                 {% if can_view_accomplishment %}
-                                <a href="{% url 'accomplishment_reports_list' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100">Accomplishment Reports</a>
+                                <a href="{% url 'accomplishment_reports_list' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="list">Accomplishment Reports</a>
                                 {% endif %}
                                 <a href="{% url 'logout' %}" class="block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 border-t border-gray-100">Logout</a>
                             </div>
                         </div>
                     </div>
                 {% else %}
-                    <a href="{% url 'login' %}" class="nexus-btn-primary ml-2 rounded-2xl px-4 py-2.5 text-sm font-black">
+                    <a href="{% url 'login' %}" class="nexus-btn-primary ml-2 rounded-2xl px-4 py-2.5 text-sm font-black" data-nx-skeleton="auth">
                         Login
                     </a>
                 {% endif %}
@@ -259,19 +714,19 @@
              x-transition.origin.top
              class="nexus-mobile-panel lg:hidden mx-4 mt-2 rounded-3xl overflow-hidden">
             <div class="p-3 space-y-1">
-                <a href="/" class="nexus-menu-link w-full">Home</a>
-                <a href="/proposals/" class="nexus-menu-link w-full">Services</a>
-                <a href="{% url 'reports_page' %}" class="nexus-menu-link w-full">Reports</a>
-                <a href="{% url 'achievements_page' %}" class="nexus-menu-link w-full">Achievements</a>
+                <a href="/" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Home</a>
+                <a href="/proposals/" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Services</a>
+                <a href="{% url 'reports_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Reports</a>
+                <a href="{% url 'achievements_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Achievements</a>
                 {% if user.is_authenticated %}
                     <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
-                       class="nexus-menu-link is-strong w-full">Dashboard</a>
+                       class="nexus-menu-link is-strong w-full" data-nx-skeleton="dashboard">Dashboard</a>
                     <div class="my-2 border-t border-gray-100"></div>
-                    <a href="{% url 'profile_view' %}" class="nexus-menu-link w-full">Profile</a>
-                    {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full">Accomplishment Reports</a>{% endif %}
+                    <a href="{% url 'profile_view' %}" class="nexus-menu-link w-full" data-nx-skeleton="record">Profile</a>
+                    {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Accomplishment Reports</a>{% endif %}
                     <a href="{% url 'logout' %}" class="nexus-menu-link w-full text-red-600">Logout</a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-2xl px-4 py-3 text-sm font-black">Login</a>
+                    <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-2xl px-4 py-3 text-sm font-black" data-nx-skeleton="auth">Login</a>
                 {% endif %}
             </div>
         </div>
@@ -320,14 +775,14 @@
             <div>
                 <h4 class="text-white font-bold mb-4">Important Links</h4>
                 <ul class="space-y-2 text-sm">
-                    <li><a href="/" class="hover:text-white transition">Home</a></li>
-                    <li><a href="/proposals/" class="hover:text-white transition">Services</a></li>
-                    <li><a href="{% url 'reports_page' %}" class="hover:text-white transition">Reports</a></li>
-                    <li><a href="{% url 'achievements_page' %}" class="hover:text-white transition">Achievements</a></li>
+                    <li><a href="/" class="hover:text-white transition" data-nx-skeleton="marketing">Home</a></li>
+                    <li><a href="/proposals/" class="hover:text-white transition" data-nx-skeleton="marketing">Services</a></li>
+                    <li><a href="{% url 'reports_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Reports</a></li>
+                    <li><a href="{% url 'achievements_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Achievements</a></li>
                     {% if user.is_authenticated %}
-                        <li><a href="{% url 'dashboard_redirect' %}" class="hover:text-white transition">Dashboard</a></li>
+                        <li><a href="{% url 'dashboard_redirect' %}" class="hover:text-white transition" data-nx-skeleton="dashboard">Dashboard</a></li>
                     {% else %}
-                        <li><a href="{% url 'login' %}" class="hover:text-white transition">Login</a></li>
+                        <li><a href="{% url 'login' %}" class="hover:text-white transition" data-nx-skeleton="auth">Login</a></li>
                     {% endif %}
                 </ul>
             </div>

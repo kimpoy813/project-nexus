@@ -105,6 +105,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.site_configuration",
+                "accounts.context_processors.skeleton_variant",
             ],
         },
     },

@@ -12,9 +12,17 @@
 
      NexusSkeleton.show()                     // paint the page skeleton
      NexusSkeleton.hide()                     // take it away
+     NexusSkeleton.variant(name)              // show another page family's shape
      NexusSkeleton.fill(el, {rows, avatar})   // put list-row shapes in `el`
      NexusSkeleton.region(el, isLoading)      // flip a `.nx-skel-region`
      NexusSkeleton.busy(el, isLoading)        // shimmer a waiting control
+
+   The overlay carries one layout per page family (landing, auth, dashboard,
+   wizard, tracker, list, form, record) and the server picks the one that
+   matches the current route. A link or form that leads somewhere of a
+   *different* shape can say so with `data-nx-skeleton="dashboard"`, and the
+   controller switches before it paints — so leaving the landing page for a
+   dashboard shows the dashboard's rail, not the hero it came from.
 
    Opt outs: add `data-nx-no-skeleton` to a link or form that should not paint
    the page skeleton (downloads, print views, anything that stays on the page).
@@ -35,10 +43,22 @@
     // few milliseconds should not flash a skeleton at the user.
     var CLICK_DELAY_MS = 120;
 
+    // Which page-family layout the overlay paints, and the one this page
+    // belongs to (restored after a navigation that never happened).
+    var VARIANT_ATTR = "data-nx-variant";
+    var VARIANT_DEFAULT_ATTR = "data-nx-variant-default";
+    var VARIANT_HINT_ATTR = "data-nx-skeleton";
+
+    // Review affordance: `?nx-skeleton` holds the overlay on screen instead of
+    // letting the page take over, so a layout can actually be looked at. Give
+    // it a value (`?nx-skeleton=wizard`) to force a particular one.
+    var PIN_PARAM = "nx-skeleton";
+
     var overlay = null;
     var hideTimer = null;
     var stuckTimer = null;
     var showTimer = null;
+    var pinned = false;
 
     function prefersReducedMotion() {
         return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -49,10 +69,44 @@
         return overlay;
     }
 
+    /* ── Layout variants ─────────────────────────────────────────────────── */
+
+    // Is this a layout the overlay actually ships? Checked against the markup
+    // rather than a hard-coded list, so the two can never drift apart.
+    function hasLayout(el, name) {
+        if (!el || !name) return false;
+        return !!el.querySelector(".nx-skel-l--" + name);
+    }
+
+    function variant(name) {
+        var el = element();
+        if (!hasLayout(el, name)) return;
+        el.setAttribute(VARIANT_ATTR, name);
+    }
+
+    // The layout the clicked link/form is leading to, if it says.
+    function variantHint(event) {
+        var target = event && event.target;
+        var hint = target && target.closest ? target.closest("[" + VARIANT_HINT_ATTR + "]") : null;
+        return hint ? hint.getAttribute(VARIANT_HINT_ATTR) : null;
+    }
+
+    function restoreVariant() {
+        var el = element();
+        if (!el) return;
+        var fallback = el.getAttribute(VARIANT_DEFAULT_ATTR);
+        if (fallback && el.getAttribute(VARIANT_ATTR) !== fallback) {
+            el.setAttribute(VARIANT_ATTR, fallback);
+        }
+    }
+
     function show(triggerEvent) {
         var el = element();
         if (!el) return;
         if (showTimer) return;
+        // Read the hint now: by the time the delay elapses the browser may have
+        // started unloading and the event target is no longer reachable.
+        var hint = variantHint(triggerEvent);
         showTimer = window.setTimeout(function () {
             showTimer = null;
             // A handler called preventDefault() while we waited: the click was
@@ -66,6 +120,7 @@
                 window.clearTimeout(hideTimer);
                 hideTimer = null;
             }
+            variant(hint);
             el.hidden = false;
             el.classList.remove(LEAVING_CLASS);
             document.documentElement.setAttribute("data-nx-loading", "true");
@@ -75,6 +130,8 @@
     }
 
     function hide() {
+        // Held open for review: the page must not take the screen back.
+        if (pinned) return;
         if (showTimer) {
             window.clearTimeout(showTimer);
             showTimer = null;
@@ -89,6 +146,9 @@
         }
         var el = element();
         document.documentElement.removeAttribute("data-nx-loading");
+        // The navigation never happened (cancelled, or the stuck timer fired):
+        // go back to this page's own shape for the next attempt.
+        restoreVariant();
         if (!el) return;
 
         if (prefersReducedMotion()) {
@@ -190,7 +250,27 @@
         show(event);
     }
 
+    // The layout held open by `?nx-skeleton[=<layout>]`, or null.
+    function pinRequest() {
+        try {
+            var params = new window.URLSearchParams(window.location.search);
+            return params.has(PIN_PARAM) ? params.get(PIN_PARAM) || null : undefined;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
     function start() {
+        var pin = pinRequest();
+        if (pin !== undefined) {
+            // Held open for review, so the navigation hooks and the "the page
+            // is up, take it away" listeners are not wired at all.
+            pinned = true;
+            variant(pin);
+            show();
+            return;
+        }
+
         document.addEventListener("click", onClick, true);
         document.addEventListener("submit", onSubmit, true);
 
@@ -212,6 +292,7 @@
     window.NexusSkeleton = {
         show: show,
         hide: hide,
+        variant: variant,
         fill: fill,
         region: region,
         busy: busy
