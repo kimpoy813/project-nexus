@@ -156,13 +156,46 @@ the next page is fetched. Nothing else needs to opt in: any template that
 extends `base.html` (directly or through `dashboard_base.html` /
 `_wizard_shell.html`) ships it.
 
+The screens are not one layout repeated, so the skeleton is not either. The
+overlay carries **one layout per page family**, each drawn to the geometry of
+the screens it stands in for — same gutters, same column splits, same
+breakpoints — and `data-nx-variant` on the overlay says which one paints:
+
+| `data-nx-variant` | Stands in for | Shape |
+|---|---|---|
+| `marketing` | `/`, `/reports/`, `/achievements/`, `/proposals/` | Full-bleed coloured hero (centred, capped measure), section nav, stacked full-width sections |
+| `auth` | login, register, password reset | `.nx-auth`: brand panel beside the form card with its coloured header |
+| `dashboard` | the seven role dashboards | Title bar, then a 240px navigation rail beside the KPI row and queue panel |
+| `wizard` | `proposal_wizard`, `proposal_create` | `.nexus-wizard-layout`: stepper rail \| form column \| context rail |
+| `tracker` | MOA / implementation / post-approval | Progress header, then a two-thirds main card beside a column of side cards |
+| `list` | the admin CRUD index screens | Page head with actions, then a card holding a table |
+| `form` | the admin CRUD create/edit screens | Page head, then a card with a 2/3-column field grid |
+| `record` | profile, user detail, review comments (and any unlisted route) | Heading over stacked full-width detail cards |
+
+The variant is resolved **per route** by `accounts.context_processors.skeleton_variant`
+— an explicit table, then the name's ending (`_list` / `_manager` → `list`,
+`_create` / `_edit` → `form`, `_dashboard` → `dashboard`), then the path area,
+then `record`. A screen added later therefore gets the shape of its kind
+without touching a template.
+
 The pieces:
 
 | File | What it holds |
 |---|---|
-| `static/css/nexus-skeleton.css` | The overlay plus the reusable shapes (`.nx-skel`, `--text`, `--title`, `--avatar`, `--card`, `--row`, `--grid`). Plain CSS, no Tailwind classes, so it paints before the CDN bundle does. |
+| `static/css/nexus-skeleton.css` | The overlay, the eight layouts, and the reusable shapes (`.nx-skel`, `--text`, `--title`, `--avatar`, `--card`, `--row`, `--grid`). Plain CSS, no Tailwind classes, so it paints before the CDN bundle does. |
 | `static/js/nexus-loader.js` | The controller: show on navigation, hide on load, self-heal after 12s, clear on bfcache restore, ignore downloads/new tabs/hash links/modified clicks/JS-cancelled clicks, and skip the shimmer entirely under `prefers-reduced-motion`. |
-| `templates/base.html` | The overlay markup, the stylesheet link, the `<noscript>` rule that hides it without JavaScript, and the controller script. |
+| `templates/base.html` | The overlay markup (all eight layouts), the stylesheet link, the `<noscript>` rule that hides it without JavaScript, and the controller script. |
+| `accounts/context_processors.py` | `skeleton_variant()`: route → layout. |
+
+All eight layouts ship in the document and only one is shown, which is what
+lets the controller paint the shape of the page being navigated **to**: a link
+or form can declare its destination with `data-nx-skeleton="dashboard"`, so
+leaving the landing page for a dashboard shows the dashboard's rail rather than
+the hero it came from. The navbar and footer links in `base.html` carry those
+hints.
+
+To look at a layout without catching it mid-navigation, hold it on screen with
+`?nx-skeleton` — give it a value to force one, e.g. `/login/?nx-skeleton=wizard`.
 
 A region that only fills in later (an AJAX list, a search box) can paint the
 same shapes in place:
@@ -171,13 +204,15 @@ same shapes in place:
 NexusSkeleton.fill(box, { rows: 3 });   // avatar + two-line rows
 NexusSkeleton.region(el, true);         // flip a .nx-skel-region to its skeleton
 NexusSkeleton.busy(selectEl, true);     // shimmer a control that is waiting
+NexusSkeleton.variant("tracker");       // switch the page layout by hand
 NexusSkeleton.show();                   // cover the page for a long action
 ```
 
 Add `data-nx-no-skeleton` to a link or form that must not cover the page (a
 download, a print view, anything handled in place). `accounts/tests/test_loading_skeleton.py`
-renders the public, dashboard, wizard and admin pages and fails if one stops
-shipping the overlay, the stylesheet or the controller.
+renders the public, dashboard, wizard, tracker and admin pages and fails if one
+stops shipping the overlay, the stylesheet or the controller — or if a page
+family starts painting somebody else's layout.
 
 ### Progress rings
 

@@ -71,6 +71,137 @@ def _workflow_phase_shares():
         return {key: value / total for key, value in defaults.items()}
 
 
+# ---------------------------------------------------------------------------
+# Page skeleton layout
+# ---------------------------------------------------------------------------
+# The screens in this system are not one layout repeated. The landing pages are
+# a full-bleed hero over stacked content sections; the sign-in screens are a
+# brand panel beside a card; the dashboards are a 240px rail beside a KPI grid;
+# the admin CRUD screens are a page head over a table or a field grid; the
+# proposal wizard is three rails (stepper | form | context panel); the MOA and
+# implementation screens are a progress header over a 2/3 + 1/3 split.
+#
+# A single generic skeleton ("hero + four stat cards") therefore looked wrong on
+# most of the system. Each page instead tells the overlay which layout shape to
+# paint, resolved here from the route so no template has to opt in.
+
+#: Layout names the overlay in ``templates/base.html`` knows how to paint.
+SKELETON_VARIANTS = (
+    "marketing",  # hero band + stacked content sections (home, reports, services)
+    "auth",       # brand panel + form card (login, register, password reset)
+    "dashboard",  # title bar + 240px nav rail + KPI/queue body
+    "wizard",     # stepper rail | form column | context rail
+    "tracker",    # progress header + 2/3 main card + 1/3 side cards
+    "list",       # page head + card containing a table
+    "form",       # page head + card containing a field grid
+    "record",     # page head + stacked full-width detail cards
+)
+
+#: Shape used when a route is not listed below and matches no rule. ``record``
+#: is the neutral screen: a heading over one or two full-width cards, which is
+#: what most unlisted pages are.
+SKELETON_DEFAULT = "record"
+
+_SKELETON_BY_URL_NAME = {}
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # Public landing pages and CMS-driven content pages.
+    ("details_page", "reports_page", "achievements_page", "services_home"),
+    "marketing",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # Every screen built on `.nx-auth`: brand panel left, form card right.
+    (
+        "login", "register", "debug_login", "verify_email", "change_password",
+        "password_reset", "password_reset_done", "password_reset_confirm",
+        "password_reset_complete",
+    ),
+    "auth",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # The seven role dashboards plus the router that picks one.
+    (
+        "dashboard", "dashboard_redirect", "faculty_dashboard", "staff_dashboard",
+        "evaluator_dashboard", "department_coordinator_dashboard",
+        "campus_coordinator_dashboard", "director_dashboard", "admin_dashboard",
+    ),
+    "dashboard",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # `.nexus-wizard-layout`: stepper rail | form | context rail.
+    ("proposal_create", "proposal_wizard", "admin_legacy_proposal_create"),
+    "wizard",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # Progress header + main card + side cards.
+    (
+        "proposal_moa_tracker", "proposal_implementation_tracker",
+        "proposal_moa_draft", "proposal_moa_step", "proposal_storage",
+        "proposal_upload_signed_proposal", "staff_release_approval_documents",
+        "moa_upload",
+    ),
+    "tracker",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # Headings over stacked detail cards, no rail and no table.
+    (
+        "profile_view", "admin_user_detail", "manage_roles",
+        "proposal_review_comments", "proposal_comment_summary",
+        "proposal_version_summary", "admin_content_dashboard",
+    ),
+    "record",
+))
+
+#: Name endings that reliably identify the two admin CRUD shapes. They are
+#: checked after the explicit table so an exception above always wins.
+_SKELETON_SUFFIXES = (
+    ("_list", "list"),
+    ("_manager", "list"),
+    ("_create", "form"),
+    ("_edit", "form"),
+    ("_dashboard", "dashboard"),
+)
+
+#: Last-resort prefixes, for a route that is new and follows the usual shape of
+#: its area of the system.
+_SKELETON_PATH_PREFIXES = (
+    ("/dashboard/", "dashboard"),
+    ("/admin/", "list"),
+)
+
+
+def skeleton_variant(request):
+    """Tell the page skeleton which layout the screen being rendered uses."""
+    return {"nx_skeleton_variant": _resolve_skeleton_variant(request)}
+
+
+def _resolve_skeleton_variant(request):
+    """Map the current route to a skeleton layout, defaulting rather than raising.
+
+    Runs on every render, including error pages, so it must never raise: a
+    failure here would turn a recoverable problem into a blank 500.
+    """
+    try:
+        match = getattr(request, "resolver_match", None)
+        url_name = getattr(match, "url_name", None) or ""
+
+        variant = _SKELETON_BY_URL_NAME.get(url_name)
+        if variant:
+            return variant
+
+        for suffix, candidate in _SKELETON_SUFFIXES:
+            if url_name.endswith(suffix):
+                return candidate
+
+        path = getattr(request, "path", "") or ""
+        for prefix, candidate in _SKELETON_PATH_PREFIXES:
+            if path.startswith(prefix):
+                return candidate
+    except Exception:
+        logger.exception("Unexpected error resolving the page skeleton layout.")
+
+    return SKELETON_DEFAULT
+
+
 def _resolve_capabilities(request):
     """Capability set for the current user, or an empty set on failure."""
     from details.models import RoleCapability

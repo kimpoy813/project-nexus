@@ -8,6 +8,14 @@
       `templates/base.html`, so *every* page shows it while it loads and while
       the next page is being fetched. `js/nexus-loader.js` hides it.
 
+      The screens are not one layout repeated, so neither is the skeleton: the
+      overlay carries one layout per page family — `.nx-skel-l--marketing`,
+      `--auth`, `--dashboard`, `--wizard`, `--tracker`, `--list`, `--form`,
+      `--record` — each drawn to the geometry of the screens it stands in for
+      (same gutters, same column splits, same breakpoints). Which one paints is
+      set by `data-nx-variant` on the overlay, resolved per route by
+      `accounts.context_processors.skeleton_variant`.
+
    2. Content skeletons (`.nx-skel` and friends) — drop them into any region
       that fills in later (an AJAX list, a chart, a table). The usual pattern is
       to render the shape in the template and let the script hide/remove it, or
@@ -24,6 +32,19 @@
   --nx-skel-radius: 0.75rem;
   --nx-skel-speed: 1.4s;
   --nx-skel-overlay-bg: #f7faf4;
+  /* Shapes that sit on a coloured band (the landing hero, the auth card head)
+     need to be light or they disappear into it. */
+  --nx-skel-bg-invert: rgba(255, 255, 255, 0.26);
+  --nx-skel-card-bg: rgba(255, 255, 255, 0.7);
+  --nx-skel-line: rgba(15, 23, 42, 0.08);
+  /* Side gutter and rail widths, kept in step with nexus-layout.css so the
+     skeleton lines up with the page it is standing in for. */
+  --nx-skel-gutter: clamp(1rem, .35rem + 2.2vw, 3.5rem);
+  --nx-skel-bar-gutter: clamp(1rem, .35rem + 1.8vw, 3rem);
+  --nx-skel-stack: 1.5rem;
+  --nx-skel-rail: minmax(15rem, 19rem);
+  --nx-skel-rail-lg: minmax(17rem, 22rem);
+  --nx-skel-primary: var(--nexus-primary, #103b07);
 }
 
 /* ── Shapes ─────────────────────────────────────────────────────────────── */
@@ -72,6 +93,13 @@
   border-radius: 999px;
   flex: none;
 }
+/* Small bullet / icon dot (wizard step markers, panel bullets, row actions). */
+.nx-skel--dot {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  flex: none;
+}
 
 /* Width helpers (percentage of the shape's container). */
 .nx-skel--w-25 { width: 25%; }
@@ -93,7 +121,7 @@
   align-items: center;
   padding: 0.85rem 1rem;
 }
-.nx-skel-row + .nx-skel-row { border-top: 1px solid var(--nexus-line, rgba(15, 23, 42, 0.08)); }
+.nx-skel-row + .nx-skel-row { border-top: 1px solid var(--nexus-line, var(--nx-skel-line)); }
 
 /* Grid of cards, mirroring the dashboard stat/proposal grids. */
 .nx-skel-grid {
@@ -157,14 +185,23 @@
   border: 0;
 }
 
+/* Navbar shape: every screen in the system carries it, so it is shared by all
+   the layouts below instead of being repeated per variant. */
+.nx-skel-overlay__frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
 .nx-skel-overlay__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   height: 5.5rem;
-  padding-inline: var(--nx-bar-gutter, clamp(1rem, .35rem + 2.2vw, 3.5rem));
-  border-bottom: 1px solid var(--nexus-line, rgba(15, 23, 42, 0.08));
+  flex: none;
+  padding-inline: var(--nx-skel-bar-gutter);
+  border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line));
   background: rgba(255, 255, 255, 0.65);
 }
 .nx-skel-overlay__brand {
@@ -177,34 +214,329 @@
   align-items: center;
   gap: 0.75rem;
 }
-.nx-skel-overlay__body {
-  display: grid;
-  gap: 1.25rem;
-  padding: 2.25rem var(--nx-gutter, clamp(1rem, .35rem + 2.2vw, 3.5rem)) 3rem;
-}
-.nx-skel-overlay__hero {
-  display: grid;
-  gap: 0.75rem;
-  max-width: 44rem;
-}
-.nx-skel-overlay__stats {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
-}
-.nx-skel-overlay__panel {
-  display: grid;
-  gap: 1rem;
-  padding: 1.25rem;
-  border: 1px solid var(--nexus-line, rgba(15, 23, 42, 0.08));
-  border-radius: var(--nexus-radius, 1.25rem);
-  background: rgba(255, 255, 255, 0.7);
-}
 
 /* Hide the nav links on small screens, like the real navbar does. */
 @media (max-width: 1023px) {
   .nx-skel-overlay__nav { display: none; }
 }
+
+/* ── Layouts: one per page family ───────────────────────────────────────── */
+/* Only the variant named by the overlay's `data-nx-variant` paints; the rest
+   stay in the document so the controller can switch to the shape of the page
+   being navigated to. */
+.nx-skel-l { display: none; }
+
+.nx-skel-overlay[data-nx-variant="marketing"] .nx-skel-l--marketing,
+.nx-skel-overlay[data-nx-variant="auth"] .nx-skel-l--auth,
+.nx-skel-overlay[data-nx-variant="dashboard"] .nx-skel-l--dashboard,
+.nx-skel-overlay[data-nx-variant="wizard"] .nx-skel-l--wizard,
+.nx-skel-overlay[data-nx-variant="tracker"] .nx-skel-l--tracker,
+.nx-skel-overlay[data-nx-variant="list"] .nx-skel-l--list,
+.nx-skel-overlay[data-nx-variant="form"] .nx-skel-l--form,
+.nx-skel-overlay[data-nx-variant="record"] .nx-skel-l--record {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Shared page furniture. `.nx-skel-page` mirrors `.nx-page` (full width, one
+   fluid gutter); `.nx-skel-card` mirrors the `rounded-2xl/3xl` white cards the
+   admin, dashboard and tracker screens are built from. */
+.nx-skel-page {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-content: start;
+  padding: 2rem var(--nx-skel-gutter) 3rem;
+}
+.nx-skel-page__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.nx-skel-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: none;
+}
+.nx-skel-card {
+  border: 1px solid var(--nexus-line, var(--nx-skel-line));
+  border-radius: 1.25rem;
+  background: var(--nx-skel-card-bg);
+  overflow: hidden;
+}
+.nx-skel-card__head {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line));
+}
+.nx-skel-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--nexus-line, var(--nx-skel-line));
+}
+/* Card rows, the KPI tiles and the landing-page card grids. */
+.nx-skel-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+.nx-skel-rows { display: grid; }
+
+/* Field groups: label line above an input, flowing into 2 columns at 720px
+   and 3 at 1400px — the same steps as `.nx-form-grid`. */
+.nx-skel-fields {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 720px) {
+  .nx-skel-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1400px) {
+  .nx-skel-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.nx-skel-field { display: grid; gap: 0.5rem; }
+.nx-skel-field--full { padding: 0 1.5rem 1.5rem; }
+
+/* Progress bar (wizard rail, MOA/implementation trackers). */
+.nx-skel-progress {
+  height: 0.5rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--nx-skel-bg-strong);
+}
+.nx-skel-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--nx-skel-bg-strong);
+}
+
+/* The blue "Office Instructions" notice at the top of a wizard step. */
+.nx-skel-notice {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  border: 1px solid var(--nexus-line, var(--nx-skel-line));
+  border-radius: 1rem;
+  background: var(--nx-skel-card-bg);
+}
+
+/* Stepper row: marker dot beside the step name and its state. */
+.nx-skel-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0;
+}
+
+/* Rails are grid children, so a long shape must not push them wider than
+   their track — the same `min-width: 0` the real split layouts carry. */
+.nx-skel-dash__side,
+.nx-skel-wiz__rail,
+.nx-skel-wiz__aside { min-width: 0; }
+
+/* Table shapes, mirroring the `min-w-full divide-y` admin tables. */
+.nx-skel-table__head,
+.nx-skel-table__row {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.95rem 1.5rem;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) 3rem;
+}
+.nx-skel-table__head { border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line)); }
+.nx-skel-table__row { border-top: 1px solid var(--nexus-line, var(--nx-skel-line)); }
+@media (max-width: 767px) {
+  .nx-skel-table__head,
+  .nx-skel-table__row {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr);
+  }
+  .nx-skel-table__head > :nth-child(n + 3),
+  .nx-skel-table__row > :nth-child(n + 3) { display: none; }
+}
+
+/* ── 1. Landing / CMS pages ─────────────────────────────────────────────── */
+/* Full-bleed coloured hero (centred, capped measure), a sticky section nav,
+   then stacked full-width sections — `details_page.html`, `content_page.html`,
+   `services_home.html`. */
+.nx-skel-mkt__hero {
+  padding: 5rem var(--nx-skel-gutter) 4.5rem;
+  background: var(--nx-skel-primary);
+}
+.nx-skel-mkt__measure {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: center;
+  max-width: min(100%, 58rem);
+  margin-inline: auto;
+}
+/* Shapes on the coloured band read as light blocks. */
+.nx-skel-mkt__hero .nx-skel,
+.nx-skel-auth__head .nx-skel { background-color: var(--nx-skel-bg-invert); }
+.nx-skel-mkt__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.nx-skel-mkt__nav {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1.1rem var(--nx-skel-gutter);
+  border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line));
+  background: rgba(255, 255, 255, 0.7);
+}
+.nx-skel-mkt__section {
+  display: grid;
+  gap: 2rem;
+  justify-items: center;
+  padding: 3.5rem var(--nx-skel-gutter) 3rem;
+}
+.nx-skel-mkt__section .nx-skel-cards { width: 100%; }
+
+/* ── 2. Auth screens ────────────────────────────────────────────────────── */
+/* `.nx-auth`: brand panel on the left, form card on the right, the pair capped
+   and centred with the wider auth inset. */
+.nx-skel-auth {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 110rem;
+  margin-inline: auto;
+  padding: 4rem clamp(1.5rem, .5rem + 4vw, 8rem) 3rem;
+}
+@media (min-width: 1024px) {
+  .nx-skel-auth {
+    grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem);
+    gap: clamp(2rem, 5vw, 6rem);
+  }
+}
+.nx-skel-auth__panel { display: grid; gap: 1rem; align-content: start; }
+.nx-skel-auth__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+.nx-skel-auth__bullets { display: grid; gap: 0.35rem; margin-top: 0.5rem; }
+.nx-skel-auth__card {
+  width: 100%;
+  max-width: 34rem;
+  border: 1px solid var(--nexus-line, var(--nx-skel-line));
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.55);
+  overflow: hidden;
+}
+@media (min-width: 1024px) { .nx-skel-auth__card { justify-self: end; } }
+.nx-skel-auth__head {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  padding: 1.5rem 2rem;
+  background: var(--nx-skel-primary);
+}
+.nx-skel-auth__body { display: grid; gap: 1.35rem; padding: 2rem; }
+
+/* ── 3. Role dashboards ─────────────────────────────────────────────────── */
+/* Title bar over a 240px navigation rail beside the KPI row and the queue
+   panel — `dashboard_base.html` and the seven role dashboards. */
+.nx-skel-dash {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1280px) {
+  .nx-skel-dash { grid-template-columns: 240px minmax(0, 1fr); }
+}
+.nx-skel-dash__nav {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.75rem;
+}
+.nx-skel-dash__main {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-content: start;
+  min-width: 0;
+}
+
+/* ── 4/5. Admin lists and forms ─────────────────────────────────────────── */
+/* Both are `.nx-skel-page` + one card; the card holds a table for the `--list`
+   variant and a field grid for `--form`, which is exactly how the CRUD screens
+   differ. Nothing extra is needed beyond the shared pieces above. */
+
+/* ── 6. Proposal wizard ─────────────────────────────────────────────────── */
+/* `.nexus-wizard-layout`: stepper rail | form column | context rail. */
+.nx-skel-wiz {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 2rem var(--nx-skel-gutter) 3rem;
+}
+@media (min-width: 1024px) {
+  .nx-skel-wiz {
+    grid-template-columns: var(--nx-skel-rail) minmax(0, 1fr) var(--nx-skel-rail-lg);
+  }
+}
+.nx-skel-wiz__steps { display: grid; padding: 1rem 1.25rem 1.25rem; }
+.nx-skel-wiz__main {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-content: start;
+  min-width: 0;
+}
+
+/* ── 7. MOA / implementation / post-approval ────────────────────────────── */
+/* Progress header, then a two-thirds main card beside a column of side cards —
+   `grid lg:grid-cols-3` with the main card on `lg:col-span-2`. */
+.nx-skel-trk__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.nx-skel-trk__title {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+.nx-skel-trk__grid {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 1024px) {
+  .nx-skel-trk__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .nx-skel-trk__main { grid-column: span 2; }
+}
+.nx-skel-trk__side {
+  display: grid;
+  gap: var(--nx-skel-stack);
+  align-content: start;
+  min-width: 0;
+}
+
+/* ── 8. Record / detail screens ─────────────────────────────────────────── */
+/* Heading over stacked full-width cards of label/value rows — profile, user
+/* detail, review comments and comment summaries. Built entirely from the
+   shared pieces above, so it needs no rules of its own. */
 
 /* ── Motion / print / older engines ─────────────────────────────────────── */
 /* Shimmer is decoration: users who ask for less motion get a static block. */
