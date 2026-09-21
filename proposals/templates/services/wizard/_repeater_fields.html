@@ -47,22 +47,30 @@ Context:
           {{ form.row_label }} {{ row.number }}
         </p>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2" data-repeater-row-actions>
           {% if row.locked %}
             <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Creator</span>
           {% elif is_edit_mode %}
-            <input type="hidden" name="repeater_{{ form.id }}_remove" value="" data-repeater-remove-input>
-            <button type="submit" name="action" value="save_members" data-repeater-remove="{{ row.row_id }}"
-                    class="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition">
+            {# Pending removal is tracked entirely in the browser and flushed to a real `repeater_<id>_remove` input on submit. #}
+            <button type="button" data-repeater-remove="{{ row.row_id }}"
+                    class="repeater-remove-btn rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition">
               Remove
             </button>
+            <button type="button" data-repeater-undo
+                    class="repeater-undo-btn hidden rounded-lg border border-emerald-200 px-2.5 py-1 text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition">
+              Undo
+            </button>
+            <span data-repeater-removed-badge
+                  class="repeater-removed-badge hidden rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
+              Removed on save
+            </span>
           {% endif %}
 
           {% if is_edit_mode and row.row_id %}
-          <button type="submit" name="action" value="save_members" data-repeater-move-up="{{ row.row_id }}"
-                  title="Move up" class="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-white transition">&uarr;</button>
-          <button type="submit" name="action" value="save_members" data-repeater-move-down="{{ row.row_id }}"
-                  title="Move down" class="rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-white transition">&darr;</button>
+          <button type="button" data-repeater-move-up="{{ row.row_id }}"
+                  title="Move up" class="repeater-move-btn rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-white transition">&uarr;</button>
+          <button type="button" data-repeater-move-down="{{ row.row_id }}"
+                  title="Move down" class="repeater-move-btn rounded-lg border border-gray-200 px-2 py-1 text-xs font-bold text-gray-600 hover:bg-white transition">&darr;</button>
           {% endif %}
         </div>
       </div>
