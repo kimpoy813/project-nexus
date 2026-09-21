@@ -10,7 +10,7 @@
             </p>
         </div>
 
-        <form method="post" class="p-6 space-y-6">
+        <form method="post" class="p-6 space-y-6" data-nx-skeleton="dashboard">
             {% csrf_token %}
 
             {% if messages %}
@@ -177,6 +177,7 @@
                 <a
                     href="{% url 'admin_dashboard' %}"
                     class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                    data-nx-skeleton="dashboard"
                 >
                     Cancel
                 </a>

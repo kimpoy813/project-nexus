@@ -130,9 +130,12 @@
     });
   }
 
-  document.addEventListener('change', checkDynamicDependencies);
-  document.addEventListener('input', checkDynamicDependencies);
-  
+  if (!window.__nexusDynamicDepsBound) {
+    window.__nexusDynamicDepsBound = true;
+    document.addEventListener('change', checkDynamicDependencies);
+    document.addEventListener('input', checkDynamicDependencies);
+  }
+
   setTimeout(checkDynamicDependencies, 100);
 })();
 </script>

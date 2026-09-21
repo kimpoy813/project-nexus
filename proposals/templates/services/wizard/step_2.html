@@ -222,7 +222,11 @@
             renumberPhases();
         }
 
-        document.addEventListener("DOMContentLoaded", renumberPhases);
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", renumberPhases);
+        } else {
+            renumberPhases();
+        }
         document.querySelector("form")?.addEventListener("submit", renumberPhases);
         </script>
         {% endif %}

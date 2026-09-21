@@ -11,18 +11,21 @@
    Window API (also used by templates that fill a region later):
 
      NexusSkeleton.show()                     // paint the page skeleton
+     NexusSkeleton.show("dashboard")          // paint a specific destination shape
      NexusSkeleton.hide()                     // take it away
      NexusSkeleton.variant(name)              // show another page family's shape
+     NexusSkeleton.variantForPath(path)       // layout the destination URL uses
      NexusSkeleton.fill(el, {rows, avatar})   // put list-row shapes in `el`
      NexusSkeleton.region(el, isLoading)      // flip a `.nx-skel-region`
      NexusSkeleton.busy(el, isLoading)        // shimmer a waiting control
 
    The overlay carries one layout per page family (landing, auth, dashboard,
    wizard, tracker, list, form, record) and the server picks the one that
-   matches the current route. A link or form that leads somewhere of a
-   *different* shape can say so with `data-nx-skeleton="dashboard"`, and the
-   controller switches before it paints — so leaving the landing page for a
-   dashboard shows the dashboard's rail, not the hero it came from.
+   matches the *current* route. On the way out, the controller paints the
+   *destination* instead: a POST to /login/ shows the dashboard (that is
+   where a successful sign-in goes), /logout/ shows the auth screen, and
+   any other link or form is resolved from its href/action. A control can
+   still override that with `data-nx-skeleton="dashboard"`.
 
    Opt outs: add `data-nx-no-skeleton` to a link or form that should not paint
    the page skeleton (downloads, print views, anything that stays on the page).
@@ -84,11 +87,135 @@
         el.setAttribute(VARIANT_ATTR, name);
     }
 
-    // The layout the clicked link/form is leading to, if it says.
-    function variantHint(event) {
+    function pathnameOf(href) {
+        if (href == null || href === "") {
+            return window.location.pathname || "/";
+        }
+        try {
+            return new window.URL(href, window.location.href).pathname || "/";
+        } catch (e) {
+            return window.location.pathname || "/";
+        }
+    }
+
+    function normalizePath(path) {
+        if (!path) return "/";
+        return path.length > 1 ? path.replace(/\/+$/, "") : path;
+    }
+
+    // Mirror of accounts.context_processors._resolve_skeleton_variant, keyed
+    // by path because the click/submit only has a URL, not a Django url name.
+    // Destination, not origin: POST /login/ → dashboard; GET /logout/ → auth.
+    function variantForPath(path) {
+        var p = normalizePath(path);
+
+        if (p === "/logout" || p === "/logout-idle") return "auth";
+
+        if (p === "/" || p === "/reports" || p === "/achievements" || p === "/proposals") {
+            return "marketing";
+        }
+
+        if (p === "/login" || p === "/register" || p === "/debug-login") return "auth";
+        if (p.indexOf("/verify/") === 0) return "auth";
+        if (p.indexOf("/password") === 0) return "auth";
+
+        if (p === "/dashboard" || p.indexOf("/dashboard/") === 0) return "dashboard";
+
+        if (p === "/profile/edit") return "form";
+        if (p === "/profile") return "record";
+
+        if (p === "/accomplishments/create") return "form";
+        if (p === "/accomplishments") return "list";
+
+        if (p === "/manage-roles") return "record";
+
+        if (p === "/proposals/new" || p === "/proposals/admin/new-legacy") return "wizard";
+        if (/\/edit\/step\/\d+$/.test(p)) return "wizard";
+
+        if (/\/moa\/upload$/.test(p) || /\/moa\/\d+$/.test(p)) return "tracker";
+        if (/\/(moa|implementation|storage|upload-signed|release-docs|moa-draft)$/.test(p)) {
+            return "tracker";
+        }
+
+        if (/\/review\/step\/\d+$/.test(p)) return "record";
+        if (/\/(comments-summary|comment-summary|view-summary)$/.test(p)) return "record";
+        if (/\/version\/\d+\/view$/.test(p)) return "record";
+
+        if (p === "/admin/content") return "record";
+        if (/^\/admin\/users\/\d+$/.test(p)) return "record";
+
+        if (p === "/admin/site-control") return "dashboard";
+        if (p === "/admin/create-account") return "form";
+        // CMS page editor: /admin/pages/<slug>/ is a form, not the pages list.
+        if (/^\/admin\/pages\/[^/]+$/.test(p)) return "form";
+
+        if (/\/(create|edit|new)$/.test(p)) return "form";
+
+        if (p === "/admin" || p.indexOf("/admin/") === 0) return "list";
+
+        return "record";
+    }
+
+    function variantForUrl(href, options) {
+        options = options || {};
+        var path = pathnameOf(href);
+        var method = String(options.method || "GET").toUpperCase();
+        // These POST to themselves (or to a bounce URL) then redirect. Painting
+        // the origin/action path would be the page being left, not the next one.
+        if (normalizePath(path) === "/login" && method === "POST") return "dashboard";
+        if (normalizePath(path) === "/manage-roles" && method === "POST") return "dashboard";
+        if (normalizePath(path) === "/admin/site-control" && method === "POST") return "dashboard";
+        return variantForPath(path);
+    }
+
+    function nextFieldValue(form) {
+        if (!form || !form.elements) return "";
+        var field = form.elements.namedItem("next");
+        if (!field || field.value == null) return "";
+        return String(field.value).trim();
+    }
+
+    function explicitHint(node) {
+        if (!node || !node.closest) return "";
+        var hinted = node.closest("[" + VARIANT_HINT_ATTR + "]");
+        return hinted ? (hinted.getAttribute(VARIANT_HINT_ATTR) || "") : "";
+    }
+
+    function variantFromLink(link) {
+        var hint = explicitHint(link);
+        if (hint) return hint;
+        return variantForUrl(link.href, { method: "GET" });
+    }
+
+    function variantFromForm(form) {
+        // `next` is the page the login view will actually send the user to.
+        var nextVal = nextFieldValue(form);
+        if (nextVal) {
+            var fromNext = variantForUrl(nextVal, { method: "GET" });
+            if (fromNext) return fromNext;
+        }
+        var hint = explicitHint(form);
+        if (hint) return hint;
+        var action = form.getAttribute("action");
+        var method = (form.getAttribute("method") || form.method || "GET").toUpperCase();
+        return variantForUrl(action || window.location.href, { method: method });
+    }
+
+    // The layout the clicked link/form is leading to.
+    function destinationHint(event) {
+        if (typeof event === "string") return event;
         var target = event && event.target;
-        var hint = target && target.closest ? target.closest("[" + VARIANT_HINT_ATTR + "]") : null;
-        return hint ? hint.getAttribute(VARIANT_HINT_ATTR) : null;
+        if (!target) return null;
+        if (event.type === "submit" && target.nodeName === "FORM") {
+            return variantFromForm(target);
+        }
+        if (target.closest) {
+            var link = target.closest("a[href]");
+            if (link) return variantFromLink(link);
+            var form = target.closest("form");
+            if (form) return variantFromForm(form);
+        }
+        return null;
     }
 
     function restoreVariant() {
@@ -100,13 +227,19 @@
         }
     }
 
-    function show(triggerEvent) {
+    function show(triggerEvent, precomputedHint) {
         var el = element();
         if (!el) return;
         if (showTimer) return;
         // Read the hint now: by the time the delay elapses the browser may have
         // started unloading and the event target is no longer reachable.
-        var hint = variantHint(triggerEvent);
+        var hint = precomputedHint;
+        if (typeof triggerEvent === "string") {
+            hint = triggerEvent;
+            triggerEvent = null;
+        } else if (hint == null) {
+            hint = destinationHint(triggerEvent);
+        }
         showTimer = window.setTimeout(function () {
             showTimer = null;
             // A handler called preventDefault() while we waited: the click was
@@ -211,6 +344,8 @@
 
     function shouldSkipLink(link) {
         if (link.hasAttribute("data-nx-no-skeleton")) return true;
+        // In-wizard step changes swap the three-rail body; they are not a page load.
+        if (link.closest && link.closest("[data-nx-wizard]")) return true;
         if (link.hasAttribute("download")) return true;
         if (link.target && link.target !== "_self") return true;
 
@@ -238,7 +373,7 @@
         if (event.defaultPrevented || !isPlainLeftClick(event)) return;
         var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
         if (!link || shouldSkipLink(link)) return;
-        show(event);
+        show(event, variantFromLink(link));
     }
 
     function onSubmit(event) {
@@ -246,8 +381,9 @@
         var form = event.target;
         if (!form || form.nodeName !== "FORM") return;
         if (form.hasAttribute("data-nx-no-skeleton")) return;
+        if (form.closest && form.closest("[data-nx-wizard]")) return;
         if (form.target && form.target !== "_self") return;
-        show(event);
+        show(event, variantFromForm(form));
     }
 
     // The layout held open by `?nx-skeleton[=<layout>]`, or null.
@@ -293,6 +429,7 @@
         show: show,
         hide: hide,
         variant: variant,
+        variantForPath: variantForPath,
         fill: fill,
         region: region,
         busy: busy
@@ -304,3 +441,4 @@
         start();
     }
 })(window, document);
+

@@ -1,7 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <div class="nx-page nexus-page py-8">
-  <div class="nexus-wizard-layout">
+  <div id="nx-wizard-root"
+       class="nexus-wizard-layout"
+       data-nx-wizard="1"
+       {% if is_edit_mode %}data-nx-ping-url="{% url 'proposal_editor_ping' proposal.id %}?step={{ step }}"{% endif %}>
 
     <!-- SIDEBAR: fixed-width rail -->
     {% include "services/wizard/_sidebar_stepper.html" %}
@@ -155,77 +159,8 @@
 
   </div>
 </div>
+{% endblock %}
 
-<!-- STEP SCROLL FIX -->
-<script>
-(function () {
-  const STORAGE_KEY = "proposal_stepper_target_href";
-
-  function moveStepToTop(target) {
-    const scrollBox = document.getElementById("wizard-stepper-scroll");
-    if (!scrollBox || !target) return;
-    const boxRect = scrollBox.getBoundingClientRect();
-    const stepRect = target.getBoundingClientRect();
-    scrollBox.scrollTop += stepRect.top - boxRect.top - 24;
-  }
-
-  function findTargetOnLoad() {
-    const savedHref = sessionStorage.getItem(STORAGE_KEY);
-    const scrollBox = document.getElementById("wizard-stepper-scroll");
-    if (!scrollBox) return null;
-
-    if (savedHref) {
-      const escaped = CSS.escape(savedHref);
-      const clickedLink = scrollBox.querySelector(`a[href="${escaped}"]`);
-      sessionStorage.removeItem(STORAGE_KEY);
-      if (clickedLink) return clickedLink;
-    }
-
-    return document.querySelector("[data-current-step='true']");
-  }
-
-  window.addEventListener("load", function () {
-    requestAnimationFrame(() => {
-      const target = findTargetOnLoad();
-      moveStepToTop(target);
-      setTimeout(() => moveStepToTop(target), 50);
-    });
-  });
-
-  document.addEventListener("click", function (e) {
-    const link = e.target.closest("#wizard-stepper-scroll a");
-    if (!link) return;
-    sessionStorage.setItem(STORAGE_KEY, link.getAttribute("href"));
-  });
-})();
-</script>
-
-<!-- EDITOR PRESENCE (ONLY WHEN EDITING) -->
-{% if is_edit_mode %}
-<script>
-(function () {
-  const pingUrl = "{% url 'proposal_editor_ping' proposal.id %}?step={{ step }}";
-
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(";").shift();
-  }
-
-  function pingEditorPresence() {
-    fetch(pingUrl, {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": getCookie("csrftoken"),
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    }).catch(() => {});
-  }
-
-  pingEditorPresence();
-  setInterval(pingEditorPresence, 20000);
-})();
-</script>
-{% endif %}
-
+{% block extra_scripts %}
+<script src="{% static 'js/nexus-wizard.js' %}"></script>
 {% endblock %}

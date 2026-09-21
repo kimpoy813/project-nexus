@@ -2,6 +2,7 @@
 No-code builders: document templates, dynamic forms, wizard steps, role capabilities.
 """
 from collections import OrderedDict
+import json
 import logging
 
 from botocore.exceptions import BotoCoreError
@@ -10,6 +11,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import SuspiciousFileOperation
+from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -173,6 +176,7 @@ def _sync_default_wizard_step_configs():
                 description=item["desc"],
                 is_visible=True,
                 is_required=True,
+                display_order=item["no"],
             )
         )
     if to_create:
@@ -543,8 +547,49 @@ def dynamic_form_delete(request, pk):
 @admin_required
 def wizard_steps_manager(request):
     _sync_default_wizard_step_configs()
-    steps = ProposalWizardStepConfig.objects.all().order_by("step_no")
+    steps = ProposalWizardStepConfig.objects.all().order_by("display_order", "step_no")
     return render(request, "dashboard/admin/wizard_steps_manager.html", {"steps": steps})
+
+
+@login_required
+@admin_required
+@require_POST
+def wizard_steps_reorder(request):
+    """Persist a dragged sequence of proposal wizard steps.
+
+    ``step_no`` is identity; only ``display_order`` changes. The payload is
+    the full list of step numbers in the new order.
+    """
+    _sync_default_wizard_step_configs()
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+        raw_ids = data.get("step_nos", [])
+        step_nos = [int(value) for value in raw_ids]
+    except (ValueError, TypeError, json.JSONDecodeError):
+        logger.warning("Malformed wizard_steps_reorder payload.", exc_info=True)
+        return JsonResponse({"ok": False, "error": "Invalid request."}, status=400)
+
+    existing = list(
+        ProposalWizardStepConfig.objects.order_by("display_order", "step_no").values_list(
+            "step_no", flat=True
+        )
+    )
+    if not step_nos or set(step_nos) != set(existing) or len(step_nos) != len(existing):
+        return JsonResponse(
+            {"ok": False, "error": "Send every wizard step, once, in the new order."},
+            status=400,
+        )
+
+    try:
+        with transaction.atomic():
+            for index, step_no in enumerate(step_nos, start=1):
+                ProposalWizardStepConfig.objects.filter(step_no=step_no).update(
+                    display_order=index
+                )
+        return JsonResponse({"ok": True})
+    except Exception:
+        logger.exception("Failed to reorder wizard steps.")
+        return JsonResponse({"ok": False, "error": "Server error."}, status=500)
 
 
 def _builder_context(form_obj=None, **extra):

@@ -52,13 +52,14 @@ class _DynamicStepLabels:
                             description=item["desc"],
                             is_visible=True,
                             is_required=True,
+                            display_order=item["no"],
                         )
                     )
                 ProposalWizardStepConfig.objects.bulk_create(to_create)
             
             return [
                 {"no": config.step_no, "title": config.title, "desc": config.description}
-                for config in ProposalWizardStepConfig.objects.all().order_by("step_no")
+                for config in ProposalWizardStepConfig.objects.all().order_by("display_order", "step_no")
             ]
         except Exception:
             return INITIAL_STEP_LABELS
@@ -174,20 +175,14 @@ SDG_LIST = [
 
 
 THRUST_LIST = [
-    "Indigenous Heritage Protection",
-    "Environmental Protection",
-    "Resource Sharing",
-    "Numeracy and Literacy",
-    "Governance and Administration",
-    "IP-TBM Office Establishment",
-    "Trade Fair and Exhibit",
-    "Technology Transfer & RD Results Dissemination",
-    "Network and Linkage",
-    "Adult Education",
-    "Calamity & Disaster Rehabilitation",
-    "Entrepreneurship & Financial Literacy",
-    "Health and Nutrition",
-    "Advocacies & Social Justice",
+    "Sustainable Community Development and Livelihood Enhancement",
+    "Agriculture, Fisheries, and Food Security Extension",
+    "Environmental Conservation and Climate Resilience",
+    "Education, Literacy, and Human Resource Development",
+    "Health, Nutrition, and Wellness Promotion",
+    "Technology Transfer and Innovation Extension",
+    "Governance, Policy Advocacy, and Institutional Partnership",
+    "Cultural Preservation and Social Inclusion",
 ]
 
 

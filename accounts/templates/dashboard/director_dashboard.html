@@ -10,7 +10,7 @@
                 <h1 class="nx-dash__title">Director Dashboard</h1>
                 <p class="nx-dash__subtitle">Monitor proposals, reviews, campus activity, and completion.</p>
             </div>
-            <a href="{% url 'proposal_create' %}" class="dir-btn-primary">Create Proposal</a>
+            <a href="{% url 'proposal_create' %}" class="dir-btn-primary" data-nx-skeleton="wizard">Create Proposal</a>
         </div>
 
         <!-- GRID: SIDEBAR + MAIN -->
@@ -29,7 +29,7 @@
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="extensions">All Extensions</button>
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="mine">My Proposals</button>
                         {% if can_view_accomplishment %}
-                            <a href="{% url 'accomplishment_reports_list' %}" class="dashboard-nav-btn w-full">Accomplishment Reports</a>
+                            <a href="{% url 'accomplishment_reports_list' %}" class="dashboard-nav-btn w-full" data-nx-skeleton="list">Accomplishment Reports</a>
                         {% endif %}
                     </div>
 

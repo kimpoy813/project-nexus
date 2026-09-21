@@ -7,6 +7,8 @@ this file covers behaviour that belongs to the models themselves.
 
 from django.test import TestCase
 
+from proposals.views.constants import THRUST_LIST
+
 from .models import (
     HomeSectionHeading,
     HomeThrust,
@@ -67,7 +69,7 @@ class HomeThrustModelTests(TestCase):
         titles = list(HomeThrust.objects.values_list("title", flat=True))
         orders = list(HomeThrust.objects.values_list("order", flat=True))
         self.assertEqual(orders, sorted(orders))
-        self.assertEqual(titles[0], "Indigenous Heritage Protection")
+        self.assertEqual(titles[0], "Sustainable Community Development and Livelihood Enhancement")
 
 
 class HomeSectionHeadingModelTests(TestCase):

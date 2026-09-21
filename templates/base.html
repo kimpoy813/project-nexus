@@ -575,7 +575,7 @@
          class="nexus-navbar fixed top-0 w-full z-50">
         <div class="nx-bar h-full flex justify-between items-center">
             <!-- Logo + NEXUS Name -->
-            <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home">
+            <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home" data-nx-skeleton="marketing">
                 <img src="{% static 'images/nexus-logo-128.png' %}"
                      alt="NExUS logo"
                      class="h-11 w-11 object-contain drop-shadow-sm">
@@ -630,7 +630,8 @@
                                 <div class="py-2">
                                     {% if nav_notif_count %}
                                         <a href="{% url 'dashboard_redirect' %}?focus=attention"
-                                           class="flex items-start gap-3 px-5 py-4 hover:bg-gray-50 transition">
+                                           class="flex items-start gap-3 px-5 py-4 hover:bg-gray-50 transition"
+                                           data-nx-skeleton="dashboard">
                                             <span class="mt-0.5 inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-red-50 text-red-700">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                                     <path d="M10 2a6 6 0 00-6 6v2.586l-.707.707A1 1 0 004 13h12a1 1 0 00.707-1.707L16 10.586V8a6 6 0 00-6-6z"/>
@@ -683,7 +684,7 @@
                                 {% if can_view_accomplishment %}
                                 <a href="{% url 'accomplishment_reports_list' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="list">Accomplishment Reports</a>
                                 {% endif %}
-                                <a href="{% url 'logout' %}" class="block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 border-t border-gray-100">Logout</a>
+                                <a href="{% url 'logout' %}" class="block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 border-t border-gray-100" data-nx-skeleton="auth">Logout</a>
                             </div>
                         </div>
                     </div>
@@ -724,7 +725,7 @@
                     <div class="my-2 border-t border-gray-100"></div>
                     <a href="{% url 'profile_view' %}" class="nexus-menu-link w-full" data-nx-skeleton="record">Profile</a>
                     {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Accomplishment Reports</a>{% endif %}
-                    <a href="{% url 'logout' %}" class="nexus-menu-link w-full text-red-600">Logout</a>
+                    <a href="{% url 'logout' %}" class="nexus-menu-link w-full text-red-600" data-nx-skeleton="auth">Logout</a>
                 {% else %}
                     <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-2xl px-4 py-3 text-sm font-black" data-nx-skeleton="auth">Login</a>
                 {% endif %}
@@ -754,7 +755,7 @@
     </div>
     {% endif %}
 
-    <main id="main-content" class="nexus-shell pt-24">
+    <main id="main-content" ">
         {% block content %}{% endblock %}
     </main>
 
@@ -890,6 +891,9 @@
             }
 
             async function logoutIdle() {
+                if (window.NexusSkeleton) {
+                    window.NexusSkeleton.show("auth");
+                }
                 try {
                     const csrftoken = getCookie('csrftoken');
                     await fetch('{% url 'logout_idle' %}', {

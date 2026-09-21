@@ -84,6 +84,7 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `proposals/tests_transitions.py` | MOA/implementation transitions, status derivation, wizard helpers |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 | `accounts/tests/test_layout.py` | Full-bleed layout: no capped page shells, stylesheet linked, auth/wizard/dashboard shells intact |
+| `accounts/tests/test_loading_skeleton.py` | Overlay, eight layouts, route → variant, and dest matching (login/logout plus JS vs Python for every named URL) |
 | `accounts/tests/test_file_storage_configuration.py` | Supabase bucket/endpoint/region/key validation, the `check_file_storage` command, and the provider error shown after a failed upload |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
@@ -209,7 +210,10 @@ NexusSkeleton.show();                   // cover the page for a long action
 ```
 
 Add `data-nx-no-skeleton` to a link or form that must not cover the page (a
-download, a print view, anything handled in place). `accounts/tests/test_loading_skeleton.py`
+download, a print view, anything handled in place). Inside the proposal wizard,
+stepper clicks and Save / Back / Skip posts are intercepted by
+`static/js/nexus-wizard.js` so only the three-rail body swaps — the rest of the
+site does not reload. `accounts/tests/test_loading_skeleton.py`
 renders the public, dashboard, wizard, tracker and admin pages and fails if one
 stops shipping the overlay, the stylesheet or the controller — or if a page
 family starts painting somebody else's layout.

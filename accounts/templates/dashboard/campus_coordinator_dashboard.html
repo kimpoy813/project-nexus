@@ -13,7 +13,8 @@
         </div>
 
         <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+           class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary"
+           data-nx-skeleton="wizard">
             Create Proposal
         </a>
     </div>
@@ -53,7 +54,7 @@
             <p class="text-sm font-bold text-green-900">Quarterly accomplishment reporting is enabled for your role</p>
             <p class="text-sm text-green-700">Submit quarterly accomplishment reports for your assigned scope.</p>
         </div>
-        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-green-700 bg-white border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50">
+        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-green-700 bg-white border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50" data-nx-skeleton="list">
             Open Reports
         </a>
     </div>

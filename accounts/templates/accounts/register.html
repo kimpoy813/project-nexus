@@ -46,7 +46,7 @@
                 </div>
             {% endif %}
 
-            <form method="POST" class="space-y-5">
+            <form method="POST" class="space-y-5" data-nx-skeleton="auth">
                 {% csrf_token %}
 
                 <div>
@@ -150,7 +150,7 @@
 
                 <p class="text-sm text-gray-500 text-center pt-2">
                     Already have an account?
-                    <a href="{% url 'login' %}" class="text-primary font-semibold hover:underline">
+                    <a href="{% url 'login' %}" class="text-primary font-semibold hover:underline" data-nx-skeleton="auth">
                         Login
                     </a>
                 </p>

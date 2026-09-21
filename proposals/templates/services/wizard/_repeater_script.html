@@ -19,8 +19,6 @@ again no round-trip happens until an explicit save.
 {% endcomment %}
 <script>
 (function () {
-  if (window.__nexusRepeatersReady) return;
-  window.__nexusRepeatersReady = true;
 
   function rowsOf(root) {
     return root.querySelector('[data-repeater-rows]');
@@ -307,6 +305,8 @@ again no round-trip happens until an explicit save.
       checkDependencies(root, null);
     });
   }
+
+  window.NexusRepeaters = { init: init };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

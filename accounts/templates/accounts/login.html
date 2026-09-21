@@ -26,7 +26,7 @@
                 </div>
                 {% endif %}
 
-                <form method="POST" class="space-y-6">
+                <form method="POST" class="space-y-6" data-nx-skeleton="dashboard">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
 
@@ -48,7 +48,8 @@
 
                     <div class="text-right -mt-2">
                         <a href="{% url 'password_reset' %}"
-                           class="text-sm text-primary font-medium hover:text-secondary transition">
+                           class="text-sm text-primary font-medium hover:text-secondary transition"
+                           data-nx-skeleton="auth">
                             Forgot Password?
                         </a>
                     </div>
@@ -62,7 +63,7 @@
                 {% if not site_control or site_control.registration_enabled %}
                 <p class="text-center mt-6 text-sm text-gray-600">
                     Don’t have an account?
-                    <a href="{% url 'register' %}" class="text-primary font-semibold hover:text-secondary transition">
+                    <a href="{% url 'register' %}" class="text-primary font-semibold hover:text-secondary transition" data-nx-skeleton="auth">
                         Register
                     </a>
                 </p>
