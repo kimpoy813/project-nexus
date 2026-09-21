@@ -5,10 +5,10 @@
   <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
     <div>
       <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Admin Role Builder</p>
-      <h1 class="nx-dash__title mt-1">Role Capability Matrix</h1>
-      <p class="nx-dash__subtitle">Turn capabilities on/off per role. This lets the office add functions like quarterly accomplishment reports to coordinators.</p>
+      <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Role Capability Matrix</h1>
+      <p class="mt-2 text-sm text-gray-600">Turn capabilities on/off per role. This lets the office add functions like quarterly accomplishment reports to coordinators.</p>
     </div>
-    <a href="{% url 'admin_dashboard' %}" class="nx-btn">Back to Admin</a>
+    <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
   </div>
   <form method="post" class="space-y-6">
     {% csrf_token %}
@@ -34,7 +34,7 @@
     </section>
     {% endfor %}
     <div class="sticky bottom-4 flex justify-end">
-      <button type="submit" class="rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-xl">Save Capability Matrix</button>
+      <button type="submit" class="rounded-2xl bg-primary px-6 py-3 text-sm font-black text-white shadow-xl hover:bg-secondary">Save Capability Matrix</button>
     </div>
   </form>
 </div>

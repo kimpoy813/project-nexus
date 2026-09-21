@@ -49,15 +49,15 @@
     </section>
 
     <!-- WORKFLOW AT A GLANCE -->
-    {% if workflow_phases and services_copy.workflow.is_visible %}
+    {% if workflow_phases %}
     <section class="services-workflow bg-white py-12">
         <div class="nx-page">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ services_copy.workflow.eyebrow|default:"Workflow" }}</p>
-                    <h2 class="mt-2 text-xl font-bold text-gray-950">{{ services_copy.workflow.heading|default:"From proposal to implementation" }}</h2>
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Workflow</p>
+                    <h2 class="mt-2 text-xl font-bold text-gray-950">From proposal to implementation</h2>
                 </div>
-                <p class="text-sm text-gray-500">{{ services_copy.workflow.subheading|default:"Each ring is that phase's share of overall progress" }}</p>
+                <p class="text-sm text-gray-500">Each ring is that phase's share of overall progress</p>
             </div>
 
             <div class="mt-6 nx-auto-grid nx-auto-grid--gap-lg">
@@ -75,42 +75,46 @@
                 {% endfor %}
             </div>
 
-            {% if services_copy.workflow.footer %}
             <p class="mt-5 text-xs leading-5 text-gray-500">
-                {{ services_copy.workflow.footer }}
+                The three weights total {{ workflow_weight_total }}% of overall progress and are maintained by the
+                Extension Office. When a project needs no MOA, that share is redistributed across Proposal and
+                Implementation.
             </p>
-            {% endif %}
         </div>
     </section>
     {% endif %}
 
     <!-- PAGE JUMP LINKS -->
-    {% if jump_links %}
     <section class="services-jump-links border-y border-gray-200">
         <div class="nx-page py-6">
             <nav aria-label="Services sections" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                {% for link in jump_links %}
-                <a href="#{{ link.anchor }}" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
-                    <span class="text-xs font-bold text-primary">{{ forloop.counter|stringformat:"02d" }}</span> {{ link.label }}
+                <a href="#maintained-process" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">01</span> Process flow
                 </a>
-                {% endfor %}
+                <a href="#template-library" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">02</span> Templates
+                </a>
+                <a href="#office-forms" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">03</span> Forms
+                </a>
+                <a href="#proposal-wizard" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">04</span> Proposal checklist
+                </a>
+                <a href="#status-lifecycle" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <span class="text-xs font-bold text-primary">05</span> Status tracking
+                </a>
             </nav>
         </div>
     </section>
-    {% endif %}
 
     <!-- MAINTAINED PROCESS -->
-    {% if services_copy.process.is_visible %}
-    <section id="{{ services_copy.process.anchor|default:'maintained-process' }}" class="services-section bg-white py-14 scroll-mt-28">
+    <section id="maintained-process" class="services-section bg-white py-14 scroll-mt-28">
         <div class="nx-page">
             <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ services_copy.process.eyebrow|default:"Process records" }}</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">{{ services_copy.process.heading|default:"Current process flow" }}</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">{{ services_copy.process.subheading|default:"Open a process to view its saved steps." }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Process records</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Current process flow</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Open a process to view its saved steps.</p>
             </div>
-            {% if services_copy.process.footer %}
-            <p class="mt-3 text-xs leading-5 text-gray-500">{{ services_copy.process.footer }}</p>
-            {% endif %}
 
             <div class="mt-7 space-y-3">
                 {% for process in process_records %}
@@ -148,26 +152,21 @@
                     </article>
                 {% empty %}
                     <div class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-7 text-center">
-                        <p class="text-sm text-gray-600">{{ services_copy.process.empty_text|default:"No process records are published yet." }}</p>
+                        <p class="text-sm text-gray-600">No process records are published yet.</p>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </section>
-    {% endif %}
 
     <!-- TEMPLATE LIBRARY -->
-    {% if services_copy.templates.is_visible %}
-    <section id="{{ services_copy.templates.anchor|default:'template-library' }}" class="services-section bg-gray-50 py-14 scroll-mt-28">
+    <section id="template-library" class="services-section bg-gray-50 py-14 scroll-mt-28">
         <div class="nx-page">
             <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ services_copy.templates.eyebrow|default:"Downloads" }}</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">{{ services_copy.templates.heading|default:"Official templates" }}</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">{{ services_copy.templates.subheading|default:"Download the latest office files." }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Downloads</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Official templates</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">Download the latest office files.</p>
             </div>
-            {% if services_copy.templates.footer %}
-            <p class="mt-3 text-xs leading-5 text-gray-500">{{ services_copy.templates.footer }}</p>
-            {% endif %}
 
             <div class="mt-7 nx-auto-grid nx-auto-grid--lg">
                 {% for item in office_templates %}
@@ -177,31 +176,26 @@
                         <p class="mt-2 text-sm leading-6 text-gray-600">{{ item.description|default:"Official office template."|truncatewords:12 }}</p>
                         <div class="mt-auto flex items-center justify-between gap-3 pt-4">
                             <span class="text-xs text-gray-500">{{ item.version_label|default:"Current" }}</span>
-                            {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white">Download</a>{% endif %}
+                            {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary">Download</a>{% endif %}
                         </div>
                     </article>
                 {% empty %}
                     <div class="rounded-lg border border-dashed border-gray-300 bg-white p-7 text-center">
-                        <p class="text-sm text-gray-600">{{ services_copy.templates.empty_text|default:"No office templates are published yet." }}</p>
+                        <p class="text-sm text-gray-600">No office templates are published yet.</p>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </section>
-    {% endif %}
 
     <!-- OFFICE FORMS -->
-    {% if services_copy.forms.is_visible %}
-    <section id="{{ services_copy.forms.anchor|default:'office-forms' }}" class="services-section bg-white py-14 scroll-mt-28">
+    <section id="office-forms" class="services-section bg-white py-14 scroll-mt-28">
         <div class="nx-page">
             <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ services_copy.forms.eyebrow|default:"Requirements" }}</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">{{ services_copy.forms.heading|default:"Current office forms" }}</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">{{ services_copy.forms.subheading|default:"The fields below reflect the current checklist." }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Requirements</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Current office forms</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">The fields below reflect the current checklist.</p>
             </div>
-            {% if services_copy.forms.footer %}
-            <p class="mt-3 text-xs leading-5 text-gray-500">{{ services_copy.forms.footer }}</p>
-            {% endif %}
 
             <div class="mt-7 grid gap-4 lg:grid-cols-2">
                 {% for form in dynamic_form_templates %}
@@ -225,26 +219,21 @@
                     </article>
                 {% empty %}
                     <div class="lg:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-7 text-center">
-                        <p class="text-sm text-gray-600">{{ services_copy.forms.empty_text|default:"No admin-managed forms are published yet." }}</p>
+                        <p class="text-sm text-gray-600">No admin-managed forms are published yet.</p>
                     </div>
                 {% endfor %}
             </div>
         </div>
     </section>
-    {% endif %}
 
     <!-- PROPOSAL CHECKLIST -->
-    {% if services_copy.checklist.is_visible %}
-    <section id="{{ services_copy.checklist.anchor|default:'proposal-wizard' }}" class="services-section bg-gray-50 py-14 scroll-mt-28">
+    <section id="proposal-wizard" class="services-section bg-gray-50 py-14 scroll-mt-28">
         <div class="nx-page">
             <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ services_copy.checklist.eyebrow|default:"Proposal checklist" }}</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">{% if services_copy.checklist.heading %}{{ services_copy.checklist.heading }}{% else %}{{ total_wizard_steps }} sections before submission{% endif %}</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">{{ services_copy.checklist.subheading|default:"A quick view of the proposal wizard." }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Proposal checklist</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">{{ total_wizard_steps }} sections before submission</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">A quick view of the proposal wizard.</p>
             </div>
-            {% if services_copy.checklist.footer %}
-            <p class="mt-3 text-xs leading-5 text-gray-500">{{ services_copy.checklist.footer }}</p>
-            {% endif %}
 
             <div class="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {% for item in wizard_steps %}
@@ -258,20 +247,18 @@
             </div>
         </div>
     </section>
-    {% endif %}
 
     <!-- STATUS LIFECYCLE -->
-    {% if services_copy.lifecycle.is_visible %}
-    <section id="{{ services_copy.lifecycle.anchor|default:'status-lifecycle' }}" class="services-section bg-white py-14 scroll-mt-28">
+    <section id="status-lifecycle" class="services-section bg-white py-14 scroll-mt-28">
         <div class="nx-page">
             <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{{ services_copy.lifecycle.eyebrow|default:"Status tracking" }}</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">{{ services_copy.lifecycle.heading|default:"Proposal progress" }}</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">{{ services_copy.lifecycle.subheading|default:"The large ring is the phase's share of overall progress; the small rings track how far each status has moved that phase forward." }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Status tracking</p>
+                <h2 class="mt-2 text-3xl font-bold text-gray-950">Proposal progress</h2>
+                <p class="mt-3 text-sm leading-6 text-gray-600">
+                    The large ring is the phase's share of overall progress; the small rings track how far each
+                    status has moved that phase forward.
+                </p>
             </div>
-            {% if services_copy.lifecycle.footer %}
-            <p class="mt-3 text-xs leading-5 text-gray-500">{{ services_copy.lifecycle.footer }}</p>
-            {% endif %}
 
             <div class="mt-7 nx-auto-grid nx-auto-grid--lg">
                 {% for phase in workflow_phases %}
@@ -305,7 +292,6 @@
             </div>
         </div>
     </section>
-    {% endif %}
 
     <script>
         document.querySelectorAll(".process-toggle").forEach((button) => {

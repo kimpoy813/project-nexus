@@ -1,24 +1,16 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 
 {% block title %}Edit {{ page.title }} - NExUS{% endblock %}
 
 {% block content %}
-<div class="nx-page py-8">
+<div class="nx-page py-6">
 
     <!-- Header -->
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <a href="{% url 'page_content_list' %}" class="text-xs font-medium text-slate-500 hover:text-primary">← All pages</a>
-            <h1 class="nx-dash__title mt-1">{{ page.title }} page</h1>
-            <p class="nx-dash__subtitle">
-                {% if page.slug == 'home' %}
-                    Everything shown on the Home page, in one place: header, sections, titles, thrusts, SDGs, personnel, activities, processes, and targets.
-                {% elif page.slug == 'services' %}
-                    Everything shown on the Services page, in one place: header, sections, section copy, and workflow phases.
-                {% else %}
-                    Edit the hero, sections, and search metadata.
-                {% endif %}
-            </p>
+            <h1 class="mt-1 text-xl font-semibold text-primary">{{ page.title }} page</h1>
+            <p class="mt-0.5 text-sm text-slate-500">Edit the hero, sections, and search metadata.</p>
         </div>
         {% if public_url_name %}
             <a href="{% url public_url_name %}" target="_blank" rel="noopener" class="pc-btn">View live page ↗</a>
@@ -36,31 +28,9 @@
         {% endfor %}
     {% endif %}
 
-    {% url 'page_content_edit' page.slug as editor_url %}
-
-    <!-- Section nav -->
-    <nav class="pc-subnav sticky top-20 z-30 mb-6 flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white/95 p-1.5 shadow-sm backdrop-blur">
-        <a href="#page-header">Header</a>
-        <a href="#content-sections">Sections</a>
-        {% if page.slug == 'home' %}
-            <a href="#section-titles">Titles</a>
-            <a href="#thrusts">Thrusts</a>
-            <a href="#sdg-badges">SDGs</a>
-            <a href="#personnel">Personnel</a>
-            <a href="#activities">Activities</a>
-            <a href="#processes">Processes</a>
-            <a href="#targets">Targets</a>
-        {% elif page.slug == 'services' %}
-            <a href="#section-copy">Copy</a>
-            <a href="#workflow">Workflow</a>
-            <a href="#builders">Builders</a>
-        {% endif %}
-    </nav>
-
     <!-- ============ HERO / META ============ -->
-    <form method="POST" id="page-header" class="pc-card mb-6 scroll-mt-32">
+    <form method="POST" class="pc-card mb-6">
         {% csrf_token %}
-        <input type="hidden" name="form_id" value="hero">
         <div class="pc-card__head">
             <h2 class="pc-card__title">Page Header</h2>
             <p class="pc-card__sub">The banner shown at the top of the page.</p>
@@ -122,7 +92,7 @@
     </form>
 
     <!-- ============ SECTIONS ============ -->
-    <div id="content-sections" class="pc-card mb-6 scroll-mt-32">
+    <div class="pc-card mb-6">
         <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="pc-card__title">Content Sections</h2>
@@ -187,641 +157,71 @@
         </ul>
     </div>
 
-    {% if page.slug == 'home' %}
-    <!-- ============ HOME: SECTION TITLES ============ -->
-    <form method="POST" id="section-titles" class="pc-card mb-6 scroll-mt-32">
-        {% csrf_token %}
-        <input type="hidden" name="form_id" value="home_headings">
+    <!-- ============ LINKED DATA ============ -->
+    {% if linked_data %}
+    <div class="pc-card">
         <div class="pc-card__head">
-            <h2 class="pc-card__title">Section Titles</h2>
-            <p class="pc-card__sub">Headings for each built-in Home section. The content itself is managed in the cards below.</p>
-        </div>
-
-        <div class="divide-y divide-slate-100">
-            {% for row in headings %}
-            <div class="p-5">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <span class="pc-pill pc-pill--muted">{{ row.get_section_display }}</span>
-                    <label class="relative inline-flex items-center cursor-pointer select-none">
-                        <input type="checkbox" name="section_{{ row.section }}_is_visible" {% if row.is_visible %}checked{% endif %} class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        <span class="ml-3 text-xs font-bold text-slate-700">Show section</span>
-                    </label>
-                </div>
-
-                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div>
-                        <label class="pc-label">Heading</label>
-                        <input type="text" name="section_{{ row.section }}_heading"
-                               value="{{ row.heading }}" class="pc-input">
-                    </div>
-                    <div>
-                        <label class="pc-label">Nav label</label>
-                        <input type="text" name="section_{{ row.section }}_nav_label"
-                               value="{{ row.nav_label }}" class="pc-input">
-                    </div>
-                    <div>
-                        <label class="pc-label">
-                            Subtitle
-                            {% if row.section == 'thrust' %}
-                                <span class="text-slate-400">(e.g. Isem Ni Aran)</span>
-                            {% endif %}
-                        </label>
-                        <input type="text" name="section_{{ row.section }}_subtitle"
-                               value="{{ row.subtitle }}" class="pc-input">
-                    </div>
-                    <div>
-                        <label class="pc-label">
-                            Caption
-                            {% if row.section == 'thrust' %}
-                                <span class="text-slate-400">(e.g. Approved BR No. …)</span>
-                            {% endif %}
-                        </label>
-                        <input type="text" name="section_{{ row.section }}_caption"
-                               value="{{ row.caption }}" class="pc-input">
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" class="pc-btn pc-btn--primary">Save Section Titles</button>
-        </div>
-    </form>
-
-    <!-- ============ HOME: THRUST CARDS ============ -->
-    <div id="thrusts" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Extension Thrust Cards</h2>
+            <h2 class="pc-card__title">Linked Data on This Page</h2>
             <p class="pc-card__sub">
-                The grid under "{{ thrust_heading.subtitle|default:'Isem Ni Aran' }}". Shown in this order.
+                These parts of the page come from their own managers rather than the sections above.
             </p>
         </div>
-
         <ul class="divide-y divide-slate-100">
-            {% for thrust in thrusts %}
-            <li class="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between {% if not thrust.is_visible %}bg-slate-50/60{% endif %}">
-                <div class="flex min-w-0 gap-3">
-                    <div class="flex flex-col gap-1 pt-0.5">
-                        <form method="POST" action="{% url 'home_thrust_move' thrust.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="direction" value="up">
-                            <button type="submit" class="pc-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
-                        </form>
-                        <form method="POST" action="{% url 'home_thrust_move' thrust.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="direction" value="down">
-                            <button type="submit" class="pc-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
-                        </form>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="text-sm font-semibold {{ thrust.color_class }}">{{ thrust.title }}</span>
-                            {% if not thrust.is_visible %}<span class="pc-pill pc-pill--warn">Hidden</span>{% endif %}
-                        </div>
-                        <p class="mt-1 text-xs text-slate-500">{{ thrust.description|default:"No description." }}</p>
-                    </div>
-                </div>
-                <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'home_thrust_edit' thrust.id %}" class="pc-btn">Edit</a>
-                    <form method="POST" action="{% url 'home_thrust_delete' thrust.id %}"
-                          onsubmit="return confirm('Delete this thrust? This cannot be undone.');">
-                        {% csrf_token %}
-                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
-                    </form>
-                </div>
-            </li>
-            {% empty %}
-            <li class="p-10 text-center">
-                <p class="text-sm text-slate-500">No thrust cards yet.</p>
-            </li>
-            {% endfor %}
-        </ul>
-
-        <form method="POST" class="border-t border-slate-100 bg-slate-50/50 p-5">
-            {% csrf_token %}
-            <input type="hidden" name="form_id" value="thrust_create">
-            <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Add a thrust card</p>
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div>
-                    <label class="pc-label">Title</label>
-                    <input type="text" name="title" class="pc-input" required placeholder="e.g. Health and Nutrition">
-                </div>
-                <div>
-                    <label class="pc-label">Title Colour</label>
-                    <select name="color_class" class="pc-input">
-                        {% for value, label in color_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="pc-label">Description</label>
-                    <input type="text" name="description" class="pc-input" placeholder="One or two sentences describing this thrust.">
-                </div>
-            </div>
-            <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <label class="relative inline-flex items-center cursor-pointer select-none">
-                    <input type="checkbox" name="is_visible" checked class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    <span class="ml-3 text-xs font-bold text-slate-700">Visible on the Home page</span>
-                </label>
-                <button type="submit" class="pc-btn pc-btn--primary">Add Thrust</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- ============ HOME: SDG BADGES ============ -->
-    <div id="sdg-badges" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">SDG Badges</h2>
-            <p class="pc-card__sub">Labels under the 17 goal badges, in display order. The artwork stays fixed; edit the text or hide a badge.</p>
-        </div>
-
-        <form method="POST" id="sdg-labels-form">
-            {% csrf_token %}
-            <input type="hidden" name="form_id" value="sdg_labels">
-        </form>
-        <ul class="divide-y divide-slate-100">
-            {% for badge in home_sdgs %}
-            <li class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between {% if not badge.is_visible %}bg-slate-50/60{% endif %}">
-                <div class="flex min-w-0 flex-1 items-center gap-3">
-                    <div class="flex flex-col gap-1">
-                        <form method="POST" action="{{ editor_url }}#sdg-badges">
-                            {% csrf_token %}
-                            <input type="hidden" name="form_id" value="sdg_move">
-                            <input type="hidden" name="pk" value="{{ badge.id }}">
-                            <input type="hidden" name="direction" value="up">
-                            <button type="submit" class="pc-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
-                        </form>
-                        <form method="POST" action="{{ editor_url }}#sdg-badges">
-                            {% csrf_token %}
-                            <input type="hidden" name="form_id" value="sdg_move">
-                            <input type="hidden" name="pk" value="{{ badge.id }}">
-                            <input type="hidden" name="direction" value="down">
-                            <button type="submit" class="pc-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
-                        </form>
-                    </div>
-                    <span class="pc-pill pc-pill--muted shrink-0">{{ badge.code }}</span>
-                    <input type="text" name="sdg_{{ badge.id }}_label" value="{{ badge.label }}"
-                           form="sdg-labels-form" class="pc-input min-w-0 flex-1">
-                </div>
-                <label class="relative inline-flex shrink-0 items-center cursor-pointer select-none">
-                    <input type="checkbox" name="sdg_{{ badge.id }}_is_visible" {% if badge.is_visible %}checked{% endif %}
-                           form="sdg-labels-form" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                    <span class="ml-3 text-xs font-bold text-slate-700">Show</span>
-                </label>
-            </li>
-            {% empty %}
-            <li class="p-10 text-center text-sm text-slate-500">No SDG badges configured.</li>
-            {% endfor %}
-        </ul>
-
-        {% if home_sdgs %}
-        <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" form="sdg-labels-form" class="pc-btn pc-btn--primary">Save SDG Badges</button>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- ============ HOME: PERSONNEL ============ -->
-    <div id="personnel" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="pc-card__title">Extension Personnel</h2>
-                <p class="pc-card__sub">Photos and roles shown in the Personnel section. The first person is featured.</p>
-            </div>
-            <a href="{% url 'personnel_create' %}?next={{ editor_url }}%23personnel" class="pc-btn pc-btn--primary">Add Personnel</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="pc-table min-w-full">
-                <thead>
-                    <tr><th>Name</th><th>Position</th><th>Email</th><th class="text-right">Actions</th></tr>
-                </thead>
-                <tbody>
-                    {% for person in personnel %}
-                    <tr>
-                        <td>
-                            <div class="flex items-center gap-2.5">
-                                <span class="pc-avatar">{{ person.name|first|upper }}</span>
-                                <span class="font-medium">{{ person.name }}</span>
-                                {% if forloop.first %}<span class="pc-pill pc-pill--ok">Featured</span>{% endif %}
-                            </div>
-                        </td>
-                        <td>{{ person.position }}</td>
-                        <td class="text-slate-500">{{ person.email|default:"—" }}</td>
-                        <td>
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="{% url 'personnel_edit' person.id %}?next={{ editor_url }}%23personnel" class="pc-btn">Edit</a>
-                                <form method="POST" action="{% url 'personnel_delete' person.id %}"
-                                      onsubmit="return confirm('Delete {{ person.name }}? This cannot be undone.');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ editor_url }}#personnel">
-                                    <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="4" class="p-6 text-center text-sm text-slate-400">No personnel yet.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ============ HOME: ACTIVITIES ============ -->
-    <div id="activities" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="pc-card__title">Extension Activities</h2>
-                <p class="pc-card__sub">Cards shown in the Activities section, newest first.</p>
-            </div>
-            <a href="{% url 'activity_create' %}?next={{ editor_url }}%23activities" class="pc-btn pc-btn--primary">Add Activity</a>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="pc-table min-w-full">
-                <thead>
-                    <tr><th>Title</th><th>Dates</th><th>Status</th><th class="text-right">Actions</th></tr>
-                </thead>
-                <tbody>
-                    {% for activity in activities %}
-                    <tr class="{% if not activity.active %}bg-slate-50/60{% endif %}">
-                        <td class="font-medium">{{ activity.title }}</td>
-                        <td>
-                            {% if activity.dates.all %}
-                                <span class="flex flex-wrap gap-1">
-                                {% for d in activity.dates.all %}
-                                    <span class="pc-pill pc-pill--muted">{{ d.date|date:"M d, Y" }}</span>
-                                {% endfor %}
-                                </span>
-                            {% else %}
-                                <span class="text-xs text-slate-400">No dates</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if activity.active %}<span class="pc-pill pc-pill--ok">Active</span>
-                            {% else %}<span class="pc-pill pc-pill--warn">Inactive</span>{% endif %}
-                        </td>
-                        <td>
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="{% url 'activity_edit' activity.id %}?next={{ editor_url }}%23activities" class="pc-btn">Edit</a>
-                                <form method="POST" action="{% url 'activity_delete' activity.id %}"
-                                      onsubmit="return confirm('Delete this activity? This cannot be undone.');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ editor_url }}#activities">
-                                    <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="4" class="p-6 text-center text-sm text-slate-400">No activities yet.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ============ HOME: PROCESSES ============ -->
-    <div id="processes" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="pc-card__title">Extension Processes</h2>
-                <p class="pc-card__sub">Steps shown in the Processes section. These also appear on the Services page.</p>
-            </div>
-            <a href="{% url 'process_create' %}?next={{ editor_url }}%23processes" class="pc-btn pc-btn--primary">Add Process</a>
-        </div>
-        <ul class="divide-y divide-slate-100">
-            {% for process in processes %}
-            <li class="flex flex-col gap-2 p-5 sm:flex-row sm:items-center sm:justify-between">
+            {% for item in linked_data %}
+            <li class="flex items-center justify-between gap-4 px-5 py-3">
                 <div class="min-w-0">
-                    <p class="text-sm font-semibold text-slate-900">{{ process.title }}</p>
-                    <p class="mt-0.5 text-xs text-slate-400">{{ process.steps.count }} step{{ process.steps.count|pluralize }}</p>
+                    <p class="text-sm font-medium text-slate-800">{{ item.label }}</p>
+                    <p class="text-xs text-slate-500">{{ item.hint }}</p>
                 </div>
-                <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'process_edit' process.id %}?next={{ editor_url }}%23processes" class="pc-btn">Edit</a>
-                    <form method="POST" action="{% url 'process_delete' process.id %}"
-                          onsubmit="return confirm('Delete this process and its steps? This cannot be undone.');">
-                        {% csrf_token %}
-                        <input type="hidden" name="next" value="{{ editor_url }}#processes">
-                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
-                    </form>
-                </div>
+                <a href="{% url item.url_name %}" class="pc-btn shrink-0">Manage →</a>
             </li>
-            {% empty %}
-            <li class="p-10 text-center text-sm text-slate-500">No processes yet.</li>
             {% endfor %}
         </ul>
-    </div>
-
-    <!-- ============ HOME: TARGETS ============ -->
-    <div id="targets" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="pc-card__title">Extension Targets ({{ targets_year }})</h2>
-                <p class="pc-card__sub">Figures shown in the Targets section for the selected year.</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <form method="GET" action="{{ editor_url }}#targets" class="flex items-center gap-2">
-                    <select name="targets_year" onchange="this.form.submit()" class="pc-input pc-input--sm w-auto">
-                        {% for y in target_years %}
-                            <option value="{{ y }}" {% if y == targets_year %}selected{% endif %}>{{ y }}</option>
-                        {% endfor %}
-                    </select>
-                </form>
-                <a href="{% url 'targets_list' %}?next={{ editor_url }}%23targets" class="pc-btn">All years</a>
-                <a href="{% url 'target_create' %}?next={{ editor_url }}%23targets" class="pc-btn pc-btn--primary">Add Target</a>
-            </div>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="pc-table min-w-full">
-                <thead>
-                    <tr><th>Campus</th><th>Metric</th><th>Planned</th><th>Actual</th><th class="text-right">Actions</th></tr>
-                </thead>
-                <tbody>
-                    {% for target in targets %}
-                    <tr>
-                        <td class="font-medium">{{ target.campus }}</td>
-                        <td>{{ target.get_metric_display }}</td>
-                        <td class="tabular-nums">{{ target.planned_total }}</td>
-                        <td class="tabular-nums">{{ target.actual_total }}</td>
-                        <td>
-                            <div class="flex items-center justify-end gap-2">
-                                <a href="{% url 'target_edit' target.id %}?next={{ editor_url }}%23targets" class="pc-btn">Edit</a>
-                                <form method="POST" action="{% url 'target_delete' target.id %}"
-                                      onsubmit="return confirm('Delete this target? This cannot be undone.');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="next" value="{{ editor_url }}#targets">
-                                    <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="5" class="p-6 text-center text-sm text-slate-400">No targets for {{ targets_year }} yet.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if page.slug == 'services' %}
-    <!-- ============ SERVICES: SECTION COPY ============ -->
-    <form method="POST" id="section-copy" class="pc-card mb-6 scroll-mt-32">
-        {% csrf_token %}
-        <input type="hidden" name="form_id" value="services_copy">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Section Copy</h2>
-            <p class="pc-card__sub">Eyebrows, headings, and helper text for each built-in Services section. The records themselves are managed in the builders below.</p>
-        </div>
-
-        <div class="divide-y divide-slate-100">
-            {% for block in services_copy %}
-            <div class="p-5 {% if not block.is_visible %}bg-slate-50/60{% endif %}">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <span class="pc-pill pc-pill--muted">{{ block.get_key_display }}</span>
-                    <label class="relative inline-flex items-center cursor-pointer select-none">
-                        <input type="checkbox" name="copy_{{ block.key }}_is_visible" {% if block.is_visible %}checked{% endif %} class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        <span class="ml-3 text-xs font-bold text-slate-700">Show section</span>
-                    </label>
-                </div>
-
-                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div>
-                        <label class="pc-label">Eyebrow <span class="text-slate-400">(small label above the heading)</span></label>
-                        <input type="text" name="copy_{{ block.key }}_eyebrow"
-                               value="{{ block.eyebrow }}" class="pc-input">
-                    </div>
-                    <div>
-                        <label class="pc-label">Heading
-                            {% if block.key == 'checklist' %}<span class="text-slate-400">(use {count} for the live step count)</span>{% endif %}
-                        </label>
-                        <input type="text" name="copy_{{ block.key }}_heading"
-                               value="{{ block.heading }}" class="pc-input">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="pc-label">Subheading</label>
-                        <input type="text" name="copy_{{ block.key }}_subheading"
-                               value="{{ block.subheading }}" class="pc-input">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="pc-label">Footer note <span class="text-slate-400">(small print under the section{% if block.key == 'workflow' %}; use {total} for the live weight total{% endif %})</span></label>
-                        <textarea name="copy_{{ block.key }}_footer_note" rows="2" class="pc-input">{{ block.footer_note }}</textarea>
-                    </div>
-                    {% if block.key == 'process' or block.key == 'templates' or block.key == 'forms' %}
-                    <div class="md:col-span-2">
-                        <label class="pc-label">Empty message <span class="text-slate-400">(shown when there are no records yet)</span></label>
-                        <input type="text" name="copy_{{ block.key }}_empty_text"
-                               value="{{ block.empty_text }}" class="pc-input">
-                    </div>
-                    {% endif %}
-                    <div>
-                        <label class="pc-label">Jump-link label <span class="text-slate-400">(blank hides it from the nav)</span></label>
-                        <input type="text" name="copy_{{ block.key }}_nav_label"
-                               value="{{ block.nav_label }}" class="pc-input">
-                    </div>
-                    <div>
-                        <label class="pc-label">Anchor <span class="text-slate-400">(section id, without #)</span></label>
-                        <input type="text" name="copy_{{ block.key }}_anchor"
-                               value="{{ block.anchor }}" class="pc-input">
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" class="pc-btn pc-btn--primary">Save Section Copy</button>
-        </div>
-    </form>
-
-    <!-- ============ SERVICES: WORKFLOW PHASES ============ -->
-    <form method="POST" id="workflow" class="pc-card mb-6 scroll-mt-32">
-        {% csrf_token %}
-        <input type="hidden" name="form_id" value="workflow_phases">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Workflow Phases</h2>
-            <p class="pc-card__sub">The Proposal, MOA, and Implementation cards. Weights should add up to 100%.</p>
-        </div>
-
-        <div class="mx-5 mt-5 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
-            These fields control how each phase is <strong>described</strong> publicly, and the weights also drive
-            the overall progress percentage shown on the dashboards. The status
-            codes inside each phase (Draft, Under Review, Approved, and so on) come from the system's workflow and
-            are not editable here — changing them would affect approvals and permissions.
-        </div>
-
-        <div class="divide-y divide-slate-100">
-            {% for phase in workflow_phases %}
-            <div class="p-5 {% if not phase.is_visible %}bg-slate-50/60{% endif %}">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <span class="pc-pill pc-pill--muted">{{ phase.get_key_display }}</span>
-                    <label class="relative inline-flex items-center cursor-pointer select-none">
-                        <input type="checkbox" name="phase_{{ phase.id }}_is_visible" {% if phase.is_visible %}checked{% endif %} class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                        <span class="ml-3 text-xs font-bold text-slate-700">Show on Services page</span>
-                    </label>
-                </div>
-
-                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div>
-                        <label class="pc-label">Label</label>
-                        <input type="text" name="phase_{{ phase.id }}_label"
-                               value="{{ phase.label }}" class="pc-input">
-                    </div>
-                    <div>
-                        <label class="pc-label">
-                            Progress weight (%)
-                            <span class="text-slate-400">(drawn as a ring on the Services page)</span>
-                        </label>
-                        <div class="flex items-center gap-3">
-                            <input type="number" name="phase_{{ phase.id }}_weight_percent"
-                                   value="{{ phase.weight_percent }}" min="0" max="100" class="pc-input flex-1"
-                                   data-ring-input="wf-ring-{{ phase.id }}">
-                            <span id="wf-ring-{{ phase.id }}" class="pc-ring-preview">
-                                {% include "services/_progress_ring.html" with ring_percent=phase.weight_percent ring_tone=phase.key ring_size="sm" %}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="pc-label">
-                            Weight caption
-                            <span class="text-slate-400">(text beside the ring)</span>
-                        </label>
-                        <input type="text" name="phase_{{ phase.id }}_weight_label"
-                               value="{{ phase.weight_label }}" class="pc-input"
-                               placeholder="e.g. 50% of overall progress when MOA is required">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="pc-label">Summary</label>
-                        <textarea name="phase_{{ phase.id }}_summary" rows="2" class="pc-input">{{ phase.summary }}</textarea>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-            <div class="p-10 text-center text-sm text-slate-500">No workflow phases configured.</div>
-            {% endfor %}
-        </div>
-
-        <div class="flex justify-end border-t border-slate-100 px-5 py-4">
-            <button type="submit" class="pc-btn pc-btn--primary">Save Phases</button>
-        </div>
-    </form>
-
-    <!-- ============ SERVICES: CONNECTED BUILDERS ============ -->
-    <div id="builders" class="pc-card mb-6 scroll-mt-32">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Records Shown on This Page</h2>
-            <p class="pc-card__sub">Live preview of the records each section displays. These are shared across the site, so they open in their own builders.</p>
-        </div>
-        <div class="grid grid-cols-1 gap-px bg-slate-100 lg:grid-cols-2">
-            <div class="bg-white p-5">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Process flow <span class="pc-pill pc-pill--muted">{{ processes|length }}</span></h3>
-                    <a href="{% url 'processes_list' %}" class="pc-btn">Manage →</a>
-                </div>
-                <ul class="space-y-1.5">
-                    {% for process in processes|slice:":5" %}
-                    <li class="truncate text-xs text-slate-600">· {{ process.title }} <span class="text-slate-400">({{ process.steps.count }} steps)</span></li>
-                    {% empty %}
-                    <li class="text-xs text-slate-400">No process records yet.</li>
-                    {% endfor %}
-                </ul>
-                {% if processes|length > 5 %}
-                <p class="mt-2 text-xs text-slate-400">…and {{ processes|length|add:"-5" }} more.</p>
-                {% endif %}
-            </div>
-            <div class="bg-white p-5">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Official templates <span class="pc-pill pc-pill--muted">{{ office_templates|length }}</span></h3>
-                    <a href="{% url 'document_templates_list' %}" class="pc-btn">Manage →</a>
-                </div>
-                <ul class="space-y-1.5">
-                    {% for template in office_templates|slice:":5" %}
-                    <li class="truncate text-xs text-slate-600">· {{ template.title }}
-                        <span class="pc-pill pc-pill--muted">{{ template.get_category_display }}</span>
-                        {% if not template.is_active %}<span class="pc-pill pc-pill--warn">Inactive</span>{% endif %}
-                    </li>
-                    {% empty %}
-                    <li class="text-xs text-slate-400">No templates yet.</li>
-                    {% endfor %}
-                </ul>
-                {% if office_templates|length > 5 %}
-                <p class="mt-2 text-xs text-slate-400">…and {{ office_templates|length|add:"-5" }} more.</p>
-                {% endif %}
-            </div>
-            <div class="bg-white p-5">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Office forms <span class="pc-pill pc-pill--muted">{{ office_forms|length }}</span></h3>
-                    <a href="{% url 'dynamic_forms_list' %}" class="pc-btn">Manage →</a>
-                </div>
-                <ul class="space-y-1.5">
-                    {% for form in office_forms|slice:":5" %}
-                    <li class="truncate text-xs text-slate-600">· {{ form.name }}
-                        <span class="pc-pill pc-pill--muted">{{ form.get_applies_to_display }}</span>
-                        {% if not form.is_active %}<span class="pc-pill pc-pill--warn">Inactive</span>{% endif %}
-                    </li>
-                    {% empty %}
-                    <li class="text-xs text-slate-400">No forms yet.</li>
-                    {% endfor %}
-                </ul>
-                {% if office_forms|length > 5 %}
-                <p class="mt-2 text-xs text-slate-400">…and {{ office_forms|length|add:"-5" }} more.</p>
-                {% endif %}
-            </div>
-            <div class="bg-white p-5">
-                <div class="mb-3 flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-slate-900">Proposal checklist <span class="pc-pill pc-pill--muted">{{ wizard_steps|length }}</span></h3>
-                    <a href="{% url 'wizard_steps_manager' %}" class="pc-btn">Manage →</a>
-                </div>
-                <ul class="space-y-1.5">
-                    {% for step in wizard_steps|slice:":5" %}
-                    <li class="truncate text-xs text-slate-600">· {{ step.step_no|stringformat:"02d" }}. {{ step.title }}
-                        {% if not step.is_visible %}<span class="pc-pill pc-pill--warn">Hidden</span>{% endif %}
-                    </li>
-                    {% empty %}
-                    <li class="text-xs text-slate-400">No wizard steps configured.</li>
-                    {% endfor %}
-                </ul>
-                {% if wizard_steps|length > 5 %}
-                <p class="mt-2 text-xs text-slate-400">…and {{ wizard_steps|length|add:"-5" }} more.</p>
-                {% endif %}
-            </div>
-        </div>
     </div>
     {% endif %}
 
 </div>
 
+<style>
+.pc-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+.pc-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
+.pc-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
+.pc-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }
 
-{% if page.slug == 'services' %}
-<script>
-    /* Live preview: the ring follows the number being typed. */
-    document.querySelectorAll('[data-ring-input]').forEach(function (input) {
-        function sync() {
-            const holder = document.getElementById(input.dataset.ringInput);
-            const ring = holder && holder.querySelector('.nx-ring');
-            if (!ring) return;
+.pc-label { display:block; margin-bottom:.3rem; font-size:.75rem; font-weight:500; color:#64748b; }
+.pc-input {
+    display:block; width:100%; padding:.55rem .75rem; border-radius:8px;
+    font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
+    outline:none; transition:border-color .15s;
+}
+.pc-input:focus { border-color:#103b07; }
 
-            const value = Math.max(0, Math.min(100, Number(input.value) || 0));
-            ring.style.setProperty('--nx-ring-pct', value);
+.pc-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
+    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
+}
+.pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
+.pc-btn--primary:hover { opacity:.85; background:#103b07; }
+.pc-btn--danger { color:#b91c1c; border-color:#fecaca; }
+.pc-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
 
-            /* Replay the fill animation so the arc visibly catches up. */
-            const arc = ring.querySelector('.nx-ring__value');
-            if (arc) {
-                arc.style.animation = 'none';
-                void arc.getBoundingClientRect();
-                arc.style.animation = '';
-            }
-        }
+.pc-move {
+    display:grid; place-items:center; height:1.4rem; width:1.4rem;
+    border-radius:6px; border:1px solid #e2e8f0; background:#fff;
+    font-size:.7rem; color:#64748b; cursor:pointer; transition:all .15s;
+}
+.pc-move:hover:not(:disabled) { background:#f1f5f9; color:#0f172a; }
+.pc-move:disabled { opacity:.35; cursor:not-allowed; }
 
-        input.addEventListener('input', sync);
-    });
-</script>
-{% endif %}
+.pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
+.pc-pill--ok { background:#dcfce7; color:#166534; }
+.pc-pill--warn { background:#fef3c7; color:#92400e; }
+.pc-pill--muted { background:#f1f5f9; color:#475569; }
+
+.line-clamp-2 {
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+</style>
 {% endblock %}

@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 
+{% block extra_head %}{% endblock %}
+
 {% block content %}
-<div class="min-h-screen" style="background:#f6f7f5;" data-dashboard-view>
+<div class="min-h-screen" style="background:#f6f7f5;">
     <div class="nx-page py-8">
 
         <!-- TOP BAR -->
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
             <div>
-                <h1 class="nx-dash__title">Director Dashboard</h1>
-                <p class="nx-dash__subtitle">Monitor proposals, reviews, campus activity, and completion.</p>
+                <h1 class="text-xl font-semibold" style="color:#103b07;letter-spacing:-.02em;">Director Dashboard</h1>
+                <p class="mt-0.5 text-sm text-slate-400">Monitor proposals, reviews, campus activity, and completion.</p>
             </div>
             <a href="{% url 'proposal_create' %}" class="dir-btn-primary" data-nx-skeleton="wizard">Create Proposal</a>
         </div>
@@ -28,9 +30,6 @@
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="campuses">Campuses</button>
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="extensions">All Extensions</button>
                         <button type="button" class="dashboard-nav-btn w-full" data-tab="mine">My Proposals</button>
-                        {% if can_view_accomplishment %}
-                            <a href="{% url 'accomplishment_reports_list' %}" class="dashboard-nav-btn w-full" data-nx-skeleton="list">Accomplishment Reports</a>
-                        {% endif %}
                     </div>
 
                     <!-- REVIEW QUEUE FILTER PANEL -->
@@ -117,10 +116,8 @@
 ================================================================ -->
 <style>
 :root {
-    /* Aliases onto the shared design tokens in css/dashboard-views.css so this
-       dashboard stays visually in step with the others. */
-    --green:  var(--nx-green, #103b07);
-    --green-l:var(--nx-green-soft, #eaf3de);
+    --green:  #103b07;
+    --green-l:#eaf3de;
     --red:    #5a1113;
     --red-l:  #fcebeb;
     --amber:  #854F0B;
@@ -137,13 +134,13 @@
 
 /* Layout */
 .dir-card {
-    background:var(--nx-surface, #fff);
-    border:1px solid var(--nx-border, #e2e8f0);
-    border-radius:var(--nx-radius, 14px);
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:16px;
 }
 .dir-card-accent {
     height:3px;
-    border-radius:var(--nx-radius, 14px) var(--nx-radius, 14px) 0 0;
+    border-radius:16px 16px 0 0;
 }
 
 /* Buttons */
@@ -846,7 +843,13 @@ select.dir-input {
                                 <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
                             </svg>
                         </a>
-                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled">View</a>
+                        {% if item.process_label == "MOA" %}
+                            <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="dir-btn filled">View MOA</a>
+                        {% elif item.process_label == "Implementation" %}
+                            <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="dir-btn filled">View Implementation</a>
+                        {% else %}
+                            <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled">View</a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -971,7 +974,13 @@ select.dir-input {
                                 {% if item.proposal.created_by == request.user %}<button type="button" onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Draft"|escapejs }}')" class="dir-btn">Delete</button>{% endif %}
                             {% else %}
                                 {% if item.is_for_revision %}<a href="{% url 'proposal_wizard' item.proposal.id item.current_step %}" class="dir-btn">Revise</a>{% endif %}
-                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">View</a>
+                                {% if item.process_label == "MOA" %}
+                                    <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="dir-btn filled">View MOA</a>
+                                {% elif item.process_label == "Implementation" %}
+                                    <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="dir-btn filled">View Implementation</a>
+                                {% else %}
+                                    <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">View</a>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
