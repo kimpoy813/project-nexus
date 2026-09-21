@@ -16,6 +16,8 @@ input names. Saving that form from the admin step editor must:
   asked the proponent for input they had already given, repeatedly.
 """
 
+import re
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -186,6 +188,119 @@ class MirrorFieldSaveTests(TestCase):
         self.assertTrue(_is_dynamic_step_complete(self.proposal, 2))
         missing = _proposal_dynamic_requirements_missing(self.proposal)
         self.assertFalse(any("Step 2" in item for item in missing))
+
+
+class StepOneProposalFormatChipTests(TestCase):
+    """Step 1 picks the Proposal format with chips, the way Extension Type does.
+
+    The format used to be a ``<select>``, which looked nothing like the
+    Extension Type / Scope chips right above it. It now uses the same
+    chips-plus-hidden-input pattern, so the value still posts as
+    ``proposal_format`` and the server-side rules are untouched.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = factories.make_user("format_owner", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        seed_default_steps()
+        self.proposal = Proposal.objects.create(created_by=self.owner)
+        self.client_owner = factories.make_client(self.owner)
+
+    def _get_html(self):
+        response = self.client_owner.get(
+            reverse("proposal_wizard", args=[self.proposal.id, 1])
+        )
+        self.assertEqual(response.status_code, 200)
+        return response.content.decode()
+
+    def _format_block(self, html):
+        """The Proposal format markup, without the fields around it."""
+        start = html.index('id="proposalFormatWrap"')
+        end = html.index('id="researchTitleWrap"')
+        return html[start:end]
+
+    @staticmethod
+    def _chip_classes(html, value):
+        """The class list on the format chip carrying ``data-value``."""
+        match = re.search(
+            r'<div\s+class="(format-chip[^"]*)"\s+data-value="%s"' % re.escape(value),
+            html,
+        )
+        return match.group(1) if match else ""
+
+    def _set_extension_type(self, value):
+        self.proposal.extension_type = value
+        self.proposal.save(update_fields=["extension_type"])
+
+    def test_format_renders_as_chips_instead_of_a_dropdown(self):
+        self._set_extension_type(Proposal.ExtensionType.REQUEST_BASED)
+        html = self._get_html()
+
+        self.assertNotIn('<select name="proposal_format"', html)
+        self.assertIn('class="format-chip', html)
+        # A multi-line ``{# ... #}`` is not a comment to Django (it prints
+        # verbatim), so keep the block's own comments single-line.
+        self.assertNotIn("{#", self._format_block(html))
+        # Both formats are offered as clickable chips...
+        self.assertIn('data-value="TRAINING_DESIGN"', html)
+        self.assertIn('data-value="EXTENSION_PROPOSAL"', html)
+        self.assertIn('data-label="Training Design"', html)
+        self.assertIn('data-label="Extension Proposal"', html)
+        # ...and the form still submits the chosen value under its old name.
+        self.assertIn('name="proposal_format"', html)
+        self.assertEqual(html.count('name="proposal_format"'), 1)
+
+    def test_format_block_stays_hidden_for_other_extension_types(self):
+        self._set_extension_type(Proposal.ExtensionType.COMMUNITY_BASED)
+        html = self._get_html()
+
+        # Only a request-based proposal gets to choose a format, so the chips
+        # stay hidden — with a hidden input that still submits a valid value.
+        self.assertIn('id="proposalFormatWrap" class="hidden"', html)
+        self.assertIn('value="TRAINING_DESIGN"', html)
+        self.assertNotIn('<select name="proposal_format"', html)
+
+    def test_training_design_is_the_chip_active_by_default(self):
+        self._set_extension_type(Proposal.ExtensionType.REQUEST_BASED)
+        html = self._get_html()
+
+        self.assertIn("bg-primary", self._chip_classes(html, "TRAINING_DESIGN"))
+        self.assertIn("bg-white", self._chip_classes(html, "EXTENSION_PROPOSAL"))
+        # The proponent never picked a format yet: the fallback is Training
+        # Design, exactly what the view saves for a blank request-based pick.
+        self.assertIn('value="TRAINING_DESIGN"', html)
+
+    def test_saved_extension_proposal_highlights_its_own_chip(self):
+        self.proposal.extension_type = Proposal.ExtensionType.REQUEST_BASED
+        self.proposal.proposal_format = Proposal.ProposalFormat.EXTENSION_PROPOSAL
+        self.proposal.save(update_fields=["extension_type", "proposal_format"])
+        html = self._get_html()
+
+        self.assertIn("bg-primary", self._chip_classes(html, "EXTENSION_PROPOSAL"))
+        self.assertIn("bg-white", self._chip_classes(html, "TRAINING_DESIGN"))
+        self.assertIn('value="EXTENSION_PROPOSAL"', html)
+
+    def test_hidden_input_carries_the_chip_pick_on_save(self):
+        response = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 1]),
+            {
+                "action": "next",
+                "extension_type": "REQUEST_BASED",
+                "scope_type": "PROJECT",
+                "proposal_format": "EXTENSION_PROPOSAL",
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse("proposal_wizard", args=[self.proposal.id, 2]),
+            fetch_redirect_response=False,
+        )
+        self.proposal.refresh_from_db()
+        self.assertEqual(
+            self.proposal.proposal_format, Proposal.ProposalFormat.EXTENSION_PROPOSAL
+        )
 
 
 class BuiltinStepLogicReferenceTests(TestCase):

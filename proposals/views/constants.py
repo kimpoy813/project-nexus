@@ -52,7 +52,7 @@ BUILTIN_STEP_LOGIC = {
             "Extension Type (choice chips: Research-based Faculty/Student, Request-based, Community-based)",
             "Scope (choice chips: Program / Project / Activity)",
             "Research Title (text — only shown for research-based types)",
-            "Proposal Format (dropdown — only shown for request-based type)",
+            "Proposal Format (choice chips: Training Design / Extension Proposal — only shown for request-based type)",
         ],
         "completion": "Complete when an Extension Type and a Scope are chosen; research-based types also need a Research Title. The proposal format is derived from the type (community-based → Training Design, research-based → Extension Proposal).",
         "editable_keys": ["extension_type", "scope_type", "research_title"],
