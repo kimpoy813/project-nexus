@@ -21,7 +21,10 @@
       </div>
 
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {% for field in dyn_form.fields_to_render|default:dyn_form.fields.all %}
+        {# fields_to_render excludes fields that mirror this step's built-in inputs — #}
+        {# those are rendered by the step template itself (via step_fields), so they #}
+        {# must never be asked for a second time here. #}
+        {% for field in dyn_form.fields_to_render %}
           <div class="{% if field.field_type == 'TEXTAREA' or field.field_type == 'FILE' %}md:col-span-2{% endif %} dynamic-field-container"
                {% if field.depends_on_key %}
                  data-depends-on="{{ field.depends_on_key }}"

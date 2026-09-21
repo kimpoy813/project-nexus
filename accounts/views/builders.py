@@ -73,10 +73,10 @@ def _storage_failure_message(headline, exc):
     return f"{headline} Storage error: {reason}. {storage_failure_hint(exc)}"
 
 
-def _seed_default_fields():
-    from details.models import DynamicFormTemplate, DynamicFormField
-    
-    default_fields_map = {
+# Default "Fields for Step N" rows. Each key mirrors a hardcoded wizard input
+# (see proposals.views.dynamic_fields.NATIVE_STEP_FIELDS): editing one of
+# these rows relabels the built-in input, it does NOT add a second question.
+DEFAULT_STEP_FIELDS = {
         1: [
             {"key": "extension_type", "label": "Extension Type", "type": "SELECT", "choices": "RESEARCH_FACULTY|Research-based (Faculty)\nRESEARCH_STUDENT|Research-based (Student)\nREQUEST_BASED|Request-based\nCOMMUNITY_BASED|Community-based", "placeholder": "Choose extension type"},
             {"key": "scope_type", "label": "Scope", "type": "SELECT", "choices": "PROGRAM|Program\nPROJECT|Project\nACTIVITY|Activity", "placeholder": "Choose scope"},
@@ -114,9 +114,37 @@ def _seed_default_fields():
         14: [
             {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
         ],
-    }
+}
 
-    for step_no, fields in default_fields_map.items():
+
+def _seed_step_fields(form_obj, step_no):
+    """Fill an *empty* step form with the built-in mirror rows for ``step_no``.
+
+    A form the office already built or edited on this step is left alone:
+    the defaults exist to give a fresh step a usable shape, not to add
+    surprise fields to a custom one (including a repeatable group).
+    """
+    if form_obj.fields.exists():
+        return
+    for idx, f in enumerate(DEFAULT_STEP_FIELDS.get(step_no, [])):
+        DynamicFormField.objects.get_or_create(
+            form=form_obj,
+            field_key=f["key"],
+            defaults={
+                "label": f["label"],
+                "field_type": f["type"],
+                "choices_text": f.get("choices", ""),
+                "placeholder": f.get("placeholder", ""),
+                "required": f.get("required", True),
+                "depends_on_key": f.get("depends_on_key", ""),
+                "depends_on_value": f.get("depends_on_value", ""),
+                "order": idx + 1,
+            }
+        )
+
+
+def _seed_default_fields():
+    for step_no in DEFAULT_STEP_FIELDS:
         form_name = f"Fields for Step {step_no}"
         form_obj, created = DynamicFormTemplate.objects.get_or_create(
             proposal_wizard_step=step_no,
@@ -128,28 +156,7 @@ def _seed_default_fields():
                 "blocks_proposal_submission": True,
             }
         )
-
-        # A form the office already built or edited on this step is left alone:
-        # the defaults exist to give a fresh step a usable shape, not to add
-        # surprise fields to a custom one (including a repeatable group).
-        if not created and form_obj.fields.exists():
-            continue
-
-        for idx, f in enumerate(fields):
-            DynamicFormField.objects.get_or_create(
-                form=form_obj,
-                field_key=f["key"],
-                defaults={
-                    "label": f["label"],
-                    "field_type": f["type"],
-                    "choices_text": f.get("choices", ""),
-                    "placeholder": f.get("placeholder", ""),
-                    "required": f.get("required", True),
-                    "depends_on_key": f.get("depends_on_key", ""),
-                    "depends_on_value": f.get("depends_on_value", ""),
-                    "order": idx + 1,
-                }
-            )
+        _seed_step_fields(form_obj, step_no)
 
 
 def _sync_default_wizard_step_configs():
@@ -582,6 +589,12 @@ def wizard_step_edit(request, step_no):
             blocks_proposal_submission=True,
         )
 
+    # Show the built-in inputs of a hardcoded step as editable rows instead of
+    # an empty builder, so the admin edits the *existing* fields rather than
+    # adding a duplicate set. Seeding only fills a form with no fields, so an
+    # admin's own layout is never overwritten.
+    _seed_step_fields(form_obj, step_no)
+
     if step_no == PROPONENT_STEP_NO:
         # Show the office's default proponent fields instead of an empty
         # builder. Seeding only fills a form with no fields, so an admin's own
@@ -608,10 +621,24 @@ def wizard_step_edit(request, step_no):
         messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
         return redirect("wizard_steps_manager")
 
+    # What the hardcoded step already asks for and how it decides completion,
+    # plus which field keys *edit* those built-in inputs instead of adding a
+    # new one. Shown in the editor so the admin customises the existing step
+    # rather than unknowingly bolting a duplicate "admin managed" section on
+    # top of it.
+    from proposals.views.constants import BUILTIN_STEP_LOGIC
+    builtin_logic = BUILTIN_STEP_LOGIC.get(step_no)
+    builtin_keys = list((builtin_logic or {}).get("editable_keys", []))
+
     return render(
         request,
         "dashboard/admin/wizard_step_form.html",
-        _builder_context(form_obj, step_config=step_config),
+        _builder_context(
+            form_obj,
+            step_config=step_config,
+            builtin_logic=builtin_logic,
+            builtin_keys=builtin_keys,
+        ),
     )
 
 

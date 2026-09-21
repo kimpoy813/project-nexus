@@ -14,6 +14,75 @@ from details.models import DynamicFormResponse
 DEPENDENCY_PARENT_NOT_FOUND = object()
 
 
+#: Built-in wizard inputs that the admin's "Fields for Step N" rows *mirror*.
+#:
+#: The step editor lets the office relabel the hardcoded inputs (label,
+#: placeholder, help text, choices) by editing a dynamic field whose
+#: ``field_key`` matches the native input's name. Those mirror fields must
+#: never be rendered a second time in the "Admin-managed requirements"
+#: section, and must never demand their own ``dynamic_field_<id>`` answer -
+#: the native save path already collects and stores the value on the
+#: ``Proposal`` record itself.
+#:
+#: Maps step number -> {field_key: proposal attribute / native POST name}.
+NATIVE_STEP_FIELDS = {
+    1: {
+        "extension_type": "extension_type",
+        "scope_type": "scope_type",
+        "research_title": "research_title",
+    },
+    2: {"title": "title"},
+    4: {"implementing_agency": "implementing_agency"},
+    5: {
+        "beneficiaries_count": "beneficiaries_count",
+        "beneficiaries_who": "beneficiaries_who",
+        # Legacy key used by an older seed of the step 5 form.
+        "who_beneficiaries": "beneficiaries_who",
+    },
+    # Step 7 is the Utility Model step (constants.UTILITY_MODEL_STEP_NO).
+    7: {
+        "technology_title": "technology_title",
+        "utility_model_registration_number": "utility_model_registration_number",
+        "utility_model_description": "utility_model_description",
+    },
+    8: {"budgetary_requirement": "budgetary_requirement"},
+    11: {
+        "extension_venue": "extension_venue",
+        "estimated_month": "estimated_month",
+        "estimated_year": "estimated_year",
+    },
+    12: {"rationale_background": "rationale_background"},
+    13: {"significance": "significance"},
+    14: {"general_objective": "general_objective"},
+}
+
+
+def native_keys_for_step(step):
+    """The set of field keys that mirror built-in inputs on ``step``."""
+    return set(NATIVE_STEP_FIELDS.get(step) or {})
+
+
+def native_post_name(step, field_key):
+    """POST name / Proposal attribute behind a mirror field, or ``None``."""
+    return (NATIVE_STEP_FIELDS.get(step) or {}).get(field_key)
+
+
+def native_saved_value(proposal, step, field_key):
+    """The value the native save path stored for a mirror field.
+
+    Returns ``None`` when ``field_key`` does not mirror a built-in input on
+    ``step``; otherwise the proposal's saved value as a string (empty string
+    when nothing has been saved yet).
+    """
+    attr = native_post_name(step, field_key)
+    if attr is None or proposal is None:
+        return None
+    value = getattr(proposal, attr, None)
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 def normalise_dependency_value(value):
     """Normalise a parent field value for dependency comparisons.
 
