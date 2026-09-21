@@ -20,10 +20,10 @@ Context:
 
   <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
     <div>
-      <h3 class="text-sm font-black text-gray-900">{{ form.name }}</h3>
+      {% if form.show_heading %}<h3 class="text-sm font-black text-gray-900">{{ form.name }}</h3>{% endif %}
       {% if form.description %}<p class="mt-1 text-xs leading-5 text-gray-600">{{ form.description }}</p>{% endif %}
       {% if form.instructions %}<p class="mt-2 rounded-xl bg-gray-50 p-3 text-xs leading-5 text-gray-600">{{ form.instructions }}</p>{% endif %}
-      <p class="mt-1 text-xs text-gray-500">
+      <p class="{% if form.show_heading or form.description or form.instructions %}mt-1 {% endif %}text-xs text-gray-500">
         Each {{ form.row_label|lower }} fills in the fields below. Add as many rows as you need{% if form.repeater_max_rows %}, up to {{ form.repeater_max_rows }}{% endif %}.
       </p>
     </div>

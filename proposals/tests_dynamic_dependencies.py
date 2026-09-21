@@ -93,11 +93,11 @@ class DynamicFieldDependencyTests(TestCase):
             }
         )
         missing = _save_dynamic_form_answers(self.proposal, 3, self.owner, request)
-        self.assertEqual(missing, ["Funding Checklist: External grant number"])
+        self.assertEqual(missing, ["External grant number"])
         self.assertFalse(_is_dynamic_step_complete(self.proposal, 3))
         self.assertEqual(
             _proposal_dynamic_requirements_missing(self.proposal),
-            ["Step 3 — Funding Checklist: External grant number"],
+            ["Step 3 — External grant number"],
         )
 
     def test_filled_visible_field_passes(self):
@@ -162,7 +162,7 @@ class DynamicFieldDependencyTests(TestCase):
             }
         )
         missing = _save_dynamic_form_answers(self.proposal, 4, self.owner, request)
-        self.assertEqual(missing, ["Checkbox Checklist: Clearance officer"])
+        self.assertEqual(missing, ["Clearance officer"])
 
         # Unchecked parent: child is hidden and must not block.
         request = self._post({f"dynamic_field_{parent.id}": "", f"dynamic_field_{child.id}": ""})
@@ -175,7 +175,7 @@ class DynamicFieldDependencyTests(TestCase):
         answer.value = "Yes"
         answer.save()
         self.assertEqual(_proposal_dynamic_requirements_missing(self.proposal), [
-            "Step 4 — Checkbox Checklist: Clearance officer"
+            "Step 4 — Clearance officer"
         ])
 
     def test_dependency_on_native_wizard_field(self):
@@ -211,7 +211,7 @@ class DynamicFieldDependencyTests(TestCase):
         self.proposal.save()
         self.assertEqual(
             _proposal_dynamic_requirements_missing(self.proposal),
-            ["Step 3 — Type Checklist: Community detail"],
+            ["Step 3 — Community detail"],
         )
 
     def test_missing_parent_treated_as_visible(self):
@@ -236,7 +236,7 @@ class DynamicFieldDependencyTests(TestCase):
         )
         request = self._post({f"dynamic_field_{child.id}": ""})
         missing = _save_dynamic_form_answers(self.proposal, 5, self.owner, request)
-        self.assertEqual(missing, ["Orphan Checklist: Orphan detail"])
+        self.assertEqual(missing, ["Orphan detail"])
 
 
 class DynamicFieldRenderingTests(TestCase):

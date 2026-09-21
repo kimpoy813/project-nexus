@@ -171,7 +171,8 @@ class ProponentRepeaterFillTests(TestCase):
 
         response = self.client_owner.post(self.url, payload, follow=True)
 
-        self.assertContains(response, "Please complete the required admin-managed field(s)")
+        self.assertContains(response, "Please complete the required field(s)")
+        self.assertNotContains(response, "admin-managed")
         self.assertNotIn(3, self.proposal.completed_steps or [])
 
     def test_the_step_is_not_complete_until_required_details_exist(self):
