@@ -383,108 +383,13 @@ document.querySelectorAll(".process-toggle").forEach(button => {
 
         <div class="home-sdg-grid grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
 
-        <!-- SDG 1 -->
+        {% for badge in home_sdgs %}
         <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/01.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">No Poverty</h4>
+            <img src="{% get_static_prefix %}sdg/{{ badge.code }}.png" alt="SDG {{ badge.code }}: {{ badge.label }}" class="w-28 mx-auto mb-4">
+            <h4 class="font-semibold text-gray-800">{{ badge.label }}</h4>
         </div>
+        {% endfor %}
 
-        <!-- SDG 2 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/02.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Zero Hunger</h4>
-        </div>
-
-        <!-- SDG 3 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/03.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Good Health and Well-being</h4>
-        </div>
-
-        <!-- SDG 4 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/04.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Quality Education</h4>
-        </div>
-
-        <!-- SDG 5 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/05.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Gender Equality</h4>
-        </div>
-
-        <!-- SDG 6 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/06.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Clean Water and Sanitation</h4>
-        </div>
-
-        <!-- SDG 7 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/07.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Affordable and Clean Energy</h4>
-        </div>
-
-        <!-- SDG 8 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/08.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Decent Work and Economic Growth</h4>
-        </div>
-
-        <!-- SDG 9 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/09.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Industry, Innovation and Infrastructure</h4>
-        </div>
-
-        <!-- SDG 10 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/10.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Reduced Inequalities</h4>
-        </div>
-
-        <!-- SDG 11 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/11.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Sustainable Cities and Communities</h4>
-        </div>
-
-        <!-- SDG 12 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/12.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Responsible Consumption and Production</h4>
-        </div>
-
-        <!-- SDG 13 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/13.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Climate Action</h4>
-        </div>
-
-        <!-- SDG 14 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/14.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Life Below Water</h4>
-        </div>
-
-        <!-- SDG 15 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/15.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Life on Land</h4>
-        </div>
-
-        <!-- SDG 16 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/16.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Peace, Justice and Strong Institutions</h4>
-        </div>
-
-        <!-- SDG 17 -->
-        <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center" data-aos="fade-up">
-            <img src="{% static 'sdg/17.png' %}" class="w-28 mx-auto mb-4">
-            <h4 class="font-semibold text-gray-800">Partnerships for the Goals</h4>
-        </div>
-        
         </div>
     </div>
 </section>

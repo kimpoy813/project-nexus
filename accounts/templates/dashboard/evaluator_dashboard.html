@@ -13,7 +13,7 @@
         </div>
 
         <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary"
+           class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition"
            data-nx-skeleton="wizard">
             Create Proposal
         </a>
@@ -118,11 +118,11 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
-                            class="inline-flex rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white">
+                            class="nx-btn nx-btn--outline">
                                 Summary
                             </a>
                             <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                            class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
+                            class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition">
                                 View
                             </a>
                         </td>
@@ -187,13 +187,13 @@
                         <td class="px-6 py-4 text-right">
                             <div class="flex justify-end gap-2">
                                 <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                                   class="inline-flex rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white">
+                                   class="nx-btn nx-btn--outline">
                                     Continue
                                 </a>
                                 {% if proposal.created_by == request.user %}
                                 <button type="button"
                                         onclick="openDeleteModal('{{ proposal.id }}', '{% url 'faculty_delete_draft' proposal.id %}', '{{ proposal.title|default:proposal.research_title|default:"Untitled Draft"|escapejs }}')"
-                                        class="inline-flex rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-600 hover:text-white">
+                                        class="nx-btn nx-btn--danger">
                                     Delete
                                 </button>
                                 {% endif %}
@@ -307,7 +307,7 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                               class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
+                               class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition">
                                 View
                             </a>
                         </td>
@@ -333,7 +333,7 @@
         <div class="w-full max-w-md rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
             <div class="px-6 py-5 border-b border-gray-100 bg-white">
                 <div class="flex items-start gap-4">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-tertiary text-primary">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.485 0l5.58 9.92c.75 1.334-.213 2.981-1.742 2.981H4.42c-1.53 0-2.492-1.647-1.742-2.98l5.58-9.921ZM11 13a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm-1-6a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1Z" clip-rule="evenodd"/>
                         </svg>
@@ -359,13 +359,13 @@
             <div class="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4">
                 <button type="button"
                         onclick="closeDeleteModal()"
-                        class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
+                        class="nx-btn">
                     Cancel
                 </button>
 
                 <button type="button"
                         id="confirmDeleteDraftBtn"
-                        class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-secondary">
+                        class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition">
                     Delete Draft
                 </button>
             </div>

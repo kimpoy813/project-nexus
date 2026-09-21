@@ -452,7 +452,7 @@
 
 /* ── 3. Role dashboards ─────────────────────────────────────────────────── */
 /* Title bar over a 240px navigation rail beside the KPI row and the queue
-   panel — `dashboard_base.html` and the seven role dashboards. */
+   panel — the director dashboard and the other role dashboards. */
 .nx-skel-dash {
   display: grid;
   gap: var(--nx-skel-stack);

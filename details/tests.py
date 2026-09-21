@@ -10,9 +10,11 @@ from django.test import TestCase
 from proposals.views.constants import THRUST_LIST
 
 from .models import (
+    HomeSDG,
     HomeSectionHeading,
     HomeThrust,
     PageSection,
+    ServiceSectionCopy,
     SitePage,
     WorkflowPhase,
 )
@@ -143,3 +145,57 @@ class WorkflowPhaseModelTests(TestCase):
         shares = WorkflowPhase.phase_shares()
         self.assertAlmostEqual(sum(shares.values()), 1.0)
         self.assertAlmostEqual(shares["proposal"], 1 / 3)
+
+
+class HomeSDGModelTests(TestCase):
+    def test_new_badges_are_appended_to_the_end(self):
+        highest = HomeSDG.objects.order_by("-order").first().order
+
+        badge = HomeSDG.objects.create(code="18", label="Appended", order=0)
+        self.assertEqual(badge.order, highest + 1)
+
+    def test_badges_are_ordered_by_their_order_field(self):
+        codes = list(HomeSDG.objects.values_list("code", flat=True))
+        orders = list(HomeSDG.objects.values_list("order", flat=True))
+        self.assertEqual(orders, sorted(orders))
+        self.assertEqual(codes[0], "01")
+
+
+class ServiceSectionCopyModelTests(TestCase):
+    def test_get_for_creates_a_missing_block(self):
+        ServiceSectionCopy.objects.filter(key="process").delete()
+
+        block = ServiceSectionCopy.get_for(ServiceSectionCopy.Key.PROCESS)
+        self.assertEqual(block.key, "process")
+
+    def test_as_map_is_keyed_by_block(self):
+        mapping = ServiceSectionCopy.as_map()
+
+        self.assertIn("workflow", mapping)
+        self.assertEqual(mapping["workflow"].heading, "From proposal to implementation")
+
+    def test_rendered_heading_substitutes_the_live_placeholders(self):
+        checklist = ServiceSectionCopy.objects.get(key="checklist")
+
+        self.assertEqual(
+            checklist.rendered_heading(count=20, total=100),
+            "20 sections before submission",
+        )
+
+    def test_rendered_footer_substitutes_the_live_placeholders(self):
+        workflow = ServiceSectionCopy.objects.get(key="workflow")
+
+        self.assertIn("100%", workflow.rendered_footer(count=20, total=100))
+        self.assertNotIn("{total}", workflow.rendered_footer(count=20, total=100))
+
+    def test_rendering_survives_an_unknown_placeholder(self):
+        """An admin typo must not 500 the Services page."""
+        block = ServiceSectionCopy.objects.get(key="process")
+        block.heading = "{not_a_placeholder} oops"
+        block.footer_note = "{also_missing"
+
+        self.assertEqual(
+            block.rendered_heading(count=20, total=100),
+            "{not_a_placeholder} oops",
+        )
+        self.assertEqual(block.rendered_footer(count=20, total=100), "{also_missing")

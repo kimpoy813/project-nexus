@@ -174,9 +174,11 @@ body {
 }
 
 /* Cards, panels, dashboards */
+/* Dashboard component classes (.dir-card, .section-block, .ext-card,
+   .mine-card, .rq-card) are owned by css/dashboard-views.css, which loads
+   after this file. Only raw Tailwind card combos are normalised here so
+   they render the same surface, border, and shadow as canonical cards. */
 .nexus-card,
-.dir-card,
-.section-block,
 .rounded-2xl.border.bg-white,
 .rounded-2xl.border.border-gray-200.bg-white,
 .rounded-2xl.border.border-gray-100.bg-white,
@@ -187,58 +189,29 @@ body {
   box-shadow: var(--nexus-shadow-sm) !important;
 }
 
-.nexus-card:hover,
-.dir-card:hover,
-.section-block:hover,
-.ext-card:hover,
-.mine-card:hover {
-  box-shadow: var(--nexus-shadow) !important;
-}
-
-.section-block,
-.dir-card,
-.ext-card,
-.mine-card {
-  border-radius: var(--nexus-radius) !important;
-}
-
-/* Dashboard cards stretch to equal heights in their grids; flex columns let
-   each card pin its footer/actions to the bottom so buttons align across a row. */
-.ext-card,
-.rq-card,
-.mine-card {
-  display: flex;
-  flex-direction: column;
-}
-
-.ext-card,
-.mine-card {
-  background: var(--nexus-surface-solid);
-  border: 1px solid var(--nexus-line);
-  box-shadow: var(--nexus-shadow-sm);
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-}
-.ext-card:hover,
-.mine-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(16, 59, 7, .22);
-}
-
-.dir-card-accent {
-  height: 4px !important;
-  border-radius: 999px 999px 0 0;
-}
-
 /* Buttons */
-.dir-btn,
-.dir-btn-primary,
+/* Class-based buttons (.nx-btn, .dir-btn, .pc-btn, .ht-btn, .ps-btn and the
+   primary variants) are owned by css/dashboard-views.css. Raw `bg-primary`
+   links/buttons are normalised here so they share the canonical button
+   radius and weight whatever utilities each template chose; the rounded-full
+   pill buttons are a deliberate variant and keep their shape. */
 button[type="submit"],
 .bg-primary,
 .nexus-btn-primary {
   transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
 }
 
-.dir-btn,
+a.bg-primary:not(.rounded-full),
+button.bg-primary:not(.rounded-full) {
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+}
+a.bg-primary:focus-visible,
+button.bg-primary:focus-visible {
+  outline: 3px solid rgba(16, 59, 7, .25);
+  outline-offset: 2px;
+}
+
 .nexus-btn-secondary {
   border: 1px solid var(--nexus-line) !important;
   background: #fff !important;
@@ -246,7 +219,6 @@ button[type="submit"],
   border-radius: .9rem !important;
   box-shadow: 0 1px 1px rgba(15, 23, 42, .04);
 }
-.dir-btn:hover,
 .nexus-btn-secondary:hover {
   color: var(--nexus-primary) !important;
   border-color: rgba(16, 59, 7, .22) !important;
@@ -254,7 +226,6 @@ button[type="submit"],
   transform: translateY(-1px);
 }
 
-.dir-btn-primary,
 .nexus-btn-primary,
 .bg-primary,
 button.bg-primary,
@@ -264,7 +235,6 @@ a.bg-primary {
   border-color: transparent !important;
   box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
 }
-.dir-btn-primary:hover,
 .nexus-btn-primary:hover,
 .bg-primary:hover,
 button.bg-primary:hover,
@@ -290,8 +260,7 @@ input[type="search"],
 input[type="tel"],
 input[type="url"],
 select,
-textarea,
-.dir-input {
+textarea {
   border-color: rgba(15, 23, 42, 0.14) !important;
   border-radius: .9rem !important;
   background-color: rgba(255, 255, 255, 0.96) !important;
@@ -308,8 +277,7 @@ input[type="search"]:focus,
 input[type="tel"]:focus,
 input[type="url"]:focus,
 select:focus,
-textarea:focus,
-.dir-input:focus {
+textarea:focus {
   border-color: rgba(16, 59, 7, .52) !important;
   box-shadow: 0 0 0 4px rgba(16, 59, 7, .10) !important;
   outline: none !important;
@@ -347,31 +315,9 @@ tbody tr:hover {
   background: rgba(16, 59, 7, 0.035) !important;
 }
 
-/* Badges */
-.badge,
-[class*=" rounded-full"][class*="text-"][class*="px-3"] {
-  border: 1px solid currentColor;
-  border-color: color-mix(in srgb, currentColor 16%, transparent);
-  font-weight: 800 !important;
-}
-
-/* Dashboard navigation */
-.dashboard-nav-btn {
-  border-radius: .95rem !important;
-  padding: .72rem .85rem !important;
-  color: #64748b;
-  font-weight: 800;
-  text-align: left;
-  transition: background .16s ease, color .16s ease, transform .16s ease;
-}
-.dashboard-nav-btn:hover {
-  background: rgba(16, 59, 7, .07) !important;
-  color: var(--nexus-primary) !important;
-}
-.dashboard-nav-btn.active {
-  background: linear-gradient(135deg, rgba(16, 59, 7, .12), rgba(245, 229, 135, .22)) !important;
-  color: var(--nexus-primary) !important;
-}
+/* Badges, pills, and dashboard navigation are owned by
+   css/dashboard-views.css (one pill shape, one nav treatment), so every
+   badge renders its honest weight with no override here. */
 
 /* Wizards and trackers */
 #wizard-stepper-scroll,
@@ -499,10 +445,6 @@ tbody tr:hover {
   /* One knob: the shell's offset and the anchor clearance follow the bar. */
   :root { --nx-header-h: 4.5rem; }
   #toast-container { top: 5.25rem !important; left: 1rem; right: 1rem; }
-  .section-block,
-  .dir-card,
-  .ext-card,
-  .mine-card,
   .rounded-2xl { border-radius: 1rem !important; }
   table { font-size: .875rem; }
 }

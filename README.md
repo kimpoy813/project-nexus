@@ -154,8 +154,7 @@ renders a page skeleton as the **first thing in the body** — visible by defaul
 so it paints while the page is still being fetched/parsed — and
 **`static/js/nexus-loader.js`** takes it away on load and paints it again while
 the next page is fetched. Nothing else needs to opt in: any template that
-extends `base.html` (directly or through `dashboard_base.html` /
-`_wizard_shell.html`) ships it.
+extends `base.html` (directly or through `_wizard_shell.html`) ships it.
 
 The screens are not one layout repeated, so the skeleton is not either. The
 overlay carries **one layout per page family**, each drawn to the geometry of

@@ -1,4 +1,4 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "base.html" %}
 
 {% block title %}{% if is_create %}Add Section{% else %}Edit Section{% endif %} - {{ page.title }}{% endblock %}
 
@@ -7,13 +7,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="nx-page py-6">
+<div class="nx-page py-8">
 
     <div class="mb-6">
         <a href="{% url 'page_content_edit' page.slug %}" class="text-xs font-medium text-slate-500 hover:text-primary">
             ← Back to {{ page.title }} page
         </a>
-        <h1 class="mt-1 text-xl font-semibold text-primary">
+        <h1 class="nx-dash__title mt-1">
             {% if is_create %}Add Section{% else %}Edit Section{% endif %}
         </h1>
         <p class="mt-0.5 text-sm text-slate-500">
@@ -113,29 +113,4 @@
 
 </div>
 
-<style>
-.ps-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
-.ps-label { display:block; margin-bottom:.3rem; font-size:.75rem; font-weight:500; color:#64748b; }
-.ps-input {
-    display:block; width:100%; padding:.55rem .75rem; border-radius:8px;
-    font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
-    outline:none; transition:border-color .15s;
-}
-.ps-input:focus { border-color:#103b07; }
-.ps-error { margin-top:.3rem; font-size:.75rem; color:#b91c1c; }
-.ps-btn {
-    display:inline-flex; align-items:center; justify-content:center;
-    padding:.5rem 1rem; border-radius:8px; font-size:.8rem; font-weight:500;
-    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
-}
-.ps-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.ps-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.ps-btn--primary:hover { opacity:.85; background:#103b07; }
-
-/* Keep the editor from collapsing and match form field radius */
-.django_ckeditor_5 + .ck-editor .ck-editor__editable,
-.ck-editor__editable_inline { min-height:320px; }
-.ck.ck-editor__main > .ck-editor__editable { border-radius:0 0 8px 8px; }
-.ck.ck-editor__top .ck-sticky-panel .ck-toolbar { border-radius:8px 8px 0 0; }
-</style>
 {% endblock %}

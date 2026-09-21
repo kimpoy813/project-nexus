@@ -1,4 +1,4 @@
-{% extends "dashboard/dashboard_base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="nx-page py-8 space-y-6">
@@ -6,8 +6,8 @@
   <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Comment Summary</h1>
-        <p class="mt-1 text-sm text-gray-600">
+        <h1 class="nx-dash__title">Comment Summary</h1>
+        <p class="nx-dash__subtitle">
           Prepare the official summary of review comments for
           <span class="font-semibold">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</span>
         </p>
@@ -22,7 +22,7 @@
                 form="summaryForm"
                 name="action"
                 value="download_docx"
-                class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition">
           Download DOCX
         </button>
       </div>
@@ -89,17 +89,17 @@
 
         <div class="flex flex-wrap gap-3 justify-end">
           <a href="{% url 'dashboard_redirect' %}"
-             class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
+             class="nx-btn">
             Back
           </a>
 
           <button type="submit" name="action" value="save_draft"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition">
             Save Summary
           </button>
 
           <button type="submit" name="action" value="send_to_proponent"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition">
             Send to Proponent
           </button>
         </div>
