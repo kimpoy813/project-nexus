@@ -145,6 +145,40 @@ headings are measured. `.nx-dash__inner` (dashboards) and `.nexus-wizard-layout`
 dashboard, the admin CRUD screens, the auth screens and the wizard, and fails
 if one regresses to a capped container or stops linking the stylesheet.
 
+### Loading skeletons
+
+Every page in the system is server-rendered, so a navigation would otherwise be
+a blank screen until the next response arrived. Instead, `templates/base.html`
+renders a page skeleton as the **first thing in the body** — visible by default,
+so it paints while the page is still being fetched/parsed — and
+**`static/js/nexus-loader.js`** takes it away on load and paints it again while
+the next page is fetched. Nothing else needs to opt in: any template that
+extends `base.html` (directly or through `dashboard_base.html` /
+`_wizard_shell.html`) ships it.
+
+The pieces:
+
+| File | What it holds |
+|---|---|
+| `static/css/nexus-skeleton.css` | The overlay plus the reusable shapes (`.nx-skel`, `--text`, `--title`, `--avatar`, `--card`, `--row`, `--grid`). Plain CSS, no Tailwind classes, so it paints before the CDN bundle does. |
+| `static/js/nexus-loader.js` | The controller: show on navigation, hide on load, self-heal after 12s, clear on bfcache restore, ignore downloads/new tabs/hash links/modified clicks/JS-cancelled clicks, and skip the shimmer entirely under `prefers-reduced-motion`. |
+| `templates/base.html` | The overlay markup, the stylesheet link, the `<noscript>` rule that hides it without JavaScript, and the controller script. |
+
+A region that only fills in later (an AJAX list, a search box) can paint the
+same shapes in place:
+
+```js
+NexusSkeleton.fill(box, { rows: 3 });   // avatar + two-line rows
+NexusSkeleton.region(el, true);         // flip a .nx-skel-region to its skeleton
+NexusSkeleton.busy(selectEl, true);     // shimmer a control that is waiting
+NexusSkeleton.show();                   // cover the page for a long action
+```
+
+Add `data-nx-no-skeleton` to a link or form that must not cover the page (a
+download, a print view, anything handled in place). `accounts/tests/test_loading_skeleton.py`
+renders the public, dashboard, wizard and admin pages and fails if one stops
+shipping the overlay, the stylesheet or the controller.
+
 ### Progress rings
 
 Phase percentages are drawn as rings rather than bars. The component lives in
