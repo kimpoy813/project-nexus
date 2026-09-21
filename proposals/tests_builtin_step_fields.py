@@ -25,8 +25,6 @@ from accounts.models import Profile
 from accounts.tests import factories
 from details.models import DynamicFormAnswer, DynamicFormTemplate, ProposalWizardStepConfig
 from proposals.models import Proposal
-from proposals.views.constants import BUILTIN_STEP_LOGIC, INITIAL_STEP_LABELS
-from proposals.views.dynamic_fields import NATIVE_STEP_FIELDS, native_keys_for_step
 from proposals.views.wizard import _wizard_step_config_map, is_step_complete
 from proposals.views.dynamic_answers import (
     _is_dynamic_step_complete,
@@ -303,46 +301,80 @@ class StepOneProposalFormatChipTests(TestCase):
         )
 
 
-class BuiltinStepLogicReferenceTests(TestCase):
-    """The admin step editor documents each built-in step's logic."""
+class StepEditorWithoutExplanationsTests(TestCase):
+    """The step editor stays quiet about what each step's logic is.
+
+    It used to spell out which inputs were "hardcoded", when the step counted
+    as complete, which Keys edited those inputs, and how repeatable groups
+    behaved. The office asked for the editor to simply work: renaming a field,
+    changing its placeholder, and so on applies to the wizard step either way.
+    """
 
     def setUp(self):
-        self.admin_user, self.admin_client = factories.admin("logic_admin")
+        self.admin_user, self.admin_client = factories.admin("quiet_editor_admin")
 
-    def test_every_builtin_step_has_a_logic_entry(self):
-        for item in INITIAL_STEP_LABELS:
-            with self.subTest(step=item["no"]):
-                self.assertIn(item["no"], BUILTIN_STEP_LOGIC)
-                entry = BUILTIN_STEP_LOGIC[item["no"]]
-                self.assertTrue(entry["inputs"])
-                self.assertTrue(entry["completion"])
-
-    def test_editable_keys_stay_in_sync_with_native_step_fields(self):
-        """The editor's advertised keys must match what the wizard honours."""
-        for step_no, entry in BUILTIN_STEP_LOGIC.items():
-            with self.subTest(step=step_no):
-                for key in entry["editable_keys"]:
-                    self.assertIn(
-                        key,
-                        native_keys_for_step(step_no),
-                        f"step {step_no}: '{key}' advertised but not honoured",
-                    )
-
-    def test_step_editor_shows_the_builtin_logic_panel(self):
-        response = self.admin_client.get(reverse("wizard_step_edit", args=[2]))
+    def _editor(self, step_no):
+        response = self.admin_client.get(reverse("wizard_step_edit", args=[step_no]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Built-in step logic")
-        self.assertContains(response, "What this step already asks for")
-        # Advertises the key that edits the hardcoded Title input.
-        self.assertContains(response, "<code", html=False)
-        self.assertContains(response, "title")
+        return response
 
-    def test_step_editor_marks_mirror_fields(self):
-        # Seed the default forms first (the manager does this on first visit).
-        self.admin_client.get(reverse("wizard_steps_manager"))
-        response = self.admin_client.get(reverse("wizard_step_edit", args=[2]))
-        self.assertContains(response, "Edits the built-in")
+    def test_step_editor_shows_no_builtin_logic_panel(self):
+        response = self._editor(2)
+        self.assertNotContains(response, "Built-in step logic")
+        self.assertNotContains(response, "What this step already asks for")
+        self.assertNotContains(response, "When the step counts as complete")
 
-    def test_file_upload_steps_explain_no_editable_keys(self):
-        response = self.admin_client.get(reverse("wizard_step_edit", args=[17]))
-        self.assertContains(response, "not key-editable")
+    def test_step_editor_shows_no_mirror_field_badges(self):
+        response = self._editor(2)
+        self.assertNotContains(response, "Edits the built-in")
+        self.assertNotContains(response, "not key-editable")
+        self.assertNotContains(response, "A field whose Key matches")
+
+    def test_step_editor_still_renders_the_field_rows_it_saves(self):
+        """Dropping the explanations must not drop the inputs themselves."""
+        response = self._editor(2)
+        self.assertContains(response, 'name="field_label[]"')
+        self.assertContains(response, 'name="field_key[]"')
+        self.assertContains(response, 'name="field_type[]"')
+        self.assertContains(response, "Fields (Inputs / Elements)")
+
+    def test_editor_rename_still_applies_to_the_wizard_step(self):
+        """What the editor *does* is what matters: the rename takes effect."""
+        # Opening the editor is what creates and seeds the step's form.
+        self._editor(2)
+        form = DynamicFormTemplate.objects.get(proposal_wizard_step=2)
+        field = form.fields.get(field_key="title")
+
+        response = self.admin_client.post(
+            reverse("wizard_step_edit", args=[2]),
+            {
+                "title": "Title",
+                "description": "",
+                "instructions": "",
+                "is_visible": "on",
+                "is_required": "on",
+                "field_id[]": [str(field.id)],
+                "field_label[]": ["Official PPA Title"],
+                "field_key[]": [field.field_key],
+                "field_type[]": [field.field_type],
+                "field_placeholder[]": [field.placeholder],
+                "field_help_text[]": [field.help_text],
+                "field_choices[]": [field.choices_text],
+                "field_depends_on_key[]": [field.depends_on_key],
+                "field_depends_on_value[]": [field.depends_on_value],
+                "field_maps_to[]": [field.maps_to],
+                "field_required[]": [str(field.id)],
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+
+        owner = factories.make_user("renamed_label_owner", Profile.ROLE_FACULTY)
+        proposal = Proposal.objects.create(created_by=owner)
+        wizard = factories.make_client(owner).get(
+            reverse("proposal_wizard", args=[proposal.id, 2])
+        )
+        html = wizard.content.decode()
+        self.assertIn("Official PPA Title", html)
+        # Still one Title input: the mirror edits the built-in one, no duplicate.
+        self.assertEqual(html.count('name="title"'), 1)
+
