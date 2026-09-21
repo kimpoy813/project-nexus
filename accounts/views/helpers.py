@@ -93,18 +93,3 @@ def _safe_int(value, default=0):
 def _user_role(user):
     profile = getattr(user, "profile", None)
     return (getattr(profile, "role", "") or "").upper()
-
-
-def _safe_next_url(request, default):
-    """Return a ``?next=`` target that is safe to redirect back to.
-
-    The unified page editors link out to the record managers (personnel,
-    activities, processes, targets, thrusts) with ``?next=`` pointing back at
-    the editor, so saving returns the admin to the page they were editing
-    instead of stranding them on a standalone list. Only local admin paths are
-    honoured; anything else falls back to ``default``.
-    """
-    candidate = (request.POST.get("next") or request.GET.get("next") or "").strip()
-    if candidate.startswith("/") and not candidate.startswith("//") and "\n" not in candidate and "\r" not in candidate:
-        return candidate
-    return default

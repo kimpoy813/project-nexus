@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 
 {% block content %}
 {% with role=request.user.profile.role|default:"" %}
@@ -7,8 +7,8 @@
   <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
-        <h1 class="nx-dash__title">Proposal Summary</h1>
-        <p class="nx-dash__subtitle">
+        <h1 class="text-2xl font-bold text-gray-900">Proposal Summary</h1>
+        <p class="mt-1 text-sm text-gray-600">
           Review and comment on <span class="font-semibold">{{ proposal.title|default:"Untitled Proposal" }}</span>
         </p>
       </div>
@@ -77,21 +77,21 @@
           <div class="flex gap-2">
             {% if step > 1 %}
               <a href="{% url 'proposal_review_comments' proposal.id step|add:'-1' %}"
-                 class="nx-btn">
+                 class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
                 Previous Step
               </a>
             {% endif %}
 
             {% if step < total_steps %}
               <a href="{% url 'proposal_review_comments' proposal.id step|add:'1' %}"
-                 class="nx-btn">
+                 class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
                 Next Step
               </a>
             {% endif %}
           </div>
 
           <button type="submit"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition">
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
             Save Comment
           </button>
         </div>
@@ -108,13 +108,13 @@
         <div class="mt-4 flex gap-2">
           {% if step > 1 %}
             <a href="{% url 'proposal_review_comments' proposal.id step|add:'-1' %}"
-               class="nx-btn">
+               class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
               Previous Step
             </a>
           {% endif %}
           {% if step < total_steps %}
             <a href="{% url 'proposal_review_comments' proposal.id step|add:'1' %}"
-               class="nx-btn">
+               class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
               Next Step
             </a>
           {% endif %}
@@ -166,12 +166,12 @@
   <div class="flex flex-wrap gap-3">
     <!-- Reviewers should never open editable wizard here -->
     <a href="{% url 'proposal_wizard' proposal.id step %}?readonly=1"
-       class="nx-btn nx-btn--outline">
+       class="inline-flex items-center justify-center rounded-xl border border-primary px-4 py-2.5 text-sm font-medium text-primary transition hover:bg-primary hover:text-white">
       View Proposal (Readonly)
     </a>
 
     <a href="{% url 'dashboard_redirect' %}"
-       class="nx-btn">
+       class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
       Back to Dashboard
     </a>
   </div>

@@ -28,19 +28,8 @@ from ..models import Signatory
 from ..models import Campus
 from ..models import College
 from ..models import Department
-from .helpers import _safe_next_url
 
 logger = logging.getLogger(__name__)
-
-
-def _back_link(request):
-    """The ``?next=`` target for record managers opened from a page editor.
-
-    Personnel, activities, processes, and targets are all shown on the Home
-    page, so the Home editor links into these managers with ``?next=`` pointing
-    back at itself. Returns ``""`` when there is no safe target.
-    """
-    return _safe_next_url(request, "")
 
 @login_required
 @admin_required
@@ -245,19 +234,12 @@ def signatory_delete(request, pk):
 @admin_required
 def personnel_list(request):
     personnel = Personnel.objects.all().order_by("name")
-    back_url = _back_link(request)
-    return render(
-        request,
-        "dashboard/admin/personnel_list.html",
-        {"personnel": personnel, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/personnel_list.html", {"personnel": personnel})
 
 
 @login_required
 @admin_required
 def personnel_create(request):
-    back_url = _back_link(request)
-
     if request.method == "POST":
         name = (request.POST.get("name") or "").strip()
         position = (request.POST.get("position") or "").strip()
@@ -267,22 +249,17 @@ def personnel_create(request):
         if name and position and photo:
             Personnel.objects.create(name=name, position=position, email=email, photo=photo)
             messages.success(request, f'Personnel "{name}" added successfully!')
-            return redirect(back_url or "personnel_list")
+            return redirect("personnel_list")
 
         messages.error(request, "Name, position, and photo are required.")
 
-    return render(
-        request,
-        "dashboard/admin/personnel_form.html",
-        {"back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/personnel_form.html")
 
 
 @login_required
 @admin_required
 def personnel_edit(request, pk):
     person = get_object_or_404(Personnel, pk=pk)
-    back_url = _back_link(request)
 
     if request.method == "POST":
         person.name = (request.POST.get("name") or "").strip()
@@ -292,13 +269,9 @@ def personnel_edit(request, pk):
             person.photo = request.FILES["photo"]
         person.save()
         messages.success(request, f'"{person.name}" updated successfully!')
-        return redirect(back_url or "personnel_list")
+        return redirect("personnel_list")
 
-    return render(
-        request,
-        "dashboard/admin/personnel_form.html",
-        {"person": person, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/personnel_form.html", {"person": person})
 
 
 @login_required
@@ -308,26 +281,19 @@ def personnel_delete(request, pk):
     name = person.name
     person.delete()
     messages.success(request, f'"{name}" deleted successfully!')
-    return redirect(_back_link(request) or "personnel_list")
+    return redirect("personnel_list")
 
 
 @login_required
 @admin_required
 def activities_list(request):
     activities = Activity.objects.all().annotate(first_date=Min("dates__date")).order_by("-first_date", "-id")
-    back_url = _back_link(request)
-    return render(
-        request,
-        "dashboard/admin/activities_list.html",
-        {"activities": activities, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/activities_list.html", {"activities": activities})
 
 
 @login_required
 @admin_required
 def activity_create(request):
-    back_url = _back_link(request)
-
     if request.method == "POST":
         title = (request.POST.get("title") or "").strip()
         description = (request.POST.get("description") or "").strip()
@@ -348,22 +314,17 @@ def activity_create(request):
                 ActivityDate.objects.get_or_create(activity=activity, date=d)
 
             messages.success(request, f'Activity "{title}" added successfully!')
-            return redirect(back_url or "activities_list")
+            return redirect("activities_list")
 
         messages.error(request, "Title, description, and at least one date are required.")
 
-    return render(
-        request,
-        "dashboard/admin/activity_form.html",
-        {"back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/activity_form.html")
 
 
 @login_required
 @admin_required
 def activity_edit(request, pk):
     activity = get_object_or_404(Activity, pk=pk)
-    back_url = _back_link(request)
 
     if request.method == "POST":
         activity.title = (request.POST.get("title") or "").strip()
@@ -380,13 +341,9 @@ def activity_edit(request, pk):
                 ActivityDate.objects.get_or_create(activity=activity, date=d)
 
         messages.success(request, f'"{activity.title}" updated successfully!')
-        return redirect(back_url or "activities_list")
+        return redirect("activities_list")
 
-    return render(
-        request,
-        "dashboard/admin/activity_form.html",
-        {"activity": activity, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/activity_form.html", {"activity": activity})
 
 
 @login_required
@@ -396,31 +353,24 @@ def activity_delete(request, pk):
     title = activity.title
     activity.delete()
     messages.success(request, f'"{title}" deleted successfully!')
-    return redirect(_back_link(request) or "activities_list")
+    return redirect("activities_list")
 
 
 @login_required
 @admin_required
 def processes_list(request):
     processes = ExtensionProcess.objects.all().prefetch_related("steps")
-    back_url = _back_link(request)
-    return render(
-        request,
-        "dashboard/admin/processes_list.html",
-        {"processes": processes, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/processes_list.html", {"processes": processes})
 
 
 @login_required
 @admin_required
 def process_create(request):
-    back_url = _back_link(request)
-
     if request.method == "POST":
         title = (request.POST.get("title") or "").strip()
         if not title:
             messages.error(request, "Title is required.")
-            return redirect(back_url or "processes_list")
+            return redirect("processes_list")
 
         process = ExtensionProcess.objects.create(title=title)
 
@@ -430,20 +380,15 @@ def process_create(request):
                 ProcessStep.objects.create(process=process, description=desc)
 
         messages.success(request, f'Process "{title}" created successfully!')
-        return redirect(back_url or "processes_list")
+        return redirect("processes_list")
 
-    return render(
-        request,
-        "dashboard/admin/process_form.html",
-        {"back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/process_form.html")
 
 
 @login_required
 @admin_required
 def process_edit(request, pk):
     process = get_object_or_404(ExtensionProcess, pk=pk)
-    back_url = _back_link(request)
 
     if request.method == "POST":
         process.title = (request.POST.get("title") or "").strip()
@@ -488,13 +433,9 @@ def process_edit(request, pk):
                 )
 
         messages.success(request, f'Process "{process.title}" updated successfully!')
-        return redirect(back_url or "processes_list")
+        return redirect("processes_list")
 
-    return render(
-        request,
-        "dashboard/admin/process_form.html",
-        {"process": process, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/process_form.html", {"process": process})
 
 
 @login_required
@@ -504,7 +445,7 @@ def process_delete(request, pk):
     title = process.title
     process.delete()
     messages.success(request, f'Process "{title}" deleted successfully!')
-    return redirect(_back_link(request) or "processes_list")
+    return redirect("processes_list")
 
 
 @login_required
@@ -540,13 +481,10 @@ def targets_list(request):
     if not years:
         years = [int(year)]
 
-    back_url = _back_link(request)
     context = {
         "targets": targets,
         "current_year": int(year),
         "years": years,
-        "back_url": back_url,
-        "next": back_url,
     }
     return render(request, "dashboard/admin/targets_list.html", context)
 
@@ -559,7 +497,6 @@ def target_create(request):
     # install, which used to leave this dropdown blank even when the admin had
     # already set up campuses, colleges, and departments.
     campus_choices = [value for value, _label in get_campus_choices()]
-    back_url = _back_link(request)
 
     if request.method == "POST":
         year = request.POST.get("year")
@@ -568,7 +505,7 @@ def target_create(request):
 
         if Target.objects.filter(year=year, campus=campus, metric=metric).exists():
             messages.error(request, "Target already exists for this year, campus, and metric.")
-            return redirect(back_url or "targets_list")
+            return redirect("targets_list")
 
         Target.objects.create(
             year=year,
@@ -585,20 +522,15 @@ def target_create(request):
         )
 
         messages.success(request, f"Target created for {campus} ({year})")
-        return redirect(back_url or "targets_list")
+        return redirect("targets_list")
 
-    return render(
-        request,
-        "dashboard/admin/target_form.html",
-        {"campuses": campus_choices, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/target_form.html", {"campuses": campus_choices})
 
 
 @login_required
 @admin_required
 def target_edit(request, pk):
     target = get_object_or_404(Target, pk=pk)
-    back_url = _back_link(request)
 
     if request.method == "POST":
         target.planned_q1 = request.POST.get("planned_q1", 0)
@@ -612,13 +544,9 @@ def target_edit(request, pk):
         target.save()
 
         messages.success(request, "Target updated successfully!")
-        return redirect(back_url or "targets_list")
+        return redirect("targets_list")
 
-    return render(
-        request,
-        "dashboard/admin/target_form.html",
-        {"target": target, "back_url": back_url, "next": back_url},
-    )
+    return render(request, "dashboard/admin/target_form.html", {"target": target})
 
 
 @login_required
@@ -631,7 +559,7 @@ def target_delete(request, pk):
     target.delete()
 
     messages.success(request, f"Target deleted: {campus} - {metric} ({year})")
-    return redirect(_back_link(request) or "targets_list")
+    return redirect("targets_list")
 
 
 @login_required

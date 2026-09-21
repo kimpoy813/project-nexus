@@ -1,16 +1,16 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 
 {% block content %}
 <div class="nx-page py-8">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-                <h1 class="nx-dash__title">User Details</h1>
-                <p class="nx-dash__subtitle">Account, profile, and related proposal information.</p>
+                <h1 class="text-xl font-semibold text-gray-900">User Details</h1>
+                <p class="mt-1 text-sm text-gray-600">Account, profile, and related proposal information.</p>
             </div>
 
             <a href="{% url 'admin_edit_user' view_user.id %}"
-               class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white">
+               class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary">
                 Edit User
             </a>
         </div>

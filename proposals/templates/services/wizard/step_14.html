@@ -109,7 +109,7 @@
 
                                 {% if is_edit_mode %}
                                 <button type="button"
-                                        class="nx-btn shrink-0"
+                                        class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
                                         onclick="removeObjectiveRow(this)">
                                     Remove
                                 </button>
@@ -127,7 +127,7 @@
 
                                 {% if is_edit_mode %}
                                 <button type="button"
-                                        class="nx-btn shrink-0"
+                                        class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
                                         onclick="removeObjectiveRow(this)">
                                     Remove
                                 </button>
@@ -139,7 +139,7 @@
 
                 {% if is_edit_mode %}
                 <button type="button"
-                        class="nx-btn mt-4"
+                        class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                         onclick="addObjectiveRow('project-{{ prj.id }}', 'specific_objectives_{{ prj.id }}[]')">
                     Add Specific Objective
                 </button>
@@ -169,7 +169,7 @@
 
                         {% if is_edit_mode %}
                         <button type="button"
-                                class="nx-btn shrink-0"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
                                 onclick="removeObjectiveRow(this)">
                             Remove
                         </button>
@@ -187,7 +187,7 @@
 
                         {% if is_edit_mode %}
                         <button type="button"
-                                class="nx-btn shrink-0"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
                                 onclick="removeObjectiveRow(this)">
                             Remove
                         </button>
@@ -198,7 +198,7 @@
 
             {% if is_edit_mode %}
             <button type="button"
-                    class="nx-btn mt-4"
+                    class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                     onclick="addObjectiveRow('general', 'specific_objectives[]')">
                 Add Specific Objective
             </button>
@@ -212,19 +212,19 @@
 {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
             <button name="action" value="back"
-                    class="nx-btn"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                     type="submit">
                 Back
             </button>
 
             <button name="action" value="skip"
-                    class="nx-btn"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                     type="submit">
                 Skip
             </button>
 
             <button name="action" value="next"
-                    class="px-4 py-2.5 rounded-xl bg-primary text-white transition sm:ml-auto"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
                     type="submit">
                 Save & Next
             </button>
@@ -235,7 +235,7 @@
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-               class="nx-btn">
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
                 {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>
@@ -264,7 +264,7 @@
                 class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden auto-resize-objective"
                 placeholder="Enter a specific objective..."></textarea>
             <button type="button"
-                    class="nx-btn shrink-0"
+                    class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
                     onclick="removeObjectiveRow(this)">
                 Remove
             </button>

@@ -16,7 +16,7 @@ These tests pin the things that are easy to break:
 
 * every page ships the overlay, the stylesheet and the controller — including
   the pages that do not extend ``base.html`` directly, which reach it through
-  ``_wizard_shell.html``;
+  ``dashboard_base.html`` / ``_wizard_shell.html``;
 * each page family selects **its own** layout, and the layouts really are
   distinct shapes rather than one generic screen under eight names;
 * the overlay is visible by default (that is what paints during a load) but is

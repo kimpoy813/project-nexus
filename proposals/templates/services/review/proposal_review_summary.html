@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 
 {% block content %}
 <div class="nx-page py-8">
   <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
     <div>
-      <h1 class="nx-dash__title">Review Summary</h1>
-      <p class="nx-dash__subtitle">
+      <h1 class="text-2xl font-bold text-gray-900">Review Summary</h1>
+      <p class="mt-1 text-sm text-gray-600">
         Consolidated evaluator and director comments grouped by proposal step.
       </p>
     </div>
@@ -13,7 +13,7 @@
     <div class="flex items-center gap-2">
       <!-- Always open readonly for reviewers/director -->
       <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1"
-         class="nx-btn">
+         class="inline-flex items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
         View Proposal (Readonly)
       </a>
 
@@ -21,14 +21,14 @@
       {% if proposal.proposal_status == "FOR_REVISION" %}
         {% if request.user.id == proposal.created_by_id %}
           <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-             class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white">
+             class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary">
             Revise Proposal
           </a>
         {% else %}
           {% for pp in proposal.proponents.all %}
             {% if pp.user_id == request.user.id %}
               <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-                 class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white">
+                 class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary">
                 Revise Proposal
               </a>
             {% endif %}

@@ -80,7 +80,7 @@
 
                 {% if is_edit_mode %}
                 <button type="button"
-                        class="nx-link"
+                        class="text-xs font-semibold text-gray-600 hover:text-gray-900"
                         onclick="clearChips('.sdg-chip')">
                     Clear
                 </button>
@@ -114,7 +114,7 @@
 
                 {% if is_edit_mode %}
                 <button type="button"
-                        class="nx-link"
+                        class="text-xs font-semibold text-gray-600 hover:text-gray-900"
                         onclick="clearChips('.thrust-chip')">
                     Clear
                 </button>
@@ -143,19 +143,19 @@
 {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
             <button name="action" value="back"
-                    class="nx-btn"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                     type="submit">
                 Back
             </button>
 
             <button name="action" value="skip"
-                    class="nx-btn"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
                     type="submit">
                 Skip
             </button>
 
             <button name="action" value="next"
-                    class="px-4 py-2.5 rounded-xl bg-primary text-white transition sm:ml-auto"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
                     type="submit">
                 Save & Next
             </button>
@@ -166,7 +166,7 @@
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-               class="nx-btn">
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
                 {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>

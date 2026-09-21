@@ -1,8 +1,7 @@
 from django.contrib import admin
 from .models import (
     Personnel, Activity, ProcessStep, Target, ExtensionProcess,
-    SitePage, PageSection, HomeThrust, HomeSectionHeading, HomeSDG,
-    ServiceSectionCopy, WorkflowPhase,
+    SitePage, PageSection, HomeThrust, HomeSectionHeading, WorkflowPhase,
 )
 
 admin.site.register(Personnel)
@@ -66,20 +65,5 @@ class HomeSectionHeadingAdmin(admin.ModelAdmin):
 @admin.register(WorkflowPhase)
 class WorkflowPhaseAdmin(admin.ModelAdmin):
     list_display = ('label', 'key', 'weight_percent', 'is_visible', 'order')
-    list_filter = ('is_visible',)
-    ordering = ('order', 'id')
-
-
-@admin.register(HomeSDG)
-class HomeSDGAdmin(admin.ModelAdmin):
-    list_display = ('code', 'label', 'is_visible', 'order')
-    list_filter = ('is_visible',)
-    search_fields = ('code', 'label')
-    ordering = ('order', 'id')
-
-
-@admin.register(ServiceSectionCopy)
-class ServiceSectionCopyAdmin(admin.ModelAdmin):
-    list_display = ('key', 'heading', 'is_visible', 'order')
     list_filter = ('is_visible',)
     ordering = ('order', 'id')

@@ -4,25 +4,20 @@ Tests for the admin-managed public content:
   * SitePage / PageSection  - Home, Services, Reports, Achievements
   * HomeSectionHeading      - built-in Home section titles ("Isem Ni Aran")
   * HomeThrust              - the Extension Thrust cards
-  * HomeSDG                 - the SDG badges on the Home page
-  * ServiceSectionCopy      - built-in Services section headings
   * WorkflowPhase           - Proposal / MOA / Implementation cards
 
 Each area is checked end to end: an admin saves a change, and the public page
 reflects it.
 """
 
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Profile
 from details.models import (
-    HomeSDG,
     HomeSectionHeading,
     HomeThrust,
     PageSection,
-    ServiceSectionCopy,
     SitePage,
     WorkflowPhase,
 )
@@ -63,26 +58,6 @@ class SeedDataTests(TestCase):
         """The rings on the Services page are shares of one 100% total."""
         self.assertEqual(sum(WorkflowPhase.weight_map().values()), 100)
 
-    def test_home_sdg_badges_are_seeded(self):
-        self.assertEqual(HomeSDG.objects.count(), 17)
-        self.assertEqual(
-            HomeSDG.objects.order_by("order").first().label,
-            "No Poverty",
-        )
-
-    def test_services_section_copy_is_seeded(self):
-        keys = set(ServiceSectionCopy.objects.values_list("key", flat=True))
-        self.assertEqual(
-            keys,
-            {"workflow", "process", "templates", "forms", "checklist", "lifecycle"},
-        )
-
-    def test_services_copy_keeps_its_live_placeholders(self):
-        workflow = ServiceSectionCopy.objects.get(key="workflow")
-        checklist = ServiceSectionCopy.objects.get(key="checklist")
-        self.assertIn("{total}", workflow.footer_note)
-        self.assertIn("{count}", checklist.heading)
-
 
 class PublicPageTests(TestCase):
     """The four public pages render, including the two that used to 404."""
@@ -101,19 +76,6 @@ class PublicPageTests(TestCase):
         response = self.client.get("/")
         self.assertContains(response, "Isem Ni Aran")
         self.assertContains(response, "Sustainable Community Development and Livelihood Enhancement")
-
-    def test_home_renders_the_seeded_sdg_badges(self):
-        response = self.client.get("/")
-        self.assertContains(response, "No Poverty")
-        self.assertContains(response, "Partnerships for the Goals")
-        self.assertContains(response, "sdg/01.png")
-
-    def test_services_renders_the_seeded_section_copy(self):
-        response = self.client.get("/proposals/")
-        self.assertContains(response, "Current process flow")
-        self.assertContains(response, "Official templates")
-        self.assertContains(response, "Proposal checklist")
-        self.assertContains(response, "20 sections before submission")
 
 
 class PageContentEditorTests(TestCase):
@@ -508,276 +470,3 @@ class MissingMediaTests(TestCase):
 
         Activity.objects.all().delete()
         self.assertEqual(self.client.get("/").status_code, 200)
-
-
-def _unified_headings_payload(**overrides):
-    payload = {"form_id": "home_headings"}
-    for row in HomeSectionHeading.objects.all():
-        prefix = f"section_{row.section}"
-        payload[f"{prefix}_heading"] = row.heading
-        payload[f"{prefix}_subtitle"] = row.subtitle
-        payload[f"{prefix}_caption"] = row.caption
-        payload[f"{prefix}_nav_label"] = row.nav_label
-        payload[f"{prefix}_is_visible"] = "on"
-    payload.update(overrides)
-    return payload
-
-
-def _unified_sdg_payload(**overrides):
-    payload = {"form_id": "sdg_labels"}
-    for badge in HomeSDG.objects.all():
-        payload[f"sdg_{badge.id}_label"] = badge.label
-        payload[f"sdg_{badge.id}_is_visible"] = "on"
-    payload.update(overrides)
-    return payload
-
-
-def _unified_services_copy_payload(**overrides):
-    payload = {"form_id": "services_copy"}
-    for block in ServiceSectionCopy.objects.all():
-        prefix = f"copy_{block.key}"
-        payload[f"{prefix}_eyebrow"] = block.eyebrow
-        payload[f"{prefix}_heading"] = block.heading
-        payload[f"{prefix}_subheading"] = block.subheading
-        payload[f"{prefix}_footer_note"] = block.footer_note
-        payload[f"{prefix}_empty_text"] = block.empty_text
-        payload[f"{prefix}_nav_label"] = block.nav_label
-        payload[f"{prefix}_anchor"] = block.anchor
-        payload[f"{prefix}_is_visible"] = "on"
-    payload.update(overrides)
-    return payload
-
-
-def _unified_workflow_payload(**overrides):
-    payload = {"form_id": "workflow_phases"}
-    for phase in WorkflowPhase.objects.all():
-        prefix = f"phase_{phase.id}"
-        payload[f"{prefix}_label"] = phase.label
-        payload[f"{prefix}_summary"] = phase.summary
-        payload[f"{prefix}_weight_label"] = phase.weight_label
-        payload[f"{prefix}_weight_percent"] = phase.weight_percent
-        payload[f"{prefix}_is_visible"] = "on"
-    payload.update(overrides)
-    return payload
-
-
-class UnifiedEditorTests(TestCase):
-    """Each public page has ONE editing screen holding all of its content."""
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.admin = factories.make_user("unified_admin", Profile.ROLE_ADMIN)
-        cls.faculty = factories.make_user("unified_faculty", Profile.ROLE_FACULTY)
-
-    def setUp(self):
-        self.client_admin = factories.make_client(self.admin)
-
-    def test_non_admins_cannot_open_the_unified_editors(self):
-        client = factories.make_client(self.faculty)
-        for slug in ("home", "services", "reports", "achievements"):
-            with self.subTest(slug=slug):
-                self.assertIn(
-                    client.get(reverse("page_content_edit", args=[slug])).status_code,
-                    DENIED,
-                )
-
-    def test_home_editor_holds_every_home_card(self):
-        response = self.client_admin.get(reverse("page_content_edit", args=["home"]))
-        self.assertEqual(response.status_code, 200)
-        for marker in (
-            "Page Header",
-            "Content Sections",
-            "Section Titles",
-            "Extension Thrust Cards",
-            "SDG Badges",
-            "Extension Personnel",
-            "Extension Activities",
-            "Extension Processes",
-            "Extension Targets",
-        ):
-            with self.subTest(marker=marker):
-                self.assertContains(response, marker)
-        self.assertNotContains(response, "Linked Data on This Page")
-
-    def test_services_editor_holds_every_services_card(self):
-        response = self.client_admin.get(reverse("page_content_edit", args=["services"]))
-        self.assertEqual(response.status_code, 200)
-        for marker in (
-            "Page Header",
-            "Content Sections",
-            "Section Copy",
-            "Workflow Phases",
-            "Records Shown on This Page",
-        ):
-            with self.subTest(marker=marker):
-                self.assertContains(response, marker)
-        self.assertNotContains(response, "Linked Data on This Page")
-
-    def test_reports_and_achievements_editors_have_no_linked_data_card(self):
-        for slug in ("reports", "achievements"):
-            with self.subTest(slug=slug):
-                response = self.client_admin.get(reverse("page_content_edit", args=[slug]))
-                self.assertEqual(response.status_code, 200)
-                self.assertContains(response, "Page Header")
-                self.assertNotContains(response, "Linked Data on This Page")
-
-    def test_home_headings_save_from_the_unified_editor(self):
-        response = self.client_admin.post(
-            reverse("page_content_edit", args=["home"]),
-            _unified_headings_payload(section_thrust_subtitle="UNIFIED-SUBTITLE-MARKER"),
-        )
-
-        self.assertTrue(response.url.endswith("#section-titles"))
-        self.assertContains(self.client.get("/"), "UNIFIED-SUBTITLE-MARKER")
-
-    def test_thrusts_can_be_added_from_the_unified_editor(self):
-        self.client_admin.post(
-            reverse("page_content_edit", args=["home"]),
-            {
-                "form_id": "thrust_create",
-                "title": "UNIFIED-THRUST-MARKER",
-                "description": "Added inline.",
-                "color_class": "text-teal-600",
-                "is_visible": "on",
-            },
-        )
-
-        self.assertTrue(HomeThrust.objects.filter(title="UNIFIED-THRUST-MARKER").exists())
-        self.assertContains(self.client.get("/"), "UNIFIED-THRUST-MARKER")
-
-    def test_sdg_labels_save_from_the_unified_editor(self):
-        badge = HomeSDG.objects.get(code="01")
-        response = self.client_admin.post(
-            reverse("page_content_edit", args=["home"]),
-            _unified_sdg_payload(**{f"sdg_{badge.id}_label": "UNIFIED-SDG-MARKER"}),
-        )
-
-        self.assertTrue(response.url.endswith("#sdg-badges"))
-        public = self.client.get("/")
-        self.assertContains(public, "UNIFIED-SDG-MARKER")
-        self.assertNotContains(public, "No Poverty")
-
-    def test_sdg_badges_can_be_reordered_from_the_unified_editor(self):
-        original = list(HomeSDG.objects.order_by("order").values_list("code", flat=True))
-        second = HomeSDG.objects.order_by("order")[1]
-
-        self.client_admin.post(
-            reverse("page_content_edit", args=["home"]),
-            {"form_id": "sdg_move", "pk": second.id, "direction": "up"},
-        )
-
-        reordered = list(HomeSDG.objects.order_by("order").values_list("code", flat=True))
-        self.assertEqual(reordered[0], original[1])
-        self.assertEqual(reordered[1], original[0])
-
-    def test_a_hidden_sdg_badge_disappears_from_the_home_page(self):
-        badge = HomeSDG.objects.get(code="01")
-        payload = _unified_sdg_payload()
-        payload.pop(f"sdg_{badge.id}_is_visible")
-
-        self.client_admin.post(reverse("page_content_edit", args=["home"]), payload)
-
-        self.assertNotContains(self.client.get("/"), "No Poverty")
-
-    def test_services_copy_saves_from_the_unified_editor(self):
-        response = self.client_admin.post(
-            reverse("page_content_edit", args=["services"]),
-            _unified_services_copy_payload(copy_process_heading="UNIFIED-COPY-MARKER"),
-        )
-
-        self.assertTrue(response.url.endswith("#section-copy"))
-        public = self.client.get("/proposals/")
-        self.assertContains(public, "UNIFIED-COPY-MARKER")
-        self.assertNotContains(public, "Current process flow")
-
-    def test_a_hidden_services_section_disappears_from_the_services_page(self):
-        payload = _unified_services_copy_payload()
-        payload.pop("copy_templates_is_visible")
-
-        self.client_admin.post(reverse("page_content_edit", args=["services"]), payload)
-
-        public = self.client.get("/proposals/")
-        self.assertNotContains(public, "Official templates")
-        self.assertNotContains(public, 'href="#template-library"')
-
-    def test_workflow_phases_save_from_the_unified_editor(self):
-        phase = WorkflowPhase.objects.get(key="proposal")
-        response = self.client_admin.post(
-            reverse("page_content_edit", args=["services"]),
-            _unified_workflow_payload(**{
-                f"phase_{phase.id}_label": "UNIFIED-PHASE-MARKER",
-                f"phase_{phase.id}_weight_percent": "55",
-            }),
-        )
-
-        self.assertTrue(response.url.endswith("#workflow"))
-        public = self.client.get("/proposals/")
-        self.assertContains(public, "UNIFIED-PHASE-MARKER")
-        self.assertContains(public, "--nx-ring-pct: 55")
-
-    def test_legacy_home_manager_renders_the_unified_editor(self):
-        """Bookmarks keep working: the old URL shows the same editor."""
-        response = self.client_admin.get(reverse("home_sections_manager"))
-        self.assertEqual(response.status_code, 200)
-        for marker in ("Section Titles", "Extension Thrust Cards", "SDG Badges",
-                       "Extension Personnel", "Extension Targets"):
-            with self.subTest(marker=marker):
-                self.assertContains(response, marker)
-
-    def test_legacy_workflow_manager_renders_the_unified_editor(self):
-        response = self.client_admin.get(reverse("workflow_phases_manager"))
-        self.assertEqual(response.status_code, 200)
-        for marker in ("Section Copy", "Workflow Phases", "Records Shown on This Page"):
-            with self.subTest(marker=marker):
-                self.assertContains(response, marker)
-
-    def test_thrust_edits_return_to_the_unified_editor(self):
-        thrust = HomeThrust.objects.order_by("order").first()
-        response = self.client_admin.post(
-            reverse("home_thrust_edit", args=[thrust.id]),
-            {"title": "EDITED-THRUST-MARKER", "color_class": "text-teal-600", "is_visible": "on"},
-        )
-
-        self.assertTrue(response.url.endswith("/admin/pages/home/#thrusts"))
-        self.assertContains(self.client.get("/"), "EDITED-THRUST-MARKER")
-
-    def test_admin_dashboard_no_longer_repeats_website_content(self):
-        """Personnel, activities, and targets live in the Home editor now."""
-        response = self.client_admin.get(reverse("admin_dashboard"))
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "Website Content")
-        self.assertContains(response, "Page Content")
-
-    def test_record_managers_return_to_the_home_editor(self):
-        back_to = reverse("page_content_edit", args=["home"]) + "#personnel"
-        photo = SimpleUploadedFile("face.jpg", b"fake-image-bytes", content_type="image/jpeg")
-
-        response = self.client_admin.post(
-            reverse("personnel_create"),
-            {"name": "Editor Return", "position": "Staff", "email": "", "photo": photo,
-             "next": back_to},
-        )
-
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, back_to)
-
-    def test_record_managers_reject_an_unsafe_return_target(self):
-        photo = SimpleUploadedFile("face.jpg", b"fake-image-bytes", content_type="image/jpeg")
-
-        response = self.client_admin.post(
-            reverse("personnel_create"),
-            {"name": "Unsafe Next", "position": "Staff", "email": "", "photo": photo,
-             "next": "https://evil.example.com/phish"},
-        )
-
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse("personnel_list"))
-
-    def test_record_managers_offer_a_back_link_to_the_home_editor(self):
-        back_to = reverse("page_content_edit", args=["home"]) + "#activities"
-        response = self.client_admin.get(
-            reverse("activity_create") + f"?next={back_to.replace('#', '%23')}"
-        )
-
-        self.assertContains(response, "Back to Home page editor")
-        self.assertContains(response, back_to)

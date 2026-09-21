@@ -61,71 +61,25 @@
    SHARED DASHBOARD DESIGN SYSTEM
    --------------------------------------------------------------------------
    One visual language for every role dashboard (Admin, Director, Staff,
-   Evaluator, Faculty, Campus/Department Coordinator) and every admin
-   workspace page (CRUD lists, forms, review screens, the page editors).
+   Evaluator, Faculty, Campus/Department Coordinator).
 
-   Each dashboard previously defined its own near-identical card, KPI,
-   button, and badge styles under a private prefix (.adm-*, .dir-*, .pc-*,
-   .ht-*, .ps-*, .kpi-card, .rq-card, .ext-card, .mine-card), some of them
-   triple-defined across stylesheets and inline <style> blocks, so they
-   drifted apart. The `nx-*` classes below are the shared vocabulary; the
-   legacy prefixes are kept working as aliases in the same rule, so every
-   existing template renders the unified look with no markup changes.
-
-   Conventions for new code: use the `nx-*` name, never add an inline
-   <style> block, and never hard-code a colour that already has a token.
-   Canonical scale — cards 16px, nested cards / KPI / buttons / nav 12px,
-   text inputs .9rem, pills 999px. One typeface (Inter, set in
-   nexus-ui.css), one status palette, one stage palette.
+   Each dashboard previously defined its own near-identical card, KPI, button,
+   and badge styles under a private prefix (.adm-*, .dir-*, .kpi-card, .rq-card,
+   .ext-card, .mine-card), so they drifted apart. These `nx-*` classes are the
+   shared vocabulary; prefer them over new per-dashboard CSS.
    ========================================================================== */
 
 :root {
-    --nx-bg:         #f6f7f5;
-    --nx-surface:    #ffffff;
-    --nx-surface-soft: #fafafa;   /* nested record cards */
-    --nx-border:     #e2e8f0;
+    --nx-bg:        #f6f7f5;
+    --nx-surface:   #ffffff;
+    --nx-border:    #e2e8f0;
     --nx-border-soft:#f1f5f9;
-    --nx-text:       #0f172a;
-    --nx-muted:      #64748b;
-    --nx-subtle:     #94a3b8;
-    --nx-green:      var(--nexus-primary, #103b07);
-    --nx-green-soft: #eaf3de;
-    --nx-maroon:     var(--nexus-secondary, #5a1113);
-    --nx-radius:     16px;        /* top-level cards */
-    --nx-radius-md:  12px;        /* nested cards, KPI, buttons, nav */
-    --nx-radius-control: .9rem;   /* text inputs (matches the global form rule) */
-
-    /* Status semantics: ok / warn / danger / info / muted. */
-    --nx-ok:         #166534;  --nx-ok-bg:      #dcfce7;
-    --nx-warn:       #92400e;  --nx-warn-bg:    #fef3c7;
-    --nx-danger:     #991b1b;  --nx-danger-bg:  #fee2e2;
-    --nx-info:       #1e40af;  --nx-info-bg:    #dbeafe;
-    --nx-muted-ink:  #475569;  --nx-muted-bg:   #f1f5f9;
-
-    /* Workflow-stage semantics (Proposal / MOA / Implementation /
-       Completed). Deliberately distinct from the status palette. */
-    --nx-stage-red:     #5a1113;  --nx-stage-red-bg:     #fcebeb;
-    --nx-stage-amber:   #854f0b;  --nx-stage-amber-bg:   #faeeda;
-    --nx-stage-blue:    #0c447c;  --nx-stage-blue-bg:    #e6f1fb;
-    --nx-stage-purple:  #3c3489;  --nx-stage-purple-bg:  #eeedfe;
-
-    /* Short names referenced by long-standing inline style="" attributes
-       (e.g. style="color:var(--green)"). Kept as aliases so those keep
-       working; new code should use the --nx-* names above. */
-    --green:   var(--nx-green);
-    --green-l: var(--nx-green-soft);
-    --red:     var(--nx-stage-red);
-    --red-l:   var(--nx-stage-red-bg);
-    --amber:   var(--nx-stage-amber);
-    --amber-l: var(--nx-stage-amber-bg);
-    --blue:    var(--nx-stage-blue);
-    --blue-l:  var(--nx-stage-blue-bg);
-    --purple:  var(--nx-stage-purple);
-    --purple-l:var(--nx-stage-purple-bg);
-    --border:  var(--nx-border);
-    --text:    var(--nx-text);
-    --muted:   var(--nx-muted);
-    --subtle:  var(--nx-subtle);
+    --nx-text:      #0f172a;
+    --nx-muted:     #64748b;
+    --nx-subtle:    #94a3b8;
+    --nx-green:     #103b07;
+    --nx-green-soft:#eaf3de;
+    --nx-radius:    14px;
 }
 
 /* ── Page shell ─────────────────────────────────────────────────────────── */
@@ -154,94 +108,20 @@
 .nx-dash__subtitle { margin-top: .125rem; font-size: .875rem; color: var(--nx-muted); }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
-.nx-card,
-.adm-card,
-.pc-card,
-.ht-card,
-.ps-card {
-    background: var(--nexus-surface, #ffffff);
+.nx-card {
+    background: var(--nx-surface);
     border: 1px solid var(--nx-border);
     border-radius: var(--nx-radius);
-    box-shadow: var(--nexus-shadow-sm, 0 1px 2px rgba(15, 23, 42, .06));
     overflow: hidden;
 }
-.nx-card__head,
-.adm-card__head,
-.pc-card__head {
-    padding: 1rem 1.25rem; border-bottom: 1px solid var(--nx-border-soft);
-}
-.nx-card__title,
-.adm-card__title,
-.pc-card__title { font-size: .9rem; font-weight: 600; color: var(--nx-text); }
-.nx-card__sub,
-.adm-card__sub,
-.pc-card__sub   { margin-top: .15rem; font-size: .78rem; color: var(--nx-subtle); }
+.nx-card__head  { padding: 1rem 1.25rem; border-bottom: 1px solid var(--nx-border-soft); }
+.nx-card__title { font-size: .9rem; font-weight: 600; color: var(--nx-text); }
+.nx-card__sub   { margin-top: .15rem; font-size: .78rem; color: var(--nx-subtle); }
 .nx-card__body  { padding: 1.25rem; }
 .nx-card__foot  {
     display: flex; align-items: center; justify-content: flex-end;
     padding: 1rem 1.25rem; border-top: 1px solid var(--nx-border-soft);
 }
-
-/* ── Section containers (dashboard panels) ──────────────────────────────── */
-.section-block,
-.dir-card {
-    background: var(--nexus-surface, #ffffff);
-    border: 1px solid var(--nx-border);
-    border-radius: var(--nx-radius);
-    box-shadow: var(--nexus-shadow-sm, 0 1px 2px rgba(15, 23, 42, .06));
-    overflow: hidden;
-}
-.section-block:hover,
-.dir-card:hover {
-    box-shadow: var(--nexus-shadow, 0 16px 40px rgba(15, 23, 42, .08));
-}
-.section-block-head {
-    padding: 1rem 1.25rem; border-bottom: 1px solid var(--nx-border-soft);
-    display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem;
-}
-/* Thin colour strip pinned to the top of a section container. */
-.dir-card-accent {
-    height: 4px;
-    border-radius: var(--nx-radius) var(--nx-radius) 0 0;
-}
-/* Eyebrow label used above section headings. */
-.section-label {
-    font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--nx-subtle); margin-bottom: 14px; display: block;
-}
-
-/* ── Nested record cards ────────────────────────────────────────────────── */
-/* Proposal / extension / review-queue cards that live inside a section
-   container: a step smaller than their parent, column flex so each card
-   pins its footer actions to the bottom and buttons align across a row. */
-.ext-card,
-.rq-card,
-.mine-card {
-    display: flex;
-    flex-direction: column;
-    background: var(--nx-surface-soft);
-    border: 1px solid var(--nx-border);
-    border-radius: var(--nx-radius-md);
-    box-shadow: var(--nexus-shadow-sm, 0 1px 2px rgba(15, 23, 42, .06));
-    padding: 1rem;
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
-}
-.ext-card:hover,
-.rq-card:hover,
-.mine-card:hover {
-    background: var(--nx-surface);
-    border-color: rgba(16, 59, 7, .22);
-    box-shadow: var(--nexus-shadow, 0 16px 40px rgba(15, 23, 42, .08));
-    transform: translateY(-2px);
-}
-/* Compact record row (review queue "needs attention" list). */
-.prop-row {
-    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-    border-radius: 10px; border: 1px solid var(--nx-border);
-    background: var(--nx-surface-soft);
-    transition: background .15s, box-shadow .15s;
-}
-.prop-row:hover { background: var(--nx-surface); box-shadow: 0 2px 8px rgba(0, 0, 0, .06); }
 
 /* ── KPI tiles ──────────────────────────────────────────────────────────── */
 .nx-kpi-grid {
@@ -250,324 +130,102 @@
     margin-bottom: 1.5rem;
 }
 @media (min-width: 1280px) { .nx-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.nx-kpi,
-.adm-kpi {
+.nx-kpi {
     background: var(--nx-surface);
     border: 1px solid var(--nx-border);
-    border-radius: var(--nx-radius-md);
+    border-radius: 12px;
     padding: 1rem 1.15rem;
-    transition: box-shadow .15s, transform .15s;
 }
-.nx-kpi:hover,
-.adm-kpi:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .07); transform: translateY(-1px); }
-.nx-kpi__label,
-.adm-kpi__label {
+.nx-kpi__label {
     font-size: .72rem; font-weight: 600; text-transform: uppercase;
     letter-spacing: .06em; color: var(--nx-subtle);
 }
-.nx-kpi__value,
-.adm-kpi__value { margin-top: .35rem; font-size: 1.6rem; font-weight: 600; line-height: 1.1; color: var(--nx-text); }
-.nx-kpi__hint,
-.adm-kpi__hint  { margin-top: .15rem; font-size: .72rem; color: var(--nx-subtle); }
-/* Accent variant: the coloured top border and value come from per-card
-   inline styles, so each tile keeps its stage colour. */
-.kpi-card {
-    background: var(--nx-surface); border: 1px solid var(--nx-border);
-    border-radius: var(--nx-radius-md);
-    padding: 18px 20px; border-top: 3px solid transparent;
-    transition: box-shadow .15s, transform .15s;
-}
-.kpi-card:hover { box-shadow: 0 4px 16px rgba(0, 0, 0, .07); transform: translateY(-1px); }
+.nx-kpi__value { margin-top: .35rem; font-size: 1.6rem; font-weight: 600; line-height: 1.1; color: var(--nx-text); }
+.nx-kpi__hint  { margin-top: .15rem; font-size: .72rem; color: var(--nx-subtle); }
 
 /* ── Tabs ───────────────────────────────────────────────────────────────── */
-.nx-tabs,
-.adm-tabs { display: flex; flex-wrap: wrap; gap: .25rem; border-bottom: 1px solid var(--nx-border); margin-bottom: 1.25rem; }
-.nx-tab,
-.adm-tab {
+.nx-tabs { display: flex; flex-wrap: wrap; gap: .25rem; border-bottom: 1px solid var(--nx-border); margin-bottom: 1.25rem; }
+.nx-tab {
     position: relative; padding: .6rem .9rem; margin-bottom: -1px;
     font-size: .83rem; font-weight: 500; color: var(--nx-muted);
     background: transparent; border: none; border-bottom: 2px solid transparent;
     transition: color .15s, border-color .15s; cursor: pointer;
 }
-.nx-tab:hover,
-.adm-tab:hover      { color: var(--nx-text); }
-.nx-tab.active,
-.adm-tab.active     { color: var(--nx-green); border-bottom-color: var(--nx-green); font-weight: 600; }
-.nx-tab__count,
-.adm-tab__count {
+.nx-tab:hover      { color: var(--nx-text); }
+.nx-tab.active     { color: var(--nx-green); border-bottom-color: var(--nx-green); font-weight: 600; }
+.nx-tab__count {
     display: inline-block; margin-left: .35rem; padding: .05rem .4rem;
-    border-radius: 999px; background: var(--nx-warn-bg); color: var(--nx-warn);
+    border-radius: 999px; background: #fef3c7; color: #92400e;
     font-size: .68rem; font-weight: 600;
 }
 
-/* ── Sidebar navigation ────────────────────────────────────────────────── */
-.nx-nav-btn,
-.dashboard-nav-btn {
+/* ── Sidebar navigation (Director-style) ────────────────────────────────── */
+.nx-nav-btn {
     display: flex; width: 100%; align-items: center;
-    padding: .65rem .85rem; border-radius: var(--nx-radius-md);
+    padding: .65rem .85rem; border-radius: 8px;
     font-size: .85rem; font-weight: 500; text-align: left;
     color: var(--nx-muted); background: transparent; border: none;
     transition: background .15s, color .15s; cursor: pointer;
 }
-.nx-nav-btn:hover,
-.dashboard-nav-btn:hover  { background: rgba(16, 59, 7, .07); color: var(--nx-green); }
-.nx-nav-btn.active,
-.dashboard-nav-btn.active { background: var(--nx-green-soft); color: var(--nx-green); font-weight: 600; }
+.nx-nav-btn:hover  { background: var(--nx-border-soft); color: var(--nx-text); }
+.nx-nav-btn.active { background: var(--nx-green-soft); color: var(--nx-green); font-weight: 600; }
 
 /* ── Buttons ────────────────────────────────────────────────────────────── */
-.nx-btn,
-.dir-btn,
-.pc-btn,
-.ht-btn,
-.ps-btn,
-.quick-tab-btn {
+.nx-btn {
     display: inline-flex; align-items: center; justify-content: center;
-    padding: .45rem .9rem; border-radius: var(--nx-radius-md);
-    font-size: .8rem; font-weight: 600; white-space: nowrap;
+    padding: .45rem .9rem; border-radius: 8px;
+    font-size: .8rem; font-weight: 500; white-space: nowrap;
     border: 1px solid var(--nx-border); color: #334155; background: var(--nx-surface);
-    transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease;
-    cursor: pointer;
+    transition: background .15s, border-color .15s, opacity .15s; cursor: pointer;
 }
-.nx-btn:hover,
-.dir-btn:hover,
-.pc-btn:hover,
-.ht-btn:hover,
-.ps-btn:hover,
-.quick-tab-btn:hover {
-    border-color: #cbd5e1; background: #f8fafc;
-    box-shadow: var(--nexus-shadow-sm, 0 1px 2px rgba(15, 23, 42, .06));
-    transform: translateY(-1px);
-}
-.nx-btn--primary,
-.dir-btn-primary,
-.adm-btn-primary,
-.pc-btn--primary,
-.ht-btn--primary,
-.ps-btn--primary,
-.dir-btn.filled {
-    background: linear-gradient(135deg, var(--nexus-primary, #103b07), var(--nexus-primary-2, #1f5b12));
-    border-color: transparent; color: #fff; font-weight: 600;
-    padding: .5rem 1rem;
-    box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
-}
-.nx-btn--primary:hover,
-.dir-btn-primary:hover,
-.adm-btn-primary:hover,
-.pc-btn--primary:hover,
-.ht-btn--primary:hover,
-.ps-btn--primary:hover,
-.dir-btn.filled:hover {
-    background: linear-gradient(135deg, #123f08, #2a7218);
-    border-color: transparent; color: #fff;
-    box-shadow: 0 14px 30px rgba(16, 59, 7, .24);
-    transform: translateY(-1px);
-}
-.nx-btn--danger,
-.pc-btn--danger         { color: #b91c1c; border-color: #fecaca; }
-.nx-btn--danger:hover,
-.pc-btn--danger:hover   { background: #fef2f2; border-color: #fca5a5; box-shadow: none; transform: none; }
-/* Brand-ghost: secondary actions with brand affinity (paired with solid
-   primaries on coordinator dashboards, builder/listoolbars). Fills solid
-   green on hover, as those buttons always have. */
-.nx-btn--outline        { color: var(--nx-green); border-color: rgba(16, 59, 7, .45); background: var(--nx-surface); }
-.nx-btn--outline:hover  {
-    background: var(--nexus-primary, #103b07); border-color: transparent; color: #fff;
-    box-shadow: 0 10px 24px rgba(16, 59, 7, .18); transform: translateY(-1px);
-}
+.nx-btn:hover           { border-color: #cbd5e1; background: #f8fafc; }
+.nx-btn--primary        { background: var(--nx-green); border-color: var(--nx-green); color: #fff; font-weight: 600; }
+.nx-btn--primary:hover  { background: var(--nx-green); opacity: .85; }
+.nx-btn--danger         { color: #b91c1c; border-color: #fecaca; }
+.nx-btn--danger:hover   { background: #fef2f2; border-color: #fca5a5; }
 .nx-btn--sm             { padding: .3rem .6rem; font-size: .75rem; }
-/* Icon-only button: row delete / move actions in list tables and builders.
-   Ghost by default; the danger variant fills red on hover so the delete
-   affordance stays unmistakable. */
-.nx-icon-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: .4rem; border-radius: var(--nx-radius-md);
-    border: 1px solid var(--nx-border); color: var(--nx-muted); background: var(--nx-surface);
-    transition: background .15s, color .15s, border-color .15s; cursor: pointer;
-}
-.nx-icon-btn:hover { background: #f8fafc; color: var(--nx-text); border-color: #cbd5e1; }
-.nx-icon-btn--danger { color: #b91c1c; border-color: #fecaca; }
-.nx-icon-btn--danger:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
-.nx-btn:focus-visible,
-.nx-icon-btn:focus-visible,
-.dir-btn:focus-visible,
-.pc-btn:focus-visible,
-.ht-btn:focus-visible,
-.ps-btn:focus-visible,
-.dir-btn-primary:focus-visible,
-.adm-btn-primary:focus-visible,
-.quick-tab-btn:focus-visible {
-    outline: 3px solid rgba(16, 59, 7, .25);
-    outline-offset: 2px;
-}
 
 /* ── Form controls ──────────────────────────────────────────────────────── */
-/* Radius and focus ring agree with the global input rules in nexus-ui.css,
-   which carry the same values for bare elements. */
-.nx-label,
-.adm-label,
-.pc-label,
-.ht-label,
-.ps-label { display: block; margin-bottom: .3rem; font-size: .75rem; font-weight: 500; color: var(--nx-muted); }
-.adm-legend { display: block; margin-bottom: .75rem; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--nx-muted); }
-.nx-input,
-.dir-input,
-.adm-input,
-.pc-input,
-.ht-input,
-.ps-input {
-    display: block; width: 100%; padding: .55rem .75rem;
-    border-radius: var(--nx-radius-control);
-    font-size: .85rem; color: var(--nx-text);
-    background-color: rgba(255, 255, 255, .96);
-    border: 1px solid rgba(15, 23, 42, .14); outline: none;
-    box-shadow: inset 0 1px 1px rgba(15, 23, 42, .03);
-    transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+.nx-label { display: block; margin-bottom: .3rem; font-size: .73rem; font-weight: 500; color: var(--nx-muted); }
+.nx-input {
+    display: block; width: 100%; padding: .5rem .7rem; border-radius: 8px;
+    font-size: .82rem; color: var(--nx-text); background: var(--nx-surface);
+    border: 1px solid var(--nx-border); outline: none; transition: border-color .15s;
 }
-.nx-input:focus,
-.dir-input:focus,
-.adm-input:focus,
-.pc-input:focus,
-.ht-input:focus,
-.ps-input:focus {
-    border-color: rgba(16, 59, 7, .52);
-    box-shadow: 0 0 0 4px rgba(16, 59, 7, .10);
-    outline: none;
-}
-.nx-input--sm,
-.adm-input--sm   { padding: .4rem .6rem; font-size: .8rem; }
-.pc-input--sm    { padding: .4rem .6rem; font-size: .8rem; width: auto; }
-/* One dropdown caret for every select, classed or bare. */
-select.nx-input, select.dir-input, select.adm-input,
-select.pc-input, select.ht-input, select.ps-input,
-select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-    background-position: right .6rem center; background-repeat: no-repeat; background-size: 1.1rem;
-    padding-right: 2rem;
-}
-.adm-color { height: 2.35rem; width: 100%; border-radius: 8px; border: 1px solid var(--nx-border); padding: .15rem; background: #fff; cursor: pointer; }
-/* Field-level validation message. */
-.nx-error,
-.ps-error { margin-top: .25rem; font-size: .875rem; color: #b91c1c; }
+.nx-input:focus { border-color: var(--nx-green); }
+.nx-input--sm   { padding: .3rem .5rem; font-size: .78rem; }
 
 /* ── Badges ─────────────────────────────────────────────────────────────── */
-/* One pill shape everywhere. Status variants (ok/warn/danger/info/muted)
-   report state; stage variants (green/red/amber/blue/purple/gray) report
-   the workflow stage — the two greens/reds/ambers are intentionally
-   distinct colours, not drift. */
-.nx-badge,
-.adm-pill,
-.pc-pill,
-.badge {
+.nx-badge {
     display: inline-flex; align-items: center; white-space: nowrap;
     padding: .15rem .55rem; border-radius: 999px;
     font-size: .7rem; font-weight: 600;
 }
-.nx-badge--ok,
-.adm-pill--ok,
-.pc-pill--ok      { background: var(--nx-ok-bg); color: var(--nx-ok); }
-.nx-badge--warn,
-.adm-pill--warn,
-.pc-pill--warn    { background: var(--nx-warn-bg); color: var(--nx-warn); }
-.nx-badge--danger,
-.adm-pill--danger { background: var(--nx-danger-bg); color: var(--nx-danger); }
-.nx-badge--info,
-.adm-pill--info   { background: var(--nx-info-bg); color: var(--nx-info); }
-.nx-badge--muted,
-.adm-pill--muted,
-.pc-pill--muted,
-.badge-gray        { background: var(--nx-muted-bg); color: var(--nx-muted-ink); }
-.badge-green  { background: var(--nx-green-soft); color: var(--nx-green); }
-.badge-red    { background: var(--nx-stage-red-bg); color: var(--nx-stage-red); }
-.badge-amber  { background: var(--nx-stage-amber-bg); color: var(--nx-stage-amber); }
-.badge-blue   { background: var(--nx-stage-blue-bg); color: var(--nx-stage-blue); }
-.badge-purple { background: var(--nx-stage-purple-bg); color: var(--nx-stage-purple); }
+.nx-badge--ok      { background: #dcfce7; color: #166534; }
+.nx-badge--warn    { background: #fef3c7; color: #92400e; }
+.nx-badge--danger  { background: #fee2e2; color: #991b1b; }
+.nx-badge--info    { background: #dbeafe; color: #1e40af; }
+.nx-badge--muted   { background: #f1f5f9; color: #475569; }
 
 /* ── Tables ─────────────────────────────────────────────────────────────── */
 .nx-table { min-width: 100%; }
-.nx-table thead tr { border-bottom: 1px solid var(--nx-border-soft); background: #f8faf7; }
-.nx-th,
-.adm-th {
+.nx-table thead tr { border-bottom: 1px solid var(--nx-border-soft); background: #f8fafcb3; }
+.nx-th {
     padding: .7rem 1.25rem; text-align: left;
     font-size: .7rem; font-weight: 600; text-transform: uppercase;
     letter-spacing: .05em; color: var(--nx-subtle);
 }
-.nx-td,
-.adm-td { padding: .75rem 1.25rem; vertical-align: middle; font-size: .85rem; color: #334155; }
+.nx-td { padding: .75rem 1.25rem; vertical-align: middle; font-size: .85rem; color: #334155; }
 .nx-table tbody tr { border-top: 1px solid var(--nx-border-soft); transition: background .15s; }
-/* (Row hover comes from the global tbody rule in nexus-ui.css.) */
-.pc-table th {
-    padding: .65rem 1.25rem; text-align: left; font-size: .7rem; font-weight: 600;
-    text-transform: uppercase; letter-spacing: .05em; color: var(--nx-subtle);
-    background: #f8faf7; border-bottom: 1px solid var(--nx-border-soft); white-space: nowrap;
-}
-.pc-table td { padding: .7rem 1.25rem; vertical-align: middle; font-size: .83rem; color: #1e293b; }
-.pc-table tbody tr { border-bottom: 1px solid #f8fafc; }
-.pc-table tbody tr:last-child { border-bottom: none; }
+.nx-table tbody tr:hover { background: #f8fafcb3; }
 
 /* ── Avatar ─────────────────────────────────────────────────────────────── */
-.nx-avatar,
-.adm-avatar,
-.pc-avatar {
+.nx-avatar {
     display: grid; place-items: center; flex: none;
     height: 2.1rem; width: 2.1rem; border-radius: 999px;
     background: var(--nx-green-soft); color: var(--nx-green);
     font-size: .78rem; font-weight: 600;
 }
-/* Removable assignment chip (director review queue). */
-.ev-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    border-radius: 6px; background: var(--nx-green-soft);
-    border: 1px solid rgba(16, 59, 7, .12);
-    padding: 3px 8px; font-size: 11px; font-weight: 500; color: var(--nx-green);
-}
-
-/* ── Stat strip + tiles (admin dashboard) ───────────────────────────────── */
-.adm-stat { display: flex; flex-direction: column; gap: .25rem; background: #fff; padding: .9rem 1.1rem; }
-.adm-stat__label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--nx-subtle); }
-.adm-stat__value { font-size: 1.25rem; font-weight: 600; color: var(--nx-text); }
-.adm-tile { display: flex; flex-direction: column; gap: .3rem; background: #fff; padding: 1rem 1.15rem; transition: background .15s; }
-.adm-tile:hover { background: #f8fafc; }
-.adm-tile__top { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
-.adm-tile__name { font-size: .85rem; font-weight: 600; color: var(--nx-text); }
-.adm-tile__count { font-size: 1.1rem; font-weight: 600; color: var(--nx-green); }
-.adm-tile__desc { font-size: .75rem; line-height: 1.4; color: var(--nx-subtle); }
-.adm-link { font-size: .78rem; font-weight: 500; color: var(--nx-green); background: none; border: none; padding: 0; cursor: pointer; }
-.adm-link:hover { text-decoration: underline; }
-
-/* ── Editor chrome (page content editor) ────────────────────────────────── */
-.pc-subnav a {
-    padding: .4rem .8rem; border-radius: 8px; font-size: .78rem; font-weight: 500;
-    color: var(--nx-muted); white-space: nowrap; transition: background .15s, color .15s;
-}
-.pc-subnav a:hover { background: var(--nx-border-soft); color: var(--nx-text); }
-.pc-move {
-    display: grid; place-items: center; height: 1.4rem; width: 1.4rem;
-    border-radius: 6px; border: 1px solid var(--nx-border); background: #fff;
-    font-size: .7rem; color: var(--nx-muted); cursor: pointer; transition: background .15s, color .15s;
-}
-.pc-move:hover:not(:disabled) { background: var(--nx-border-soft); color: var(--nx-text); }
-.pc-move:disabled { opacity: .35; cursor: not-allowed; }
-.pc-ring-preview { display: inline-flex; flex: none; }
-
-/* ── Embedded rich-text editor ──────────────────────────────────────────── */
-.django_ckeditor_5 + .ck-editor .ck-editor__editable,
-.ck-editor__editable_inline { min-height: 320px; }
-.ck.ck-editor__main > .ck-editor__editable { border-radius: 0 0 var(--nx-radius-control) var(--nx-radius-control); }
-.ck.ck-editor__top .ck-sticky-panel .ck-toolbar { border-radius: var(--nx-radius-control) var(--nx-radius-control) 0 0; }
-
-/* ── Progress bars (director analytics) ─────────────────────────────────── */
-.stage-bar-track { height: 4px; border-radius: 4px; background: var(--nx-border-soft); overflow: hidden; margin-top: 8px; }
-.stage-bar-fill  { height: 100%; border-radius: 4px; width: 0; transition: width 1.4s cubic-bezier(.4, 0, .2, 1); }
-.seg-bar { height: 6px; border-radius: 4px; background: var(--nx-border-soft); overflow: hidden; display: flex; }
-.seg-fill { height: 100%; width: 0; transition: width 1.6s cubic-bezier(.4, 0, .2, 1); }
-
-/* ── Shared utilities ───────────────────────────────────────────────────── */
-.line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.anim { animation: rise .4s ease both; }
-.a1 { animation-delay: .05s; } .a2 { animation-delay: .1s; }
-.a3 { animation-delay: .17s; } .a4 { animation-delay: .24s; }
 
 /* ── Empty state ────────────────────────────────────────────────────────── */
 .nx-empty { padding: 2.5rem 1.25rem; text-align: center; font-size: .875rem; color: var(--nx-subtle); }

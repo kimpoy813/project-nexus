@@ -1,14 +1,10 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 {% block content %}
-<div class="nx-page py-8">
-    {% if back_url %}
-    <a href="{{ back_url }}" class="text-xs font-medium text-slate-500 hover:text-primary">← Back to Home page editor</a>
-    {% endif %}
-    <h1 class="nx-dash__title mb-4 {% if back_url %}mt-1{% endif %}">{% if target %}Edit{% else %}Add{% endif %} Target</h1>
+<div class="nx-page py-6">
+    <h1 class="text-2xl font-bold mb-4">{% if target %}Edit{% else %}Add{% endif %} Target</h1>
 
     <form method="POST" class="bg-white border rounded-lg p-4 space-y-3">
         {% csrf_token %}
-        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
         {% if not target %}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -27,7 +23,7 @@
         </div>
         <div>
             <label class="block text-sm font-medium">Metric</label>
-            <input type="text" name="metric" class="w-full border rounded p-2" required>
+            <input name="metric" class="w-full border rounded p-2" required>
         </div>
         </div>
         {% endif %}
@@ -45,7 +41,7 @@
 
         <div class="flex gap-2">
         <button class="px-4 py-2 bg-primary text-white rounded" type="submit">Save</button>
-        <a class="nx-btn" href="{% if back_url %}{{ back_url }}{% else %}{% url 'targets_list' %}{% endif %}">Back</a>
+        <a class="px-4 py-2 border rounded" href="{% url 'targets_list' %}">Back</a>
         </div>
     </form>
 </div>

@@ -4,8 +4,8 @@
 <div class="nx-page py-8">
   <div class="mb-6">
     <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Wizard Manager</p>
-    <h1 class="nx-dash__title mt-1">Add a New Step</h1>
-    <p class="nx-dash__subtitle">Create a new step for the proposal wizard. Proponents will be guided through it sequentially, and they will fill out any custom fields you define below.</p>
+    <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Add a New Step</h1>
+    <p class="mt-2 text-sm text-gray-600">Create a new step for the proposal wizard. Proponents will be guided through it sequentially, and they will fill out any custom fields you define below.</p>
   </div>
   <form method="post" enctype="multipart/form-data" class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
     {% csrf_token %}
@@ -55,7 +55,7 @@
           <h2 class="text-lg font-black text-gray-900">Fields (Inputs / Elements)</h2>
           <p class="text-sm text-gray-500">Configure what custom data or inputs (text, text area, date picker, dropdown choices, etc.) proponents need to provide on this step.</p>
         </div>
-        <button type="button" onclick="addFieldRow()" class="nx-btn nx-btn--outline">+ Add Field</button>
+        <button type="button" onclick="addFieldRow()" class="rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white">+ Add Field</button>
       </div>
       <div id="fieldRows" class="space-y-4">
         <!-- Will start with one empty field row by default -->
@@ -63,8 +63,8 @@
     </section>
 
     <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
-      <a href="{% url 'wizard_steps_manager' %}" class="nx-btn">Cancel</a>
-      <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white">Add Step</button>
+      <a href="{% url 'wizard_steps_manager' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
+      <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Add Step</button>
     </div>
   </form>
 </div>

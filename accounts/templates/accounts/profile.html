@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 
 {% block content %}
 <div class="nx-page py-8">
     <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div class="border-b border-gray-100 px-6 py-4">
-            <h1 class="nx-dash__title">My Profile</h1>
-            <p class="nx-dash__subtitle">View your account and organizational details.</p>
+            <h1 class="text-xl font-bold text-gray-900">My Profile</h1>
+            <p class="mt-1 text-sm text-gray-600">View your account and organizational details.</p>
         </div>
 
         <div class="p-6 space-y-4">
@@ -40,7 +40,7 @@
 
             <div class="pt-2">
                 <a href="{% url 'profile_edit' %}"
-                   class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition">
+                   class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
                     Edit Profile
                 </a>
             </div>

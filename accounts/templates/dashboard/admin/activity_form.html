@@ -1,18 +1,14 @@
-{% extends "base.html" %}
+{% extends "dashboard/dashboard_base.html" %}
 {% block content %}
-<div class="nx-page py-8">
-    {% if back_url %}
-    <a href="{{ back_url }}" class="text-xs font-medium text-slate-500 hover:text-primary">← Back to Home page editor</a>
-    {% endif %}
-    <h1 class="nx-dash__title mb-6 {% if back_url %}mt-1{% endif %}">{% if activity %}Edit{% else %}Add{% endif %} Activity</h1>
+<div class="nx-page py-6">
+    <h1 class="text-2xl font-bold mb-6">{% if activity %}Edit{% else %}Add{% endif %} Activity</h1>
 
     <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 nx-form-grid">
         {% csrf_token %}
-        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
         <div>
         <label class="block text-sm font-medium mb-1">Title</label>
-        <input type="text" name="title" value="{{ activity.title|default:'' }}" class="w-full border rounded-lg p-2" required>
+        <input name="title" value="{{ activity.title|default:'' }}" class="w-full border rounded-lg p-2" required>
         </div>
 
         <div class="nx-full">
@@ -28,7 +24,7 @@
                 {% for d in activity.dates.all %}
                     <div class="flex gap-2">
                     <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="flex-1 border rounded p-2" required>
-                    <button type="button" class="nx-btn nx-btn--sm nx-btn--danger" onclick="this.parentElement.remove()">Remove</button>
+                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
                     </div>
                 {% endfor %}
                 {% endif %}
@@ -36,12 +32,12 @@
                 {% if not activity or activity.dates.count == 0 %}
                 <div class="flex gap-2">
                     <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
-                    <button type="button" class="nx-btn nx-btn--sm nx-btn--danger" onclick="this.parentElement.remove()">Remove</button>
+                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
                 </div>
                 {% endif %}
             </div>
 
-            <button type="button" class="nx-btn nx-btn--sm mt-2" onclick="addDate()">+ Add another date</button>
+            <button type="button" class="mt-2 px-3 py-2 border rounded" onclick="addDate()">+ Add another date</button>
         </div>
 
         <script>
@@ -51,7 +47,7 @@
             row.className = 'flex gap-2';
             row.innerHTML = `
                 <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
-                <button type="button" class="nx-btn nx-btn--sm nx-btn--danger" onclick="this.parentElement.remove()">Remove</button>
+                <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
             `;
             wrap.appendChild(row);
             }
@@ -72,7 +68,7 @@
 
         <div class="nx-full flex gap-3">
         <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
-        <a class="nx-btn" href="{% if back_url %}{{ back_url }}{% else %}{% url 'activities_list' %}{% endif %}">Cancel</a>
+        <a class="px-4 py-2 rounded-lg border" href="{% url 'activities_list' %}">Cancel</a>
         </div>
     </form>
 </div>

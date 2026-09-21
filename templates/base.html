@@ -689,7 +689,7 @@
                         </div>
                     </div>
                 {% else %}
-                    <a href="{% url 'login' %}" class="nexus-btn-primary ml-2 rounded-xl px-4 py-2.5 text-sm font-black" data-nx-skeleton="auth">
+                    <a href="{% url 'login' %}" class="nexus-btn-primary ml-2 rounded-2xl px-4 py-2.5 text-sm font-black" data-nx-skeleton="auth">
                         Login
                     </a>
                 {% endif %}
@@ -727,7 +727,7 @@
                     {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Accomplishment Reports</a>{% endif %}
                     <a href="{% url 'logout' %}" class="nexus-menu-link w-full text-red-600" data-nx-skeleton="auth">Logout</a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-xl px-4 py-3 text-sm font-black" data-nx-skeleton="auth">Login</a>
+                    <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-2xl px-4 py-3 text-sm font-black" data-nx-skeleton="auth">Login</a>
                 {% endif %}
             </div>
         </div>
