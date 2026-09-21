@@ -10,9 +10,17 @@ driven by ``static/css/nexus-layout.css``: ``.nx-page`` for page bodies,
 These tests render the real pages through their views, so a template that
 regresses to a capped container — or stops rendering at all — fails here
 instead of in a browser.
+
+They also pin the fixed-navbar offset: the navbar is ``fixed top-0`` and
+``<main class="nexus-shell">`` carries its height as top padding, which is the
+only thing keeping a page's first row out from under the header.
 """
 
-from django.test import TestCase
+import re
+from pathlib import Path
+
+from django.conf import settings
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
 from accounts.models import Profile
@@ -203,3 +211,93 @@ class CoordinatorAndWorkflowLayoutTests(FluidContainerAssertions, TestCase):
                 reachable += 1
                 self.assertFluidPage(response)
         self.assertGreater(reachable, 0, "no tracker page rendered for this proposal")
+
+
+class HeaderOffsetTests(SimpleTestCase):
+    """Content must start *below* the fixed navbar on every screen.
+
+    The navbar is ``position: fixed``, so the page shell carries its height as
+    top padding. Losing ``nexus-shell`` from ``<main>`` — or the padding from
+    the class — slides the first row of every page under the header. That is
+    most obvious on a proposal wizard step, where the step heading and the
+    Office Instructions card disappear behind the bar, but it is a site-wide
+    regression, so it is pinned here rather than in one template.
+    """
+
+    BASE_TEMPLATE = settings.BASE_DIR / "templates" / "base.html"
+    STYLESHEET = settings.BASE_DIR / "static" / "css" / "nexus-ui.css"
+
+    def _stylesheet(self):
+        return self.STYLESHEET.read_text(encoding="utf-8")
+
+    def _shell_rule(self, css, *, inside_mobile_breakpoint=False):
+        """The declarations of the ``.nexus-shell`` rule.
+
+        ``inside_mobile_breakpoint`` selects the copy inside
+        ``@media (max-width: 768px)`` so a mobile-only override cannot hide a
+        missing desktop offset.
+        """
+        blocks = [css]
+        if inside_mobile_breakpoint:
+            match = re.search(r"@media \(max-width: 768px\) \{(.*?)\n\}", css, re.S)
+            self.assertIsNotNone(match, "the mobile refinement block disappeared")
+            blocks = [match.group(1)]
+        for block in blocks:
+            rule = re.search(r"\.nexus-shell\s*\{([^}]*)\}", block)
+            if rule:
+                return rule.group(1)
+        return ""
+
+    def test_base_template_offsets_main_below_the_navbar(self):
+        html = self.BASE_TEMPLATE.read_text(encoding="utf-8")
+        self.assertIn('<main id="main-content" class="nexus-shell">', html)
+        # The stray attribute this replaced (`<main id="main-content" ">`)
+        # dropped the offset silently; make sure it cannot come back.
+        self.assertNotIn('<main id="main-content" ">', html)
+
+    def test_the_shell_padding_follows_the_navbar_height(self):
+        css = self._stylesheet()
+        self.assertRegex(css, r"--nx-header-h:\s*5rem;", "desktop navbar height is not declared")
+        self.assertRegex(css, r"\.nexus-navbar\s*\{[^}]*height:\s*var\(--nx-header-h\)",
+                         "the navbar no longer sizes itself from --nx-header-h")
+        self.assertIn("padding-top: var(--nx-header-h)", self._shell_rule(css),
+                      ".nexus-shell must pad the page clear of the fixed navbar")
+
+    def test_the_offset_survives_the_mobile_breakpoint(self):
+        """The bar shrinks to 4.5rem on phones; the offset must shrink with it."""
+        css = self._stylesheet()
+        mobile = re.search(r"@media \(max-width: 768px\) \{(.*?)\n\}", css, re.S)
+        self.assertIsNotNone(mobile, "the mobile refinement block disappeared")
+        self.assertRegex(mobile.group(1), r"--nx-header-h:\s*4\.5rem;")
+        self.assertNotIn("padding-top", self._shell_rule(css, inside_mobile_breakpoint=True),
+                         "a mobile-only padding override hides the shared offset")
+
+
+class RenderedHeaderOffsetTests(TestCase):
+    """A rendered page ships both halves of the offset: class + stylesheet.
+
+    ``TestCase`` rather than ``SimpleTestCase`` because the public pages read
+    the site configuration and CMS content from the database.
+    """
+
+    def test_pages_keep_the_offset_when_rendered(self):
+        for url in ("/", reverse("login")):
+            with self.subTest(page=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                html = response.content.decode()
+                self.assertIn('<main id="main-content" class="nexus-shell">', html)
+                self.assertIn("css/nexus-ui.css", html, "the shell stylesheet is not linked")
+
+    def test_the_wizard_step_clears_the_header(self):
+        """The report came from here: a proposal wizard step under the header."""
+        author = factories.make_user("layout_offset_author", Profile.ROLE_FACULTY)
+        proposal = Proposal.objects.create(created_by=author)
+        client = factories.make_client(author)
+        for step in (1, 2):
+            with self.subTest(step=step):
+                response = client.get(reverse("proposal_wizard", args=[proposal.id, step]))
+                self.assertEqual(response.status_code, 200)
+                html = response.content.decode()
+                self.assertIn('<main id="main-content" class="nexus-shell">', html)
+                self.assertIn("nexus-wizard-layout", html)
