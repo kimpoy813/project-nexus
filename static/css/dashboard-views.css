@@ -241,3 +241,59 @@
 }
 .nx-notice__title { font-size: .875rem; font-weight: 600; color: var(--nx-text); }
 .nx-notice__text  { font-size: .875rem; color: var(--nx-muted); }
+
+/* Keep inactive proposal layouts out of the visual and keyboard flow. */
+[data-proposal-panel][hidden] { display: none !important; }
+
+/* Faculty proposals: a compact, readable table without compressing its actions. */
+.proposal-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--nx-border);
+    border-radius: 12px;
+    background: var(--nx-surface);
+}
+.proposal-table { width: 100%; min-width: 1080px; border-collapse: separate; border-spacing: 0; }
+.proposal-table .nx-th {
+    padding: .85rem 1rem;
+    background: #f5f7f4;
+    color: #52634e;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--nx-border);
+}
+.proposal-table .nx-td { padding: 1rem; font-size: .8rem; line-height: 1.5; }
+.proposal-table tbody tr + tr > * { border-top: 1px solid var(--nx-border-soft); }
+.proposal-table tbody tr:nth-child(even) { background: #fafbf9; }
+.proposal-table tbody tr:hover,
+.proposal-table tbody tr:focus-within { background: #f0f6ed; }
+.proposal-table .proposal-table__title {
+    min-width: 240px;
+    max-width: 380px;
+    width: 28%;
+    font-weight: 600;
+    text-align: left;
+    color: var(--nx-text);
+    overflow-wrap: anywhere;
+}
+.proposal-table__status { min-width: 160px; max-width: 240px; overflow-wrap: anywhere; }
+.proposal-table__stage { background: var(--nx-green-soft); color: var(--nx-green); }
+.proposal-table__date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.proposal-table__date-label { display: block; font-size: .65rem; color: var(--nx-muted); margin-bottom: .2rem; }
+.proposal-table__progress { min-width: 90px; color: var(--nx-green); font-weight: 600; font-variant-numeric: tabular-nums; }
+.proposal-table__progress progress {
+    display: block; width: 100%; height: 6px; margin-top: .4rem;
+    appearance: none; border: 0; border-radius: 99px; overflow: hidden;
+    background: #e2e8df; color: var(--nx-green); accent-color: var(--nx-green);
+}
+.proposal-table__progress progress::-webkit-progress-bar { background: #e2e8df; border-radius: 99px; }
+.proposal-table__progress progress::-webkit-progress-value { background: var(--nx-green); border-radius: 99px; }
+.proposal-table__progress progress::-moz-progress-bar { background: var(--nx-green); border-radius: 99px; }
+.proposal-table__actions { display: flex; align-items: center; justify-content: flex-end; gap: .4rem; }
+.proposal-table__actions > * { white-space: nowrap; flex-shrink: 0; min-height: 34px; }
+.proposal-table .nx-th:last-child { text-align: right; }
+.dashboard-view-toggle:focus-visible,
+.proposal-table-scroll:focus-visible,
+.proposal-table__actions > *:focus-visible { outline: 2px solid var(--nx-green); outline-offset: 3px; }
+@media (max-width: 640px) {
+    .proposal-table .nx-td, .proposal-table .nx-th { padding: .75rem; }
+}
