@@ -42,8 +42,11 @@ class ActivityDate(models.Model):
     def __str__(self):
         return f"{self.activity.title} - {self.date}"
     
+from collections import OrderedDict
+
 from django.db import models
-from django.db.models import Max
+from django.db.models import Max, Min, Sum
+from django.utils import timezone
 
 class ExtensionProcess(models.Model):
     title = models.CharField(max_length=255)
@@ -585,14 +588,51 @@ class SitePage(models.Model):
     def visible_sections(self):
         return self.sections.filter(is_visible=True)
 
+    def state(self):
+        """Snapshot of the editable fields, for the audit log."""
+        return {
+            "title": self.title,
+            "hero_eyebrow": self.hero_eyebrow,
+            "hero_heading": self.hero_heading,
+            "hero_subheading": self.hero_subheading,
+            "meta_title": self.meta_title,
+            "meta_description": self.meta_description,
+            "is_published": self.is_published,
+        }
+
 
 class PageSection(models.Model):
-    """An ordered, rich-text content block belonging to a :class:`SitePage`."""
+    """An ordered content block belonging to a :class:`SitePage`.
+
+    Text layouts (rich text / card / callout / call-to-action) render their
+    own content. Data layouts render live data from the other admin-managed
+    models (activities, targets, processes, templates, personnel) so the
+    public pages can be composed entirely from the system's own blocks.
+    """
 
     class Layout(models.TextChoices):
+        # --- Text layouts: the section renders its own content ---
         RICH_TEXT = "RICH_TEXT", "Rich text"
         CARD = "CARD", "Card"
         CALLOUT = "CALLOUT", "Callout / highlight"
+        CTA = "CTA", "Call to action"
+        # --- Data layouts: the section renders admin-managed data ---
+        ACTIVITIES = "ACTIVITIES", "Extension activities"
+        TARGETS = "TARGETS", "Targets (planned vs. actual)"
+        PROCESSES = "PROCESSES", "Extension processes"
+        TEMPLATES = "TEMPLATES", "Template library"
+        PERSONNEL = "PERSONNEL", "Extension personnel"
+
+    #: Layouts that pull data from other models instead of rich text.
+    DATA_LAYOUTS = frozenset(
+        {
+            Layout.ACTIVITIES,
+            Layout.TARGETS,
+            Layout.PROCESSES,
+            Layout.TEMPLATES,
+            Layout.PERSONNEL,
+        }
+    )
 
     page = models.ForeignKey(SitePage, related_name="sections", on_delete=models.CASCADE)
     heading = models.CharField(max_length=220, blank=True, default="")
@@ -607,6 +647,39 @@ class PageSection(models.Model):
         help_text="Optional #anchor so the section can be linked to directly.",
     )
     image = models.ImageField(upload_to="page_sections/", blank=True, null=True)
+
+    # Data-block options (only used by the data-driven layouts).
+    limit_count = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        help_text=(
+            "Activities / Personnel blocks only: how many items to show. "
+            "Leave blank to show all."
+        ),
+    )
+    target_year = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        help_text=(
+            "Targets block only: which year to display. "
+            "Leave blank to use the latest year with data."
+        ),
+    )
+    cta_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        help_text="Call-to-action block only: button text, e.g. “Start a proposal”.",
+    )
+    cta_url = models.CharField(
+        max_length=300,
+        blank=True,
+        default="",
+        help_text=(
+            "Call-to-action block only: destination — a site path like "
+            "/register/ or a full URL starting with https://."
+        ),
+    )
 
     is_visible = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=1)
@@ -626,6 +699,151 @@ class PageSection(models.Model):
             last = PageSection.objects.filter(page=self.page).aggregate(Max("order"))["order__max"]
             self.order = (last or 0) + 1
         super().save(*args, **kwargs)
+
+    @property
+    def is_data_layout(self):
+        return self.layout in self.DATA_LAYOUTS
+
+    def state(self):
+        """Snapshot of the editable fields, for the audit log."""
+        return {
+            "heading": self.heading,
+            "subheading": self.subheading,
+            "body": (self.body or "")[:2000],
+            "layout": self.layout,
+            "anchor": self.anchor,
+            "image": self.image.name if self.image else None,
+            "is_visible": self.is_visible,
+            "order": self.order,
+            "limit_count": self.limit_count,
+            "target_year": self.target_year,
+            "cta_label": self.cta_label,
+            "cta_url": self.cta_url,
+        }
+
+
+def resolve_section_data(section):
+    """
+    Query the data a data-driven section block needs.
+
+    Returns a context dict for the block partial, or ``None`` for the
+    text-based layouts (rich text / card / callout / call-to-action), which
+    need no data lookup. All lookups mirror the queries the built-in Home
+    sections already use, so a block shows exactly what its built-in
+    counterpart shows.
+    """
+    layout = section.layout
+
+    if layout == PageSection.Layout.ACTIVITIES:
+        qs = (
+            Activity.objects.prefetch_related("dates")
+            .annotate(first_date=Min("dates__date"), last_date=Max("dates__date"))
+            .order_by("-last_date", "-id")
+        )
+        if section.limit_count:
+            qs = qs[: int(section.limit_count)]
+        return {"activities": qs}
+
+    if layout == PageSection.Layout.TARGETS:
+        year = section.target_year or (
+            Target.objects.order_by("-year").values_list("year", flat=True).first()
+            or timezone.now().year
+        )
+        rows = Target.objects.filter(year=year).order_by("campus", "metric")
+
+        def _progress(target):
+            if not target.planned_total:
+                return None
+            return round(100 * target.actual_total / target.planned_total)
+
+        by_campus = OrderedDict()
+        for row in rows:
+            by_campus.setdefault(row.campus, []).append({
+                "label": row.get_metric_display(),
+                "planned": row.planned_total,
+                "actual": row.actual_total,
+                "progress": _progress(row),
+            })
+        overall = {}
+        for key, label in Target.METRIC_CHOICES:
+            sums = rows.filter(metric=key).aggregate(
+                planned=Sum("planned_total"), actual=Sum("actual_total")
+            )
+            planned = sums["planned"] or 0
+            actual = sums["actual"] or 0
+            overall[key] = {
+                "label": label,
+                "planned": planned,
+                "actual": actual,
+                "progress": round(100 * actual / planned) if planned else None,
+            }
+        return {"year": year, "by_campus": by_campus, "overall": overall}
+
+    if layout == PageSection.Layout.PROCESSES:
+        return {
+            "processes": ExtensionProcess.objects.all()
+            .prefetch_related("steps")
+            .order_by("order", "id"),
+        }
+
+    if layout == PageSection.Layout.TEMPLATES:
+        return {
+            "templates": DocumentTemplate.objects.filter(is_active=True)
+            .order_by("category", "title"),
+        }
+
+    if layout == PageSection.Layout.PERSONNEL:
+        qs = Personnel.objects.all().order_by("pk")
+        if section.limit_count:
+            qs = qs[: int(section.limit_count)]
+        return {"personnel": qs}
+
+    return None
+
+
+class PageContentLog(models.Model):
+    """
+    Audit trail for admin edits to public page content (hero + sections).
+
+    Mirrors :class:`accounts.models.SiteConfigurationLog` so the no-code
+    editing power comes with a reviewable history: what changed, on which
+    page, by whom, and the before/after values of the fields involved.
+    """
+
+    class Action(models.TextChoices):
+        UPDATE_PAGE = "UPDATE_PAGE", "Updated page"
+        ADD_SECTION = "ADD_SECTION", "Added section"
+        EDIT_SECTION = "EDIT_SECTION", "Edited section"
+        DELETE_SECTION = "DELETE_SECTION", "Deleted section"
+        MOVE_SECTION = "MOVE_SECTION", "Moved section"
+
+    action = models.CharField(max_length=20, choices=Action.choices)
+    page_slug = models.SlugField(max_length=40)
+    section_id = models.PositiveBigIntegerField(null=True, blank=True)
+    target_label = models.CharField(
+        max_length=220,
+        blank=True,
+        default="",
+        help_text="Human label of what changed, e.g. the section heading.",
+    )
+    summary = models.CharField(max_length=255)
+    before = models.JSONField(default=dict, blank=True)
+    after = models.JSONField(default=dict, blank=True)
+    changed_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="page_content_logs",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "Page Content Log"
+
+    def __str__(self):
+        return f"{self.get_action_display()} · {self.page_slug} · {self.summary[:40]}"
 
 
 # ==============================

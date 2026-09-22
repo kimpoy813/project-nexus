@@ -1,0 +1,94 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Content Change Log - NExUS{% endblock %}
+
+{% block content %}
+<div class="nx-page py-6">
+
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <a href="{% url 'page_content_list' %}" class="text-xs font-medium text-slate-500 hover:text-primary">← Page Content</a>
+            <h1 class="mt-1 text-xl font-semibold text-primary">Content Change Log</h1>
+            <p class="mt-0.5 text-sm text-slate-500">
+                Every hero and section edit, newest first. Each entry keeps the before and after values.
+            </p>
+        </div>
+    </div>
+
+    <!-- Filter by page -->
+    <form method="get" class="mb-5 flex items-center gap-3">
+        <label for="log-page-filter" class="text-sm font-medium text-slate-600">Page</label>
+        <select id="log-page-filter" name="page" class="pc-input" style="max-width:220px;" onchange="this.form.submit()">
+            <option value="">All pages</option>
+            {% for value, label in page_choices %}
+                <option value="{{ value }}" {% if filter_slug == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        {% if filter_slug %}
+            <a href="{% url 'page_content_logs' %}" class="pc-btn">Clear</a>
+        {% endif %}
+    </form>
+
+    <div class="pc-card">
+        <ul class="divide-y divide-slate-100">
+            {% for row in logs %}
+            <li class="px-5 py-4">
+                <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-slate-900">{{ row.log.summary }}</p>
+                        <p class="mt-0.5 text-xs text-slate-400">
+                            {{ row.log.created_at|date:"M d, Y H:i" }}
+                            {% if row.log.changed_by %}· by {{ row.log.changed_by.username }}{% endif %}
+                        </p>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <span class="pc-pill pc-pill--muted">{{ row.log.page_slug }}</span>
+                        <span class="pc-pill pc-pill--ok">{{ row.log.get_action_display }}</span>
+                    </div>
+                </div>
+
+                {% if row.before_json or row.after_json %}
+                <details class="mt-2">
+                    <summary class="cursor-pointer text-xs font-medium text-slate-500 hover:text-primary">
+                        Show before / after
+                    </summary>
+                    <div class="mt-3 grid gap-3 md:grid-cols-2">
+                        <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                            <p class="text-[0.65rem] font-bold uppercase tracking-wider text-slate-400">Before</p>
+                            <pre class="mt-2 overflow-x-auto whitespace-pre-wrap text-xs leading-5 text-slate-600">{% if row.before_json %}{{ row.before_json }}{% else %}— (section did not exist){% endif %}</pre>
+                        </div>
+                        <div class="rounded-lg border border-slate-200 bg-slate-50/60 p-3">
+                            <p class="text-[0.65rem] font-bold uppercase tracking-wider text-slate-400">After</p>
+                            <pre class="mt-2 overflow-x-auto whitespace-pre-wrap text-xs leading-5 text-slate-600">{% if row.after_json %}{{ row.after_json }}{% else %}— (section removed){% endif %}</pre>
+                        </div>
+                    </div>
+                </details>
+                {% endif %}
+            </li>
+            {% empty %}
+            <li class="px-5 py-10 text-center text-sm text-slate-500">No content changes recorded yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<style>
+.pc-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+.pc-input {
+    display:block; padding:.5rem .75rem; border-radius:8px;
+    font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
+    outline:none; transition:border-color .15s;
+}
+.pc-input:focus { border-color:#103b07; }
+.pc-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
+    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s;
+}
+.pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+.pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
+.pc-pill--ok { background:#dcfce7; color:#166534; }
+.pc-pill--muted { background:#f1f5f9; color:#475569; }
+</style>
+{% endblock %}

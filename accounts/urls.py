@@ -103,8 +103,10 @@ urlpatterns = [
     # Admin content dashboard
     path("admin/content/", views.admin_content_dashboard, name="admin_content_dashboard"),
 
-    # Public page content editor (Home, Services, Reports, Achievements)
+    # Public page content editor (Home, Services, Reports, Achievements).
+    # NOTE: literal sub-paths (logs/) must come before the <slug> catch-all.
     path("admin/pages/", views.page_content_list, name="page_content_list"),
+    path("admin/pages/logs/", views.page_content_logs, name="page_content_logs"),
     path("admin/pages/<slug:slug>/", views.page_content_edit, name="page_content_edit"),
     path("admin/pages/<slug:slug>/sections/new/", views.page_section_create, name="page_section_create"),
     path("admin/pages/sections/<int:pk>/edit/", views.page_section_edit, name="page_section_edit"),

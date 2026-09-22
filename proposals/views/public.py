@@ -10,6 +10,7 @@ from details.models import ExtensionProcess
 from details.models import ProcessStep
 from details.models import SitePage
 from details.models import WorkflowPhase
+from details.views import build_visible_blocks
 from ..models import ExtensionThrust
 from ..models import Proposal
 from ..models import SDG
@@ -68,6 +69,7 @@ def services_home(request):
             "statuses": _build_status_flow(*choices_map) if choices_map else [],
         })
 
+    page = SitePage.get_for(SitePage.Slug.SERVICES)
     context = {
         "sdgs": sdgs,
         "thrusts": thrusts,
@@ -78,6 +80,7 @@ def services_home(request):
         "total_wizard_steps": TOTAL_STEPS,
         "office_templates": office_templates,
         "dynamic_form_templates": dynamic_form_templates,
-        "page": SitePage.get_for(SitePage.Slug.SERVICES),
+        "page": page,
+        "visible_blocks": build_visible_blocks(page),
     }
     return render(request, "services/services_home.html", context)

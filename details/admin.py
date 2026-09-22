@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import (
+    PageContentLog,
     Personnel, Activity, ProcessStep, Target, ExtensionProcess,
     SitePage, PageSection, HomeThrust, HomeSectionHeading, WorkflowPhase,
 )
@@ -67,3 +68,23 @@ class WorkflowPhaseAdmin(admin.ModelAdmin):
     list_display = ('label', 'key', 'weight_percent', 'is_visible', 'order')
     list_filter = ('is_visible',)
     ordering = ('order', 'id')
+
+
+@admin.register(PageContentLog)
+class PageContentLogAdmin(admin.ModelAdmin):
+    """Read-only audit trail (edits are made from the Admin Dashboard)."""
+    list_display = ('created_at', 'action', 'page_slug', 'target_label', 'summary', 'changed_by')
+    list_filter = ('action', 'page_slug')
+    search_fields = ('summary', 'target_label', 'page_slug')
+    date_hierarchy = 'created_at'
+    readonly_fields = ('action', 'page_slug', 'section_id', 'target_label',
+                       'summary', 'before', 'after', 'changed_by', 'created_at')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

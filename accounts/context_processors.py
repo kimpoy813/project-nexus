@@ -159,6 +159,12 @@ _SKELETON_BY_URL_NAME.update(dict.fromkeys(
     "form",
 ))
 _SKELETON_BY_URL_NAME.update(dict.fromkeys(
+    # The content change log is a list view (lives under /admin/pages/ like
+    # the section editors, which are forms).
+    ("page_content_logs",),
+    "list",
+))
+_SKELETON_BY_URL_NAME.update(dict.fromkeys(
     # POST endpoints that bounce straight back to a role dashboard.
     ("admin_site_control",),
     "dashboard",
