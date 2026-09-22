@@ -27,6 +27,7 @@ from details.models import Target
 from details.models import WorkflowPhase
 from details.models import resolve_section_data
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from ..decorators import admin_required
 from ..forms import PageSectionForm
@@ -84,6 +85,26 @@ def _to_positive_int(value):
         return number if number > 0 else None
     except (TypeError, ValueError):
         return None
+
+
+def _thrust_editor_context():
+    """Cards + colour picker for the inline Extension Thrust editor."""
+    return {
+        "home_thrusts": list(HomeThrust.objects.all().order_by("order", "id")),
+        "home_thrust_color_choices": HomeThrust.COLOR_CHOICES,
+    }
+
+
+def _home_inline_redirect(request):
+    """Bounce back to the editor the admin was on, or the Home page editor."""
+    candidate = (request.POST.get("next") or "").strip()
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(candidate)
+    return redirect("page_content_edit", slug="home")
 
 
 def _section_from_params(page, params):
@@ -177,6 +198,9 @@ def page_content_edit(request, slug):
             .select_related("changed_by")[:8]
         ),
     }
+    # Thrust cards live inside any THRUST section on this page, so the
+    # inline editor is always available — not only on Home.
+    context.update(_thrust_editor_context())
 
     # Every part of the Home page should be editable directly here, with the
     # same CRUD that the Linked-Data managers provide. Expose the underlying
@@ -187,7 +211,6 @@ def page_content_edit(request, slug):
             _campus_choices = [c[0] for c in _get_campus_choices()]
         except Exception:
             _campus_choices = []
-        _thrusts = list(HomeThrust.objects.all().order_by("order", "id"))
         _personnel = list(Personnel.objects.all().order_by("name"))
         _activities = list(
             Activity.objects.prefetch_related("dates")
@@ -203,8 +226,6 @@ def page_content_edit(request, slug):
         except Exception:
             _years = [2026]
         context.update({
-            "home_thrusts": _thrusts,
-            "home_thrust_color_choices": HomeThrust.COLOR_CHOICES,
             "home_personnel": _personnel,
             "home_activities": _activities,
             "home_processes": _processes,
@@ -256,13 +277,15 @@ def page_section_create(request, slug):
         resolve_section_data(preview_section) if preview_section.is_data_layout else None
     )
 
-    return render(request, "dashboard/admin/page_section_form.html", {
+    context = {
         "page": page,
         "form": form,
         "is_create": True,
         "preview_section": preview_section,
         "preview_data": preview_data,
-    })
+    }
+    context.update(_thrust_editor_context())
+    return render(request, "dashboard/admin/page_section_form.html", context)
 
 
 @login_required
@@ -297,14 +320,16 @@ def page_section_edit(request, pk):
 
     preview_data = resolve_section_data(section) if section.is_data_layout else None
 
-    return render(request, "dashboard/admin/page_section_form.html", {
+    context = {
         "page": section.page,
         "section": section,
         "form": form,
         "is_create": False,
         "preview_section": section,
         "preview_data": preview_data,
-    })
+    }
+    context.update(_thrust_editor_context())
+    return render(request, "dashboard/admin/page_section_form.html", context)
 
 
 @login_required
@@ -501,7 +526,7 @@ def home_inline_thrust_create(request):
     title = (request.POST.get("title") or "").strip()
     if not title:
         messages.error(request, "Thrust title is required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     HomeThrust.objects.create(
         title=title,
         description=(request.POST.get("description") or "").strip(),
@@ -510,7 +535,7 @@ def home_inline_thrust_create(request):
         order=0,
     )
     messages.success(request, f'Thrust \"{title}\" added.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -521,14 +546,14 @@ def home_inline_thrust_update(request, pk):
     title = (request.POST.get("title") or "").strip()
     if not title:
         messages.error(request, "Thrust title is required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     thrust.title = title
     thrust.description = (request.POST.get("description") or "").strip()
     thrust.color_class = _valid_thrust_color(request.POST.get("color_class"))
     thrust.is_visible = request.POST.get("is_visible") == "on"
     thrust.save()
     messages.success(request, "Thrust updated.")
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -539,7 +564,7 @@ def home_inline_thrust_delete(request, pk):
     title = thrust.title
     thrust.delete()
     messages.success(request, f'Thrust \"{title}\" deleted.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required

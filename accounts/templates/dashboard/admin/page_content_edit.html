@@ -103,7 +103,8 @@
 
         <ul class="divide-y divide-slate-100">
             {% for section in sections %}
-            <li class="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between {% if not section.is_visible %}bg-slate-50/60{% endif %}">
+            <li class="p-5 {% if not section.is_visible %}bg-slate-50/60{% endif %}">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="flex min-w-0 gap-3">
                     <!-- Reorder -->
                     <div class="flex flex-col gap-1 pt-0.5">
@@ -138,13 +139,19 @@
                 </div>
 
                 <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'page_section_edit' section.id %}" class="pc-btn">Edit</a>
+                    <a href="{% url 'page_section_edit' section.id %}" class="pc-btn">{% if section.layout == 'THRUST' %}Edit heading{% else %}Edit{% endif %}</a>
                     <form method="POST" action="{% url 'page_section_delete' section.id %}"
                           onsubmit="return confirm('Delete this section? The content cannot be restored, but the edit stays in the change log.');">
                         {% csrf_token %}
                         <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
                     </form>
                 </div>
+                </div>
+                {% if section.layout == 'THRUST' %}
+                <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
+                    {% include "dashboard/admin/_home_inline_thrusts.html" with thrust_editor_id=section.id next_url=request.path %}
+                </div>
+                {% endif %}
             </li>
             {% empty %}
             <li class="p-10 text-center">
@@ -176,7 +183,7 @@
         </div>
         <div class="px-5 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-2">
             <span class="text-amber-600 mt-0.5">💡</span>
-            <p class="text-xs leading-relaxed text-amber-800"><strong>Tip:</strong> Each block below is the real data for the matching Home section (e.g. “Extension Thrust” → Thrust Cards). Edit a card here and it updates instantly on the public Home page. The heading/subtitle of each block is still edited via the “Content Sections” list above.</p>
+            <p class="text-xs leading-relaxed text-amber-800"><strong>Tip:</strong> Extension Thrust cards are edited inside the “Extension Thrust” row in Content Sections above. Personnel, activities, processes and targets can be added, edited and removed in the blocks below.</p>
         </div>
     </div>
 

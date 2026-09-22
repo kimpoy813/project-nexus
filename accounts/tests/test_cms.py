@@ -337,6 +337,107 @@ class HomeSectionTests(TestCase):
         self.assertEqual(reordered[1], original[0])
 
 
+class HomeInlineThrustEditorTests(TestCase):
+    """Each Extension Thrust card is editable inside the Content Sections block."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("inline_thrust_admin", Profile.ROLE_ADMIN)
+        cls.faculty = factories.make_user("inline_thrust_faculty", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+
+    def _thrust_section(self):
+        return PageSection.objects.get(page__slug="home", layout=PageSection.Layout.THRUST)
+
+    def test_the_home_editor_lists_each_thrust_inside_the_section(self):
+        response = self.client_admin.get(reverse("page_content_edit", args=["home"]))
+        self.assertContains(response, "Extension Thrust")
+        self.assertContains(response, "home-thrust-inline")
+        self.assertContains(response, reverse("home_inline_thrust_create"))
+
+        for thrust in HomeThrust.objects.all():
+            with self.subTest(title=thrust.title):
+                self.assertContains(response, thrust.title)
+                self.assertContains(
+                    response, reverse("home_inline_thrust_update", args=[thrust.id])
+                )
+
+    def test_the_section_edit_form_lets_you_edit_each_thrust(self):
+        section = self._thrust_section()
+        response = self.client_admin.get(reverse("page_section_edit", args=[section.id]))
+        thrust = HomeThrust.objects.order_by("order").first()
+
+        self.assertContains(response, "Each Extension Thrust card is edited here")
+        self.assertContains(response, thrust.title)
+        self.assertContains(response, reverse("home_inline_thrust_update", args=[thrust.id]))
+
+    def test_inline_update_changes_the_public_card(self):
+        thrust = HomeThrust.objects.order_by("order").first()
+        self.client_admin.post(
+            reverse("home_inline_thrust_update", args=[thrust.id]),
+            {
+                "title": "INLINE-THRUST-MARKER",
+                "description": "Updated from the section editor.",
+                "color_class": "text-teal-600",
+                "is_visible": "on",
+            },
+        )
+
+        self.assertContains(self.client.get("/"), "INLINE-THRUST-MARKER")
+
+    def test_inline_update_returns_to_the_section_editor_when_next_is_set(self):
+        section = self._thrust_section()
+        next_url = reverse("page_section_edit", args=[section.id])
+        thrust = HomeThrust.objects.order_by("order").first()
+
+        response = self.client_admin.post(
+            reverse("home_inline_thrust_update", args=[thrust.id]),
+            {
+                "title": thrust.title,
+                "description": thrust.description,
+                "color_class": thrust.color_class,
+                "is_visible": "on",
+                "next": next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+
+    def test_an_external_next_url_is_ignored(self):
+        thrust = HomeThrust.objects.order_by("order").first()
+        response = self.client_admin.post(
+            reverse("home_inline_thrust_update", args=[thrust.id]),
+            {
+                "title": thrust.title,
+                "description": thrust.description,
+                "color_class": thrust.color_class,
+                "is_visible": "on",
+                "next": "https://evil.example/",
+            },
+        )
+        self.assertRedirects(response, reverse("page_content_edit", args=["home"]))
+
+    def test_faculty_cannot_inline_update_a_thrust(self):
+        client = factories.make_client(self.faculty)
+        thrust = HomeThrust.objects.order_by("order").first()
+        original = thrust.title
+
+        status = client.post(
+            reverse("home_inline_thrust_update", args=[thrust.id]),
+            {
+                "title": "SHOULD-NOT-SAVE",
+                "description": "nope",
+                "color_class": "text-teal-600",
+                "is_visible": "on",
+            },
+        ).status_code
+        self.assertIn(status, DENIED)
+
+        thrust.refresh_from_db()
+        self.assertEqual(thrust.title, original)
+
+
 class WorkflowPhaseTests(TestCase):
     @classmethod
     def setUpTestData(cls):
