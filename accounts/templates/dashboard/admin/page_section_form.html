@@ -158,7 +158,7 @@
         </div>
     </form>
 
-    {# Thrust cards are a separate POST (not nested in the section form). #}
+    {# Card CRUD is a separate POST (not nested in the section form). #}
     <div data-layout-group="THRUST" class="ps-card mt-6 hidden">
         <div class="border-b border-slate-100 px-5 py-4">
             <h2 class="text-sm font-semibold text-slate-900">Extension Thrust cards</h2>
@@ -167,6 +167,46 @@
             </p>
         </div>
         {% include "dashboard/admin/_home_inline_thrusts.html" with thrust_editor_id=section.id|default:'new' next_url=request.path %}
+    </div>
+
+    <div data-layout-group="PERSONNEL" class="ps-card mt-6 hidden">
+        <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-900">Personnel</h2>
+            <p class="mt-0.5 text-xs text-slate-400">
+                Each person is edited here. Heading and subheading above are the section title on the public page.
+            </p>
+        </div>
+        {% include "dashboard/admin/_home_inline_personnel.html" with editor_id=section.id|default:'new' next_url=request.path %}
+    </div>
+
+    <div data-layout-group="ACTIVITIES" class="ps-card mt-6 hidden">
+        <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-900">Activities</h2>
+            <p class="mt-0.5 text-xs text-slate-400">
+                Each activity is edited here. Heading and subheading above are the section title on the public page.
+            </p>
+        </div>
+        {% include "dashboard/admin/_home_inline_activities.html" with editor_id=section.id|default:'new' next_url=request.path %}
+    </div>
+
+    <div data-layout-group="PROCESSES" class="ps-card mt-6 hidden">
+        <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-900">Processes</h2>
+            <p class="mt-0.5 text-xs text-slate-400">
+                Each process and its steps are edited here. Heading and subheading above are the section title on the public page.
+            </p>
+        </div>
+        {% include "dashboard/admin/_home_inline_processes.html" with editor_id=section.id|default:'new' next_url=request.path %}
+    </div>
+
+    <div data-layout-group="TARGETS" class="ps-card mt-6 hidden">
+        <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-900">Targets</h2>
+            <p class="mt-0.5 text-xs text-slate-400">
+                Each planned vs. actual figure is edited here. Heading and subheading above are the section title on the public page.
+            </p>
+        </div>
+        {% include "dashboard/admin/_home_inline_targets.html" with editor_id=section.id|default:'new' next_url=request.path %}
     </div>
 
     {# ---------- LIVE PREVIEW (server-rendered with the same block partial) ---------- #}
@@ -210,6 +250,7 @@
     syncBlockOptions();
 })();
 </script>
+{% include "dashboard/admin/_home_inline_scripts.html" %}
 
 <style>
 .ps-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }

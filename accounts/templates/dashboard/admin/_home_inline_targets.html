@@ -1,0 +1,123 @@
+{% comment %}
+Inline CRUD for Target rows. Nested under TARGETS Content Sections.
+Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next_url
+{% endcomment %}
+{% with eid=editor_id|default:"main" %}
+<div class="home-targets-inline" id="home-inline-targets-{{ eid }}">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-800">Targets <span class="pc-pill pc-pill--muted">{{ home_targets|length }}</span></p>
+            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each planned vs. actual figure here. Changes show on the public page immediately.</p>
+        </div>
+        <button type="button" onclick="document.getElementById('add-target-form-{{ eid }}').classList.toggle('hidden')" class="pc-btn pc-btn--primary shrink-0">+ Add Target</button>
+    </div>
+
+    <div id="add-target-form-{{ eid }}" class="hidden border-b border-slate-100 bg-slate-50/60 p-4">
+        <form method="POST" action="{% url 'home_inline_target_create' %}" class="space-y-4">
+            {% csrf_token %}
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+            <div class="grid sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="pc-label">Year *</label>
+                    <input type="number" name="year" value="2026" class="pc-input" required min="2000" max="2100">
+                </div>
+                <div>
+                    <label class="pc-label">Campus *</label>
+                    {% if home_campus_choices %}
+                    <select name="campus" class="pc-input" required>
+                        <option value="" disabled selected>Select campus</option>
+                        {% for c in home_campus_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                    </select>
+                    {% else %}
+                    <input type="text" name="campus" class="pc-input" required placeholder="e.g. Main Campus">
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="pc-label">Metric *</label>
+                    <select name="metric" class="pc-input" required>
+                        <option value="" disabled selected>Select metric</option>
+                        {% for value,label in home_metric_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" value="0" class="pc-input"></div>
+                <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" value="0" class="pc-input"></div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('add-target-form-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                <button type="submit" class="pc-btn pc-btn--primary">Add Target</button>
+            </div>
+        </form>
+    </div>
+
+    {% if home_targets %}
+    <div class="overflow-x-auto bg-white">
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600 border-b border-slate-100">
+                <tr>
+                    <th class="text-left p-3 font-medium">Year</th>
+                    <th class="text-left p-3 font-medium">Campus</th>
+                    <th class="text-left p-3 font-medium">Metric</th>
+                    <th class="text-center p-3 font-medium">Planned</th>
+                    <th class="text-center p-3 font-medium">Actual</th>
+                    <th class="text-left p-3 font-medium">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for t in home_targets %}
+                <tr class="hover:bg-slate-50/60">
+                    <td class="p-3 font-medium">{{ t.year }}</td>
+                    <td class="p-3">{{ t.campus }}</td>
+                    <td class="p-3">{{ t.get_metric_display }}</td>
+                    <td class="p-3 text-center text-xs">Q1 {{t.planned_q1}} | Q2 {{t.planned_q2}} | Q3 {{t.planned_q3}} | Q4 {{t.planned_q4}}</td>
+                    <td class="p-3 text-center text-xs">Q1 {{t.actual_q1}} | Q2 {{t.actual_q2}} | Q3 {{t.actual_q3}} | Q4 {{t.actual_q4}}</td>
+                    <td class="p-3">
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn text-xs px-2 py-1">Edit</button>
+                            <form method="POST" action="{% url 'home_inline_target_delete' t.id %}" onsubmit="return confirm('Delete this target?');">
+                                {% csrf_token %}
+                                {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                                <button type="submit" class="pc-btn pc-btn--danger text-xs px-2 py-1">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <tr id="edit-target-{{ t.id }}-{{ eid }}" class="hidden bg-slate-50/70">
+                    <td colspan="6" class="p-4">
+                        <form method="POST" action="{% url 'home_inline_target_update' t.id %}" class="space-y-3">
+                            {% csrf_token %}
+                            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                            <p class="text-xs font-semibold text-slate-600">Editing {{ t.campus }} · {{ t.get_metric_display }} ({{ t.year }}) — only quarterly figures are editable (year/campus/metric are fixed; delete and re-add to change them).</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" value="{{ t.planned_q1 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" value="{{ t.planned_q2 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" value="{{ t.planned_q3 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" value="{{ t.planned_q4 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" value="{{ t.actual_q1 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" value="{{ t.actual_q2 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" value="{{ t.actual_q3 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" value="{{ t.actual_q4 }}" class="pc-input"></div>
+                            </div>
+                            <div class="flex justify-end gap-2">
+                                <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                                <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-sm text-slate-500 bg-white">No targets yet. Add the planned vs. actual figures that fill this section.</div>
+    {% endif %}
+</div>
+{% endwith %}

@@ -438,6 +438,177 @@ class HomeInlineThrustEditorTests(TestCase):
         self.assertEqual(thrust.title, original)
 
 
+class HomeInlineSectionEditorTests(TestCase):
+    """Personnel, Activities, Processes, and Targets nest under their sections."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("inline_sec_admin", Profile.ROLE_ADMIN)
+        cls.faculty = factories.make_user("inline_sec_faculty", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+
+    def _section(self, layout):
+        return PageSection.objects.get(page__slug="home", layout=layout)
+
+    def test_the_home_editor_nests_each_data_layout_inside_its_section(self):
+        from details.models import Activity, ActivityDate, ExtensionProcess, Personnel, Target
+
+        person = Personnel.objects.create(name="INLINE-PERSON-MARKER", position="Staff", photo="")
+        activity = Activity.objects.create(title="INLINE-ACT-MARKER", description="d")
+        ActivityDate.objects.create(activity=activity, date="2026-04-01")
+        process = ExtensionProcess.objects.create(title="INLINE-PROC-MARKER")
+        target = Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            planned_total=1, actual_total=0,
+        )
+
+        response = self.client_admin.get(reverse("page_content_edit", args=["home"]))
+        self.assertContains(response, "home-personnel-inline")
+        self.assertContains(response, "home-activities-inline")
+        self.assertContains(response, "home-processes-inline")
+        self.assertContains(response, "home-targets-inline")
+        self.assertContains(response, "INLINE-PERSON-MARKER")
+        self.assertContains(response, reverse("home_inline_personnel_update", args=[person.id]))
+        self.assertContains(response, "INLINE-ACT-MARKER")
+        self.assertContains(response, reverse("home_inline_activity_update", args=[activity.id]))
+        self.assertContains(response, "INLINE-PROC-MARKER")
+        self.assertContains(response, reverse("home_inline_process_update", args=[process.id]))
+        self.assertContains(response, reverse("home_inline_target_update", args=[target.id]))
+        self.assertNotContains(response, "id=\"home-inline-personnel\"")
+
+    def test_the_section_edit_form_lets_you_edit_each_item(self):
+        from details.models import Personnel
+
+        person = Personnel.objects.create(name="SECTION-PERSON-MARKER", position="Director", photo="")
+        section = self._section(PageSection.Layout.PERSONNEL)
+        response = self.client_admin.get(reverse("page_section_edit", args=[section.id]))
+
+        self.assertContains(response, "Each person is edited here")
+        self.assertContains(response, "SECTION-PERSON-MARKER")
+        self.assertContains(response, reverse("home_inline_personnel_update", args=[person.id]))
+
+    def test_inline_personnel_update_returns_to_the_section_editor_when_next_is_set(self):
+        from details.models import Personnel
+
+        person = Personnel.objects.create(name="Return Person", position="Staff", photo="")
+        section = self._section(PageSection.Layout.PERSONNEL)
+        next_url = reverse("page_section_edit", args=[section.id])
+
+        response = self.client_admin.post(
+            reverse("home_inline_personnel_update", args=[person.id]),
+            {
+                "name": "RETURNED-PERSON-MARKER",
+                "position": "Coordinator",
+                "email": "",
+                "next": next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+        person.refresh_from_db()
+        self.assertEqual(person.name, "RETURNED-PERSON-MARKER")
+        self.assertContains(self.client.get("/"), "RETURNED-PERSON-MARKER")
+
+    def test_inline_activity_update_returns_to_the_section_editor_when_next_is_set(self):
+        from details.models import Activity, ActivityDate
+
+        activity = Activity.objects.create(title="Old Act", description="d")
+        ActivityDate.objects.create(activity=activity, date="2026-01-01")
+        section = self._section(PageSection.Layout.ACTIVITIES)
+        next_url = reverse("page_section_edit", args=[section.id])
+
+        response = self.client_admin.post(
+            reverse("home_inline_activity_update", args=[activity.id]),
+            {
+                "title": "RETURNED-ACT-MARKER",
+                "description": "Updated",
+                "active": "on",
+                "dates[]": "2026-05-01",
+                "next": next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+        self.assertContains(self.client.get("/"), "RETURNED-ACT-MARKER")
+
+    def test_inline_process_update_returns_to_the_section_editor_when_next_is_set(self):
+        from details.models import ExtensionProcess, ProcessStep
+
+        process = ExtensionProcess.objects.create(title="Old Process")
+        ProcessStep.objects.create(process=process, description="Step one")
+        section = self._section(PageSection.Layout.PROCESSES)
+        next_url = reverse("page_section_edit", args=[section.id])
+
+        response = self.client_admin.post(
+            reverse("home_inline_process_update", args=[process.id]),
+            {
+                "title": "RETURNED-PROC-MARKER",
+                "step_id[]": "",
+                "step_description[]": "New step",
+                "step_order[]": "1",
+                "next": next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+        self.assertContains(self.client.get("/"), "RETURNED-PROC-MARKER")
+
+    def test_inline_target_update_returns_to_the_section_editor_when_next_is_set(self):
+        from details.models import Target
+
+        target = Target.objects.create(
+            year=2026, campus="Urdaneta", metric="programs",
+            planned_total=4, actual_total=1,
+        )
+        section = self._section(PageSection.Layout.TARGETS)
+        next_url = reverse("page_section_edit", args=[section.id])
+
+        response = self.client_admin.post(
+            reverse("home_inline_target_update", args=[target.id]),
+            {
+                "planned_q1": "10",
+                "planned_q2": "0",
+                "planned_q3": "0",
+                "planned_q4": "0",
+                "actual_q1": "5",
+                "actual_q2": "0",
+                "actual_q3": "0",
+                "actual_q4": "0",
+                "next": next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+        target.refresh_from_db()
+        self.assertEqual(target.planned_q1, 10)
+        self.assertEqual(target.actual_q1, 5)
+
+    def test_an_external_next_url_is_ignored_for_personnel(self):
+        from details.models import Personnel
+
+        person = Personnel.objects.create(name="Safe Person", position="Staff", photo="")
+        response = self.client_admin.post(
+            reverse("home_inline_personnel_update", args=[person.id]),
+            {
+                "name": "Safe Person",
+                "position": "Staff",
+                "next": "https://evil.example/",
+            },
+        )
+        self.assertRedirects(response, reverse("page_content_edit", args=["home"]))
+
+    def test_faculty_cannot_inline_update_personnel(self):
+        from details.models import Personnel
+
+        client = factories.make_client(self.faculty)
+        person = Personnel.objects.create(name="Keep Me", position="Staff", photo="")
+        status = client.post(
+            reverse("home_inline_personnel_update", args=[person.id]),
+            {"name": "SHOULD-NOT-SAVE", "position": "Hacker"},
+        ).status_code
+        self.assertIn(status, DENIED)
+        person.refresh_from_db()
+        self.assertEqual(person.name, "Keep Me")
+
+
 class WorkflowPhaseTests(TestCase):
     @classmethod
     def setUpTestData(cls):
