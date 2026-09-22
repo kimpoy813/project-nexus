@@ -3,6 +3,7 @@ from .models import (
     PageContentLog,
     Personnel, Activity, ProcessStep, Target, ExtensionProcess,
     SitePage, PageSection, HomeThrust, HomeSectionHeading, WorkflowPhase,
+    SustainableDevelopmentGoal,
 )
 
 admin.site.register(Personnel)
@@ -54,6 +55,15 @@ class HomeThrustAdmin(admin.ModelAdmin):
     list_filter = ('is_visible',)
     search_fields = ('title', 'description')
     ordering = ('order', 'id')
+
+
+@admin.register(SustainableDevelopmentGoal)
+class SustainableDevelopmentGoalAdmin(admin.ModelAdmin):
+    """The goals behind the SDG block and the proposal checklist."""
+    list_display = ('code', 'title', 'is_visible', 'order')
+    list_filter = ('is_visible',)
+    search_fields = ('code', 'title', 'summary')
+    ordering = ('order', 'code')
 
 
 @admin.register(HomeSectionHeading)

@@ -1,0 +1,28 @@
+{% comment %}
+Block: Extension Processes (source key PROCESSES).
+Context: section, data.processes
+{% endcomment %}
+{% include "details/blocks/_heading.html" %}
+
+<div class="mt-10 space-y-4">
+    {% for process in data.processes %}
+        <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+            <h3 class="text-lg font-semibold text-primary">{{ process.title }}</h3>
+            <div class="mt-4 space-y-4">
+                {% for step in process.steps.all %}
+                <div class="flex items-start gap-4 relative">
+                    {% if not forloop.last %}
+                        <div class="absolute left-3.5 top-8 h-full w-0.5 bg-gray-200"></div>
+                    {% endif %}
+                    <div class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
+                        {{ forloop.counter }}
+                    </div>
+                    <p class="pt-0.5 text-sm text-gray-700 leading-relaxed">{{ step.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% empty %}
+        <p class="py-10 text-center text-sm text-gray-400">No processes defined yet.</p>
+    {% endfor %}
+</div>

@@ -109,9 +109,21 @@ urlpatterns = [
     path("admin/pages/logs/", views.page_content_logs, name="page_content_logs"),
     path("admin/pages/<slug:slug>/", views.page_content_edit, name="page_content_edit"),
     path("admin/pages/<slug:slug>/sections/new/", views.page_section_create, name="page_section_create"),
+    # Drag a no-code builder from the palette onto the page.
+    path("admin/pages/<slug:slug>/sections/add-source/", views.page_section_add_source, name="page_section_add_source"),
+    # Drag a section into a new position.
+    path("admin/pages/<slug:slug>/sections/reorder/", views.page_sections_reorder, name="page_sections_reorder"),
     path("admin/pages/sections/<int:pk>/edit/", views.page_section_edit, name="page_section_edit"),
     path("admin/pages/sections/<int:pk>/delete/", views.page_section_delete, name="page_section_delete"),
     path("admin/pages/sections/<int:pk>/move/", views.page_section_move, name="page_section_move"),
+    # Drag the items *inside* a source (thrust cards, SDG goals, processes).
+    path("admin/content-sources/<str:source_key>/reorder/", views.content_source_reorder, name="content_source_reorder"),
+
+    # Sustainable Development Goals — the source behind the SDG block
+    path("admin/sdgs/", views.sdg_goals_manager, name="sdg_goals_manager"),
+    path("admin/sdgs/create/", views.sdg_goal_create, name="sdg_goal_create"),
+    path("admin/sdgs/<int:pk>/edit/", views.sdg_goal_update, name="sdg_goal_update"),
+    path("admin/sdgs/<int:pk>/delete/", views.sdg_goal_delete, name="sdg_goal_delete"),
 
     # Home page built-in sections (headings + Extension Thrust cards)
     path("admin/home-sections/", views.home_sections_manager, name="home_sections_manager"),

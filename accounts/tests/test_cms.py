@@ -144,6 +144,9 @@ class PageSectionTests(TestCase):
 
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
+        # Achievements ships with a seeded Activities block. These tests are
+        # about sections the test itself creates, so start from a bare page.
+        PageSection.objects.filter(page__slug="achievements").delete()
 
     def _create(self, **overrides):
         payload = {
@@ -369,7 +372,7 @@ class HomeInlineThrustEditorTests(TestCase):
         response = self.client_admin.get(reverse("page_section_edit", args=[section.id]))
         thrust = HomeThrust.objects.order_by("order").first()
 
-        self.assertContains(response, "Each Extension Thrust card is edited here")
+        self.assertContains(response, "The thrust cards maintained in the Extension Thrust builder.")
         self.assertContains(response, thrust.title)
         self.assertContains(response, reverse("home_inline_thrust_update", args=[thrust.id]))
 
@@ -485,7 +488,7 @@ class HomeInlineSectionEditorTests(TestCase):
         section = self._section(PageSection.Layout.PERSONNEL)
         response = self.client_admin.get(reverse("page_section_edit", args=[section.id]))
 
-        self.assertContains(response, "Each person is edited here")
+        self.assertContains(response, "Photos, names, and positions of the extension team.")
         self.assertContains(response, "SECTION-PERSON-MARKER")
         self.assertContains(response, reverse("home_inline_personnel_update", args=[person.id]))
 
@@ -634,7 +637,6 @@ class OtherPageInlineEditorTests(TestCase):
                 page__slug="reports", layout=PageSection.Layout.TARGETS, is_visible=False
             ).exists()
         )
-        self.assertNotContains(response, "Linked Data on This Page")
 
     def test_the_achievements_editor_nests_activities_inside_the_section(self):
         from details.models import Activity, ActivityDate
@@ -654,15 +656,18 @@ class OtherPageInlineEditorTests(TestCase):
         self.assertContains(response, "home-processes-inline")
         self.assertContains(response, "PAGE-PROC-MARKER")
         self.assertContains(response, reverse("home_inline_process_update", args=[process.id]))
-        # Built-in Services accordion already shows processes publicly.
-        self.assertFalse(
+        # The block is what publishes processes now: the page no longer paints
+        # its own accordion, so this section is visible rather than a hidden
+        # editor-only row.
+        self.assertTrue(
             PageSection.objects.get(
                 page__slug="services", layout=PageSection.Layout.PROCESSES
             ).is_visible
         )
-        self.assertContains(response, "Linked Data on This Page")
-        self.assertContains(response, "Workflow Phases")
-        self.assertNotContains(response, reverse("processes_list"))
+        # Every builder is reachable from the block itself, so the separate
+        # "Linked Data" list is gone.
+        self.assertNotContains(response, "Linked Data on This Page")
+        self.assertContains(response, reverse("processes_list"))
 
     def test_inline_target_update_returns_to_the_reports_editor_when_next_is_set(self):
         from details.models import Target
@@ -841,6 +846,16 @@ class PageBlockTests(TestCase):
         self.client_admin = factories.make_client(self.admin)
 
     def _add_block(self, slug, layout, **overrides):
+        """Put ``layout`` on ``slug`` as that page's only block.
+
+        Pages now ship with seeded blocks, so the page is cleared first and
+        these tests assert what the block under test renders, not what the
+        seed happens to contain.
+        """
+        PageSection.objects.filter(page__slug=slug).delete()
+        return self._append_block(slug, layout, **overrides)
+
+    def _append_block(self, slug, layout, **overrides):
         payload = {
             "heading": "Block Heading",
             "subheading": "",
@@ -1007,11 +1022,23 @@ class PageBlockTests(TestCase):
             self.client.get(reverse("reports_page")), "javascript:alert(1)", html=False
         )
 
-    def test_a_data_block_with_no_heading_is_rejected(self):
-        before = PageSection.objects.count()
-        self._add_block("reports", "ACTIVITIES", heading="", body="")
+    def test_a_data_block_needs_no_heading_of_its_own(self):
+        """A block renders its builder's data, so blank copy is not an empty section.
 
-        self.assertEqual(PageSection.objects.count(), before)
+        Requiring a heading here is what made a populated block look invalid.
+        Text sections still need a heading or a body - see
+        ``test_a_section_with_no_heading_and_no_body_is_rejected``.
+        """
+        PageSection.objects.filter(page__slug="reports").delete()
+        before = PageSection.objects.count()
+        self._append_block("reports", "ACTIVITIES", heading="", body="")
+
+        self.assertEqual(PageSection.objects.count(), before + 1)
+        self.assertTrue(
+            PageSection.objects.filter(
+                page__slug="reports", layout=PageSection.Layout.ACTIVITIES
+            ).exists()
+        )
 
 
 class PageContentLogTests(TestCase):

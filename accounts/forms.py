@@ -422,10 +422,21 @@ class PageSectionForm(forms.ModelForm):
         )
 
     def clean(self):
-        """Require at least a heading or some body content."""
+        """Require at least a heading or some body content.
+
+        A block bound to a content source is exempt: it renders the builder's
+        data, so an empty heading only means "no title above the block" — not
+        an empty section. Requiring copy there was how a perfectly populated
+        SDG block could still be rejected as blank.
+        """
         from django.utils.html import strip_tags
 
+        from details.content_sources import get_content_source
+
         cleaned = super().clean()
+        if get_content_source(cleaned.get("layout")) is not None:
+            return cleaned
+
         heading = (cleaned.get("heading") or "").strip()
         body = strip_tags(cleaned.get("body") or "").strip()
         if not heading and not body:

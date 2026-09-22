@@ -1,18 +1,31 @@
 """
 Admin-editable public pages, Home sections, thrust cards, and workflow phases.
+
+Pages are composed by dragging no-code builders ("content sources") onto them.
+The catalogue of sources lives in ``details.content_sources``; this module
+turns that catalogue into a palette, binds a dropped source to a section, and
+keeps both the section order and each source's own item order draggable.
 """
 
 import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Min
-from django.http import Http404
+from django.db import transaction
+from django.db.models import Max, Min
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
+from details.content_sources import (
+    DATA_LAYOUT_KEYS,
+    all_content_sources,
+    get_content_source,
+    orderable_source,
+    resolve_order_model,
+)
 from details.models import Activity
 from details.models import ActivityDate
 from details.models import ExtensionProcess
@@ -23,6 +36,7 @@ from details.models import PageSection
 from details.models import Personnel
 from details.models import ProcessStep
 from details.models import SitePage
+from details.models import SustainableDevelopmentGoal
 from details.models import Target
 from details.models import WorkflowPhase
 from details.models import resolve_section_data
@@ -32,30 +46,6 @@ from django.utils.text import slugify
 from ..decorators import admin_required
 from ..forms import PageSectionForm
 
-PAGE_LINKED_DATA = {
-    "home": [
-        {"label": "Extension Thrust Cards", "url_name": "home_sections_manager", "hint": "Cards displayed in the Extension Thrust section."},
-        {"label": "Extension Personnel", "url_name": "personnel_list", "hint": "Photos and roles shown in the Personnel section."},
-        {"label": "Extension Activities", "url_name": "activities_list", "hint": "Cards shown in the Activities section."},
-        {"label": "Extension Processes", "url_name": "processes_list", "hint": "Steps shown in the Processes section."},
-        {"label": "Extension Targets", "url_name": "targets_list", "hint": "Figures shown in the Targets section."},
-    ],
-    "services": [
-        {"label": "Workflow Phases", "url_name": "workflow_phases_manager", "hint": "Proposal / MOA / Implementation cards and progress weights."},
-        {"label": "Extension Processes", "url_name": "processes_list", "hint": "Drives the maintained process flow."},
-        {"label": "Template Library", "url_name": "document_templates_list", "hint": "Downloadable office templates."},
-        {"label": "Form Builder", "url_name": "dynamic_forms_list", "hint": "Configurable forms and checklists."},
-        {"label": "Wizard Steps", "url_name": "wizard_steps_manager", "hint": "Proposal wizard step labels."},
-    ],
-    "reports": [
-        {"label": "Extension Targets", "url_name": "targets_list", "hint": "Planned vs. actual figures."},
-    ],
-    "achievements": [
-        {"label": "Extension Activities", "url_name": "activities_list", "hint": "Completed activities worth highlighting."},
-    ],
-}
-
-
 PAGE_PUBLIC_URL_NAMES = {
     "home": "details_page",
     "services": "services_home",
@@ -63,65 +53,20 @@ PAGE_PUBLIC_URL_NAMES = {
     "achievements": "achievements_page",
 }
 
-# Linked-data managers that now nest under a Content Sections layout.
-# Opening any page editor ensures that layout exists so the same in-section
-# CRUD is available on Home, Services, Reports, and Achievements.
-NESTED_LINKED_SECTIONS = {
-    "home_sections_manager": {
-        "layout": PageSection.Layout.THRUST,
-        "heading": "Extension Thrust",
-        "anchor": "thrust",
-    },
-    "personnel_list": {
-        "layout": PageSection.Layout.PERSONNEL,
-        "heading": "Extension Personnel",
-        "anchor": "personnel",
-    },
-    "activities_list": {
-        "layout": PageSection.Layout.ACTIVITIES,
-        "heading": "Extension Activities",
-        "anchor": "activities",
-    },
-    "processes_list": {
-        "layout": PageSection.Layout.PROCESSES,
-        "heading": "Extension Processes",
-        "anchor": "process",
-        # Services already paints processes in its built-in accordion, so the
-        # matching section is for in-editor CRUD only unless the admin unhides it.
-        "hidden_on": {"services"},
-    },
-    "targets_list": {
-        "layout": PageSection.Layout.TARGETS,
-        "heading": "Extension Targets",
-        "anchor": "targets",
-    },
-}
 
+def _palette(page):
+    """The draggable no-code builders offered for this page.
 
-def _ensure_nested_linked_sections(page):
-    """Create the nestable data-layout sections this page's linked data needs."""
-    for item in PAGE_LINKED_DATA.get(page.slug, []):
-        spec = NESTED_LINKED_SECTIONS.get(item["url_name"])
-        if not spec:
-            continue
-        if page.sections.filter(layout=spec["layout"]).exists():
-            continue
-        PageSection.objects.create(
-            page=page,
-            heading=spec["heading"],
-            layout=spec["layout"],
-            anchor=spec["anchor"],
-            is_visible=page.slug not in spec.get("hidden_on", set()),
-            order=0,
-        )
-
-
-def _standalone_linked_data(slug):
-    """Linked-data rows that still need their own manager (not nested CRUD)."""
+    Every registered content source is offered on every page — a builder is
+    not owned by one page, it is a body of data any page may display. Sources
+    already placed are marked so the palette can show that, rather than
+    hiding them (a source can legitimately appear twice, e.g. two Activities
+    blocks with different limits).
+    """
+    placed = set(page.sections.values_list("layout", flat=True))
     return [
-        item
-        for item in PAGE_LINKED_DATA.get(slug, [])
-        if item["url_name"] not in NESTED_LINKED_SECTIONS
+        {"source": source, "in_use": source.key in placed}
+        for source in all_content_sources()
     ]
 
 
@@ -157,7 +102,13 @@ def _thrust_editor_context():
 
 
 def _home_inline_data_context():
-    """Querysets for Personnel / Activities / Processes / Targets nested editors."""
+    """Items for every nested source editor shown in the page editor.
+
+    One context serves all the editors because a page can hold any mix of
+    sources; the template only renders the partial each section asks for.
+    """
+    from details.models import DocumentTemplate, DynamicFormTemplate
+
     try:
         from accounts.campus_data import get_campus_choices as _get_campus_choices
         campus_choices = [c[0] for c in _get_campus_choices()]
@@ -185,6 +136,13 @@ def _home_inline_data_context():
         "home_target_years": years,
         "home_campus_choices": campus_choices,
         "home_metric_choices": Target.METRIC_CHOICES,
+        "inline_sdgs": list(SustainableDevelopmentGoal.objects.all().order_by("order", "code")),
+        "inline_document_templates": list(
+            DocumentTemplate.objects.all().order_by("category", "title")
+        ),
+        "inline_dynamic_forms": list(
+            DynamicFormTemplate.objects.prefetch_related("fields").order_by("applies_to", "name")
+        ),
     }
 
 
@@ -279,13 +237,11 @@ def page_content_edit(request, slug):
         messages.success(request, f'"{page.title}" page updated successfully.')
         return redirect("page_content_edit", slug=page.slug)
 
-    _ensure_nested_linked_sections(page)
-
     public_url_name = PAGE_PUBLIC_URL_NAMES.get(slug)
     context = {
         "page": page,
         "sections": page.sections.all(),
-        "linked_data": _standalone_linked_data(slug),
+        "palette": _palette(page),
         "public_url_name": public_url_name,
         "layout_choices": PageSection.Layout.choices,
         "page_logs": list(
@@ -293,12 +249,151 @@ def page_content_edit(request, slug):
             .select_related("changed_by")[:8]
         ),
     }
-    # Data-layout cards live inside matching Content Sections on any page,
-    # so the nested editors are always available — not only on Home.
+    # Every source's nested editor is available on every page, so a section
+    # can be edited wherever it was dropped.
     context.update(_thrust_editor_context())
     context.update(_home_inline_data_context())
 
     return render(request, "dashboard/admin/page_content_edit.html", context)
+
+
+@login_required
+@admin_required
+@require_POST
+def page_section_add_source(request, slug):
+    """Bind a no-code builder to a new section — the drop half of drag-and-drop.
+
+    The palette posts a source key and the position it was dropped at. The
+    section stores only the binding (which source, which options); the items
+    themselves stay in the builder's own table, so dropping the same source on
+    two pages publishes one body of data twice rather than copying it.
+    """
+    if slug not in dict(SitePage.Slug.choices):
+        raise Http404("Unknown page.")
+
+    page = SitePage.get_for(slug)
+    source = get_content_source((request.POST.get("source") or "").strip())
+    if source is None:
+        messages.error(request, "That content source is not available.")
+        return redirect("page_content_edit", slug=page.slug)
+
+    section = PageSection(
+        page=page,
+        heading=source.label,
+        layout=source.key,
+        anchor=slugify(source.label)[:60],
+        is_visible=True,
+        order=0,  # model appends it to the end
+    )
+    section.save()
+
+    # Honour where it was dropped, when the palette said.
+    position = _to_positive_int(request.POST.get("position"))
+    if position:
+        siblings = [s for s in page.sections.order_by("order", "id") if s.pk != section.pk]
+        siblings.insert(min(position - 1, len(siblings)), section)
+        _renumber(siblings)
+
+    _log_content_change(
+        request,
+        page.slug,
+        PageContentLog.Action.ADD_SECTION,
+        f'Added "{source.label}" section from the block palette',
+        after=section.state(),
+        section_id=section.pk,
+        target_label=section.heading,
+    )
+    messages.success(
+        request,
+        f'"{source.label}" added. It shows the same data as the {source.label} builder.',
+    )
+    return redirect("page_content_edit", slug=page.slug)
+
+
+def _renumber(sections):
+    """Write 1..n into ``order`` for an already-sorted list of sections."""
+    for position, item in enumerate(sections, start=1):
+        if item.order != position:
+            item.order = position
+            item.save(update_fields=["order"])
+
+
+@login_required
+@admin_required
+@require_POST
+def page_sections_reorder(request, slug):
+    """Persist a dragged section order for one page.
+
+    The payload is every section id of the page, once, in the new order —
+    the same contract the wizard step manager uses, so a stale tab cannot
+    reorder a page it no longer matches.
+    """
+    if slug not in dict(SitePage.Slug.choices):
+        raise Http404("Unknown page.")
+
+    page = SitePage.get_for(slug)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        section_ids = [int(value) for value in payload.get("section_ids", [])]
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "Invalid request."}, status=400)
+
+    existing = list(page.sections.order_by("order", "id").values_list("id", flat=True))
+    if not section_ids or sorted(section_ids) != sorted(existing):
+        return JsonResponse(
+            {"ok": False, "error": "Send every section of this page, once, in the new order."},
+            status=400,
+        )
+
+    with transaction.atomic():
+        for index, section_id in enumerate(section_ids, start=1):
+            PageSection.objects.filter(pk=section_id, page=page).update(order=index)
+
+    _log_content_change(
+        request,
+        page.slug,
+        PageContentLog.Action.MOVE_SECTION,
+        f"Reordered the {page.title} page sections by drag and drop",
+        after={"order": section_ids},
+        target_label=page.title,
+    )
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@admin_required
+@require_POST
+def content_source_reorder(request, source_key):
+    """Persist a dragged item order *inside* a source (thrusts, goals, ...).
+
+    Reordering belongs to the source, not to the page: a goal moved here moves
+    on every page that publishes the SDG block, because there is one list.
+    Only sources that declare an ``order_model`` accept this.
+    """
+    source = orderable_source(source_key)
+    if source is None:
+        return JsonResponse({"ok": False, "error": "This block cannot be reordered."}, status=400)
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        item_ids = [int(value) for value in payload.get("item_ids", [])]
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "Invalid request."}, status=400)
+
+    model = resolve_order_model(source)
+    existing = list(model.objects.values_list("id", flat=True))
+    if not item_ids or sorted(item_ids) != sorted(existing):
+        return JsonResponse(
+            {"ok": False, "error": "Send every item, once, in the new order."},
+            status=400,
+        )
+
+    with transaction.atomic():
+        for index, item_id in enumerate(item_ids, start=1):
+            model.objects.filter(pk=item_id).update(order=index)
+
+    return JsonResponse({"ok": True})
 
 
 @login_required
@@ -345,6 +440,7 @@ def page_section_create(request, slug):
         "is_create": True,
         "preview_section": preview_section,
         "preview_data": preview_data,
+        "data_layout_keys": list(DATA_LAYOUT_KEYS),
     }
     context.update(_thrust_editor_context())
     context.update(_home_inline_data_context())
@@ -390,6 +486,7 @@ def page_section_edit(request, pk):
         "is_create": False,
         "preview_section": section,
         "preview_data": preview_data,
+        "data_layout_keys": list(DATA_LAYOUT_KEYS),
     }
     context.update(_thrust_editor_context())
     context.update(_home_inline_data_context())
@@ -421,7 +518,12 @@ def page_section_delete(request, pk):
 @admin_required
 @require_POST
 def page_section_move(request, pk):
-    """Swap a section with its neighbour to reorder the page."""
+    """Move a section one place up or down.
+
+    Drag-and-drop is the normal way to reorder (see ``page_sections_reorder``);
+    this endpoint is what the drag handle's Arrow-key shortcuts post to, so the
+    same reordering works without a pointer and without JavaScript.
+    """
     section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
     direction = request.POST.get("direction")
 
@@ -429,37 +531,99 @@ def page_section_move(request, pk):
     index = next((i for i, s in enumerate(siblings) if s.pk == section.pk), None)
 
     if index is not None:
-        swap_with = None
+        target = None
         if direction == "up" and index > 0:
-            swap_with = siblings[index - 1]
+            target = index - 1
         elif direction == "down" and index < len(siblings) - 1:
-            swap_with = siblings[index + 1]
+            target = index + 1
 
-        if swap_with is not None:
-            # Normalise ordering first so swaps are always well-defined.
-            for position, item in enumerate(siblings, start=1):
-                if item.order != position:
-                    item.order = position
-                    item.save(update_fields=["order"])
+        if target is not None:
+            before_position = index + 1
+            siblings.insert(target, siblings.pop(index))
+            _renumber(siblings)
             section.refresh_from_db()
-            swap_with.refresh_from_db()
-
-            before_order, before_swap = section.order, swap_with.order
-            section.order, swap_with.order = swap_with.order, section.order
-            section.save(update_fields=["order"])
-            swap_with.save(update_fields=["order"])
 
             _log_content_change(
                 request,
                 section.page.slug,
                 PageContentLog.Action.MOVE_SECTION,
                 f'Moved "{section.heading or "untitled"}" {direction} '
-                f"(position {before_order} → {section.order})",
+                f"(position {before_position} \u2192 {section.order})",
                 section_id=section.pk,
                 target_label=section.heading,
             )
 
     return redirect("page_content_edit", slug=section.page.slug)
+
+
+# ==============================================================
+# SDG GOALS - the source behind the SDG block
+# ==============================================================
+
+
+@login_required
+@admin_required
+def sdg_goals_manager(request):
+    """Standalone builder for the SDG cards."""
+    return render(request, "dashboard/admin/sdg_goals_list.html", {
+        "goals": SustainableDevelopmentGoal.objects.all().order_by("order", "code"),
+    })
+
+
+@login_required
+@admin_required
+@require_POST
+def sdg_goal_create(request):
+    code = (request.POST.get("code") or "").strip()
+    title = (request.POST.get("title") or "").strip()
+    if not code or not title:
+        messages.error(request, "A goal needs both a code and a title.")
+        return _home_inline_redirect(request)
+    if SustainableDevelopmentGoal.objects.filter(code=code).exists():
+        messages.error(request, f"SDG {code} already exists.")
+        return _home_inline_redirect(request)
+    SustainableDevelopmentGoal.objects.create(
+        code=code,
+        title=title,
+        summary=(request.POST.get("summary") or "").strip(),
+        image=request.FILES.get("image"),
+        is_visible=request.POST.get("is_visible") == "on",
+        order=0,
+    )
+    messages.success(request, f'SDG {code} "{title}" added.')
+    return _home_inline_redirect(request)
+
+
+@login_required
+@admin_required
+@require_POST
+def sdg_goal_update(request, pk):
+    goal = get_object_or_404(SustainableDevelopmentGoal, pk=pk)
+    title = (request.POST.get("title") or "").strip()
+    if not title:
+        messages.error(request, "A goal title is required.")
+        return _home_inline_redirect(request)
+    goal.title = title
+    goal.summary = (request.POST.get("summary") or "").strip()
+    goal.is_visible = request.POST.get("is_visible") == "on"
+    if request.FILES.get("image"):
+        goal.image = request.FILES["image"]
+    elif request.POST.get("remove_image") == "on":
+        goal.image = None
+    goal.save()
+    messages.success(request, f"SDG {goal.code} updated.")
+    return _home_inline_redirect(request)
+
+
+@login_required
+@admin_required
+@require_POST
+def sdg_goal_delete(request, pk):
+    goal = get_object_or_404(SustainableDevelopmentGoal, pk=pk)
+    label = f"SDG {goal.code}"
+    goal.delete()
+    messages.success(request, f"{label} deleted.")
+    return _home_inline_redirect(request)
 
 
 @login_required

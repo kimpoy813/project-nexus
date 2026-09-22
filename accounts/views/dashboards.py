@@ -25,6 +25,7 @@ from details.models import Personnel
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from details.models import SitePage
+from details.models import SustainableDevelopmentGoal
 from details.models import Target
 from proposals.models import MOASubmission
 from proposals.models import Proposal
@@ -998,6 +999,7 @@ def admin_dashboard(request):
         "colleges_count": College.objects.count(),
         "departments_count": Department.objects.count(),
         "role_capability_count": RoleCapability.objects.filter(enabled=True).count(),
+        "sdg_goal_count": SustainableDevelopmentGoal.objects.count(),
         "total_content": (
             Personnel.objects.count()
             + Activity.objects.count()
