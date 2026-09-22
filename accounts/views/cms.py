@@ -6,17 +6,24 @@ import json
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Min
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
+from details.models import Activity
+from details.models import ActivityDate
+from details.models import ExtensionProcess
 from details.models import HomeSectionHeading
 from details.models import HomeThrust
 from details.models import PageContentLog
 from details.models import PageSection
+from details.models import Personnel
+from details.models import ProcessStep
 from details.models import SitePage
+from details.models import Target
 from details.models import WorkflowPhase
 from details.models import resolve_section_data
 from django.urls import reverse
@@ -170,6 +177,44 @@ def page_content_edit(request, slug):
             .select_related("changed_by")[:8]
         ),
     }
+
+    # Every part of the Home page should be editable directly here, with the
+    # same CRUD that the Linked-Data managers provide. Expose the underlying
+    # querysets so the template can render true inline editors for Home.
+    if slug == "home":
+        try:
+            from accounts.campus_data import get_campus_choices as _get_campus_choices
+            _campus_choices = [c[0] for c in _get_campus_choices()]
+        except Exception:
+            _campus_choices = []
+        _thrusts = list(HomeThrust.objects.all().order_by("order", "id"))
+        _personnel = list(Personnel.objects.all().order_by("name"))
+        _activities = list(
+            Activity.objects.prefetch_related("dates")
+            .annotate(first_date=Min("dates__date"))
+            .order_by("-first_date", "-id")
+        )
+        _processes = list(
+            ExtensionProcess.objects.prefetch_related("steps").order_by("order", "id")
+        )
+        _targets = list(Target.objects.all().order_by("-year", "campus", "metric"))
+        try:
+            _years = sorted({t.year for t in _targets}, reverse=True) or [2026]
+        except Exception:
+            _years = [2026]
+        context.update({
+            "home_thrusts": _thrusts,
+            "home_thrust_color_choices": HomeThrust.COLOR_CHOICES,
+            "home_personnel": _personnel,
+            "home_activities": _activities,
+            "home_processes": _processes,
+            "home_targets": _targets,
+            "home_target_years": _years,
+            "home_campus_choices": _campus_choices,
+            "home_metric_choices": Target.METRIC_CHOICES,
+            "home_is_home": True,
+        })
+
     return render(request, "dashboard/admin/page_content_edit.html", context)
 
 
@@ -436,10 +481,371 @@ def home_thrust_move(request, pk):
     return redirect("home_sections_manager")
 
 
+# ==============================================================
+# HOME INLINE EDITORS — every Linked-Data type editable inside the
+# Home Page content editor, so admins never have to leave that screen.
+# Each handler mirrors the validation/logic of its standalone manager
+# and redirects back to page_content_edit for slug=home on success.
+# ==============================================================
+
 def _valid_thrust_color(value):
     """Only allow colours from the model's allow-list."""
     allowed = {choice[0] for choice in HomeThrust.COLOR_CHOICES}
     return value if value in allowed else "text-green-600"
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_thrust_create(request):
+    title = (request.POST.get("title") or "").strip()
+    if not title:
+        messages.error(request, "Thrust title is required.")
+        return redirect("page_content_edit", slug="home")
+    HomeThrust.objects.create(
+        title=title,
+        description=(request.POST.get("description") or "").strip(),
+        color_class=_valid_thrust_color(request.POST.get("color_class")),
+        is_visible=request.POST.get("is_visible") == "on",
+        order=0,
+    )
+    messages.success(request, f'Thrust \"{title}\" added.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_thrust_update(request, pk):
+    thrust = get_object_or_404(HomeThrust, pk=pk)
+    title = (request.POST.get("title") or "").strip()
+    if not title:
+        messages.error(request, "Thrust title is required.")
+        return redirect("page_content_edit", slug="home")
+    thrust.title = title
+    thrust.description = (request.POST.get("description") or "").strip()
+    thrust.color_class = _valid_thrust_color(request.POST.get("color_class"))
+    thrust.is_visible = request.POST.get("is_visible") == "on"
+    thrust.save()
+    messages.success(request, "Thrust updated.")
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_thrust_delete(request, pk):
+    thrust = get_object_or_404(HomeThrust, pk=pk)
+    title = thrust.title
+    thrust.delete()
+    messages.success(request, f'Thrust \"{title}\" deleted.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_thrust_move(request, pk):
+    # Reuse the same swap logic but bounce back to the Home editor.
+    thrust = get_object_or_404(HomeThrust, pk=pk)
+    direction = request.POST.get("direction")
+    siblings = list(HomeThrust.objects.order_by("order", "id"))
+    index = next((i for i, t in enumerate(siblings) if t.pk == thrust.pk), None)
+    if index is not None:
+        swap_with = None
+        if direction == "up" and index > 0:
+            swap_with = siblings[index - 1]
+        elif direction == "down" and index < len(siblings) - 1:
+            swap_with = siblings[index + 1]
+        if swap_with is not None:
+            for position, item in enumerate(siblings, start=1):
+                if item.order != position:
+                    item.order = position
+                    item.save(update_fields=["order"])
+            thrust.refresh_from_db()
+            swap_with.refresh_from_db()
+            thrust.order, swap_with.order = swap_with.order, thrust.order
+            thrust.save(update_fields=["order"])
+            swap_with.save(update_fields=["order"])
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_personnel_create(request):
+    name = (request.POST.get("name") or "").strip()
+    position = (request.POST.get("position") or "").strip()
+    email = (request.POST.get("email") or "").strip()
+    photo = request.FILES.get("photo")
+    if not name or not position or not photo:
+        messages.error(request, "Name, position and photo are required for personnel.")
+        return redirect("page_content_edit", slug="home")
+    Personnel.objects.create(name=name, position=position, email=email, photo=photo)
+    messages.success(request, f'Personnel \"{name}\" added.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_personnel_update(request, pk):
+    person = get_object_or_404(Personnel, pk=pk)
+    name = (request.POST.get("name") or "").strip()
+    position = (request.POST.get("position") or "").strip()
+    email = (request.POST.get("email") or "").strip()
+    if not name or not position:
+        messages.error(request, "Name and position are required.")
+        return redirect("page_content_edit", slug="home")
+    person.name = name
+    person.position = position
+    person.email = email
+    if request.FILES.get("photo"):
+        person.photo = request.FILES["photo"]
+    person.save()
+    messages.success(request, f'\"{person.name}\" updated.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_personnel_delete(request, pk):
+    person = get_object_or_404(Personnel, pk=pk)
+    name = person.name
+    person.delete()
+    messages.success(request, f'\"{name}\" deleted.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_activity_create(request):
+    title = (request.POST.get("title") or "").strip()
+    description = (request.POST.get("description") or "").strip()
+    image = request.FILES.get("image")
+    active = request.POST.get("active") == "on"
+    dates = [d.strip() for d in request.POST.getlist("dates[]") if d.strip()]
+    # Support single date field fallback
+    single = (request.POST.get("date") or "").strip()
+    if single and single not in dates:
+        dates.append(single)
+    if not title or not description or not dates:
+        messages.error(request, "Title, description and at least one date are required for an activity.")
+        return redirect("page_content_edit", slug="home")
+    activity = Activity.objects.create(title=title, description=description, image=image, active=active)
+    for d in dates:
+        try:
+            ActivityDate.objects.get_or_create(activity=activity, date=d)
+        except Exception:
+            continue
+    messages.success(request, f'Activity \"{title}\" added.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_activity_update(request, pk):
+    activity = get_object_or_404(Activity, pk=pk)
+    title = (request.POST.get("title") or "").strip()
+    description = (request.POST.get("description") or "").strip()
+    if not title or not description:
+        messages.error(request, "Title and description are required.")
+        return redirect("page_content_edit", slug="home")
+    activity.title = title
+    activity.description = description
+    activity.active = request.POST.get("active") == "on"
+    if request.FILES.get("image"):
+        activity.image = request.FILES["image"]
+    activity.save()
+    # Replace dates
+    ActivityDate.objects.filter(activity=activity).delete()
+    dates = [d.strip() for d in request.POST.getlist("dates[]") if d.strip()]
+    single = (request.POST.get("date") or "").strip()
+    if single and single not in dates:
+        dates.append(single)
+    for d in dates:
+        try:
+            ActivityDate.objects.get_or_create(activity=activity, date=d)
+        except Exception:
+            continue
+    messages.success(request, f'\"{activity.title}\" updated.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_activity_delete(request, pk):
+    activity = get_object_or_404(Activity, pk=pk)
+    title = activity.title
+    activity.delete()
+    messages.success(request, f'\"{title}\" deleted.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_process_create(request):
+    title = (request.POST.get("title") or "").strip()
+    if not title:
+        messages.error(request, "Process title is required.")
+        return redirect("page_content_edit", slug="home")
+    process = ExtensionProcess.objects.create(title=title)
+    for desc in request.POST.getlist("step_description[]"):
+        desc = (desc or "").strip()
+        if desc:
+            ProcessStep.objects.create(process=process, description=desc)
+    # Support single step fallback
+    single = (request.POST.get("step_description") or "").strip()
+    if single and not request.POST.getlist("step_description[]"):
+        ProcessStep.objects.create(process=process, description=single)
+    messages.success(request, f'Process \"{title}\" added.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_process_update(request, pk):
+    process = get_object_or_404(ExtensionProcess, pk=pk)
+    title = (request.POST.get("title") or "").strip()
+    if not title:
+        messages.error(request, "Process title is required.")
+        return redirect("page_content_edit", slug="home")
+    process.title = title
+    # Optional order override
+    raw_order = (request.POST.get("order") or "").strip()
+    if raw_order:
+        try:
+            process.order = int(raw_order)
+        except ValueError:
+            pass
+    process.save()
+    # Steps update - same logic as standalone process_edit
+    step_ids = request.POST.getlist("step_id[]")
+    step_descriptions = request.POST.getlist("step_description[]")
+    step_orders = request.POST.getlist("step_order[]")
+    if step_ids or step_descriptions:
+        max_len = max(len(step_ids), len(step_descriptions), len(step_orders), 0)
+
+        def pad(lst, size, fill=""):
+            return lst + [fill] * (size - len(lst))
+
+        step_ids = pad(step_ids, max_len)
+        step_descriptions = pad(step_descriptions, max_len)
+        step_orders = pad(step_orders, max_len, "0")
+        valid_ids = [sid for sid in step_ids if sid]
+        process.steps.exclude(id__in=valid_ids).delete()
+        for i in range(max_len):
+            step_id = step_ids[i].strip()
+            desc = step_descriptions[i].strip()
+            step_order = step_orders[i].strip() or "0"
+            if not desc:
+                continue
+            if step_id:
+                step = ProcessStep.objects.filter(id=step_id, process=process).first()
+                if step:
+                    step.description = desc
+                    try:
+                        step.order = int(step_order)
+                    except ValueError:
+                        pass
+                    step.save()
+            else:
+                try:
+                    order_val = int(step_order)
+                except ValueError:
+                    order_val = 0
+                ProcessStep.objects.create(process=process, description=desc, order=order_val)
+    messages.success(request, f'Process \"{process.title}\" updated.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_process_delete(request, pk):
+    process = get_object_or_404(ExtensionProcess, pk=pk)
+    title = process.title
+    process.delete()
+    messages.success(request, f'Process \"{title}\" deleted.')
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_target_create(request):
+    year = (request.POST.get("year") or "").strip()
+    campus = (request.POST.get("campus") or "").strip()
+    metric = (request.POST.get("metric") or "").strip()
+    if not year or not campus or not metric:
+        messages.error(request, "Year, campus and metric are required for a target.")
+        return redirect("page_content_edit", slug="home")
+    try:
+        year_int = int(year)
+    except ValueError:
+        messages.error(request, "Year must be a number.")
+        return redirect("page_content_edit", slug="home")
+    if Target.objects.filter(year=year_int, campus=campus, metric=metric).exists():
+        messages.error(request, "Target already exists for this year, campus and metric.")
+        return redirect("page_content_edit", slug="home")
+    try:
+        Target.objects.create(
+            year=year_int,
+            campus=campus,
+            metric=metric,
+            planned_q1=int(request.POST.get("planned_q1") or 0),
+            planned_q2=int(request.POST.get("planned_q2") or 0),
+            planned_q3=int(request.POST.get("planned_q3") or 0),
+            planned_q4=int(request.POST.get("planned_q4") or 0),
+            actual_q1=int(request.POST.get("actual_q1") or 0),
+            actual_q2=int(request.POST.get("actual_q2") or 0),
+            actual_q3=int(request.POST.get("actual_q3") or 0),
+            actual_q4=int(request.POST.get("actual_q4") or 0),
+        )
+    except ValueError:
+        messages.error(request, "Quarter values must be numbers.")
+        return redirect("page_content_edit", slug="home")
+    messages.success(request, f"Target for {campus} ({year_int}) created.")
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_target_update(request, pk):
+    target = get_object_or_404(Target, pk=pk)
+    try:
+        target.planned_q1 = int(request.POST.get("planned_q1") or 0)
+        target.planned_q2 = int(request.POST.get("planned_q2") or 0)
+        target.planned_q3 = int(request.POST.get("planned_q3") or 0)
+        target.planned_q4 = int(request.POST.get("planned_q4") or 0)
+        target.actual_q1 = int(request.POST.get("actual_q1") or 0)
+        target.actual_q2 = int(request.POST.get("actual_q2") or 0)
+        target.actual_q3 = int(request.POST.get("actual_q3") or 0)
+        target.actual_q4 = int(request.POST.get("actual_q4") or 0)
+    except ValueError:
+        messages.error(request, "Quarter values must be numbers.")
+        return redirect("page_content_edit", slug="home")
+    target.save()
+    messages.success(request, "Target updated.")
+    return redirect("page_content_edit", slug="home")
+
+
+@login_required
+@admin_required
+@require_POST
+def home_inline_target_delete(request, pk):
+    target = get_object_or_404(Target, pk=pk)
+    label = f"{target.campus} - {target.get_metric_display()} ({target.year})"
+    target.delete()
+    messages.success(request, f"Target deleted: {label}")
+    return redirect("page_content_edit", slug="home")
 
 
 @login_required

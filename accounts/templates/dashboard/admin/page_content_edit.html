@@ -157,6 +157,622 @@
         </ul>
     </div>
 
+    {% if home_is_home %}
+    <!-- ============ HOME INLINE EDITORS ============ -->
+    <!-- Every Linked-Data type that appears on the Home page is now editable
+         right here, with the same fields and validation the standalone
+         managers use. This replaces the old “Manage →” links with true
+         in-place CRUD so the Home page can be fully composed without ever
+         leaving Content Editing. -->
+    <div class="pc-card mb-6 border-primary/20">
+        <div class="pc-card__head bg-primary/[0.03]">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="pc-card__title flex items-center gap-2">Home Content <span class="pc-pill pc-pill--ok">Editable here</span></h2>
+                    <p class="pc-card__sub">All parts of the Home page — thrusts, personnel, activities, processes and targets — can be added, edited, reordered and removed without leaving this page. The same forms as the Linked-Data managers are shown inline below.</p>
+                </div>
+                <a href="{% url 'details_page' %}#thrust" target="_blank" rel="noopener" class="pc-btn shrink-0">Preview Home ↗</a>
+            </div>
+        </div>
+        <div class="px-5 py-3 bg-amber-50 border-b border-amber-200 flex items-start gap-2">
+            <span class="text-amber-600 mt-0.5">💡</span>
+            <p class="text-xs leading-relaxed text-amber-800"><strong>Tip:</strong> Each block below is the real data for the matching Home section (e.g. “Extension Thrust” → Thrust Cards). Edit a card here and it updates instantly on the public Home page. The heading/subtitle of each block is still edited via the “Content Sections” list above.</p>
+        </div>
+    </div>
+
+    <!-- THRUSTS -->
+    <div class="pc-card mb-6" id="home-inline-thrusts">
+        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 class="pc-card__title flex items-center gap-2">Extension Thrust Cards <span class="pc-pill pc-pill--muted">{{ home_thrusts|length }}</span> {% if home_thrusts|length == 0 %}<span class="pc-pill pc-pill--warn">Empty</span>{% endif %}</h2>
+                <p class="pc-card__sub">Cards displayed in the Extension Thrust section.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'home_sections_manager' %}" class="pc-btn">Full manager →</a>
+                <button type="button" onclick="document.getElementById('add-thrust-form').classList.toggle('hidden')" class="pc-btn pc-btn--primary">+ Add Thrust</button>
+            </div>
+        </div>
+
+        <!-- Add form (hidden by default) -->
+        <div id="add-thrust-form" class="hidden border-b border-slate-100 bg-slate-50/60 p-5">
+            <form method="POST" action="{% url 'home_inline_thrust_create' %}" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="pc-label">Title *</label>
+                        <input type="text" name="title" class="pc-input" required placeholder="e.g. Health and Nutrition">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="pc-label">Description</label>
+                        <textarea name="description" rows="2" class="pc-input" placeholder="One or two sentences."></textarea>
+                    </div>
+                    <div>
+                        <label class="pc-label">Title Colour</label>
+                        <select name="color_class" class="pc-input">
+                            {% for value,label in home_thrust_color_choices %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-3 pt-6">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_visible" checked class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-700">Visible on Home</span>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('add-thrust-form').classList.add('hidden')" class="pc-btn">Cancel</button>
+                    <button type="submit" class="pc-btn pc-btn--primary">Add Thrust</button>
+                </div>
+            </form>
+        </div>
+
+        <ul class="divide-y divide-slate-100">
+            {% for thrust in home_thrusts %}
+            <li class="p-5 {% if not thrust.is_visible %}bg-slate-50/60{% endif %}">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="flex min-w-0 gap-3">
+                        <div class="flex flex-col gap-1 pt-0.5">
+                            <form method="POST" action="{% url 'home_inline_thrust_move' thrust.id %}">
+                                {% csrf_token %}<input type="hidden" name="direction" value="up">
+                                <button type="submit" class="pc-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
+                            </form>
+                            <form method="POST" action="{% url 'home_inline_thrust_move' thrust.id %}">
+                                {% csrf_token %}<input type="hidden" name="direction" value="down">
+                                <button type="submit" class="pc-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
+                            </form>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-sm font-semibold {{ thrust.color_class }}">{{ thrust.title }}</span>
+                                {% if not thrust.is_visible %}<span class="pc-pill pc-pill--warn">Hidden</span>{% endif %}
+                                <span class="pc-pill pc-pill--muted">{{ thrust.get_color_class_display|default:thrust.color_class }}</span>
+                            </div>
+                            <p class="mt-1 text-xs text-slate-500">{{ thrust.description|default:"No description." }}</p>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <button type="button" onclick="document.getElementById('edit-thrust-{{ thrust.id }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                        <form method="POST" action="{% url 'home_inline_thrust_delete' thrust.id %}" onsubmit="return confirm('Delete this thrust?');">
+                            {% csrf_token %}<button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                <!-- Inline edit form -->
+                <div id="edit-thrust-{{ thrust.id }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <form method="POST" action="{% url 'home_inline_thrust_update' thrust.id %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div class="sm:col-span-2">
+                                <label class="pc-label">Title *</label>
+                                <input type="text" name="title" value="{{ thrust.title }}" class="pc-input" required>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="pc-label">Description</label>
+                                <textarea name="description" rows="2" class="pc-input">{{ thrust.description }}</textarea>
+                            </div>
+                            <div>
+                                <label class="pc-label">Title Colour</label>
+                                <select name="color_class" class="pc-input">
+                                    {% for value,label in home_thrust_color_choices %}
+                                        <option value="{{ value }}" {% if thrust.color_class == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-3 pt-6">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="is_visible" {% if thrust.is_visible %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                </label>
+                                <span class="text-sm font-medium text-slate-700">Visible</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" onclick="document.getElementById('edit-thrust-{{ thrust.id }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                            <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li class="p-10 text-center">
+                <p class="text-sm text-slate-500">No thrust cards yet. Add one above — it will appear in the Home “Extension Thrust” grid.</p>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- PERSONNEL -->
+    <div class="pc-card mb-6" id="home-inline-personnel">
+        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 class="pc-card__title flex items-center gap-2">Extension Personnel <span class="pc-pill pc-pill--muted">{{ home_personnel|length }}</span></h2>
+                <p class="pc-card__sub">Photos and roles shown in the Personnel section.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'personnel_list' %}" class="pc-btn">Full manager →</a>
+                <button type="button" onclick="document.getElementById('add-personnel-form').classList.toggle('hidden')" class="pc-btn pc-btn--primary">+ Add Person</button>
+            </div>
+        </div>
+
+        <div id="add-personnel-form" class="hidden border-b border-slate-100 bg-slate-50/60 p-5">
+            <form method="POST" action="{% url 'home_inline_personnel_create' %}" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="pc-label">Name *</label>
+                        <input type="text" name="name" class="pc-input" required>
+                    </div>
+                    <div>
+                        <label class="pc-label">Position *</label>
+                        <input type="text" name="position" class="pc-input" required placeholder="e.g. Director, Extension">
+                    </div>
+                    <div>
+                        <label class="pc-label">Email</label>
+                        <input type="email" name="email" class="pc-input" placeholder="optional">
+                    </div>
+                    <div>
+                        <label class="pc-label">Photo *</label>
+                        <input type="file" name="photo" accept="image/*" class="pc-input" required>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('add-personnel-form').classList.add('hidden')" class="pc-btn">Cancel</button>
+                    <button type="submit" class="pc-btn pc-btn--primary">Add Person</button>
+                </div>
+            </form>
+        </div>
+
+        <ul class="divide-y divide-slate-100">
+            {% for p in home_personnel %}
+            <li class="p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-3 min-w-0">
+                        {% if p.photo %}
+                            <img src="{{ p.photo.url }}" alt="{{ p.name }}" class="h-10 w-10 rounded-full object-cover border border-slate-200">
+                        {% else %}
+                            <span class="h-10 w-10 grid place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary border border-primary/20">{{ p.name|first|upper }}</span>
+                        {% endif %}
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-900 truncate">{{ p.name }}</p>
+                            <p class="text-xs text-slate-500 truncate">{{ p.position }}{% if p.email %} · {{ p.email }}{% endif %}</p>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <button type="button" onclick="document.getElementById('edit-person-{{ p.id }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                        <form method="POST" action="{% url 'home_inline_personnel_delete' p.id %}" onsubmit="return confirm('Delete {{ p.name }}?');">
+                            {% csrf_token %}<button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="edit-person-{{ p.id }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <form method="POST" action="{% url 'home_inline_personnel_update' p.id %}" enctype="multipart/form-data" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="pc-label">Name *</label>
+                                <input type="text" name="name" value="{{ p.name }}" class="pc-input" required>
+                            </div>
+                            <div>
+                                <label class="pc-label">Position *</label>
+                                <input type="text" name="position" value="{{ p.position }}" class="pc-input" required>
+                            </div>
+                            <div>
+                                <label class="pc-label">Email</label>
+                                <input type="email" name="email" value="{{ p.email|default:'' }}" class="pc-input">
+                            </div>
+                            <div>
+                                <label class="pc-label">Photo <span class="text-slate-400">(leave empty to keep current)</span></label>
+                                <input type="file" name="photo" accept="image/*" class="pc-input">
+                                {% if p.photo %}<p class="mt-1 text-xs text-slate-400">Current: {{ p.photo.name }}</p>{% endif %}
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" onclick="document.getElementById('edit-person-{{ p.id }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                            <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li class="p-10 text-center text-sm text-slate-500">No personnel yet. Add the team that appears in the Home Personnel grid.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- ACTIVITIES -->
+    <div class="pc-card mb-6" id="home-inline-activities">
+        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 class="pc-card__title flex items-center gap-2">Extension Activities <span class="pc-pill pc-pill--muted">{{ home_activities|length }}</span></h2>
+                <p class="pc-card__sub">Cards shown in the Activities section.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'activities_list' %}" class="pc-btn">Full manager →</a>
+                <button type="button" onclick="document.getElementById('add-activity-form').classList.toggle('hidden')" class="pc-btn pc-btn--primary">+ Add Activity</button>
+            </div>
+        </div>
+
+        <div id="add-activity-form" class="hidden border-b border-slate-100 bg-slate-50/60 p-5">
+            <form method="POST" action="{% url 'home_inline_activity_create' %}" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid gap-4">
+                    <div>
+                        <label class="pc-label">Title *</label>
+                        <input type="text" name="title" class="pc-input" required>
+                    </div>
+                    <div>
+                        <label class="pc-label">Description *</label>
+                        <textarea name="description" rows="2" class="pc-input" required></textarea>
+                    </div>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="pc-label">Image</label>
+                            <input type="file" name="image" accept="image/*" class="pc-input">
+                        </div>
+                        <div class="flex items-center gap-3 pt-6">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="active" checked class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </label>
+                            <span class="text-sm font-medium text-slate-700">Active</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="pc-label">Dates * <span class="text-slate-400">(at least one)</span></label>
+                        <div id="add-activity-dates" class="space-y-2">
+                            <input type="date" name="dates[]" class="pc-input" style="max-width:240px">
+                        </div>
+                        <button type="button" onclick="addActivityDate('add-activity-dates')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add another date</button>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('add-activity-form').classList.add('hidden')" class="pc-btn">Cancel</button>
+                    <button type="submit" class="pc-btn pc-btn--primary">Add Activity</button>
+                </div>
+            </form>
+        </div>
+
+        <ul class="divide-y divide-slate-100">
+            {% for a in home_activities %}
+            <li class="p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0 flex gap-3">
+                        {% if a.image %}
+                            <img src="{{ a.image.url }}" alt="{{ a.title }}" class="h-14 w-20 rounded object-cover border border-slate-200 shrink-0">
+                        {% else %}
+                            <span class="h-14 w-20 grid place-items-center rounded bg-slate-100 text-xs text-slate-400 border shrink-0">No image</span>
+                        {% endif %}
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-900 truncate">{{ a.title }}</p>
+                            <p class="mt-1 text-xs text-slate-500 line-clamp-2">{{ a.description|truncatewords:18 }}</p>
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                {% for d in a.dates.all %}
+                                    <span class="pc-pill pc-pill--muted text-[0.68rem]">{{ d.date }}</span>
+                                {% empty %}
+                                    <span class="text-xs text-slate-400">No dates</span>
+                                {% endfor %}
+                                {% if not a.active %}<span class="pc-pill pc-pill--warn">Inactive</span>{% else %}<span class="pc-pill pc-pill--ok">Active</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <button type="button" onclick="document.getElementById('edit-activity-{{ a.id }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                        <form method="POST" action="{% url 'home_inline_activity_delete' a.id %}" onsubmit="return confirm('Delete this activity?');">
+                            {% csrf_token %}<button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="edit-activity-{{ a.id }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <form method="POST" action="{% url 'home_inline_activity_update' a.id %}" enctype="multipart/form-data" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="grid gap-4">
+                            <div>
+                                <label class="pc-label">Title *</label>
+                                <input type="text" name="title" value="{{ a.title }}" class="pc-input" required>
+                            </div>
+                            <div>
+                                <label class="pc-label">Description *</label>
+                                <textarea name="description" rows="2" class="pc-input" required>{{ a.description }}</textarea>
+                            </div>
+                            <div class="grid sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="pc-label">Image <span class="text-slate-400">(keep current if empty)</span></label>
+                                    <input type="file" name="image" accept="image/*" class="pc-input">
+                                </div>
+                                <div class="flex items-center gap-3 pt-6">
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" name="active" {% if a.active %}checked{% endif %} class="sr-only peer">
+                                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                    </label>
+                                    <span class="text-sm font-medium text-slate-700">Active</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="pc-label">Dates *</label>
+                                <div id="edit-activity-dates-{{ a.id }}" class="space-y-2">
+                                    {% for d in a.dates.all %}
+                                        <div class="flex gap-2 items-center">
+                                            <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="pc-input" style="max-width:240px">
+                                            <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>
+                                        </div>
+                                    {% empty %}
+                                        <input type="date" name="dates[]" class="pc-input" style="max-width:240px">
+                                    {% endfor %}
+                                </div>
+                                <button type="button" onclick="addActivityDate('edit-activity-dates-{{ a.id }}')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add date</button>
+                            </div>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" onclick="document.getElementById('edit-activity-{{ a.id }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                            <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li class="p-10 text-center text-sm text-slate-500">No activities yet. Add the cards that appear in the Home Activities grid.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- PROCESSES -->
+    <div class="pc-card mb-6" id="home-inline-processes">
+        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 class="pc-card__title flex items-center gap-2">Extension Processes <span class="pc-pill pc-pill--muted">{{ home_processes|length }}</span></h2>
+                <p class="pc-card__sub">Steps shown in the Processes section.</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'processes_list' %}" class="pc-btn">Full manager →</a>
+                <button type="button" onclick="document.getElementById('add-process-form').classList.toggle('hidden')" class="pc-btn pc-btn--primary">+ Add Process</button>
+            </div>
+        </div>
+
+        <div id="add-process-form" class="hidden border-b border-slate-100 bg-slate-50/60 p-5">
+            <form method="POST" action="{% url 'home_inline_process_create' %}" class="space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="pc-label">Process Title *</label>
+                    <input type="text" name="title" class="pc-input" required placeholder="e.g. Needs Assessment">
+                </div>
+                <div>
+                    <label class="pc-label">Steps <span class="text-slate-400">(one per line — you can add more later)</span></label>
+                    <div id="add-process-steps" class="space-y-2">
+                        <input type="text" name="step_description[]" class="pc-input" placeholder="Step 1 description">
+                        <input type="text" name="step_description[]" class="pc-input" placeholder="Step 2 description">
+                    </div>
+                    <button type="button" onclick="addProcessStep('add-process-steps')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add step</button>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('add-process-form').classList.add('hidden')" class="pc-btn">Cancel</button>
+                    <button type="submit" class="pc-btn pc-btn--primary">Add Process</button>
+                </div>
+            </form>
+        </div>
+
+        <ul class="divide-y divide-slate-100">
+            {% for proc in home_processes %}
+            <li class="p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-900">{{ proc.title }} <span class="pc-pill pc-pill--muted ml-2">Order {{ proc.order }}</span> <span class="pc-pill pc-pill--muted">{{ proc.steps.count }} step{{ proc.steps.count|pluralize }}</span></p>
+                        <ol class="mt-2 space-y-1 list-decimal list-inside text-xs text-slate-500">
+                            {% for step in proc.steps.all %}
+                                <li>{{ step.description|truncatewords:12 }}</li>
+                            {% empty %}
+                                <li class="list-none text-slate-400">No steps yet — edit to add them.</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-2">
+                        <button type="button" onclick="document.getElementById('edit-process-{{ proc.id }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                        <form method="POST" action="{% url 'home_inline_process_delete' proc.id %}" onsubmit="return confirm('Delete this process and all its steps?');">
+                            {% csrf_token %}<button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="edit-process-{{ proc.id }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                    <form method="POST" action="{% url 'home_inline_process_update' proc.id %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div>
+                            <label class="pc-label">Process Title *</label>
+                            <input type="text" name="title" value="{{ proc.title }}" class="pc-input" required>
+                        </div>
+                        <div>
+                            <label class="pc-label">Steps <span class="text-slate-400">(drag not needed — order follows the list)</span></label>
+                            <div id="edit-process-steps-{{ proc.id }}" class="space-y-2">
+                                {% for step in proc.steps.all %}
+                                    <div class="flex gap-2 items-center">
+                                        <input type="hidden" name="step_id[]" value="{{ step.id }}">
+                                        <input type="text" name="step_description[]" value="{{ step.description }}" class="pc-input flex-1" required>
+                                        <input type="number" name="step_order[]" value="{{ step.order }}" class="pc-input w-20" placeholder="Order">
+                                        <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>
+                                    </div>
+                                {% endfor %}
+                                <div class="flex gap-2 items-center">
+                                    <input type="hidden" name="step_id[]" value="">
+                                    <input type="text" name="step_description[]" placeholder="New step…" class="pc-input flex-1">
+                                    <input type="number" name="step_order[]" placeholder="Order" class="pc-input w-20">
+                                    <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>
+                                </div>
+                            </div>
+                            <button type="button" onclick="addProcessStep('edit-process-steps-{{ proc.id }}')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add step</button>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" onclick="document.getElementById('edit-process-{{ proc.id }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                            <button type="submit" class="pc-btn pc-btn--primary">Save Process</button>
+                        </div>
+                    </form>
+                </div>
+            </li>
+            {% empty %}
+            <li class="p-10 text-center text-sm text-slate-500">No processes yet. Add the workflow steps that appear in the Home Processes section.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- TARGETS -->
+    <div class="pc-card mb-6" id="home-inline-targets">
+        <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 class="pc-card__title flex items-center gap-2">Extension Targets <span class="pc-pill pc-pill--muted">{{ home_targets|length }}</span></h2>
+                <p class="pc-card__sub">Figures shown in the Targets section (planned vs. actual).</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="{% url 'targets_list' %}" class="pc-btn">Full manager →</a>
+                <button type="button" onclick="document.getElementById('add-target-form').classList.toggle('hidden')" class="pc-btn pc-btn--primary">+ Add Target</button>
+            </div>
+        </div>
+
+        <div id="add-target-form" class="hidden border-b border-slate-100 bg-slate-50/60 p-5">
+            <form method="POST" action="{% url 'home_inline_target_create' %}" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="pc-label">Year *</label>
+                        <input type="number" name="year" value="2026" class="pc-input" required min="2000" max="2100">
+                    </div>
+                    <div>
+                        <label class="pc-label">Campus *</label>
+                        {% if home_campus_choices %}
+                        <select name="campus" class="pc-input" required>
+                            <option value="" disabled selected>Select campus</option>
+                            {% for c in home_campus_choices %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+                        </select>
+                        {% else %}
+                        <input type="text" name="campus" class="pc-input" required placeholder="e.g. Main Campus">
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="pc-label">Metric *</label>
+                        <select name="metric" class="pc-input" required>
+                            <option value="" disabled selected>Select metric</option>
+                            {% for value,label in home_metric_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" value="0" class="pc-input"></div>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('add-target-form').classList.add('hidden')" class="pc-btn">Cancel</button>
+                    <button type="submit" class="pc-btn pc-btn--primary">Add Target</button>
+                </div>
+            </form>
+        </div>
+
+        {% if home_targets %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-slate-600 border-b border-slate-100">
+                    <tr>
+                        <th class="text-left p-3 font-medium">Year</th>
+                        <th class="text-left p-3 font-medium">Campus</th>
+                        <th class="text-left p-3 font-medium">Metric</th>
+                        <th class="text-center p-3 font-medium">Planned</th>
+                        <th class="text-center p-3 font-medium">Actual</th>
+                        <th class="text-left p-3 font-medium">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for t in home_targets %}
+                    <tr class="hover:bg-slate-50/60">
+                        <td class="p-3 font-medium">{{ t.year }}</td>
+                        <td class="p-3">{{ t.campus }}</td>
+                        <td class="p-3">{{ t.get_metric_display }}</td>
+                        <td class="p-3 text-center text-xs">Q1 {{t.planned_q1}} | Q2 {{t.planned_q2}} | Q3 {{t.planned_q3}} | Q4 {{t.planned_q4}}</td>
+                        <td class="p-3 text-center text-xs">Q1 {{t.actual_q1}} | Q2 {{t.actual_q2}} | Q3 {{t.actual_q3}} | Q4 {{t.actual_q4}}</td>
+                        <td class="p-3">
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}').classList.toggle('hidden')" class="pc-btn text-xs px-2 py-1">Edit</button>
+                                <form method="POST" action="{% url 'home_inline_target_delete' t.id %}" onsubmit="return confirm('Delete this target?');">
+                                    {% csrf_token %}<button type="submit" class="pc-btn pc-btn--danger text-xs px-2 py-1">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr id="edit-target-{{ t.id }}" class="hidden bg-slate-50/70">
+                        <td colspan="6" class="p-4">
+                            <form method="POST" action="{% url 'home_inline_target_update' t.id %}" class="space-y-3">
+                                {% csrf_token %}
+                                <p class="text-xs font-semibold text-slate-600">Editing {{ t.campus }} · {{ t.get_metric_display }} ({{ t.year }}) — only quarterly figures are editable (year/campus/metric are fixed; delete and re-add to change them).</p>
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" value="{{ t.planned_q1 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" value="{{ t.planned_q2 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" value="{{ t.planned_q3 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" value="{{ t.planned_q4 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" value="{{ t.actual_q1 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" value="{{ t.actual_q2 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" value="{{ t.actual_q3 }}" class="pc-input"></div>
+                                    <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" value="{{ t.actual_q4 }}" class="pc-input"></div>
+                                </div>
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                                    <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-10 text-center text-sm text-slate-500">No targets yet. Add the planned vs. actual figures that fill the Home Targets section.</div>
+        {% endif %}
+    </div>
+
+    <script>
+    function addActivityDate(containerId){
+        const c=document.getElementById(containerId);
+        if(!c) return;
+        const w=document.createElement('div');
+        w.className='flex gap-2 items-center';
+        w.innerHTML='<input type="date" name="dates[]" class="pc-input" style="max-width:240px"> <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>';
+        c.appendChild(w);
+    }
+    function addProcessStep(containerId){
+        const c=document.getElementById(containerId);
+        if(!c) return;
+        const w=document.createElement('div');
+        w.className='flex gap-2 items-center';
+        w.innerHTML='<input type="hidden" name="step_id[]" value=""><input type="text" name="step_description[]" placeholder="New step…" class="pc-input flex-1"> <input type="number" name="step_order[]" placeholder="Order" class="pc-input w-20"> <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>';
+        c.appendChild(w);
+    }
+    </script>
+
+    {% endif %}
+
     <!-- ============ RECENT CHANGES ============ -->
     <div class="pc-card mb-6">
         <div class="pc-card__head flex items-center justify-between gap-3">
@@ -183,8 +799,8 @@
         </ul>
     </div>
 
-    <!-- ============ LINKED DATA ============ -->
-    {% if linked_data %}
+    <!-- ============ LINKED DATA (non-Home pages) ============ -->
+    {% if linked_data and not home_is_home %}
     <div class="pc-card">
         <div class="pc-card__head">
             <h2 class="pc-card__title">Linked Data on This Page</h2>

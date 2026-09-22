@@ -120,6 +120,25 @@ urlpatterns = [
     path("admin/home-sections/thrusts/<int:pk>/delete/", views.home_thrust_delete, name="home_thrust_delete"),
     path("admin/home-sections/thrusts/<int:pk>/move/", views.home_thrust_move, name="home_thrust_move"),
 
+    # Home inline editors — every Linked-Data type editable directly on the
+    # Home Page content editor (mirrors the standalone managers above).
+    path("admin/pages/home/inline/thrusts/create/", views.home_inline_thrust_create, name="home_inline_thrust_create"),
+    path("admin/pages/home/inline/thrusts/<int:pk>/edit/", views.home_inline_thrust_update, name="home_inline_thrust_update"),
+    path("admin/pages/home/inline/thrusts/<int:pk>/delete/", views.home_inline_thrust_delete, name="home_inline_thrust_delete"),
+    path("admin/pages/home/inline/thrusts/<int:pk>/move/", views.home_inline_thrust_move, name="home_inline_thrust_move"),
+    path("admin/pages/home/inline/personnel/create/", views.home_inline_personnel_create, name="home_inline_personnel_create"),
+    path("admin/pages/home/inline/personnel/<int:pk>/edit/", views.home_inline_personnel_update, name="home_inline_personnel_update"),
+    path("admin/pages/home/inline/personnel/<int:pk>/delete/", views.home_inline_personnel_delete, name="home_inline_personnel_delete"),
+    path("admin/pages/home/inline/activities/create/", views.home_inline_activity_create, name="home_inline_activity_create"),
+    path("admin/pages/home/inline/activities/<int:pk>/edit/", views.home_inline_activity_update, name="home_inline_activity_update"),
+    path("admin/pages/home/inline/activities/<int:pk>/delete/", views.home_inline_activity_delete, name="home_inline_activity_delete"),
+    path("admin/pages/home/inline/processes/create/", views.home_inline_process_create, name="home_inline_process_create"),
+    path("admin/pages/home/inline/processes/<int:pk>/edit/", views.home_inline_process_update, name="home_inline_process_update"),
+    path("admin/pages/home/inline/processes/<int:pk>/delete/", views.home_inline_process_delete, name="home_inline_process_delete"),
+    path("admin/pages/home/inline/targets/create/", views.home_inline_target_create, name="home_inline_target_create"),
+    path("admin/pages/home/inline/targets/<int:pk>/edit/", views.home_inline_target_update, name="home_inline_target_update"),
+    path("admin/pages/home/inline/targets/<int:pk>/delete/", views.home_inline_target_delete, name="home_inline_target_delete"),
+
     # Services page workflow phases (Proposal / MOA / Implementation)
     path("admin/workflow-phases/", views.workflow_phases_manager, name="workflow_phases_manager"),
 
