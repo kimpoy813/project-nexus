@@ -609,6 +609,88 @@ class HomeInlineSectionEditorTests(TestCase):
         self.assertEqual(person.name, "Keep Me")
 
 
+class OtherPageInlineEditorTests(TestCase):
+    """The same nested CRUD is available on Services, Reports, and Achievements."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("other_page_admin", Profile.ROLE_ADMIN)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+
+    def test_the_reports_editor_nests_targets_inside_the_section(self):
+        from details.models import Target
+
+        target = Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            planned_total=8, actual_total=3,
+        )
+        response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
+        self.assertContains(response, "home-targets-inline")
+        self.assertContains(response, reverse("home_inline_target_update", args=[target.id]))
+        self.assertFalse(
+            PageSection.objects.filter(
+                page__slug="reports", layout=PageSection.Layout.TARGETS, is_visible=False
+            ).exists()
+        )
+        self.assertNotContains(response, "Linked Data on This Page")
+
+    def test_the_achievements_editor_nests_activities_inside_the_section(self):
+        from details.models import Activity, ActivityDate
+
+        activity = Activity.objects.create(title="PAGE-ACT-MARKER", description="d")
+        ActivityDate.objects.create(activity=activity, date="2026-06-01")
+        response = self.client_admin.get(reverse("page_content_edit", args=["achievements"]))
+        self.assertContains(response, "home-activities-inline")
+        self.assertContains(response, "PAGE-ACT-MARKER")
+        self.assertContains(response, reverse("home_inline_activity_update", args=[activity.id]))
+
+    def test_the_services_editor_nests_processes_inside_the_section(self):
+        from details.models import ExtensionProcess
+
+        process = ExtensionProcess.objects.create(title="PAGE-PROC-MARKER")
+        response = self.client_admin.get(reverse("page_content_edit", args=["services"]))
+        self.assertContains(response, "home-processes-inline")
+        self.assertContains(response, "PAGE-PROC-MARKER")
+        self.assertContains(response, reverse("home_inline_process_update", args=[process.id]))
+        # Built-in Services accordion already shows processes publicly.
+        self.assertFalse(
+            PageSection.objects.get(
+                page__slug="services", layout=PageSection.Layout.PROCESSES
+            ).is_visible
+        )
+        self.assertContains(response, "Linked Data on This Page")
+        self.assertContains(response, "Workflow Phases")
+        self.assertNotContains(response, reverse("processes_list"))
+
+    def test_inline_target_update_returns_to_the_reports_editor_when_next_is_set(self):
+        from details.models import Target
+
+        target = Target.objects.create(
+            year=2026, campus="Sta. Maria", metric="partners",
+            planned_total=2, actual_total=1,
+        )
+        next_url = reverse("page_content_edit", args=["reports"])
+        response = self.client_admin.post(
+            reverse("home_inline_target_update", args=[target.id]),
+            {
+                "planned_q1": "3",
+                "planned_q2": "0",
+                "planned_q3": "0",
+                "planned_q4": "0",
+                "actual_q1": "1",
+                "actual_q2": "0",
+                "actual_q3": "0",
+                "actual_q4": "0",
+                "next": next_url,
+            },
+        )
+        self.assertRedirects(response, next_url)
+        target.refresh_from_db()
+        self.assertEqual(target.planned_q1, 3)
+
+
 class WorkflowPhaseTests(TestCase):
     @classmethod
     def setUpTestData(cls):

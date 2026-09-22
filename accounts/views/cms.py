@@ -63,6 +63,67 @@ PAGE_PUBLIC_URL_NAMES = {
     "achievements": "achievements_page",
 }
 
+# Linked-data managers that now nest under a Content Sections layout.
+# Opening any page editor ensures that layout exists so the same in-section
+# CRUD is available on Home, Services, Reports, and Achievements.
+NESTED_LINKED_SECTIONS = {
+    "home_sections_manager": {
+        "layout": PageSection.Layout.THRUST,
+        "heading": "Extension Thrust",
+        "anchor": "thrust",
+    },
+    "personnel_list": {
+        "layout": PageSection.Layout.PERSONNEL,
+        "heading": "Extension Personnel",
+        "anchor": "personnel",
+    },
+    "activities_list": {
+        "layout": PageSection.Layout.ACTIVITIES,
+        "heading": "Extension Activities",
+        "anchor": "activities",
+    },
+    "processes_list": {
+        "layout": PageSection.Layout.PROCESSES,
+        "heading": "Extension Processes",
+        "anchor": "process",
+        # Services already paints processes in its built-in accordion, so the
+        # matching section is for in-editor CRUD only unless the admin unhides it.
+        "hidden_on": {"services"},
+    },
+    "targets_list": {
+        "layout": PageSection.Layout.TARGETS,
+        "heading": "Extension Targets",
+        "anchor": "targets",
+    },
+}
+
+
+def _ensure_nested_linked_sections(page):
+    """Create the nestable data-layout sections this page's linked data needs."""
+    for item in PAGE_LINKED_DATA.get(page.slug, []):
+        spec = NESTED_LINKED_SECTIONS.get(item["url_name"])
+        if not spec:
+            continue
+        if page.sections.filter(layout=spec["layout"]).exists():
+            continue
+        PageSection.objects.create(
+            page=page,
+            heading=spec["heading"],
+            layout=spec["layout"],
+            anchor=spec["anchor"],
+            is_visible=page.slug not in spec.get("hidden_on", set()),
+            order=0,
+        )
+
+
+def _standalone_linked_data(slug):
+    """Linked-data rows that still need their own manager (not nested CRUD)."""
+    return [
+        item
+        for item in PAGE_LINKED_DATA.get(slug, [])
+        if item["url_name"] not in NESTED_LINKED_SECTIONS
+    ]
+
 
 def _log_content_change(request, page_slug, action, summary, before=None, after=None,
                         section_id=None, target_label=""):
@@ -218,11 +279,13 @@ def page_content_edit(request, slug):
         messages.success(request, f'"{page.title}" page updated successfully.')
         return redirect("page_content_edit", slug=page.slug)
 
+    _ensure_nested_linked_sections(page)
+
     public_url_name = PAGE_PUBLIC_URL_NAMES.get(slug)
     context = {
         "page": page,
         "sections": page.sections.all(),
-        "linked_data": PAGE_LINKED_DATA.get(slug, []),
+        "linked_data": _standalone_linked_data(slug),
         "public_url_name": public_url_name,
         "layout_choices": PageSection.Layout.choices,
         "page_logs": list(
@@ -234,7 +297,6 @@ def page_content_edit(request, slug):
     # so the nested editors are always available — not only on Home.
     context.update(_thrust_editor_context())
     context.update(_home_inline_data_context())
-    context["home_is_home"] = slug == "home"
 
     return render(request, "dashboard/admin/page_content_edit.html", context)
 

@@ -208,8 +208,8 @@
         </ul>
     </div>
 
-    <!-- ============ LINKED DATA (non-Home pages) ============ -->
-    {% if linked_data and not home_is_home %}
+    <!-- ============ LINKED DATA (managers without nested section CRUD) ============ -->
+    {% if linked_data %}
     <div class="pc-card">
         <div class="pc-card__head">
             <h2 class="pc-card__title">Linked Data on This Page</h2>
