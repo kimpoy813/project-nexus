@@ -11,7 +11,22 @@ from .models import (
     HomeSectionHeading,
     HomeThrust,
     SitePage,
+    resolve_section_data,
 )
+
+
+def build_visible_blocks(page):
+    """``(section, data)`` pairs for every visible section of ``page``.
+
+    Data-driven blocks carry their resolved data; text blocks carry ``None``.
+    Shared by the four public pages so they all render from the same
+    block partial with the same data lookups.
+    """
+    blocks = []
+    for section in page.visible_sections:
+        data = resolve_section_data(section) if section.is_data_layout else None
+        blocks.append((section, data))
+    return blocks
 
 
 
@@ -51,6 +66,7 @@ def details_page(request):
     for t in yearly_targets.order_by('campus', 'metric'):
         targets_by_campus.setdefault(t.campus, []).append(t)
 
+    page = SitePage.get_for(SitePage.Slug.HOME)
     context = {
         'personnel': personnel,
         'activities': activities,
@@ -58,7 +74,8 @@ def details_page(request):
         'targets_by_campus': targets_by_campus,
         'overall_targets': overall_targets,
         'selected_year': year,
-        'page': SitePage.get_for(SitePage.Slug.HOME),
+        'page': page,
+        'visible_blocks': build_visible_blocks(page),
         'home_sections': HomeSectionHeading.as_map(),
         'home_headings': HomeSectionHeading.objects.all(),
         'home_thrusts': HomeThrust.objects.filter(is_visible=True),
@@ -88,6 +105,7 @@ def _render_content_page(request, slug, template="details/content_page.html"):
         {
             "page": page,
             "sections": page.visible_sections,
+            "visible_blocks": build_visible_blocks(page),
             "is_preview": not page.is_published,
         },
     )

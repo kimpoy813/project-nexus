@@ -64,6 +64,10 @@
                             <option value="{{ value }}" {% if form.layout.value == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
+                    <p class="mt-1 text-xs text-slate-400">
+                        Data layouts pull live content from the system's own managers
+                        (activities, targets, processes, templates, personnel).
+                    </p>
                 </div>
                 <div>
                     <label for="{{ form.anchor.id_for_label }}" class="ps-label">Anchor <span class="text-slate-400">(optional)</span></label>
@@ -73,6 +77,49 @@
                     {% if form.anchor.errors %}<p class="ps-error">{{ form.anchor.errors.0 }}</p>{% endif %}
                 </div>
             </div>
+
+            {# ---------- Block options (shown for the matching layout) ---------- #}
+            <div data-layout-groups="ACTIVITIES,PERSONNEL" class="hidden rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <label for="{{ form.limit_count.id_for_label }}" class="ps-label">Items to show <span class="text-slate-400">(Activities / Personnel blocks)</span></label>
+                <input type="number" min="1" name="limit_count" id="{{ form.limit_count.id_for_label }}"
+                       value="{{ form.limit_count.value|default_if_none:'' }}" class="ps-input" style="max-width:200px;"
+                       placeholder="All">
+                <p class="mt-1 text-xs text-slate-400">
+                    Activities are shown latest first. Leave blank to show all.
+                </p>
+                {% if form.limit_count.errors %}<p class="ps-error">{{ form.limit_count.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div data-layout-group="TARGETS" class="hidden rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                <label for="{{ form.target_year.id_for_label }}" class="ps-label">Year to display</label>
+                <input type="number" min="2000" max="2100" name="target_year" id="{{ form.target_year.id_for_label }}"
+                       value="{{ form.target_year.value|default_if_none:'' }}" class="ps-input" style="max-width:200px;"
+                       placeholder="Latest year">
+                <p class="mt-1 text-xs text-slate-400">Leave blank to always show the latest year with data.</p>
+                {% if form.target_year.errors %}<p class="ps-error">{{ form.target_year.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div data-layout-group="CTA" class="hidden rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-4">
+                <div>
+                    <label for="{{ form.cta_label.id_for_label }}" class="ps-label">Button text</label>
+                    <input type="text" name="cta_label" id="{{ form.cta_label.id_for_label }}"
+                           value="{{ form.cta_label.value|default:'' }}" class="ps-input"
+                           placeholder="e.g. Start a proposal">
+                    {% if form.cta_label.errors %}<p class="ps-error">{{ form.cta_label.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.cta_url.id_for_label }}" class="ps-label">Button destination</label>
+                    <input type="text" name="cta_url" id="{{ form.cta_url.id_for_label }}"
+                           value="{{ form.cta_url.value|default:'' }}" class="ps-input"
+                           placeholder="e.g. /register/ or https://example.com">
+                    <p class="mt-1 text-xs text-slate-400">A site path like /register/ or a full https:// URL.</p>
+                    {% if form.cta_url.errors %}<p class="ps-error">{{ form.cta_url.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+
+            <p id="body-hint" class="hidden text-xs text-slate-400 -mt-2">
+                Note: data layouts ignore the rich-text body above — they render the linked data instead.
+            </p>
 
             <div>
                 <label class="ps-label">Image <span class="text-slate-400">(optional)</span></label>
@@ -111,7 +158,44 @@
         </div>
     </form>
 
+    {# ---------- LIVE PREVIEW (server-rendered with the same block partial) ---------- #}
+    <div class="ps-card mt-6">
+        <div class="border-b border-slate-100 px-5 py-4">
+            <h2 class="text-sm font-semibold text-slate-900">Preview</h2>
+            <p class="mt-0.5 text-xs text-slate-400">
+                Rendered exactly as the public page will show this section.
+                {% if is_create %}It updates when you save the new section.{% else %}Save changes to update it.{% endif %}
+            </p>
+        </div>
+        <div class="pointer-events-none select-none bg-white p-6" aria-hidden="true">
+            {% include "details/_page_section.html" with section=preview_section data=preview_data %}
+        </div>
+    </div>
+
 </div>
+
+<script>
+// Show/hide the block option groups that apply to the selected layout.
+(function () {
+    const layoutSelect = document.getElementById("id_layout");
+    if (!layoutSelect) return;
+
+    const dataLayouts = ["ACTIVITIES", "TARGETS", "PROCESSES", "TEMPLATES", "PERSONNEL"];
+    const bodyHint = document.getElementById("body-hint");
+
+    function syncBlockOptions() {
+        const layout = layoutSelect.value;
+        document.querySelectorAll("[data-layout-groups]").forEach(function (el) {
+            const applies = el.dataset.layoutGroups.split(",").includes(layout);
+            el.classList.toggle("hidden", !applies);
+        });
+        if (bodyHint) bodyHint.classList.toggle("hidden", !dataLayouts.includes(layout));
+    }
+
+    layoutSelect.addEventListener("change", syncBlockOptions);
+    syncBlockOptions();
+})();
+</script>
 
 <style>
 .ps-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }

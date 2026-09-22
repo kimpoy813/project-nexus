@@ -146,6 +146,8 @@
 
         if (p === "/admin/site-control") return "dashboard";
         if (p === "/admin/create-account") return "form";
+        // The content change log is a list; the section editors are forms.
+        if (p === "/admin/pages/logs") return "list";
         // CMS page editor: /admin/pages/<slug>/ is a form, not the pages list.
         if (/^\/admin\/pages\/[^/]+$/.test(p)) return "form";
 

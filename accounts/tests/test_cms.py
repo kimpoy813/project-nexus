@@ -470,3 +470,337 @@ class MissingMediaTests(TestCase):
 
         Activity.objects.all().delete()
         self.assertEqual(self.client.get("/").status_code, 200)
+
+
+class PageBlockTests(TestCase):
+    """Data-driven section blocks render live data from the system's models."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("block_admin", Profile.ROLE_ADMIN)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+
+    def _add_block(self, slug, layout, **overrides):
+        payload = {
+            "heading": "Block Heading",
+            "subheading": "",
+            "body": "",
+            "layout": layout,
+            "anchor": "",
+            "is_visible": "on",
+        }
+        payload.update(overrides)
+        return self.client_admin.post(reverse("page_section_create", args=[slug]), payload)
+
+    def test_activities_block_renders_activities_on_a_public_page(self):
+        from details.models import Activity, ActivityDate
+
+        activity = Activity.objects.create(
+            title="BLOCK-ACTIVITY-MARKER", description="A community programme."
+        )
+        ActivityDate.objects.create(activity=activity, date="2026-08-15")
+
+        self._add_block("reports", "ACTIVITIES")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, "BLOCK-ACTIVITY-MARKER")
+
+    def test_activities_block_respects_limit_count(self):
+        from details.models import Activity, ActivityDate
+
+        # Newest first: FIRST, then SECOND, then THIRD.
+        for name, date in [
+            ("FIRST-ACT", "2026-03-01"),
+            ("SECOND-ACT", "2026-02-01"),
+            ("THIRD-ACT", "2026-01-01"),
+        ]:
+            activity = Activity.objects.create(title=name, description="d")
+            ActivityDate.objects.create(activity=activity, date=date)
+
+        self._add_block("reports", "ACTIVITIES", limit_count="2")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, "FIRST-ACT")
+        self.assertContains(response, "SECOND-ACT")
+        self.assertNotContains(response, "THIRD-ACT")
+
+    def test_activities_block_shows_an_empty_state(self):
+        self._add_block("reports", "ACTIVITIES")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, "No activities to show yet.")
+
+    def test_targets_block_defaults_to_the_latest_year_with_data(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2025, campus="Main Campus", metric="programs",
+            planned_total=10, actual_total=9,
+        )
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            planned_total=20, actual_total=11,
+        )
+
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, "2026 targets")
+        self.assertContains(response, "Planned: 20")
+        self.assertNotContains(response, "Planned: 10")
+
+    def test_targets_block_respects_target_year(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2025, campus="Main Campus", metric="programs",
+            planned_total=10, actual_total=9,
+        )
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            planned_total=20, actual_total=11,
+        )
+
+        self._add_block("reports", "TARGETS", target_year="2025")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, "2025 targets")
+        self.assertContains(response, "Planned: 10")
+        self.assertNotContains(response, "Planned: 20")
+
+    def test_targets_block_shows_progress_percentages(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="participants",
+            planned_total=200, actual_total=50,
+        )
+
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, "25%")
+
+    def test_processes_block_renders_steps(self):
+        from details.models import ExtensionProcess, ProcessStep
+
+        process = ExtensionProcess.objects.create(title="BLOCK-PROCESS-MARKER")
+        ProcessStep.objects.create(process=process, description="BLOCK-STEP-MARKER")
+
+        self._add_block("services", "PROCESSES")
+
+        response = self.client.get(reverse("services_home"))
+        self.assertContains(response, "BLOCK-PROCESS-MARKER")
+        self.assertContains(response, "BLOCK-STEP-MARKER")
+
+    def test_templates_block_renders_only_active_templates(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from details.models import DocumentTemplate
+
+        upload = SimpleUploadedFile("form.docx", b"fake docx bytes")
+        DocumentTemplate.objects.create(
+            title="BLOCK-TEMPLATE-MARKER", file=upload, is_active=True
+        )
+        DocumentTemplate.objects.create(
+            title="HIDDEN-TEMPLATE-MARKER", file=upload, is_active=False
+        )
+
+        self._add_block("services", "TEMPLATES")
+
+        response = self.client.get(reverse("services_home"))
+        self.assertContains(response, "BLOCK-TEMPLATE-MARKER")
+        self.assertNotContains(response, "HIDDEN-TEMPLATE-MARKER")
+
+    def test_personnel_block_renders_persons(self):
+        from details.models import Personnel
+
+        Personnel.objects.create(name="Rosa Villanueva", position="Director")
+
+        self._add_block("achievements", "PERSONNEL")
+
+        response = self.client.get(reverse("achievements_page"))
+        self.assertContains(response, "Rosa Villanueva")
+        self.assertContains(response, "Director")
+
+    def test_cta_block_renders_its_button(self):
+        self._add_block(
+            "reports", "CTA",
+            heading="Ready to start?",
+            cta_label="Start a proposal",
+            cta_url="/proposals/",
+        )
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, 'href="/proposals/"')
+        self.assertContains(response, "Start a proposal")
+
+    def test_cta_url_must_be_a_site_path_or_https_url(self):
+        self._add_block(
+            "reports", "CTA",
+            heading="Bad CTA",
+            cta_label="Click",
+            cta_url="javascript:alert(1)",
+        )
+
+        self.assertFalse(PageSection.objects.filter(heading="Bad CTA").exists())
+        self.assertNotContains(
+            self.client.get(reverse("reports_page")), "javascript:alert(1)", html=False
+        )
+
+    def test_a_data_block_with_no_heading_is_rejected(self):
+        before = PageSection.objects.count()
+        self._add_block("reports", "ACTIVITIES", heading="", body="")
+
+        self.assertEqual(PageSection.objects.count(), before)
+
+
+class PageContentLogTests(TestCase):
+    """Every hero/section edit is recorded with before and after values."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("log_admin", Profile.ROLE_ADMIN)
+        cls.faculty = factories.make_user("log_faculty", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+
+    def test_editing_the_hero_writes_an_audit_log(self):
+        self.client_admin.post(
+            reverse("page_content_edit", args=["reports"]),
+            {
+                "title": "Reports",
+                "hero_heading": "OLD-HEADING",
+                "is_published": "on",
+            },
+        )
+        self.client_admin.post(
+            reverse("page_content_edit", args=["reports"]),
+            {
+                "title": "Reports",
+                "hero_heading": "NEW-HEADING",
+                "is_published": "on",
+            },
+        )
+
+        from details.models import PageContentLog
+
+        log = PageContentLog.objects.filter(
+            action=PageContentLog.Action.UPDATE_PAGE, page_slug="reports"
+        ).latest("created_at", "id")
+        self.assertEqual(log.before["hero_heading"], "OLD-HEADING")
+        self.assertEqual(log.after["hero_heading"], "NEW-HEADING")
+        self.assertEqual(log.changed_by, self.admin)
+
+    def test_the_section_lifecycle_is_logged(self):
+        from details.models import PageContentLog
+
+        self.client_admin.post(
+            reverse("page_section_create", args=["achievements"]),
+            {"heading": "Lifecycle", "body": "<p>v1</p>", "layout": "RICH_TEXT"},
+        )
+        # A second section so the move has a neighbour to swap with.
+        self.client_admin.post(
+            reverse("page_section_create", args=["achievements"]),
+            {"heading": "Lifecycle-Second", "body": "<p>x</p>", "layout": "RICH_TEXT"},
+        )
+        section = PageSection.objects.get(heading="Lifecycle")
+
+        self.client_admin.post(
+            reverse("page_section_edit", args=[section.id]),
+            {"heading": "Lifecycle", "body": "<p>v2</p>", "layout": "RICH_TEXT"},
+        )
+        self.client_admin.post(
+            reverse("page_section_move", args=[section.id]), {"direction": "down"}
+        )
+        self.client_admin.post(reverse("page_section_delete", args=[section.id]))
+
+        actions = list(
+            PageContentLog.objects.filter(page_slug="achievements")
+            .order_by("created_at", "id")
+            .values_list("action", flat=True)
+        )
+        self.assertEqual(
+            actions,
+            [
+                PageContentLog.Action.ADD_SECTION,
+                PageContentLog.Action.ADD_SECTION,  # the helper section
+                PageContentLog.Action.EDIT_SECTION,
+                PageContentLog.Action.MOVE_SECTION,
+                PageContentLog.Action.DELETE_SECTION,
+            ],
+        )
+
+        edit_log = PageContentLog.objects.get(action=PageContentLog.Action.EDIT_SECTION)
+        self.assertIn("v1", edit_log.before["body"])
+        self.assertIn("v2", edit_log.after["body"])
+
+        delete_log = PageContentLog.objects.get(action=PageContentLog.Action.DELETE_SECTION)
+        self.assertEqual(delete_log.before["heading"], "Lifecycle")
+        self.assertEqual(delete_log.after, {})
+
+    def test_the_logs_view_requires_admin(self):
+        client = factories.make_client(self.faculty)
+        self.assertIn(
+            client.get(reverse("page_content_logs")).status_code, DENIED
+        )
+
+    def test_the_logs_view_filters_by_page(self):
+        self.client_admin.post(
+            reverse("page_section_create", args=["reports"]),
+            {"heading": "On-Reports", "body": "<p>x</p>", "layout": "RICH_TEXT"},
+        )
+        self.client_admin.post(
+            reverse("page_section_create", args=["achievements"]),
+            {"heading": "On-Achievements", "body": "<p>x</p>", "layout": "RICH_TEXT"},
+        )
+
+        response = self.client_admin.get(
+            reverse("page_content_logs"), {"page": "reports"}
+        )
+        self.assertContains(response, "On-Reports")
+        self.assertNotContains(response, "On-Achievements")
+
+    def test_the_logs_view_shows_before_and_after(self):
+        self.client_admin.post(
+            reverse("page_content_edit", args=["reports"]),
+            {"title": "Reports", "hero_heading": "OLD-VALUE", "is_published": "on"},
+        )
+
+        response = self.client_admin.get(reverse("page_content_logs"))
+        self.assertContains(response, "OLD-VALUE")
+        self.assertContains(response, "Before")
+        self.assertContains(response, "After")
+
+
+class PagePreviewTests(TestCase):
+    """Admins can preview sections before they touch the public page."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("preview_admin", Profile.ROLE_ADMIN)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+
+    def test_the_page_editor_embeds_a_live_preview(self):
+        response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
+        self.assertContains(response, "Live Preview")
+        self.assertContains(response, "nx-page-preview")
+
+    def test_the_section_form_previews_data_blocks(self):
+        from details.models import Activity, ActivityDate
+
+        activity = Activity.objects.create(
+            title="PREVIEW-ACTIVITY-MARKER", description="d"
+        )
+        ActivityDate.objects.create(activity=activity, date="2026-09-01")
+
+        response = self.client_admin.get(
+            reverse("page_section_create", args=["reports"]),
+            {"layout": "ACTIVITIES", "heading": "Latest"},
+        )
+        self.assertContains(response, "Preview")
+        self.assertContains(response, "PREVIEW-ACTIVITY-MARKER")

@@ -343,7 +343,7 @@ class NexusSetPasswordForm(SetPasswordForm, StyledFormMixin):
 
 class PageSectionForm(forms.ModelForm):
     """
-    Rich-text form for a public page section.
+    Form for a public page section (text and data-driven block layouts).
 
     Exists mainly so the CKEditor 5 widget contributes its JS/CSS via
     ``{{ form.media }}`` in the template.
@@ -358,11 +358,43 @@ class PageSectionForm(forms.ModelForm):
         help_text="Optional #anchor so the section can be linked to directly.",
     )
 
+    # Data-block options. All optional; the template only shows the ones that
+    # apply to the chosen layout.
+    limit_count = forms.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="How many items to show (Activities / Personnel blocks).",
+    )
+    target_year = forms.IntegerField(
+        required=False,
+        min_value=2000,
+        max_value=2100,
+        help_text="Which year to display (Targets block).",
+    )
+    cta_label = forms.CharField(required=False, max_length=120)
+    cta_url = forms.CharField(
+        required=False,
+        max_length=300,
+        help_text="A site path like /register/ or a full https:// URL.",
+    )
+
     class Meta:
         from details.models import PageSection as _PageSection
 
         model = _PageSection
-        fields = ["heading", "subheading", "body", "layout", "anchor", "image", "is_visible"]
+        fields = [
+            "heading",
+            "subheading",
+            "body",
+            "layout",
+            "anchor",
+            "image",
+            "limit_count",
+            "target_year",
+            "cta_label",
+            "cta_url",
+            "is_visible",
+        ]
         widgets = {
             "body": CKEditor5Widget(config_name="default"),
         }
@@ -372,6 +404,22 @@ class PageSectionForm(forms.ModelForm):
         from django.utils.text import slugify
 
         return slugify(self.cleaned_data.get("anchor") or "")[:60]
+
+    def clean_cta_url(self):
+        """
+        Restrict destinations to site paths or http(s) URLs.
+
+        The value lands in an href; anything else (e.g. ``javascript:``) is
+        rejected rather than rendered.
+        """
+        url = (self.cleaned_data.get("cta_url") or "").strip()
+        if not url:
+            return ""
+        if url.startswith("/") or url.startswith("http://") or url.startswith("https://"):
+            return url
+        raise forms.ValidationError(
+            "Use a site path (e.g. /register/) or a full URL starting with https://."
+        )
 
     def clean(self):
         """Require at least a heading or some body content."""

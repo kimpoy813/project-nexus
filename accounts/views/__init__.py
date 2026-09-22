@@ -160,6 +160,7 @@ from .cms import (  # noqa: F401
     home_thrust_move,
     page_content_edit,
     page_content_list,
+    page_content_logs,
     page_section_create,
     page_section_delete,
     page_section_edit,

@@ -12,7 +12,10 @@
                 Edit the text and sections shown on each public page.
             </p>
         </div>
-        <a href="{% url 'admin_dashboard' %}?tab=content" class="pc-btn">← Back to dashboard</a>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'page_content_logs' %}" class="pc-btn">Change Log</a>
+            <a href="{% url 'admin_dashboard' %}?tab=content" class="pc-btn">← Back to dashboard</a>
+        </div>
     </div>
 
     <div class="space-y-3">
@@ -48,9 +51,40 @@
         {% endfor %}
     </div>
 
+    <!-- Recent changes across all pages -->
+    <div class="pc-card mt-6">
+        <div class="pc-card__head flex items-center justify-between gap-3">
+            <div>
+                <h2 class="pc-card__title">Recent Changes</h2>
+                <p class="pc-card__sub">Latest edits across all public pages.</p>
+            </div>
+            <a href="{% url 'page_content_logs' %}" class="pc-btn shrink-0">All changes →</a>
+        </div>
+        <ul class="divide-y divide-slate-100">
+            {% for log in recent_logs %}
+            <li class="flex items-baseline justify-between gap-4 px-5 py-2.5">
+                <div class="min-w-0">
+                    <p class="truncate text-sm text-slate-800">{{ log.summary }}</p>
+                    <p class="text-xs text-slate-400">
+                        {{ log.created_at|date:"M d, Y H:i" }}
+                        {% if log.changed_by %}· by {{ log.changed_by.username }}{% endif %}
+                    </p>
+                </div>
+                <span class="pc-pill pc-pill--muted shrink-0">{{ log.page_slug }}</span>
+            </li>
+            {% empty %}
+            <li class="px-5 py-6 text-center text-sm text-slate-500">No changes recorded yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
 </div>
 
 <style>
+.pc-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+.pc-card__head { padding:1rem 1.25rem; border-bottom:1px solid #f1f5f9; }
+.pc-card__title { font-size:.9rem; font-weight:600; color:#0f172a; }
+.pc-card__sub { margin-top:.15rem; font-size:.78rem; color:#94a3b8; }
 .pc-btn {
     display:inline-flex; align-items:center; justify-content:center;
     padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;

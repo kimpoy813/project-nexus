@@ -2,6 +2,8 @@
 Admin-editable public pages, Home sections, thrust cards, and workflow phases.
 """
 
+import json
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -12,12 +14,15 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
 from details.models import HomeSectionHeading
 from details.models import HomeThrust
+from details.models import PageContentLog
 from details.models import PageSection
 from details.models import SitePage
 from details.models import WorkflowPhase
+from details.models import resolve_section_data
+from django.urls import reverse
+from django.utils.text import slugify
 from ..decorators import admin_required
 from ..forms import PageSectionForm
-from ..models import SiteConfigurationLog
 
 PAGE_LINKED_DATA = {
     "home": [
@@ -51,6 +56,51 @@ PAGE_PUBLIC_URL_NAMES = {
 }
 
 
+def _log_content_change(request, page_slug, action, summary, before=None, after=None,
+                        section_id=None, target_label=""):
+    """Record an admin content edit for the audit trail."""
+    PageContentLog.objects.create(
+        action=action,
+        page_slug=page_slug,
+        section_id=section_id,
+        target_label=target_label,
+        summary=summary[:255],
+        before=before or {},
+        after=after or {},
+        changed_by=request.user,
+    )
+
+
+def _to_positive_int(value):
+    try:
+        number = int(value)
+        return number if number > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _section_from_params(page, params):
+    """Build an unsaved section from editor inputs, for the live preview."""
+    layout = params.get("layout") or PageSection.Layout.RICH_TEXT
+    if layout not in dict(PageSection.Layout.choices):
+        layout = PageSection.Layout.RICH_TEXT
+
+    return PageSection(
+        page=page,
+        heading=(params.get("heading") or "").strip(),
+        subheading=(params.get("subheading") or "").strip(),
+        body=params.get("body") or "",
+        layout=layout,
+        anchor=slugify(params.get("anchor") or "")[:60],
+        image=None,
+        is_visible=params.get("is_visible") != "off",
+        limit_count=_to_positive_int(params.get("limit_count")),
+        target_year=_to_positive_int(params.get("target_year")),
+        cta_label=(params.get("cta_label") or "").strip(),
+        cta_url=(params.get("cta_url") or "").strip(),
+    )
+
+
 @login_required
 @admin_required
 def page_content_list(request):
@@ -65,7 +115,12 @@ def page_content_list(request):
             "public_url_name": PAGE_PUBLIC_URL_NAMES.get(slug),
         })
 
-    return render(request, "dashboard/admin/page_content_list.html", {"pages": pages})
+    recent_logs = list(PageContentLog.objects.select_related("changed_by")[:10])
+
+    return render(request, "dashboard/admin/page_content_list.html", {
+        "pages": pages,
+        "recent_logs": recent_logs,
+    })
 
 
 @login_required
@@ -79,6 +134,7 @@ def page_content_edit(request, slug):
     page = SitePage.get_for(slug)
 
     if request.method == "POST":
+        before = page.state()
         page.title = (request.POST.get("title") or "").strip() or page.title
         page.hero_eyebrow = (request.POST.get("hero_eyebrow") or "").strip()
         page.hero_heading = (request.POST.get("hero_heading") or "").strip()
@@ -89,19 +145,31 @@ def page_content_edit(request, slug):
         page.updated_by = request.user
         page.save()
 
-        SiteConfigurationLog.objects.create(
-            changed_by=request.user,
-            summary=f'Updated "{page.title}" page content',
+        after = page.state()
+        _log_content_change(
+            request,
+            page.slug,
+            PageContentLog.Action.UPDATE_PAGE,
+            f'Updated "{page.title}" page header',
+            before=before,
+            after=after,
+            target_label=page.title,
         )
         messages.success(request, f'"{page.title}" page updated successfully.')
         return redirect("page_content_edit", slug=page.slug)
 
+    public_url_name = PAGE_PUBLIC_URL_NAMES.get(slug)
     context = {
         "page": page,
         "sections": page.sections.all(),
         "linked_data": PAGE_LINKED_DATA.get(slug, []),
-        "public_url_name": PAGE_PUBLIC_URL_NAMES.get(slug),
+        "public_url_name": public_url_name,
+        "public_url": reverse(public_url_name) if public_url_name else None,
         "layout_choices": PageSection.Layout.choices,
+        "page_logs": list(
+            PageContentLog.objects.filter(page_slug=page.slug)
+            .select_related("changed_by")[:8]
+        ),
     }
     return render(request, "dashboard/admin/page_content_edit.html", context)
 
@@ -122,15 +190,34 @@ def page_section_create(request, slug):
             section.page = page
             section.order = 0  # model assigns the next order on save
             section.save()
+            _log_content_change(
+                request,
+                page.slug,
+                PageContentLog.Action.ADD_SECTION,
+                f'Added "{section.heading or "untitled"}" section ({section.get_layout_display()})',
+                after=section.state(),
+                section_id=section.pk,
+                target_label=section.heading,
+            )
             messages.success(request, "Section added successfully.")
             return redirect("page_content_edit", slug=page.slug)
     else:
         form = PageSectionForm()
 
+    # Live preview from whatever the admin has typed so far (GET params on a
+    # fresh form, POSTed values when validation failed).
+    params = request.POST if request.method == "POST" else request.GET
+    preview_section = _section_from_params(page, params)
+    preview_data = (
+        resolve_section_data(preview_section) if preview_section.is_data_layout else None
+    )
+
     return render(request, "dashboard/admin/page_section_form.html", {
         "page": page,
         "form": form,
         "is_create": True,
+        "preview_section": preview_section,
+        "preview_data": preview_data,
     })
 
 
@@ -141,22 +228,38 @@ def page_section_edit(request, pk):
     section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
 
     if request.method == "POST":
+        before = section.state()
         form = PageSectionForm(request.POST, request.FILES, instance=section)
         if form.is_valid():
             section = form.save(commit=False)
             if request.POST.get("remove_image") == "on":
                 section.image = None
             section.save()
+            after = section.state()
+            _log_content_change(
+                request,
+                section.page.slug,
+                PageContentLog.Action.EDIT_SECTION,
+                f'Edited "{section.heading or "untitled"}" section ({section.get_layout_display()})',
+                before=before,
+                after=after,
+                section_id=section.pk,
+                target_label=section.heading,
+            )
             messages.success(request, "Section updated successfully.")
             return redirect("page_content_edit", slug=section.page.slug)
     else:
         form = PageSectionForm(instance=section)
+
+    preview_data = resolve_section_data(section) if section.is_data_layout else None
 
     return render(request, "dashboard/admin/page_section_form.html", {
         "page": section.page,
         "section": section,
         "form": form,
         "is_create": False,
+        "preview_section": section,
+        "preview_data": preview_data,
     })
 
 
@@ -166,7 +269,17 @@ def page_section_edit(request, pk):
 def page_section_delete(request, pk):
     section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
     page_slug = section.page.slug
+    before = section.state()
     section.delete()
+    _log_content_change(
+        request,
+        page_slug,
+        PageContentLog.Action.DELETE_SECTION,
+        f'Deleted "{section.heading or "untitled"}" section ({section.get_layout_display()})',
+        before=before,
+        section_id=section.pk,
+        target_label=section.heading,
+    )
     messages.success(request, "Section deleted.")
     return redirect("page_content_edit", slug=page_slug)
 
@@ -198,9 +311,20 @@ def page_section_move(request, pk):
             section.refresh_from_db()
             swap_with.refresh_from_db()
 
+            before_order, before_swap = section.order, swap_with.order
             section.order, swap_with.order = swap_with.order, section.order
             section.save(update_fields=["order"])
             swap_with.save(update_fields=["order"])
+
+            _log_content_change(
+                request,
+                section.page.slug,
+                PageContentLog.Action.MOVE_SECTION,
+                f'Moved "{section.heading or "untitled"}" {direction} '
+                f"(position {before_order} → {section.order})",
+                section_id=section.pk,
+                target_label=section.heading,
+            )
 
     return redirect("page_content_edit", slug=section.page.slug)
 
@@ -363,3 +487,30 @@ def workflow_phases_manager(request):
         return redirect("workflow_phases_manager")
 
     return render(request, "dashboard/admin/workflow_phases_manager.html", {"phases": phases})
+
+
+@login_required
+@admin_required
+def page_content_logs(request):
+    """Audit trail of every content edit, filterable by page."""
+    logs = PageContentLog.objects.select_related("changed_by")
+
+    filter_slug = (request.GET.get("page") or "").strip()
+    if filter_slug in dict(SitePage.Slug.choices):
+        logs = logs.filter(page_slug=filter_slug)
+    else:
+        filter_slug = ""
+
+    rows = []
+    for log in logs[:100]:
+        rows.append({
+            "log": log,
+            "before_json": json.dumps(log.before, indent=2, ensure_ascii=False) if log.before else None,
+            "after_json": json.dumps(log.after, indent=2, ensure_ascii=False) if log.after else None,
+        })
+
+    return render(request, "dashboard/admin/page_content_logs.html", {
+        "logs": rows,
+        "filter_slug": filter_slug,
+        "page_choices": SitePage.Slug.choices,
+    })
