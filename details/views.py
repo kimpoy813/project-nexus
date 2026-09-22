@@ -68,17 +68,8 @@ def details_page(request):
 
     page = SitePage.get_for(SitePage.Slug.HOME)
     context = {
-        'personnel': personnel,
-        'activities': activities,
-        'process_steps': process_steps,
-        'targets_by_campus': targets_by_campus,
-        'overall_targets': overall_targets,
-        'selected_year': year,
         'page': page,
         'visible_blocks': build_visible_blocks(page),
-        'home_sections': HomeSectionHeading.as_map(),
-        'home_headings': HomeSectionHeading.objects.all(),
-        'home_thrusts': HomeThrust.objects.filter(is_visible=True),
     }
 
     return render(request, 'details/details_page.html', context)
