@@ -617,20 +617,24 @@ class PageSection(models.Model):
         CALLOUT = "CALLOUT", "Callout / highlight"
         CTA = "CTA", "Call to action"
         # --- Data layouts: the section renders admin-managed data ---
-        ACTIVITIES = "ACTIVITIES", "Extension activities"
-        TARGETS = "TARGETS", "Targets (planned vs. actual)"
+        THRUST = "THRUST", "Extension thrust cards"
         PROCESSES = "PROCESSES", "Extension processes"
-        TEMPLATES = "TEMPLATES", "Template library"
+        TARGETS = "TARGETS", "Targets (planned vs. actual)"
         PERSONNEL = "PERSONNEL", "Extension personnel"
+        SDG = "SDG", "Sustainable Development Goals"
+        ACTIVITIES = "ACTIVITIES", "Extension activities"
+        TEMPLATES = "TEMPLATES", "Template library"
 
     #: Layouts that pull data from other models instead of rich text.
     DATA_LAYOUTS = frozenset(
         {
-            Layout.ACTIVITIES,
-            Layout.TARGETS,
+            Layout.THRUST,
             Layout.PROCESSES,
-            Layout.TEMPLATES,
+            Layout.TARGETS,
             Layout.PERSONNEL,
+            Layout.SDG,
+            Layout.ACTIVITIES,
+            Layout.TEMPLATES,
         }
     )
 
@@ -733,6 +737,16 @@ def resolve_section_data(section):
     counterpart shows.
     """
     layout = section.layout
+
+    if layout == PageSection.Layout.THRUST:
+        return {
+            "thrusts": HomeThrust.objects.filter(is_visible=True),
+        }
+
+    if layout == PageSection.Layout.SDG:
+        return {
+            "enabled": True,
+        }
 
     if layout == PageSection.Layout.ACTIVITIES:
         qs = (

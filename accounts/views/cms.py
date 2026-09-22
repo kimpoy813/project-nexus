@@ -26,7 +26,7 @@ from ..forms import PageSectionForm
 
 PAGE_LINKED_DATA = {
     "home": [
-        {"label": "Home Sections & Extension Thrust", "url_name": "home_sections_manager", "hint": "Section titles, \u201cIsem Ni Aran\u201d subtitle, and the thrust cards."},
+        {"label": "Extension Thrust Cards", "url_name": "home_sections_manager", "hint": "Cards displayed in the Extension Thrust section."},
         {"label": "Extension Personnel", "url_name": "personnel_list", "hint": "Photos and roles shown in the Personnel section."},
         {"label": "Extension Activities", "url_name": "activities_list", "hint": "Cards shown in the Activities section."},
         {"label": "Extension Processes", "url_name": "processes_list", "hint": "Steps shown in the Processes section."},
@@ -164,7 +164,6 @@ def page_content_edit(request, slug):
         "sections": page.sections.all(),
         "linked_data": PAGE_LINKED_DATA.get(slug, []),
         "public_url_name": public_url_name,
-        "public_url": reverse(public_url_name) if public_url_name else None,
         "layout_choices": PageSection.Layout.choices,
         "page_logs": list(
             PageContentLog.objects.filter(page_slug=page.slug)
@@ -333,29 +332,11 @@ def page_section_move(request, pk):
 @admin_required
 @require_http_methods(["GET", "POST"])
 def home_sections_manager(request):
-    """Edit the headings/subtitles of every built-in Home section."""
-    for section, _label in HomeSectionHeading.Section.choices:
-        HomeSectionHeading.get_for(section)
+    """Manage the Extension Thrust cards shown on the Home page."""
+    thrusts = HomeThrust.objects.all()
 
-    headings = HomeSectionHeading.objects.all()
-
-    if request.method == "POST":
-        for row in headings:
-            prefix = f"section_{row.section}"
-            row.heading = (request.POST.get(f"{prefix}_heading") or "").strip()
-            row.subtitle = (request.POST.get(f"{prefix}_subtitle") or "").strip()
-            row.caption = (request.POST.get(f"{prefix}_caption") or "").strip()
-            row.nav_label = (request.POST.get(f"{prefix}_nav_label") or "").strip()
-            row.is_visible = request.POST.get(f"{prefix}_is_visible") == "on"
-            row.save()
-
-        messages.success(request, "Home page sections updated successfully.")
-        return redirect("home_sections_manager")
-
-    return render(request, "dashboard/admin/home_sections_manager.html", {
-        "headings": headings,
-        "thrusts": HomeThrust.objects.all(),
-        "thrust_heading": HomeSectionHeading.get_for(HomeSectionHeading.Section.THRUST),
+    return render(request, "dashboard/admin/home_thrusts_list.html", {
+        "thrusts": thrusts,
     })
 
 

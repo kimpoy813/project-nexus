@@ -17,33 +17,6 @@
         {% endif %}
     </div>
 
-    <!-- ============ LIVE PREVIEW ============ -->
-    {% if public_url %}
-    <div class="pc-card mb-6">
-        <div class="pc-card__head flex items-center justify-between gap-3">
-            <div>
-                <h2 class="pc-card__title">Live Preview</h2>
-                <p class="pc-card__sub">
-                    What visitors see right now. Save changes, then refresh the preview.
-                </p>
-            </div>
-            <button type="button" class="pc-btn" onclick="var f=document.getElementById('nx-page-preview'); f.src=f.src.split('#')[0].split('?')[0]+'?_r='+Date.now();">
-                Refresh
-            </button>
-        </div>
-        <div class="p-4">
-            <iframe id="nx-page-preview" src="{{ public_url }}" title="{{ page.title }} live preview"
-                    class="w-full rounded-lg border border-slate-200 bg-white"
-                    style="height:480px;" loading="lazy"></iframe>
-            {% if not page.is_published %}
-            <p class="mt-2 text-xs text-amber-600">
-                This page is unpublished — the preview shows the admin-only draft view.
-            </p>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
     {% if messages %}
         {% for message in messages %}
             <div class="mb-4 rounded-lg border px-4 py-3 text-sm

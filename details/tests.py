@@ -32,6 +32,7 @@ class SitePageModelTests(TestCase):
 
     def test_visible_sections_excludes_hidden_ones(self):
         page = SitePage.get_for(SitePage.Slug.HOME)
+        page.sections.all().delete()
         PageSection.objects.create(page=page, heading="Shown", is_visible=True)
         PageSection.objects.create(page=page, heading="Hidden", is_visible=False)
 

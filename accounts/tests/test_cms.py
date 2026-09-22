@@ -262,20 +262,24 @@ class HomeSectionTests(TestCase):
         return payload
 
     def test_isem_ni_aran_can_be_changed_by_an_admin(self):
-        self.client_admin.post(
-            reverse("home_sections_manager"),
-            self._heading_payload(section_thrust_subtitle="NEW-SUBTITLE-MARKER"),
-        )
+        home = SitePage.get_for(SitePage.Slug.HOME)
+        thrust_sec = home.sections.filter(anchor="thrust").first()
+        self.assertIsNotNone(thrust_sec)
+
+        thrust_sec.subheading = "NEW-SUBTITLE-MARKER"
+        thrust_sec.save()
 
         response = self.client.get("/")
         self.assertContains(response, "NEW-SUBTITLE-MARKER")
         self.assertNotContains(response, "Isem Ni Aran")
 
     def test_a_section_can_be_hidden_from_the_home_page(self):
-        payload = self._heading_payload()
-        payload.pop("section_sdg_is_visible")
+        home = SitePage.get_for(SitePage.Slug.HOME)
+        sdg_sec = home.sections.filter(anchor="sdg").first()
+        self.assertIsNotNone(sdg_sec)
 
-        self.client_admin.post(reverse("home_sections_manager"), payload)
+        sdg_sec.is_visible = False
+        sdg_sec.save()
 
         response = self.client.get("/")
         self.assertNotContains(response, "Sustainable Development Goals")
@@ -785,10 +789,11 @@ class PagePreviewTests(TestCase):
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
 
-    def test_the_page_editor_embeds_a_live_preview(self):
+    def test_the_page_editor_has_direct_link_to_live_page(self):
         response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
-        self.assertContains(response, "Live Preview")
-        self.assertContains(response, "nx-page-preview")
+        self.assertContains(response, "View live page")
+        self.assertNotContains(response, "Live Preview")
+        self.assertNotContains(response, "nx-page-preview")
 
     def test_the_section_form_previews_data_blocks(self):
         from details.models import Activity, ActivityDate

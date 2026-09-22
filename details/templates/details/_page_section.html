@@ -90,7 +90,98 @@ public page is composed from the same block library.
 {% endif %}
 
 {# ---------- Data layouts ---------- #}
-{% if section.layout == 'ACTIVITIES' %}
+{% if section.layout == 'THRUST' %}
+    <div class="mt-8">
+        {% if data.thrusts %}
+            <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                {% for thrust in data.thrusts %}
+                <div class="home-thrust-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                    <h4 class="font-semibold text-lg mb-2 {{ thrust.color_class|default:'text-primary' }}">{{ thrust.title }}</h4>
+                    <p class="text-gray-500 text-sm">{{ thrust.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="py-10 text-center text-sm text-gray-400">No extension thrusts configured yet.</p>
+        {% endif %}
+    </div>
+
+{% elif section.layout == 'SDG' %}
+    {% load static %}
+    <div class="mt-10">
+        <div class="home-sdg-grid grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/01.png' %}" alt="No Poverty" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">No Poverty</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/02.png' %}" alt="Zero Hunger" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Zero Hunger</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/03.png' %}" alt="Good Health" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Good Health and Well-being</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/04.png' %}" alt="Quality Education" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Quality Education</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/05.png' %}" alt="Gender Equality" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Gender Equality</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/06.png' %}" alt="Clean Water" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Clean Water and Sanitation</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/07.png' %}" alt="Affordable Energy" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Affordable and Clean Energy</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/08.png' %}" alt="Decent Work" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Decent Work and Economic Growth</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/09.png' %}" alt="Industry and Innovation" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Industry, Innovation and Infrastructure</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/10.png' %}" alt="Reduced Inequalities" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Reduced Inequalities</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/11.png' %}" alt="Sustainable Cities" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Sustainable Cities and Communities</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/12.png' %}" alt="Responsible Consumption" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Responsible Consumption and Production</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/13.png' %}" alt="Climate Action" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Climate Action</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/14.png' %}" alt="Life Below Water" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Life Below Water</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/15.png' %}" alt="Life on Land" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Life on Land</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/16.png' %}" alt="Peace and Justice" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Peace, Justice and Strong Institutions</h4>
+            </div>
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                <img src="{% static 'sdg/17.png' %}" alt="Partnerships" class="w-28 mx-auto mb-4">
+                <h4 class="font-semibold text-gray-800 text-sm">Partnerships for the Goals</h4>
+            </div>
+        </div>
+    </div>
+
+{% elif section.layout == 'ACTIVITIES' %}
     <div class="mt-10">
         {% if data.activities %}
             <div class="grid md:grid-cols-3 gap-8">
