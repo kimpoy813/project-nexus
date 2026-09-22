@@ -17,7 +17,7 @@
     }
 
     function addToolbar(root) {
-        const tables = Array.from(root.querySelectorAll('table'));
+        const tables = Array.from(root.querySelectorAll('table:not([data-proposal-table])'));
         if (!tables.length) return;
 
         tables.forEach((table) => {
@@ -35,19 +35,40 @@
         toolbar.setAttribute('role', 'group');
         toolbar.setAttribute('aria-label', 'Choose data presentation');
         toolbar.innerHTML = '<span class="dashboard-view-toolbar__label">View</span>' +
-            '<button type="button" class="dashboard-view-toggle" data-dashboard-view="table">Table</button>' +
-            '<button type="button" class="dashboard-view-toggle" data-dashboard-view="cards">Cards</button>';
-        root.insertBefore(toolbar, tables[0].closest('.overflow-x-auto') || tables[0]);
+            '<button type="button" class="dashboard-view-toggle" data-dashboard-view="table">Table View</button>' +
+            '<button type="button" class="dashboard-view-toggle" data-dashboard-view="cards">Card View</button>';
+        const anchor = tables[0].closest('.overflow-x-auto') || tables[0];
+        anchor.parentNode.insertBefore(toolbar, anchor);
         toolbar.querySelectorAll('button').forEach((button) => {
             button.addEventListener('click', () => setView(root, button.dataset.dashboardView));
         });
 
         let preferred = 'table';
-        try { preferred = localStorage.getItem(STORAGE_KEY) || preferred; } catch (_) { /* ignore */ }
+        try { preferred = localStorage.getItem(STORAGE_KEY) === 'cards' ? 'cards' : 'table'; } catch (_) { /* ignore */ }
         setView(root, preferred);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('[data-dashboard-view]').forEach(addToolbar);
+        document.querySelectorAll('[data-proposal-layout]').forEach((root) => {
+            const key = 'nexus-proposal-layout';
+            const apply = (view) => {
+                root.querySelectorAll('[data-proposal-panel]').forEach((panel) => {
+                    panel.hidden = panel.dataset.proposalPanel !== view;
+                });
+                root.querySelectorAll('[data-proposal-view]').forEach((button) => {
+                    button.setAttribute('aria-pressed', String(button.dataset.proposalView === view));
+                });
+            };
+            let view = 'cards';
+            try { if (localStorage.getItem(key) === 'table') view = 'table'; } catch (_) { /* ignore */ }
+            apply(view);
+            root.querySelectorAll('[data-proposal-view]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    apply(button.dataset.proposalView);
+                    try { localStorage.setItem(key, button.dataset.proposalView); } catch (_) { /* ignore */ }
+                });
+            });
+        });
     });
 })();

@@ -114,6 +114,7 @@
                 </article>
                 {% endfor %}
             </div>
+            </div>
             {% else %}
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center">
                 <h3 class="text-base font-semibold text-gray-900">No assigned proposals</h3>
@@ -132,7 +133,44 @@
 
         <div class="p-5">
             {% if all_proposals %}
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div data-proposal-layout>
+            <div class="dashboard-view-toolbar" role="group" aria-label="Proposal view">
+                <button type="button" class="dashboard-view-toggle" data-proposal-view="table" aria-pressed="false">Table View</button>
+                <button type="button" class="dashboard-view-toggle" data-proposal-view="cards" aria-pressed="true">Card View</button>
+            </div>
+            <div data-proposal-panel="table" hidden class="proposal-table-scroll" role="region" aria-label="Extension proposals table" tabindex="0">
+                <table class="nx-table proposal-table" data-proposal-table>
+                    <caption class="sr-only">My extension proposals</caption>
+                    <thead><tr>
+                        <th scope="col" class="nx-th">Proposal</th>
+                        <th scope="col" class="nx-th">Scope</th>
+                        <th scope="col" class="nx-th">Stage</th>
+                        <th scope="col" class="nx-th">Status</th>
+                        <th scope="col" class="nx-th">Progress</th>
+                        <th scope="col" class="nx-th">Date</th>
+                        <th scope="col" class="nx-th">Actions</th>
+                    </tr></thead>
+                    <tbody>
+                    {% for item in all_proposals %}
+                        <tr>
+                            <th scope="row" class="nx-td proposal-table__title">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</th>
+                            <td class="nx-td">{{ item.scope_label|default:"—" }}</td>
+                            <td class="nx-td"><span class="nx-badge {% if item.is_draft %}nx-badge--muted{% elif item.progress_percent >= 100 %}nx-badge--ok{% elif item.process_label == 'MOA' %}nx-badge--warn{% elif item.process_label == 'Implementation' %}nx-badge--info{% else %}proposal-table__stage{% endif %}">{% if item.is_draft %}Draft{% else %}{{ item.process_label|default:item.status_stage|default:"Proposal" }}{% endif %}</span></td>
+                            <td class="nx-td proposal-table__status">{{ item.status_label|default:"—" }}</td>
+                            <td class="nx-td">
+                                <div class="proposal-table__progress">
+                                    <span>{{ item.progress_percent|default:0 }}%</span>
+                                    <progress max="100" value="{{ item.progress_percent|default:0 }}" aria-label="Proposal progress">{{ item.progress_percent|default:0 }}%</progress>
+                                </div>
+                            </td>
+                            <td class="nx-td proposal-table__date"><span class="proposal-table__date-label">{% if item.is_draft %}Last saved{% else %}Submitted{% endif %}</span>{% if item.is_draft %}{{ item.updated_at|date:"M d, Y"|default:"—" }}{% else %}{{ item.submitted_at|date:"M d, Y"|default:"—" }}{% endif %}</td>
+                            <td class="nx-td"><div class="proposal-table__actions">{% include 'dashboard/partials/_faculty_proposal_actions.html' %}</div></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div data-proposal-panel="cards" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {% for item in all_proposals %}
                 <article class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
                     <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
@@ -218,49 +256,13 @@
                             </div>
 
                             <div class="flex flex-wrap items-center justify-end gap-1.5">
-                                {% if item.is_draft %}
-                                    <button type="button"
-                                            onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|escapejs }}')"
-                                            class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
-                                        Delete Draft
-                                    </button>
-
-                                    <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                       class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary">
-                                        Continue
-                                    </a>
-                                {% else %}
-                                    <a href="{% url 'proposal_storage' item.proposal.id %}"
-                                       class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-primary hover:bg-gray-50 hover:text-primary"
-                                       title="Proposal storage"
-                                       aria-label="Proposal storage">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
-                                        </svg>
-                                    </a>
-
-                                    {% if item.process_label == "MOA" %}
-                                        <a href="{% url 'proposal_moa_tracker' item.proposal.id %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                            View MOA
-                                        </a>
-                                    {% elif item.process_label == "Implementation" %}
-                                        <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                            View Implementation
-                                        </a>
-                                    {% else %}
-                                        <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
-                                            View
-                                        </a>
-                                    {% endif %}
-                                {% endif %}
+                                {% include 'dashboard/partials/_faculty_proposal_actions.html' %}
                             </div>
                         </div>
                     </div>
                 </article>
                 {% endfor %}
+            </div>
             </div>
             {% else %}
             <div class="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
