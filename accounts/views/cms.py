@@ -27,6 +27,7 @@ from details.models import Target
 from details.models import WorkflowPhase
 from details.models import resolve_section_data
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from ..decorators import admin_required
 from ..forms import PageSectionForm
@@ -62,6 +63,67 @@ PAGE_PUBLIC_URL_NAMES = {
     "achievements": "achievements_page",
 }
 
+# Linked-data managers that now nest under a Content Sections layout.
+# Opening any page editor ensures that layout exists so the same in-section
+# CRUD is available on Home, Services, Reports, and Achievements.
+NESTED_LINKED_SECTIONS = {
+    "home_sections_manager": {
+        "layout": PageSection.Layout.THRUST,
+        "heading": "Extension Thrust",
+        "anchor": "thrust",
+    },
+    "personnel_list": {
+        "layout": PageSection.Layout.PERSONNEL,
+        "heading": "Extension Personnel",
+        "anchor": "personnel",
+    },
+    "activities_list": {
+        "layout": PageSection.Layout.ACTIVITIES,
+        "heading": "Extension Activities",
+        "anchor": "activities",
+    },
+    "processes_list": {
+        "layout": PageSection.Layout.PROCESSES,
+        "heading": "Extension Processes",
+        "anchor": "process",
+        # Services already paints processes in its built-in accordion, so the
+        # matching section is for in-editor CRUD only unless the admin unhides it.
+        "hidden_on": {"services"},
+    },
+    "targets_list": {
+        "layout": PageSection.Layout.TARGETS,
+        "heading": "Extension Targets",
+        "anchor": "targets",
+    },
+}
+
+
+def _ensure_nested_linked_sections(page):
+    """Create the nestable data-layout sections this page's linked data needs."""
+    for item in PAGE_LINKED_DATA.get(page.slug, []):
+        spec = NESTED_LINKED_SECTIONS.get(item["url_name"])
+        if not spec:
+            continue
+        if page.sections.filter(layout=spec["layout"]).exists():
+            continue
+        PageSection.objects.create(
+            page=page,
+            heading=spec["heading"],
+            layout=spec["layout"],
+            anchor=spec["anchor"],
+            is_visible=page.slug not in spec.get("hidden_on", set()),
+            order=0,
+        )
+
+
+def _standalone_linked_data(slug):
+    """Linked-data rows that still need their own manager (not nested CRUD)."""
+    return [
+        item
+        for item in PAGE_LINKED_DATA.get(slug, [])
+        if item["url_name"] not in NESTED_LINKED_SECTIONS
+    ]
+
 
 def _log_content_change(request, page_slug, action, summary, before=None, after=None,
                         section_id=None, target_label=""):
@@ -84,6 +146,58 @@ def _to_positive_int(value):
         return number if number > 0 else None
     except (TypeError, ValueError):
         return None
+
+
+def _thrust_editor_context():
+    """Cards + colour picker for the inline Extension Thrust editor."""
+    return {
+        "home_thrusts": list(HomeThrust.objects.all().order_by("order", "id")),
+        "home_thrust_color_choices": HomeThrust.COLOR_CHOICES,
+    }
+
+
+def _home_inline_data_context():
+    """Querysets for Personnel / Activities / Processes / Targets nested editors."""
+    try:
+        from accounts.campus_data import get_campus_choices as _get_campus_choices
+        campus_choices = [c[0] for c in _get_campus_choices()]
+    except Exception:
+        campus_choices = []
+    personnel = list(Personnel.objects.all().order_by("name"))
+    activities = list(
+        Activity.objects.prefetch_related("dates")
+        .annotate(first_date=Min("dates__date"))
+        .order_by("-first_date", "-id")
+    )
+    processes = list(
+        ExtensionProcess.objects.prefetch_related("steps").order_by("order", "id")
+    )
+    targets = list(Target.objects.all().order_by("-year", "campus", "metric"))
+    try:
+        years = sorted({t.year for t in targets}, reverse=True) or [2026]
+    except Exception:
+        years = [2026]
+    return {
+        "home_personnel": personnel,
+        "home_activities": activities,
+        "home_processes": processes,
+        "home_targets": targets,
+        "home_target_years": years,
+        "home_campus_choices": campus_choices,
+        "home_metric_choices": Target.METRIC_CHOICES,
+    }
+
+
+def _home_inline_redirect(request):
+    """Bounce back to the editor the admin was on, or the Home page editor."""
+    candidate = (request.POST.get("next") or "").strip()
+    if candidate and url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return redirect(candidate)
+    return redirect("page_content_edit", slug="home")
 
 
 def _section_from_params(page, params):
@@ -165,11 +279,13 @@ def page_content_edit(request, slug):
         messages.success(request, f'"{page.title}" page updated successfully.')
         return redirect("page_content_edit", slug=page.slug)
 
+    _ensure_nested_linked_sections(page)
+
     public_url_name = PAGE_PUBLIC_URL_NAMES.get(slug)
     context = {
         "page": page,
         "sections": page.sections.all(),
-        "linked_data": PAGE_LINKED_DATA.get(slug, []),
+        "linked_data": _standalone_linked_data(slug),
         "public_url_name": public_url_name,
         "layout_choices": PageSection.Layout.choices,
         "page_logs": list(
@@ -177,43 +293,10 @@ def page_content_edit(request, slug):
             .select_related("changed_by")[:8]
         ),
     }
-
-    # Every part of the Home page should be editable directly here, with the
-    # same CRUD that the Linked-Data managers provide. Expose the underlying
-    # querysets so the template can render true inline editors for Home.
-    if slug == "home":
-        try:
-            from accounts.campus_data import get_campus_choices as _get_campus_choices
-            _campus_choices = [c[0] for c in _get_campus_choices()]
-        except Exception:
-            _campus_choices = []
-        _thrusts = list(HomeThrust.objects.all().order_by("order", "id"))
-        _personnel = list(Personnel.objects.all().order_by("name"))
-        _activities = list(
-            Activity.objects.prefetch_related("dates")
-            .annotate(first_date=Min("dates__date"))
-            .order_by("-first_date", "-id")
-        )
-        _processes = list(
-            ExtensionProcess.objects.prefetch_related("steps").order_by("order", "id")
-        )
-        _targets = list(Target.objects.all().order_by("-year", "campus", "metric"))
-        try:
-            _years = sorted({t.year for t in _targets}, reverse=True) or [2026]
-        except Exception:
-            _years = [2026]
-        context.update({
-            "home_thrusts": _thrusts,
-            "home_thrust_color_choices": HomeThrust.COLOR_CHOICES,
-            "home_personnel": _personnel,
-            "home_activities": _activities,
-            "home_processes": _processes,
-            "home_targets": _targets,
-            "home_target_years": _years,
-            "home_campus_choices": _campus_choices,
-            "home_metric_choices": Target.METRIC_CHOICES,
-            "home_is_home": True,
-        })
+    # Data-layout cards live inside matching Content Sections on any page,
+    # so the nested editors are always available — not only on Home.
+    context.update(_thrust_editor_context())
+    context.update(_home_inline_data_context())
 
     return render(request, "dashboard/admin/page_content_edit.html", context)
 
@@ -256,13 +339,16 @@ def page_section_create(request, slug):
         resolve_section_data(preview_section) if preview_section.is_data_layout else None
     )
 
-    return render(request, "dashboard/admin/page_section_form.html", {
+    context = {
         "page": page,
         "form": form,
         "is_create": True,
         "preview_section": preview_section,
         "preview_data": preview_data,
-    })
+    }
+    context.update(_thrust_editor_context())
+    context.update(_home_inline_data_context())
+    return render(request, "dashboard/admin/page_section_form.html", context)
 
 
 @login_required
@@ -297,14 +383,17 @@ def page_section_edit(request, pk):
 
     preview_data = resolve_section_data(section) if section.is_data_layout else None
 
-    return render(request, "dashboard/admin/page_section_form.html", {
+    context = {
         "page": section.page,
         "section": section,
         "form": form,
         "is_create": False,
         "preview_section": section,
         "preview_data": preview_data,
-    })
+    }
+    context.update(_thrust_editor_context())
+    context.update(_home_inline_data_context())
+    return render(request, "dashboard/admin/page_section_form.html", context)
 
 
 @login_required
@@ -483,9 +572,8 @@ def home_thrust_move(request, pk):
 
 # ==============================================================
 # HOME INLINE EDITORS — every Linked-Data type editable inside the
-# Home Page content editor, so admins never have to leave that screen.
-# Each handler mirrors the validation/logic of its standalone manager
-# and redirects back to page_content_edit for slug=home on success.
+# matching Content Sections block. Each handler mirrors its standalone
+# manager and returns to `next` (or the Home page editor) on success.
 # ==============================================================
 
 def _valid_thrust_color(value):
@@ -501,7 +589,7 @@ def home_inline_thrust_create(request):
     title = (request.POST.get("title") or "").strip()
     if not title:
         messages.error(request, "Thrust title is required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     HomeThrust.objects.create(
         title=title,
         description=(request.POST.get("description") or "").strip(),
@@ -510,7 +598,7 @@ def home_inline_thrust_create(request):
         order=0,
     )
     messages.success(request, f'Thrust \"{title}\" added.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -521,14 +609,14 @@ def home_inline_thrust_update(request, pk):
     title = (request.POST.get("title") or "").strip()
     if not title:
         messages.error(request, "Thrust title is required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     thrust.title = title
     thrust.description = (request.POST.get("description") or "").strip()
     thrust.color_class = _valid_thrust_color(request.POST.get("color_class"))
     thrust.is_visible = request.POST.get("is_visible") == "on"
     thrust.save()
     messages.success(request, "Thrust updated.")
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -539,7 +627,7 @@ def home_inline_thrust_delete(request, pk):
     title = thrust.title
     thrust.delete()
     messages.success(request, f'Thrust \"{title}\" deleted.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -567,7 +655,7 @@ def home_inline_thrust_move(request, pk):
             thrust.order, swap_with.order = swap_with.order, thrust.order
             thrust.save(update_fields=["order"])
             swap_with.save(update_fields=["order"])
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -580,10 +668,10 @@ def home_inline_personnel_create(request):
     photo = request.FILES.get("photo")
     if not name or not position or not photo:
         messages.error(request, "Name, position and photo are required for personnel.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     Personnel.objects.create(name=name, position=position, email=email, photo=photo)
     messages.success(request, f'Personnel \"{name}\" added.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -596,7 +684,7 @@ def home_inline_personnel_update(request, pk):
     email = (request.POST.get("email") or "").strip()
     if not name or not position:
         messages.error(request, "Name and position are required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     person.name = name
     person.position = position
     person.email = email
@@ -604,7 +692,7 @@ def home_inline_personnel_update(request, pk):
         person.photo = request.FILES["photo"]
     person.save()
     messages.success(request, f'\"{person.name}\" updated.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -615,7 +703,7 @@ def home_inline_personnel_delete(request, pk):
     name = person.name
     person.delete()
     messages.success(request, f'\"{name}\" deleted.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -633,7 +721,7 @@ def home_inline_activity_create(request):
         dates.append(single)
     if not title or not description or not dates:
         messages.error(request, "Title, description and at least one date are required for an activity.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     activity = Activity.objects.create(title=title, description=description, image=image, active=active)
     for d in dates:
         try:
@@ -641,7 +729,7 @@ def home_inline_activity_create(request):
         except Exception:
             continue
     messages.success(request, f'Activity \"{title}\" added.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -653,7 +741,7 @@ def home_inline_activity_update(request, pk):
     description = (request.POST.get("description") or "").strip()
     if not title or not description:
         messages.error(request, "Title and description are required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     activity.title = title
     activity.description = description
     activity.active = request.POST.get("active") == "on"
@@ -672,7 +760,7 @@ def home_inline_activity_update(request, pk):
         except Exception:
             continue
     messages.success(request, f'\"{activity.title}\" updated.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -683,7 +771,7 @@ def home_inline_activity_delete(request, pk):
     title = activity.title
     activity.delete()
     messages.success(request, f'\"{title}\" deleted.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -693,7 +781,7 @@ def home_inline_process_create(request):
     title = (request.POST.get("title") or "").strip()
     if not title:
         messages.error(request, "Process title is required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     process = ExtensionProcess.objects.create(title=title)
     for desc in request.POST.getlist("step_description[]"):
         desc = (desc or "").strip()
@@ -704,7 +792,7 @@ def home_inline_process_create(request):
     if single and not request.POST.getlist("step_description[]"):
         ProcessStep.objects.create(process=process, description=single)
     messages.success(request, f'Process \"{title}\" added.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -715,7 +803,7 @@ def home_inline_process_update(request, pk):
     title = (request.POST.get("title") or "").strip()
     if not title:
         messages.error(request, "Process title is required.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     process.title = title
     # Optional order override
     raw_order = (request.POST.get("order") or "").strip()
@@ -762,7 +850,7 @@ def home_inline_process_update(request, pk):
                     order_val = 0
                 ProcessStep.objects.create(process=process, description=desc, order=order_val)
     messages.success(request, f'Process \"{process.title}\" updated.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -773,7 +861,7 @@ def home_inline_process_delete(request, pk):
     title = process.title
     process.delete()
     messages.success(request, f'Process \"{title}\" deleted.')
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -785,15 +873,15 @@ def home_inline_target_create(request):
     metric = (request.POST.get("metric") or "").strip()
     if not year or not campus or not metric:
         messages.error(request, "Year, campus and metric are required for a target.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     try:
         year_int = int(year)
     except ValueError:
         messages.error(request, "Year must be a number.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     if Target.objects.filter(year=year_int, campus=campus, metric=metric).exists():
         messages.error(request, "Target already exists for this year, campus and metric.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     try:
         Target.objects.create(
             year=year_int,
@@ -810,9 +898,9 @@ def home_inline_target_create(request):
         )
     except ValueError:
         messages.error(request, "Quarter values must be numbers.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     messages.success(request, f"Target for {campus} ({year_int}) created.")
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -831,10 +919,10 @@ def home_inline_target_update(request, pk):
         target.actual_q4 = int(request.POST.get("actual_q4") or 0)
     except ValueError:
         messages.error(request, "Quarter values must be numbers.")
-        return redirect("page_content_edit", slug="home")
+        return _home_inline_redirect(request)
     target.save()
     messages.success(request, "Target updated.")
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required
@@ -845,7 +933,7 @@ def home_inline_target_delete(request, pk):
     label = f"{target.campus} - {target.get_metric_display()} ({target.year})"
     target.delete()
     messages.success(request, f"Target deleted: {label}")
-    return redirect("page_content_edit", slug="home")
+    return _home_inline_redirect(request)
 
 
 @login_required

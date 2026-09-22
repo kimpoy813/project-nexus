@@ -1,0 +1,141 @@
+{% comment %}
+Inline CRUD for Activity cards. Nested under ACTIVITIES Content Sections.
+Context: home_activities, editor_id, next_url
+{% endcomment %}
+{% with eid=editor_id|default:"main" %}
+<div class="home-activities-inline" id="home-inline-activities-{{ eid }}">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-800">Activities <span class="pc-pill pc-pill--muted">{{ home_activities|length }}</span></p>
+            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each activity here. Changes show on the public page immediately.</p>
+        </div>
+        <button type="button" onclick="document.getElementById('add-activity-form-{{ eid }}').classList.toggle('hidden')" class="pc-btn pc-btn--primary shrink-0">+ Add Activity</button>
+    </div>
+
+    <div id="add-activity-form-{{ eid }}" class="hidden border-b border-slate-100 bg-slate-50/60 p-4">
+        <form method="POST" action="{% url 'home_inline_activity_create' %}" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+            <div class="grid gap-4">
+                <div>
+                    <label class="pc-label">Title *</label>
+                    <input type="text" name="title" class="pc-input" required>
+                </div>
+                <div>
+                    <label class="pc-label">Description *</label>
+                    <textarea name="description" rows="2" class="pc-input" required></textarea>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="pc-label">Image</label>
+                        <input type="file" name="image" accept="image/*" class="pc-input">
+                    </div>
+                    <div class="flex items-center gap-3 pt-6">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="active" checked class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-700">Active</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="pc-label">Dates * <span class="text-slate-400">(at least one)</span></label>
+                    <div id="add-activity-dates-{{ eid }}" class="space-y-2">
+                        <input type="date" name="dates[]" class="pc-input" style="max-width:240px">
+                    </div>
+                    <button type="button" onclick="addActivityDate('add-activity-dates-{{ eid }}')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add another date</button>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('add-activity-form-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                <button type="submit" class="pc-btn pc-btn--primary">Add Activity</button>
+            </div>
+        </form>
+    </div>
+
+    <ul class="divide-y divide-slate-100 bg-white">
+        {% for a in home_activities %}
+        <li class="p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 flex gap-3">
+                    {% if a.image %}
+                        <img src="{{ a.image.url }}" alt="{{ a.title }}" class="h-14 w-20 rounded object-cover border border-slate-200 shrink-0">
+                    {% else %}
+                        <span class="h-14 w-20 grid place-items-center rounded bg-slate-100 text-xs text-slate-400 border shrink-0">No image</span>
+                    {% endif %}
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">{{ a.title }}</p>
+                        <p class="mt-1 text-xs text-slate-500 line-clamp-2">{{ a.description|truncatewords:18 }}</p>
+                        <div class="mt-2 flex flex-wrap gap-1">
+                            {% for d in a.dates.all %}
+                                <span class="pc-pill pc-pill--muted text-[0.68rem]">{{ d.date }}</span>
+                            {% empty %}
+                                <span class="text-xs text-slate-400">No dates</span>
+                            {% endfor %}
+                            {% if not a.active %}<span class="pc-pill pc-pill--warn">Inactive</span>{% else %}<span class="pc-pill pc-pill--ok">Active</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                    <button type="button" onclick="document.getElementById('edit-activity-{{ a.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                    <form method="POST" action="{% url 'home_inline_activity_delete' a.id %}" onsubmit="return confirm('Delete this activity?');">
+                        {% csrf_token %}
+                        {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+            <div id="edit-activity-{{ a.id }}-{{ eid }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <form method="POST" action="{% url 'home_inline_activity_update' a.id %}" enctype="multipart/form-data" class="space-y-4">
+                    {% csrf_token %}
+                    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                    <div class="grid gap-4">
+                        <div>
+                            <label class="pc-label">Title *</label>
+                            <input type="text" name="title" value="{{ a.title }}" class="pc-input" required>
+                        </div>
+                        <div>
+                            <label class="pc-label">Description *</label>
+                            <textarea name="description" rows="2" class="pc-input" required>{{ a.description }}</textarea>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="pc-label">Image <span class="text-slate-400">(keep current if empty)</span></label>
+                                <input type="file" name="image" accept="image/*" class="pc-input">
+                            </div>
+                            <div class="flex items-center gap-3 pt-6">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="active" {% if a.active %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                                </label>
+                                <span class="text-sm font-medium text-slate-700">Active</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="pc-label">Dates *</label>
+                            <div id="edit-activity-dates-{{ a.id }}-{{ eid }}" class="space-y-2">
+                                {% for d in a.dates.all %}
+                                    <div class="flex gap-2 items-center">
+                                        <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="pc-input" style="max-width:240px">
+                                        <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>
+                                    </div>
+                                {% empty %}
+                                    <input type="date" name="dates[]" class="pc-input" style="max-width:240px">
+                                {% endfor %}
+                            </div>
+                            <button type="button" onclick="addActivityDate('edit-activity-dates-{{ a.id }}-{{ eid }}')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add date</button>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="document.getElementById('edit-activity-{{ a.id }}-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                        <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </li>
+        {% empty %}
+        <li class="p-8 text-center text-sm text-slate-500">No activities yet. Add the cards that appear in this section.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endwith %}

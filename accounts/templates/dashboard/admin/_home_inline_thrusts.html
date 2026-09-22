@@ -1,0 +1,141 @@
+{% comment %}
+Inline CRUD for HomeThrust cards.
+
+Used inside the Content Sections list (layout=THRUST) and on the section
+edit form, so each card can be added, edited, reordered, or removed without
+leaving the Extension Thrust block.
+
+Context:
+  home_thrusts, home_thrust_color_choices
+  thrust_editor_id  - unique suffix for element ids (section pk, or "new")
+  next_url          - optional path to return to after POST
+{% endcomment %}
+{% with eid=thrust_editor_id|default:"main" %}
+<div class="home-thrust-inline" id="home-inline-thrusts-{{ eid }}">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-800">Extension Thrust cards <span class="pc-pill pc-pill--muted">{{ home_thrusts|length }}</span></p>
+            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each card here. Changes show on the public page immediately.</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="document.getElementById('add-thrust-form-{{ eid }}').classList.toggle('hidden')" class="pc-btn pc-btn--primary">+ Add Thrust</button>
+        </div>
+    </div>
+
+    <div id="add-thrust-form-{{ eid }}" class="hidden border-b border-slate-100 bg-slate-50/60 p-4">
+        <form method="POST" action="{% url 'home_inline_thrust_create' %}" class="space-y-4">
+            {% csrf_token %}
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="pc-label">Title *</label>
+                    <input type="text" name="title" class="pc-input" required placeholder="e.g. Health and Nutrition">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="pc-label">Description</label>
+                    <textarea name="description" rows="2" class="pc-input" placeholder="One or two sentences."></textarea>
+                </div>
+                <div>
+                    <label class="pc-label">Title Colour</label>
+                    <select name="color_class" class="pc-input">
+                        {% for value,label in home_thrust_color_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-center gap-3 pt-6">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="is_visible" checked class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                    <span class="text-sm font-medium text-slate-700">Visible on Home</span>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('add-thrust-form-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                <button type="submit" class="pc-btn pc-btn--primary">Add Thrust</button>
+            </div>
+        </form>
+    </div>
+
+    <ul class="divide-y divide-slate-100 bg-white">
+        {% for thrust in home_thrusts %}
+        <li class="p-4 {% if not thrust.is_visible %}bg-slate-50/60{% endif %}">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="flex min-w-0 gap-3">
+                    <div class="flex flex-col gap-1 pt-0.5">
+                        <form method="POST" action="{% url 'home_inline_thrust_move' thrust.id %}">
+                            {% csrf_token %}
+                            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                            <input type="hidden" name="direction" value="up">
+                            <button type="submit" class="pc-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
+                        </form>
+                        <form method="POST" action="{% url 'home_inline_thrust_move' thrust.id %}">
+                            {% csrf_token %}
+                            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                            <input type="hidden" name="direction" value="down">
+                            <button type="submit" class="pc-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
+                        </form>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-sm font-semibold {{ thrust.color_class }}">{{ thrust.title }}</span>
+                            {% if not thrust.is_visible %}<span class="pc-pill pc-pill--warn">Hidden</span>{% endif %}
+                            <span class="pc-pill pc-pill--muted">{{ thrust.get_color_class_display|default:thrust.color_class }}</span>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">{{ thrust.description|default:"No description." }}</p>
+                    </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                    <button type="button" onclick="document.getElementById('edit-thrust-{{ thrust.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                    <form method="POST" action="{% url 'home_inline_thrust_delete' thrust.id %}" onsubmit="return confirm('Delete this thrust?');">
+                        {% csrf_token %}
+                        {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+            <div id="edit-thrust-{{ thrust.id }}-{{ eid }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <form method="POST" action="{% url 'home_inline_thrust_update' thrust.id %}" class="space-y-4">
+                    {% csrf_token %}
+                    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="pc-label">Title *</label>
+                            <input type="text" name="title" value="{{ thrust.title }}" class="pc-input" required>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="pc-label">Description</label>
+                            <textarea name="description" rows="2" class="pc-input">{{ thrust.description }}</textarea>
+                        </div>
+                        <div>
+                            <label class="pc-label">Title Colour</label>
+                            <select name="color_class" class="pc-input">
+                                {% for value,label in home_thrust_color_choices %}
+                                    <option value="{{ value }}" {% if thrust.color_class == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-3 pt-6">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" name="is_visible" {% if thrust.is_visible %}checked{% endif %} class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            </label>
+                            <span class="text-sm font-medium text-slate-700">Visible</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="document.getElementById('edit-thrust-{{ thrust.id }}-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                        <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </li>
+        {% empty %}
+        <li class="p-8 text-center">
+            <p class="text-sm text-slate-500">No thrust cards yet. Add one above — it will appear in the Home “Extension Thrust” grid.</p>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endwith %}

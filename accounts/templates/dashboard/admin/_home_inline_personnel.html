@@ -1,0 +1,103 @@
+{% comment %}
+Inline CRUD for Personnel rows. Nested under PERSONNEL Content Sections.
+Context: home_personnel, editor_id, next_url
+{% endcomment %}
+{% with eid=editor_id|default:"main" %}
+<div class="home-personnel-inline" id="home-inline-personnel-{{ eid }}">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
+        <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-800">Personnel <span class="pc-pill pc-pill--muted">{{ home_personnel|length }}</span></p>
+            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each person here. Changes show on the public page immediately.</p>
+        </div>
+        <button type="button" onclick="document.getElementById('add-personnel-form-{{ eid }}').classList.toggle('hidden')" class="pc-btn pc-btn--primary shrink-0">+ Add Person</button>
+    </div>
+
+    <div id="add-personnel-form-{{ eid }}" class="hidden border-b border-slate-100 bg-slate-50/60 p-4">
+        <form method="POST" action="{% url 'home_inline_personnel_create' %}" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="pc-label">Name *</label>
+                    <input type="text" name="name" class="pc-input" required>
+                </div>
+                <div>
+                    <label class="pc-label">Position *</label>
+                    <input type="text" name="position" class="pc-input" required placeholder="e.g. Director, Extension">
+                </div>
+                <div>
+                    <label class="pc-label">Email</label>
+                    <input type="email" name="email" class="pc-input" placeholder="optional">
+                </div>
+                <div>
+                    <label class="pc-label">Photo *</label>
+                    <input type="file" name="photo" accept="image/*" class="pc-input" required>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('add-personnel-form-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                <button type="submit" class="pc-btn pc-btn--primary">Add Person</button>
+            </div>
+        </form>
+    </div>
+
+    <ul class="divide-y divide-slate-100 bg-white">
+        {% for p in home_personnel %}
+        <li class="p-4">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3 min-w-0">
+                    {% if p.photo %}
+                        <img src="{{ p.photo.url }}" alt="{{ p.name }}" class="h-10 w-10 rounded-full object-cover border border-slate-200">
+                    {% else %}
+                        <span class="h-10 w-10 grid place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary border border-primary/20">{{ p.name|first|upper }}</span>
+                    {% endif %}
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">{{ p.name }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ p.position }}{% if p.email %} · {{ p.email }}{% endif %}</p>
+                    </div>
+                </div>
+                <div class="flex shrink-0 items-center gap-2">
+                    <button type="button" onclick="document.getElementById('edit-person-{{ p.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn">Edit</button>
+                    <form method="POST" action="{% url 'home_inline_personnel_delete' p.id %}" onsubmit="return confirm('Delete this person?');">
+                        {% csrf_token %}
+                        {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+            <div id="edit-person-{{ p.id }}-{{ eid }}" class="hidden mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <form method="POST" action="{% url 'home_inline_personnel_update' p.id %}" enctype="multipart/form-data" class="space-y-4">
+                    {% csrf_token %}
+                    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="pc-label">Name *</label>
+                            <input type="text" name="name" value="{{ p.name }}" class="pc-input" required>
+                        </div>
+                        <div>
+                            <label class="pc-label">Position *</label>
+                            <input type="text" name="position" value="{{ p.position }}" class="pc-input" required>
+                        </div>
+                        <div>
+                            <label class="pc-label">Email</label>
+                            <input type="email" name="email" value="{{ p.email|default:'' }}" class="pc-input">
+                        </div>
+                        <div>
+                            <label class="pc-label">Photo <span class="text-slate-400">(leave empty to keep current)</span></label>
+                            <input type="file" name="photo" accept="image/*" class="pc-input">
+                            {% if p.photo %}<p class="mt-1 text-xs text-slate-400">Current: {{ p.photo.name }}</p>{% endif %}
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="document.getElementById('edit-person-{{ p.id }}-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
+                        <button type="submit" class="pc-btn pc-btn--primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </li>
+        {% empty %}
+        <li class="p-8 text-center text-sm text-slate-500">No personnel yet. Add the team that appears in this section.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endwith %}
