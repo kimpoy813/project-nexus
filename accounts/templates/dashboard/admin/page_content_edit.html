@@ -91,33 +91,75 @@
         </div>
     </form>
 
+    {# One hidden form carries every palette drop, so a tile can be dragged
+       into place or clicked to append. #}
+    <form id="add-source-form" method="POST" action="{% url 'page_section_add_source' page.slug %}" class="hidden">
+        {% csrf_token %}
+        <input type="hidden" name="source" value="">
+        <input type="hidden" name="position" value="">
+    </form>
+
+    <!-- ============ BLOCK PALETTE ============ -->
+    <div class="pc-card mb-6">
+        <div class="pc-card__head">
+            <h2 class="pc-card__title">Add a Block</h2>
+            <p class="pc-card__sub">
+                Drag a builder into the page below, or click it to add it at the end. The block shows that
+                builder's live data — edit the data once, and every page using the block updates.
+            </p>
+        </div>
+        <div data-sortable="palette" class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+            {% for entry in palette %}
+            <div class="pc-tile" data-source-key="{{ entry.source.key }}"
+                 role="button" tabindex="0"
+                 title="Drag onto the page, or click to add at the end"
+                 onclick="nxAddSource('{{ entry.source.key }}')"
+                 onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();nxAddSource('{{ entry.source.key }}');}">
+                <span class="pc-tile__head">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ entry.source.icon_path }}" />
+                    </svg>
+                    <span class="pc-tile__name">{{ entry.source.label }}</span>
+                    {% if entry.in_use %}<span class="pc-pill pc-pill--ok shrink-0">On page</span>{% endif %}
+                </span>
+                <span class="pc-tile__desc">{{ entry.source.description }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="border-t border-slate-100 px-5 py-3">
+            <a href="{% url 'page_section_create' page.slug %}" class="pc-btn">Or write a free-text section →</a>
+        </div>
+    </div>
+
     <!-- ============ SECTIONS ============ -->
     <div class="pc-card mb-6">
         <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="pc-card__title">Content Sections</h2>
-                <p class="pc-card__sub">Blocks shown down the page, in order. Card layouts can be edited inside their section.</p>
+                <p id="section-order-status" class="pc-status pc-card__sub">
+                    Blocks shown down the page, in order. Drag a section by its handle to move it.
+                </p>
             </div>
             <a href="{% url 'page_section_create' page.slug %}" class="pc-btn pc-btn--primary">Add Section</a>
         </div>
 
-        <ul class="divide-y divide-slate-100">
+        <ul class="divide-y divide-slate-100"
+            data-sortable="sections"
+            data-reorder-url="{% url 'page_sections_reorder' page.slug %}">
             {% for section in sections %}
-            <li class="p-5 {% if not section.is_visible %}bg-slate-50/60{% endif %}">
+            <li class="p-5 {% if not section.is_visible %}bg-slate-50/60{% endif %}" data-section-id="{{ section.id }}">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="flex min-w-0 gap-3">
-                    <!-- Reorder -->
-                    <div class="flex flex-col gap-1 pt-0.5">
-                        <form method="POST" action="{% url 'page_section_move' section.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="direction" value="up">
-                            <button type="submit" class="pc-move" {% if forloop.first %}disabled{% endif %} title="Move up">↑</button>
-                        </form>
-                        <form method="POST" action="{% url 'page_section_move' section.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="direction" value="down">
-                            <button type="submit" class="pc-move" {% if forloop.last %}disabled{% endif %} title="Move down">↓</button>
-                        </form>
+                    <!-- Drag handle; arrow keys post the one-step move so this works without a pointer. -->
+                    <div class="flex flex-col items-center gap-1 pt-0.5">
+                        <button type="button" class="js-section-handle pc-handle" title="Drag to reorder (or focus and press ↑ / ↓)"
+                                aria-label="Reorder {{ section.heading|default:'section' }}"
+                                onkeydown="nxKeyboardMove(event, {{ section.id }})">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path d="M7 5a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 11a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 17a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2z" />
+                            </svg>
+                        </button>
+                        <span class="js-position text-xs font-semibold text-slate-400">{{ forloop.counter }}</span>
                     </div>
 
                     <div class="min-w-0">
@@ -132,49 +174,40 @@
                         {% if section.subheading %}
                             <p class="mt-1 truncate text-sm text-slate-500">{{ section.subheading }}</p>
                         {% endif %}
-                        <p class="mt-1 line-clamp-2 text-xs text-slate-400">
-                            {{ section.body|striptags|truncatewords:26|default:"No content yet." }}
-                        </p>
+                        {% if section.content_source %}
+                            <p class="mt-1 text-xs text-slate-400">
+                                Live data from the {{ section.content_source.label }} builder.
+                                {% if section.content_source.manager_url_name %}
+                                    <a href="{% url section.content_source.manager_url_name %}" class="font-medium text-primary hover:underline">Open builder →</a>
+                                {% endif %}
+                            </p>
+                        {% else %}
+                            <p class="mt-1 line-clamp-2 text-xs text-slate-400">
+                                {{ section.body|striptags|truncatewords:26|default:"No content yet." }}
+                            </p>
+                        {% endif %}
                     </div>
                 </div>
 
                 <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'page_section_edit' section.id %}" class="pc-btn">{% if section.layout == 'THRUST' or section.layout == 'PERSONNEL' or section.layout == 'ACTIVITIES' or section.layout == 'PROCESSES' or section.layout == 'TARGETS' %}Edit heading{% else %}Edit{% endif %}</a>
+                    <a href="{% url 'page_section_edit' section.id %}" class="pc-btn">{% if section.content_source %}Edit heading{% else %}Edit{% endif %}</a>
                     <form method="POST" action="{% url 'page_section_delete' section.id %}"
-                          onsubmit="return confirm('Delete this section? The content cannot be restored, but the edit stays in the change log.');">
+                          onsubmit="return confirm('Remove this block from the page? The builder\'s data is not deleted — only this block.');">
                         {% csrf_token %}
-                        <button type="submit" class="pc-btn pc-btn--danger">Delete</button>
+                        <button type="submit" class="pc-btn pc-btn--danger">Remove</button>
                     </form>
                 </div>
                 </div>
-                {% if section.layout == 'THRUST' %}
+
+                {% if section.content_source.editor_template %}
                 <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                    {% include "dashboard/admin/_home_inline_thrusts.html" with thrust_editor_id=section.id next_url=request.path %}
-                </div>
-                {% elif section.layout == 'PERSONNEL' %}
-                <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                    {% include "dashboard/admin/_home_inline_personnel.html" with editor_id=section.id next_url=request.path %}
-                </div>
-                {% elif section.layout == 'ACTIVITIES' %}
-                <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                    {% include "dashboard/admin/_home_inline_activities.html" with editor_id=section.id next_url=request.path %}
-                </div>
-                {% elif section.layout == 'PROCESSES' %}
-                <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                    {% include "dashboard/admin/_home_inline_processes.html" with editor_id=section.id next_url=request.path %}
-                </div>
-                {% elif section.layout == 'TARGETS' %}
-                <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                    {% include "dashboard/admin/_home_inline_targets.html" with editor_id=section.id next_url=request.path %}
+                    {% include section.content_source.editor_template with thrust_editor_id=section.id editor_id=section.id next_url=request.path %}
                 </div>
                 {% endif %}
             </li>
             {% empty %}
             <li class="p-10 text-center">
-                <p class="text-sm text-slate-500">No sections yet.</p>
-                <a href="{% url 'page_section_create' page.slug %}" class="mt-4 inline-flex pc-btn pc-btn--primary">
-                    Add the first section
-                </a>
+                <p class="text-sm text-slate-500">No sections yet. Drag a block from the palette above.</p>
             </li>
             {% endfor %}
         </ul>
@@ -208,30 +241,30 @@
         </ul>
     </div>
 
-    <!-- ============ LINKED DATA (managers without nested section CRUD) ============ -->
-    {% if linked_data %}
-    <div class="pc-card">
-        <div class="pc-card__head">
-            <h2 class="pc-card__title">Linked Data on This Page</h2>
-            <p class="pc-card__sub">
-                These parts of the page come from their own managers rather than the sections above.
-            </p>
-        </div>
-        <ul class="divide-y divide-slate-100">
-            {% for item in linked_data %}
-            <li class="flex items-center justify-between gap-4 px-5 py-3">
-                <div class="min-w-0">
-                    <p class="text-sm font-medium text-slate-800">{{ item.label }}</p>
-                    <p class="text-xs text-slate-500">{{ item.hint }}</p>
-                </div>
-                <a href="{% url item.url_name %}" class="pc-btn shrink-0">Manage →</a>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-
 </div>
+
+{# Reorder-by-keyboard: same endpoint the ↑/↓ buttons always used. #}
+<form id="keyboard-move-form" method="POST" class="hidden">
+    {% csrf_token %}
+    <input type="hidden" name="direction" value="">
+</form>
+<script>
+function nxAddSource(key) {
+    var form = document.getElementById("add-source-form");
+    form.querySelector("[name=source]").value = key;
+    form.querySelector("[name=position]").value = "";
+    form.submit();
+}
+function nxKeyboardMove(event, sectionId) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    var form = document.getElementById("keyboard-move-form");
+    form.action = "{% url 'page_section_move' 0 %}".replace("/0/", "/" + sectionId + "/");
+    form.querySelector("[name=direction]").value = event.key === "ArrowUp" ? "up" : "down";
+    form.submit();
+}
+</script>
+{% include "dashboard/admin/_source_reorder_script.html" %}
 
 <style>
 .pc-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
@@ -258,18 +291,24 @@
 .pc-btn--danger { color:#b91c1c; border-color:#fecaca; }
 .pc-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
 
-.pc-move {
-    display:grid; place-items:center; height:1.4rem; width:1.4rem;
-    border-radius:6px; border:1px solid #e2e8f0; background:#fff;
-    font-size:.7rem; color:#64748b; cursor:pointer; transition:all .15s;
-}
-.pc-move:hover:not(:disabled) { background:#f1f5f9; color:#0f172a; }
-.pc-move:disabled { opacity:.35; cursor:not-allowed; }
-
 .pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
 .pc-pill--ok { background:#dcfce7; color:#166534; }
 .pc-pill--warn { background:#fef3c7; color:#92400e; }
 .pc-pill--muted { background:#f1f5f9; color:#475569; }
+
+/* Palette tiles */
+.pc-tile {
+    display:flex; flex-direction:column; gap:.35rem; cursor:grab;
+    border:1px solid #e2e8f0; border-radius:12px; background:#fff; padding:.9rem 1rem;
+    transition:all .15s; user-select:none;
+}
+.pc-tile:hover, .pc-tile:focus-visible {
+    border-color:#103b07; background:#f8faf7; box-shadow:0 1px 3px rgba(15,23,42,.08); outline:none;
+}
+.pc-tile:active { cursor:grabbing; }
+.pc-tile__head { display:flex; align-items:center; gap:.5rem; }
+.pc-tile__name { font-size:.82rem; font-weight:600; color:#0f172a; }
+.pc-tile__desc { font-size:.72rem; line-height:1.35; color:#94a3b8; }
 
 .line-clamp-2 {
     display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;

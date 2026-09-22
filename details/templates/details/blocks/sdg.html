@@ -1,0 +1,33 @@
+{% comment %}
+Block: Sustainable Development Goals (source key SDG).
+
+Each card is a ``SustainableDevelopmentGoal`` row. Goals without their own
+uploaded artwork fall back to the bundled UN icon for their code, so the
+section looks identical to the old hardcoded markup until someone edits it.
+
+Context: section, data.goals
+{% endcomment %}
+{% load static %}
+{% include "details/blocks/_heading.html" %}
+
+<div class="mt-10">
+    {% if data.goals %}
+        <div class="home-sdg-grid grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {% for goal in data.goals %}
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+                {% if goal.image %}
+                    <img src="{{ goal.image.url }}" alt="{{ goal.title }}" class="w-28 mx-auto mb-4">
+                {% else %}
+                    <img src="{% static goal.icon_static_path %}" alt="{{ goal.title }}" class="w-28 mx-auto mb-4">
+                {% endif %}
+                <h4 class="font-semibold text-gray-800 text-sm">{{ goal.title }}</h4>
+                {% if goal.summary %}
+                    <p class="mt-1 text-xs text-gray-500">{{ goal.summary }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="py-10 text-center text-sm text-gray-400">No goals are published yet.</p>
+    {% endif %}
+</div>

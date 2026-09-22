@@ -1,0 +1,36 @@
+{% comment %}
+Block: Extension Activities (source key ACTIVITIES).
+Context: section, data.activities
+{% endcomment %}
+{% include "details/blocks/_heading.html" %}
+
+<div class="mt-10">
+    {% if data.activities %}
+        <div class="grid md:grid-cols-3 gap-8">
+            {% for activity in data.activities %}
+            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300 shadow-sm">
+                {% if activity.image %}
+                    <img src="{{ activity.image.url }}" alt="{{ activity.title }}" class="w-full h-44 object-cover">
+                {% endif %}
+                <div class="p-5">
+                    <h3 class="text-lg font-semibold mb-2 text-gray-900">{{ activity.title }}</h3>
+                    <p class="mb-2 text-xs text-gray-500">
+                        {% if activity.first_date and activity.last_date %}
+                            {% if activity.first_date == activity.last_date %}
+                                {{ activity.first_date|date:"M d, Y" }}
+                            {% else %}
+                                {{ activity.first_date|date:"M d, Y" }} – {{ activity.last_date|date:"M d, Y" }}
+                            {% endif %}
+                        {% else %}
+                            <span class="text-gray-400">No dates set</span>
+                        {% endif %}
+                    </p>
+                    <p class="text-sm text-gray-600">{{ activity.description|truncatewords:20 }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="py-10 text-center text-sm text-gray-400">No activities to show yet.</p>
+    {% endif %}
+</div>

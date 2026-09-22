@@ -3,6 +3,12 @@ import logging
 from django.db import DatabaseError, models
 from django_ckeditor_5.fields import CKEditor5Field
 
+from .content_sources import (
+    CONTENT_SOURCES,
+    DATA_LAYOUT_KEYS,
+    get_content_source,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -616,27 +622,22 @@ class PageSection(models.Model):
         CARD = "CARD", "Card"
         CALLOUT = "CALLOUT", "Callout / highlight"
         CTA = "CTA", "Call to action"
-        # --- Data layouts: the section renders admin-managed data ---
-        THRUST = "THRUST", "Extension thrust cards"
-        PROCESSES = "PROCESSES", "Extension processes"
-        TARGETS = "TARGETS", "Targets (planned vs. actual)"
-        PERSONNEL = "PERSONNEL", "Extension personnel"
-        SDG = "SDG", "Sustainable Development Goals"
-        ACTIVITIES = "ACTIVITIES", "Extension activities"
-        TEMPLATES = "TEMPLATES", "Template library"
+        # --- Data layouts: one per registered no-code builder ---
+        # Labels come from ``details.content_sources``; the registry is the
+        # single definition of a source, so adding a builder there is all it
+        # takes for a section to be able to display it.
+        THRUST = "THRUST", CONTENT_SOURCES["THRUST"].label
+        PROCESSES = "PROCESSES", CONTENT_SOURCES["PROCESSES"].label
+        TARGETS = "TARGETS", CONTENT_SOURCES["TARGETS"].label
+        PERSONNEL = "PERSONNEL", CONTENT_SOURCES["PERSONNEL"].label
+        SDG = "SDG", CONTENT_SOURCES["SDG"].label
+        ACTIVITIES = "ACTIVITIES", CONTENT_SOURCES["ACTIVITIES"].label
+        TEMPLATES = "TEMPLATES", CONTENT_SOURCES["TEMPLATES"].label
+        FORMS = "FORMS", CONTENT_SOURCES["FORMS"].label
 
-    #: Layouts that pull data from other models instead of rich text.
-    DATA_LAYOUTS = frozenset(
-        {
-            Layout.THRUST,
-            Layout.PROCESSES,
-            Layout.TARGETS,
-            Layout.PERSONNEL,
-            Layout.SDG,
-            Layout.ACTIVITIES,
-            Layout.TEMPLATES,
-        }
-    )
+    #: Layouts backed by a content source. Derived from the registry so a
+    #: source can never be half-registered (declared but not renderable).
+    DATA_LAYOUTS = frozenset(DATA_LAYOUT_KEYS)
 
     page = models.ForeignKey(SitePage, related_name="sections", on_delete=models.CASCADE)
     heading = models.CharField(max_length=220, blank=True, default="")
@@ -708,6 +709,22 @@ class PageSection(models.Model):
     def is_data_layout(self):
         return self.layout in self.DATA_LAYOUTS
 
+    @property
+    def content_source(self):
+        """The registered source this section displays, or ``None``.
+
+        Templates use it to find the block partial, the nested editor, and
+        the link to the builder that owns the data, without any of them
+        needing their own list of layouts.
+        """
+        return get_content_source(self.layout)
+
+    @property
+    def block_template(self):
+        """Public template for this section's block, or the text renderer."""
+        source = self.content_source
+        return source.block_template if source else "details/blocks/text.html"
+
     def state(self):
         """Snapshot of the editable fields, for the audit log."""
         return {
@@ -728,91 +745,22 @@ class PageSection(models.Model):
 
 def resolve_section_data(section):
     """
-    Query the data a data-driven section block needs.
+    Query the data a section's content source needs.
 
-    Returns a context dict for the block partial, or ``None`` for the
+    Returns the context dict for the block template, or ``None`` for the
     text-based layouts (rich text / card / callout / call-to-action), which
-    need no data lookup. All lookups mirror the queries the built-in Home
-    sections already use, so a block shows exactly what its built-in
-    counterpart shows.
+    need no data lookup.
+
+    The lookup itself lives with the source in ``details.content_sources``,
+    so the public pages, the admin preview, and the nested editors all read
+    exactly the same query. A section bound to a source that has been removed
+    from the registry resolves to ``None`` rather than raising, so an outdated
+    row can never take a public page down.
     """
-    layout = section.layout
-
-    if layout == PageSection.Layout.THRUST:
-        return {
-            "thrusts": HomeThrust.objects.filter(is_visible=True),
-        }
-
-    if layout == PageSection.Layout.SDG:
-        return {
-            "enabled": True,
-        }
-
-    if layout == PageSection.Layout.ACTIVITIES:
-        qs = (
-            Activity.objects.prefetch_related("dates")
-            .annotate(first_date=Min("dates__date"), last_date=Max("dates__date"))
-            .order_by("-last_date", "-id")
-        )
-        if section.limit_count:
-            qs = qs[: int(section.limit_count)]
-        return {"activities": qs}
-
-    if layout == PageSection.Layout.TARGETS:
-        year = section.target_year or (
-            Target.objects.order_by("-year").values_list("year", flat=True).first()
-            or timezone.now().year
-        )
-        rows = Target.objects.filter(year=year).order_by("campus", "metric")
-
-        def _progress(target):
-            if not target.planned_total:
-                return None
-            return round(100 * target.actual_total / target.planned_total)
-
-        by_campus = OrderedDict()
-        for row in rows:
-            by_campus.setdefault(row.campus, []).append({
-                "label": row.get_metric_display(),
-                "planned": row.planned_total,
-                "actual": row.actual_total,
-                "progress": _progress(row),
-            })
-        overall = {}
-        for key, label in Target.METRIC_CHOICES:
-            sums = rows.filter(metric=key).aggregate(
-                planned=Sum("planned_total"), actual=Sum("actual_total")
-            )
-            planned = sums["planned"] or 0
-            actual = sums["actual"] or 0
-            overall[key] = {
-                "label": label,
-                "planned": planned,
-                "actual": actual,
-                "progress": round(100 * actual / planned) if planned else None,
-            }
-        return {"year": year, "by_campus": by_campus, "overall": overall}
-
-    if layout == PageSection.Layout.PROCESSES:
-        return {
-            "processes": ExtensionProcess.objects.all()
-            .prefetch_related("steps")
-            .order_by("order", "id"),
-        }
-
-    if layout == PageSection.Layout.TEMPLATES:
-        return {
-            "templates": DocumentTemplate.objects.filter(is_active=True)
-            .order_by("category", "title"),
-        }
-
-    if layout == PageSection.Layout.PERSONNEL:
-        qs = Personnel.objects.all().order_by("pk")
-        if section.limit_count:
-            qs = qs[: int(section.limit_count)]
-        return {"personnel": qs}
-
-    return None
+    source = get_content_source(section.layout)
+    if source is None:
+        return None
+    return source.resolve(section)
 
 
 class PageContentLog(models.Model):
@@ -928,6 +876,79 @@ class HomeSectionHeading(models.Model):
     def as_map(cls):
         """All headings keyed by section, for cheap template lookup."""
         return {row.section: row for row in cls.objects.all()}
+
+
+class SustainableDevelopmentGoal(models.Model):
+    """
+    One SDG card, as a row instead of hardcoded markup.
+
+    The 17 goals used to be 17 copy-pasted ``<div>``s inside the block
+    template, which is why the SDG section could hold "data" that no admin
+    screen could reach: there was no table behind it. Each goal is now a row
+    with its own artwork, so the section behaves like every other no-code
+    builder — editable, reorderable, and hideable one card at a time.
+
+    ``code`` is the stable identity ("01".."17") shared with
+    ``proposals.ProposalSDG.sdg_code``, so a goal renamed here also renames
+    itself in the wizard and the generated documents.
+    """
+
+    code = models.CharField(
+        max_length=10,
+        unique=True,
+        help_text='Goal number, e.g. "01". Matches the code stored on proposals.',
+    )
+    title = models.CharField(max_length=200)
+    summary = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Optional line shown under the goal title.",
+    )
+    image = models.ImageField(
+        upload_to="sdg/",
+        blank=True,
+        null=True,
+        help_text="Custom artwork. Leave empty to use the official UN icon.",
+    )
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "code"]
+        verbose_name = "Sustainable Development Goal"
+
+    def __str__(self):
+        return f"SDG {self.code}: {self.title}"
+
+    def save(self, *args, **kwargs):
+        if self.order is None or self.order == 0:
+            last = SustainableDevelopmentGoal.objects.aggregate(Max("order"))["order__max"]
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def icon_static_path(self):
+        """Path of the bundled UN icon for this goal, e.g. ``sdg/01.png``."""
+        return f"sdg/{self.code}.png"
+
+    @classmethod
+    def as_choices(cls):
+        """``[(code, title), ...]`` for the proposal wizard's SDG checklist.
+
+        Falls back to the built-in list when the table is empty or not yet
+        migrated, so the wizard never renders an empty checklist.
+        """
+        from proposals.views.constants import SDG_LIST
+
+        try:
+            rows = list(cls.objects.filter(is_visible=True).values_list("code", "title"))
+        except DatabaseError:
+            logger.warning("SDG table unavailable; using the built-in list.", exc_info=True)
+            return list(SDG_LIST)
+        return rows or list(SDG_LIST)
 
 
 class HomeThrust(models.Model):

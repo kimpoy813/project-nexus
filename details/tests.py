@@ -43,6 +43,9 @@ class SitePageModelTests(TestCase):
 class PageSectionModelTests(TestCase):
     def setUp(self):
         self.page = SitePage.get_for(SitePage.Slug.ACHIEVEMENTS)
+        # Pages ship with seeded blocks; these tests are about ordering the
+        # sections they create themselves.
+        self.page.sections.all().delete()
 
     def test_order_is_assigned_automatically(self):
         first = PageSection.objects.create(page=self.page, heading="First", order=0)

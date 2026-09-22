@@ -37,7 +37,6 @@ from ..models import ProposalThrust
 from accounts.decorators import faculty_like_required, admin_required
 from .constants import (
     GENDER_ISSUE_LIST,
-    SDG_LIST,
     STEP_LABELS,
     THRUST_LIST,
     TOTAL_STEPS,
@@ -469,7 +468,12 @@ def _add_step_context_for_get(ctx, proposal, step):
             ctx["program_projects"] = proposal.program_projects.select_related("leader_user").all().order_by("order", "id")
 
     if step == 6:
-        ctx["sdgs"] = SDG_LIST
+        # The same goals the SDG block publishes. One list means renaming a
+        # goal in the builder renames it in this checklist too, instead of the
+        # two drifting apart.
+        from details.models import SustainableDevelopmentGoal
+
+        ctx["sdgs"] = SustainableDevelopmentGoal.as_choices()
         ctx["thrusts"] = THRUST_LIST
         ctx["selected_sdg_codes"] = set(
             proposal.sdg_links.values_list("sdg_code", flat=True)

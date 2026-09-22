@@ -85,146 +85,45 @@
     {% endif %}
 
     <!-- PAGE JUMP LINKS -->
+    {% comment %}
+    Derived from the page's own blocks, so removing or reordering a block in
+    the Page Content editor moves its jump link with it. The last two entries
+    are the built-in sections below, which are not admin-managed.
+    {% endcomment %}
     <section class="services-jump-links border-y border-gray-200">
         <div class="nx-page py-6">
             <nav aria-label="Services sections" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                <a href="#maintained-process" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
-                    <span class="text-xs font-bold text-primary">01</span> Process flow
-                </a>
-                <a href="#template-library" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
-                    <span class="text-xs font-bold text-primary">02</span> Templates
-                </a>
-                <a href="#office-forms" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
-                    <span class="text-xs font-bold text-primary">03</span> Forms
-                </a>
+                {% for section, data in visible_blocks %}
+                    {% if section.anchor and section.heading %}
+                    <a href="#{{ section.anchor }}" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                        <span class="text-xs font-bold text-primary">{{ forloop.counter|stringformat:"02d" }}</span> {{ section.heading }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
                 <a href="#proposal-wizard" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
-                    <span class="text-xs font-bold text-primary">04</span> Proposal checklist
+                    <span class="text-xs font-bold text-primary">→</span> Proposal checklist
                 </a>
                 <a href="#status-lifecycle" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
-                    <span class="text-xs font-bold text-primary">05</span> Status tracking
+                    <span class="text-xs font-bold text-primary">→</span> Status tracking
                 </a>
             </nav>
         </div>
     </section>
 
-    <!-- MAINTAINED PROCESS -->
-    <section id="maintained-process" class="services-section bg-white py-14 scroll-mt-28">
-        <div class="nx-page">
-            <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Process records</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">Current process flow</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">Open a process to view its saved steps.</p>
+    {% comment %}
+    Admin-composed blocks, rendered by the shared block renderer. The process
+    accordion, the Template Library, and the office forms used to be hardcoded
+    here; each is now a block bound to its builder, so the data has exactly one
+    home and the office can reorder or hide any of them.
+    {% endcomment %}
+    {% for section, data in visible_blocks %}
+        <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
+                 class="services-section scroll-mt-32 py-14 {% cycle 'bg-white' 'bg-gray-50' %}">
+            <div class="nx-page">
+                {% include "details/_page_section.html" %}
             </div>
-
-            <div class="mt-7 space-y-3">
-                {% for process in process_records %}
-                    <article class="services-process-card overflow-hidden rounded-lg border bg-white">
-                        <button type="button"
-                                class="process-toggle flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-gray-50"
-                                aria-expanded="false">
-                            <span>
-                                <span class="block text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Process {{ forloop.counter }}</span>
-                                <span class="mt-1 block text-lg font-semibold text-gray-950">{{ process.title }}</span>
-                            </span>
-                            <svg xmlns="http://www.w3.org/2000/svg"
-                                 class="chev h-5 w-5 shrink-0 text-gray-500 transition"
-                                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M5.22 7.22a.75.75 0 0 1 1.06 0L10 10.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-
-                        <div class="process-content hidden border-t border-gray-100 px-5 py-6">
-                            {% if process.steps.all %}
-                                <ol class="space-y-5">
-                                    {% for step in process.steps.all %}
-                                        <li class="grid gap-4 sm:grid-cols-[44px_minmax(0,1fr)]">
-                                            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-                                                {{ forloop.counter|stringformat:"02d" }}
-                                            </div>
-                                            <p class="services-step-copy pt-1 text-sm leading-7 text-gray-700">{{ step.description }}</p>
-                                        </li>
-                                    {% endfor %}
-                                </ol>
-                            {% else %}
-                                <p class="text-sm text-gray-500">No steps have been added yet.</p>
-                            {% endif %}
-                        </div>
-                    </article>
-                {% empty %}
-                    <div class="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-7 text-center">
-                        <p class="text-sm text-gray-600">No process records are published yet.</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-
-    <!-- TEMPLATE LIBRARY -->
-    <section id="template-library" class="services-section bg-gray-50 py-14 scroll-mt-28">
-        <div class="nx-page">
-            <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Downloads</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">Official templates</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">Download the latest office files.</p>
-            </div>
-
-            <div class="mt-7 nx-auto-grid nx-auto-grid--lg">
-                {% for item in office_templates %}
-                    <article class="services-info-card flex h-full flex-col rounded-lg border bg-white p-5">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ item.get_category_display }}</p>
-                        <h3 class="mt-2 text-lg font-bold text-gray-950">{{ item.title }}</h3>
-                        <p class="mt-2 text-sm leading-6 text-gray-600">{{ item.description|default:"Official office template."|truncatewords:12 }}</p>
-                        <div class="mt-auto flex items-center justify-between gap-3 pt-4">
-                            <span class="text-xs text-gray-500">{{ item.version_label|default:"Current" }}</span>
-                            {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary">Download</a>{% endif %}
-                        </div>
-                    </article>
-                {% empty %}
-                    <div class="rounded-lg border border-dashed border-gray-300 bg-white p-7 text-center">
-                        <p class="text-sm text-gray-600">No office templates are published yet.</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-
-    <!-- OFFICE FORMS -->
-    <section id="office-forms" class="services-section bg-white py-14 scroll-mt-28">
-        <div class="nx-page">
-            <div class="services-section__intro">
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Requirements</p>
-                <h2 class="mt-2 text-3xl font-bold text-gray-950">Current office forms</h2>
-                <p class="mt-3 text-sm leading-6 text-gray-600">The fields below reflect the current checklist.</p>
-            </div>
-
-            <div class="mt-7 grid gap-4 lg:grid-cols-2">
-                {% for form in dynamic_form_templates %}
-                    <article class="services-info-card rounded-lg border bg-white p-5">
-                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{{ form.get_applies_to_display }}</p>
-                        <h3 class="mt-2 text-lg font-bold text-gray-950">{{ form.name }}</h3>
-                        <p class="mt-2 text-sm leading-6 text-gray-600">{{ form.description|default:"Office-managed form."|truncatewords:12 }}</p>
-                        {% if form.instructions %}
-                            <p class="mt-3 rounded-lg bg-primary/5 p-3 text-xs leading-5 text-primary">{{ form.instructions|truncatewords:16 }}</p>
-                        {% endif %}
-                        <div class="mt-4 grid gap-2 sm:grid-cols-2">
-                            {% for field in form.fields.all %}
-                                <div class="rounded-lg border border-gray-100 bg-gray-50 p-3">
-                                    <p class="text-sm font-semibold text-gray-800">{{ field.label }}{% if field.required %} <span class="text-red-600">*</span>{% endif %}</p>
-                                    <p class="mt-1 text-xs text-gray-500">{{ field.get_field_type_display }}</p>
-                                </div>
-                            {% empty %}
-                                <p class="text-sm text-gray-500">No fields configured yet.</p>
-                            {% endfor %}
-                        </div>
-                    </article>
-                {% empty %}
-                    <div class="lg:col-span-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-7 text-center">
-                        <p class="text-sm text-gray-600">No admin-managed forms are published yet.</p>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
+        </section>
+    {% endfor %}
 
     <!-- PROPOSAL CHECKLIST -->
     <section id="proposal-wizard" class="services-section bg-gray-50 py-14 scroll-mt-28">
@@ -293,30 +192,5 @@
         </div>
     </section>
 
-    <script>
-        document.querySelectorAll(".process-toggle").forEach((button) => {
-            button.addEventListener("click", () => {
-                const content = button.nextElementSibling;
-                const chev = button.querySelector(".chev");
-                const willOpen = content.classList.contains("hidden");
-
-                content.classList.toggle("hidden", !willOpen);
-                button.setAttribute("aria-expanded", willOpen ? "true" : "false");
-                if (chev) {
-                    chev.classList.toggle("rotate-180", willOpen);
-                }
-            });
-        });
-    </script>
-
-    {% comment %}Admin-authored content blocks (shared block renderer) from the Page Content editor.{% endcomment %}
-    {% for section, data in visible_blocks %}
-        <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-                 class="services-section scroll-mt-32 border-t border-gray-200 py-14 {% cycle 'bg-white' 'bg-gray-50' %}">
-            <div class="nx-page">
-                {% include "details/_page_section.html" %}
-            </div>
-        </section>
-    {% endfor %}
 </div>
 {% endblock %}

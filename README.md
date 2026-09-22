@@ -121,6 +121,41 @@ Each `__init__.py` re-exports every public name, so `urls.py` refers to
 it to the package's `__init__.py` too** — otherwise the URLconf raises
 `AttributeError` at import. `accounts/tests/test_structure.py` guards this.
 
+## Public pages are composed from content sources
+
+A **content source** is a body of admin-managed data that has its own no-code
+builder: Extension Thrust cards, Personnel, Activities, Processes, Targets, the
+SDGs, the Template Library, the Form Builder. Every source is declared once in
+**`details/content_sources.py`**, and everything else reads from that registry:
+
+| Reads the registry | For |
+| --- | --- |
+| Page Content editor | the block palette an admin drags onto a page |
+| `PageSection.Layout` | the layout codes and their labels |
+| `resolve_section_data` | the query that feeds a block |
+| `details/blocks/<source>.html` | the public markup |
+| the nested editor | in-place CRUD inside the section |
+| `content_source_reorder` | drag-to-order the items in a source |
+
+**A page holds bindings, not copies.** Dropping the Template Library onto two
+pages publishes one list twice; editing a template in its builder updates both.
+That is the rule that keeps the system from becoming repetitive: data lives in
+exactly one table, and pages decide where to show it.
+
+### Adding a builder to the palette
+
+1. Add a `ContentSource(...)` to `_SOURCES` in `details/content_sources.py`.
+2. Add its layout to `PageSection.Layout` (label from the registry) and ship a
+   migration for the new choice.
+3. Create `details/templates/details/blocks/<key>.html`.
+4. Optionally add a nested editor partial and set `order_model` to make its
+   items draggable.
+
+Nothing in the four public page templates or the page editor needs to change.
+`accounts/tests/test_content_sources.py` fails if a source is declared but its
+template, manager URL, or resolver is missing — the exact half-registered state
+that used to leave a section rendering nothing.
+
 ## Layout and spacing
 
 Every screen is **full-bleed**: it spans the viewport and keeps its breathing

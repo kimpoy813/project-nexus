@@ -1,0 +1,59 @@
+{% comment %}
+Block: Extension Targets (source key TARGETS).
+Context: section, data.year, data.overall, data.by_campus
+{% endcomment %}
+{% load humanize %}
+{% include "details/blocks/_heading.html" %}
+
+<div class="mt-10">
+    {% if data.by_campus %}
+        <p class="mb-6 text-center text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+            {{ data.year }} targets
+        </p>
+
+        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {% for key, metric in data.overall.items %}
+                <div class="bg-white p-5 rounded-xl border border-gray-100 text-center shadow-sm">
+                    <div class="text-xs font-semibold text-gray-500 mb-2">{{ metric.label }}</div>
+                    <div class="text-xl font-bold text-primary">Planned: {{ metric.planned|intcomma }}</div>
+                    <div class="text-base font-semibold text-primary mt-1">Actual: {{ metric.actual|intcomma }}</div>
+                    {% if metric.progress is not None %}
+                        <div class="mt-1 text-xs text-gray-500">{{ metric.progress }}% of plan</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+
+        {% for campus, campus_targets in data.by_campus.items %}
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-primary mb-3">{{ campus }}</h3>
+            <div class="overflow-x-auto bg-white rounded-xl border border-gray-100 shadow-sm">
+                <table class="min-w-full text-sm text-left">
+                    <thead class="bg-gray-100 text-gray-700">
+                        <tr>
+                            <th class="px-4 py-2">Metric</th>
+                            <th class="px-4 py-2 text-center">Planned</th>
+                            <th class="px-4 py-2 text-center">Actual</th>
+                            <th class="px-4 py-2 text-center">Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in campus_targets %}
+                        <tr class="border-b last:border-0 hover:bg-gray-50">
+                            <td class="px-4 py-3 font-medium text-gray-800">{{ t.label }}</td>
+                            <td class="px-4 py-3 text-center">{{ t.planned|intcomma }}</td>
+                            <td class="px-4 py-3 text-center">{{ t.actual|intcomma }}</td>
+                            <td class="px-4 py-3 text-center font-semibold text-primary">
+                                {% if t.progress is not None %}{{ t.progress }}%{% else %}—{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="py-10 text-center text-sm text-gray-400">No targets recorded for {{ data.year|default:"the selected year" }} yet.</p>
+    {% endif %}
+</div>

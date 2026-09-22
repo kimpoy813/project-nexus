@@ -1,0 +1,138 @@
+{% comment %}
+Shared drag-and-drop wiring for the page content editor.
+
+Two kinds of list are draggable, and both work the same way: drag a row by its
+handle, the new order is POSTed as JSON, and a status line reports the result.
+
+  [data-sortable="sections"]  the page's sections        -> page_sections_reorder
+  [data-sortable="source"]    the items inside a source  -> content_source_reorder
+
+A third interaction drops a *new* block: dragging a palette tile into the
+section list posts the source key and the position it landed at.
+
+Everything degrades safely. If Sortable fails to load, the palette tiles are
+still buttons that append a block, and each section keeps its ↑/↓ controls.
+{% endcomment %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script>
+(function () {
+    var csrfInput = document.querySelector("[name=csrfmiddlewaretoken]");
+    var csrfToken = csrfInput ? csrfInput.value : "";
+
+    function setStatus(el, text, kind) {
+        if (!el) return;
+        el.textContent = text;
+        el.dataset.state = kind || "idle";
+    }
+
+    function postOrder(url, payload, statusEl, okText) {
+        setStatus(statusEl, "Saving order…", "busy");
+        return fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+            body: JSON.stringify(payload)
+        }).then(function (response) {
+            if (!response.ok) throw new Error("save failed");
+            return response.json();
+        }).then(function (data) {
+            if (!data || !data.ok) throw new Error(data && data.error ? data.error : "save failed");
+            setStatus(statusEl, okText, "ok");
+        }).catch(function () {
+            setStatus(statusEl, "Could not save the new order. Reload the page and try again.", "err");
+        });
+    }
+
+    function idsOf(list, attribute) {
+        return Array.prototype.map.call(
+            list.querySelectorAll("[" + attribute + "]"),
+            function (row) { return Number(row.getAttribute(attribute)); }
+        );
+    }
+
+    function renumber(list) {
+        var labels = list.querySelectorAll(".js-position");
+        Array.prototype.forEach.call(labels, function (el, index) {
+            el.textContent = String(index + 1);
+        });
+    }
+
+    // ---- 1. Reorder the page's sections -------------------------------
+    var sectionList = document.querySelector('[data-sortable="sections"]');
+    if (sectionList && typeof Sortable !== "undefined") {
+        var sectionStatus = document.getElementById("section-order-status");
+        new Sortable(sectionList, {
+            handle: ".js-section-handle",
+            animation: 150,
+            ghostClass: "pc-drag-ghost",
+            group: { name: "page-sections", pull: false, put: ["palette"] },
+            onEnd: function (event) {
+                // A tile dropped in from the palette is handled by onAdd.
+                if (event.from !== sectionList) return;
+                renumber(sectionList);
+                postOrder(
+                    sectionList.dataset.reorderUrl,
+                    { section_ids: idsOf(sectionList, "data-section-id") },
+                    sectionStatus,
+                    "Order saved. This is the order visitors will see."
+                );
+            },
+            onAdd: function (event) {
+                // Dropping a palette tile: submit the source and its position.
+                var item = event.item;
+                var sourceKey = item.getAttribute("data-source-key");
+                item.parentNode.removeChild(item);
+                if (!sourceKey) return;
+                var form = document.getElementById("add-source-form");
+                if (!form) return;
+                form.querySelector("[name=source]").value = sourceKey;
+                form.querySelector("[name=position]").value = String(event.newIndex + 1);
+                form.submit();
+            }
+        });
+    }
+
+    // ---- 2. Drag a builder out of the palette -------------------------
+    var palette = document.querySelector('[data-sortable="palette"]');
+    if (palette && typeof Sortable !== "undefined") {
+        new Sortable(palette, {
+            animation: 150,
+            sort: false,
+            group: { name: "palette", pull: "clone", put: false }
+        });
+    }
+
+    // ---- 3. Reorder the items inside a source -------------------------
+    var sourceLists = document.querySelectorAll('[data-sortable="source"]');
+    Array.prototype.forEach.call(sourceLists, function (list) {
+        if (typeof Sortable === "undefined") return;
+        var status = document.getElementById(list.dataset.statusId);
+        new Sortable(list, {
+            handle: ".js-item-handle",
+            animation: 150,
+            ghostClass: "pc-drag-ghost",
+            onEnd: function () {
+                renumber(list);
+                postOrder(
+                    list.dataset.reorderUrl,
+                    { item_ids: idsOf(list, "data-item-id") },
+                    status,
+                    "Order saved. It applies everywhere this block is published."
+                );
+            }
+        });
+    });
+})();
+</script>
+<style>
+.pc-drag-ghost { opacity: .45; background: #f1f5f9; }
+.pc-handle {
+    display: grid; place-items: center; height: 1.75rem; width: 1.75rem;
+    border-radius: 8px; border: 1px solid #e2e8f0; background: #fff;
+    color: #94a3b8; cursor: grab; transition: all .15s;
+}
+.pc-handle:hover { color: #0f172a; background: #f8fafc; border-color: #cbd5e1; }
+.pc-handle:active { cursor: grabbing; }
+.pc-status[data-state="ok"] { color: #15803d; }
+.pc-status[data-state="err"] { color: #b91c1c; }
+.pc-status[data-state="busy"] { color: #a16207; }
+</style>

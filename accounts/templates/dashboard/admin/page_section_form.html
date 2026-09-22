@@ -65,8 +65,9 @@
                         {% endfor %}
                     </select>
                     <p class="mt-1 text-xs text-slate-400">
-                        Data layouts pull live content from the system's own managers
-                        (activities, targets, processes, templates, personnel).
+                        Text layouts render what you type here. The rest are no-code
+                        builders — the block shows that builder's live data, so changing
+                        the layout rebinds this section to a different source.
                     </p>
                 </div>
                 <div>
@@ -158,56 +159,20 @@
         </div>
     </form>
 
-    {# Card CRUD is a separate POST (not nested in the section form). #}
-    <div data-layout-group="THRUST" class="ps-card mt-6 hidden">
+    {# The nested editor for whichever source this section is bound to.
+       One include, resolved from the registry — not one card per layout. #}
+    {% if preview_section.content_source.editor_template %}
+    <div class="ps-card mt-6">
         <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="text-sm font-semibold text-slate-900">Extension Thrust cards</h2>
+            <h2 class="text-sm font-semibold text-slate-900">{{ preview_section.content_source.label }}</h2>
             <p class="mt-0.5 text-xs text-slate-400">
-                Each Extension Thrust card is edited here. Heading and subheading above are the section title on the public page.
+                {{ preview_section.content_source.description }}
+                The heading and subheading above are this block's title on the public page.
             </p>
         </div>
-        {% include "dashboard/admin/_home_inline_thrusts.html" with thrust_editor_id=section.id|default:'new' next_url=request.path %}
+        {% include preview_section.content_source.editor_template with thrust_editor_id=section.id|default:'new' editor_id=section.id|default:'new' next_url=request.path %}
     </div>
-
-    <div data-layout-group="PERSONNEL" class="ps-card mt-6 hidden">
-        <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="text-sm font-semibold text-slate-900">Personnel</h2>
-            <p class="mt-0.5 text-xs text-slate-400">
-                Each person is edited here. Heading and subheading above are the section title on the public page.
-            </p>
-        </div>
-        {% include "dashboard/admin/_home_inline_personnel.html" with editor_id=section.id|default:'new' next_url=request.path %}
-    </div>
-
-    <div data-layout-group="ACTIVITIES" class="ps-card mt-6 hidden">
-        <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="text-sm font-semibold text-slate-900">Activities</h2>
-            <p class="mt-0.5 text-xs text-slate-400">
-                Each activity is edited here. Heading and subheading above are the section title on the public page.
-            </p>
-        </div>
-        {% include "dashboard/admin/_home_inline_activities.html" with editor_id=section.id|default:'new' next_url=request.path %}
-    </div>
-
-    <div data-layout-group="PROCESSES" class="ps-card mt-6 hidden">
-        <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="text-sm font-semibold text-slate-900">Processes</h2>
-            <p class="mt-0.5 text-xs text-slate-400">
-                Each process and its steps are edited here. Heading and subheading above are the section title on the public page.
-            </p>
-        </div>
-        {% include "dashboard/admin/_home_inline_processes.html" with editor_id=section.id|default:'new' next_url=request.path %}
-    </div>
-
-    <div data-layout-group="TARGETS" class="ps-card mt-6 hidden">
-        <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="text-sm font-semibold text-slate-900">Targets</h2>
-            <p class="mt-0.5 text-xs text-slate-400">
-                Each planned vs. actual figure is edited here. Heading and subheading above are the section title on the public page.
-            </p>
-        </div>
-        {% include "dashboard/admin/_home_inline_targets.html" with editor_id=section.id|default:'new' next_url=request.path %}
-    </div>
+    {% endif %}
 
     {# ---------- LIVE PREVIEW (server-rendered with the same block partial) ---------- #}
     <div class="ps-card mt-6">
@@ -225,13 +190,16 @@
 
 </div>
 
+{{ data_layout_keys|json_script:"nx-data-layouts" }}
 <script>
 // Show/hide the block option groups that apply to the selected layout.
 (function () {
     const layoutSelect = document.getElementById("id_layout");
     if (!layoutSelect) return;
 
-    const dataLayouts = ["ACTIVITIES", "TARGETS", "PROCESSES", "TEMPLATES", "PERSONNEL", "THRUST", "SDG"];
+    // Read from details.content_sources via json_script, so registering a new
+    // builder needs no edit here (and the value can never inject markup).
+    const dataLayouts = JSON.parse(document.getElementById("nx-data-layouts").textContent);
     const bodyHint = document.getElementById("body-hint");
 
     function syncBlockOptions() {
@@ -251,6 +219,7 @@
 })();
 </script>
 {% include "dashboard/admin/_home_inline_scripts.html" %}
+{% include "dashboard/admin/_source_reorder_script.html" %}
 
 <style>
 .ps-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }

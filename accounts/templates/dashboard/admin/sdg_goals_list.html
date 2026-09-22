@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Sustainable Development Goals - NExUS{% endblock %}
+
+{% block content %}
+<div class="nx-page py-8">
+    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Builder</p>
+            <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Sustainable Development Goals</h1>
+            <p class="mt-2 text-sm text-gray-600">
+                The goals published by the SDG block, and the checklist proponents pick from in the proposal wizard.
+                Drag a goal to reorder it.
+            </p>
+        </div>
+        <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="mb-4 rounded-lg border px-4 py-3 text-sm
+                {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800
+                {% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800
+                {% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% csrf_token %}
+    <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        {% include "dashboard/admin/_inline_sdgs.html" with inline_sdgs=goals editor_id="standalone" next_url=request.path %}
+    </div>
+</div>
+
+{% include "dashboard/admin/_source_reorder_script.html" %}
+
+<style>
+.pc-label { display:block; margin-bottom:.3rem; font-size:.75rem; font-weight:500; color:#64748b; }
+.pc-input {
+    display:block; width:100%; padding:.55rem .75rem; border-radius:8px;
+    font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
+    outline:none; transition:border-color .15s;
+}
+.pc-input:focus { border-color:#103b07; }
+.pc-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
+    border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
+}
+.pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
+.pc-btn--primary:hover { opacity:.85; background:#103b07; }
+.pc-btn--danger { color:#b91c1c; border-color:#fecaca; }
+.pc-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
+.pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
+.pc-pill--warn { background:#fef3c7; color:#92400e; }
+.pc-pill--muted { background:#f1f5f9; color:#475569; }
+</style>
+{% endblock %}

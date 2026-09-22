@@ -2,18 +2,11 @@
 Public-facing Services page.
 """
 
-from django.db.models import Prefetch
 from django.shortcuts import render
-from details.models import DocumentTemplate
-from details.models import DynamicFormTemplate
-from details.models import ExtensionProcess
-from details.models import ProcessStep
 from details.models import SitePage
 from details.models import WorkflowPhase
 from details.views import build_visible_blocks
-from ..models import ExtensionThrust
 from ..models import Proposal
-from ..models import SDG
 from .constants import STEP_LABELS, TOTAL_STEPS
 
 
@@ -29,21 +22,14 @@ def _build_status_flow(choices, progress_map):
 
 
 def services_home(request):
-    sdgs = SDG.objects.all().order_by("code")
-    thrusts = ExtensionThrust.objects.all().order_by("name")
-    process_records = (
-        ExtensionProcess.objects
-        .prefetch_related(
-            Prefetch(
-                "steps",
-                queryset=ProcessStep.objects.order_by("order", "id"),
-            )
-        )
-        .order_by("order", "id")
-    )
-    office_templates = DocumentTemplate.objects.filter(is_active=True).order_by("category", "title")
-    dynamic_form_templates = DynamicFormTemplate.objects.filter(is_active=True).prefetch_related("fields").order_by("applies_to", "name")
+    """The Services page.
 
+    Processes, the Template Library, and the office forms are no longer
+    queried here: each is a content block on the page, so its data comes from
+    ``build_visible_blocks`` via the source registry — one query, one renderer,
+    one place to edit. What stays is what genuinely belongs to this page: the
+    workflow phases and the status maps that drive real permissions.
+    """
     # Status codes and progress maps stay in the model because they drive real
     # permissions; only the public presentation is admin-editable.
     status_flows = {
@@ -71,15 +57,10 @@ def services_home(request):
 
     page = SitePage.get_for(SitePage.Slug.SERVICES)
     context = {
-        "sdgs": sdgs,
-        "thrusts": thrusts,
-        "process_records": process_records,
         "workflow_phases": workflow_phases,
         "workflow_weight_total": weight_total,
         "wizard_steps": STEP_LABELS,
         "total_wizard_steps": TOTAL_STEPS,
-        "office_templates": office_templates,
-        "dynamic_form_templates": dynamic_form_templates,
         "page": page,
         "visible_blocks": build_visible_blocks(page),
     }
