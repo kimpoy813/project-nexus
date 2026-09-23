@@ -222,6 +222,36 @@ urlpatterns = [
         views.proposal_template_reset,
         name="proposal_template_reset",
     ),
+    path(
+        "admin/proposal-templates/<str:key>/download/",
+        views.proposal_template_download,
+        name="proposal_template_download",
+    ),
+    path(
+        "admin/proposal-templates/<str:key>/edit/",
+        views.proposal_template_edit,
+        name="proposal_template_edit",
+    ),
+    path(
+        "admin/proposal-templates/custom/add/",
+        views.proposal_custom_template_add,
+        name="proposal_custom_template_add",
+    ),
+    path(
+        "admin/proposal-templates/custom/<int:pk>/edit/",
+        views.proposal_custom_template_edit,
+        name="proposal_custom_template_edit",
+    ),
+    path(
+        "admin/proposal-templates/custom/<int:pk>/download/",
+        views.proposal_custom_template_download,
+        name="proposal_custom_template_download",
+    ),
+    path(
+        "admin/proposal-templates/custom/<int:pk>/delete/",
+        views.proposal_custom_template_delete,
+        name="proposal_custom_template_delete",
+    ),
 
     path("admin/wizard-steps/", views.wizard_steps_manager, name="wizard_steps_manager"),
     path("admin/wizard-steps/create/", views.wizard_step_create, name="wizard_step_create"),

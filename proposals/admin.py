@@ -1,5 +1,6 @@
 from django.contrib import admin
 
+from .models import CustomProposalTemplate
 from .models import ProposalPhaseLog
 from .models import ProposalTemplateOverride
 
@@ -19,3 +20,13 @@ class ProposalTemplateOverrideAdmin(admin.ModelAdmin):
     search_fields = ("key", "notes")
     readonly_fields = ("uploaded_at", "updated_at")
     ordering = ("key",)
+
+
+@admin.register(CustomProposalTemplate)
+class CustomProposalTemplateAdmin(admin.ModelAdmin):
+    list_display = ("title", "key", "file", "is_active", "uploaded_by", "updated_at")
+    list_filter = ("is_active",)
+    search_fields = ("title", "key", "notes")
+    prepopulated_fields = {"key": ("title",)}
+    readonly_fields = ("uploaded_at", "updated_at")
+    ordering = ("title",)

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ label }} - NExUS{% endblock %}
+{% block content %}
+<div class="nx-page py-8">
+    <div class="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Proposal Document Templates</p>
+            <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Edit “{{ label }}”</h1>
+            <p class="mt-2 text-sm text-gray-600">
+                Download the file, make the office's changes in Word or Excel, then upload the revised copy.
+                Leaving the file picker empty keeps the copy that is in use now.
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% if row.downloadable %}
+            <a href="{% url 'proposal_template_download' slot_key %}"
+               class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Download current file</a>
+            {% endif %}
+            <a href="{% url 'proposal_templates_list' %}"
+               class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to templates</a>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-3">
+        <form method="post" enctype="multipart/form-data"
+              class="lg:col-span-2 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-5">
+            {% csrf_token %}
+            {% if storage_configuration_error %}
+                <div role="alert" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                    <p class="font-black">File uploads are not configured yet.</p>
+                    <p class="mt-1">{{ storage_configuration_error }} You can still edit the note.</p>
+                </div>
+            {% endif %}
+            {% if storage_configuration_warnings %}
+                <div role="status" class="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+                    <p class="font-black">File storage works, but please check this.</p>
+                    {% for warning in storage_configuration_warnings %}<p class="mt-1">{{ warning }}</p>{% endfor %}
+                </div>
+            {% endif %}
+            {% if form.non_field_errors %}
+                <div role="alert" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div>
+                <label for="{{ form.file.id_for_label }}" class="block text-sm font-bold text-gray-700 mb-1">
+                    Template file <span class="text-xs font-semibold text-gray-500">(.{{ expected_extension }})</span>
+                    {% if not override %}<span class="text-red-600">*</span>{% endif %}
+                </label>
+                {% if row.live_filename %}
+                    <p class="mb-2 text-xs text-gray-500">
+                        In use now: <span class="font-bold text-gray-700">{{ row.live_filename }}</span>
+                        {% if row.size %}({{ row.size|filesizeformat }}){% endif %}
+                        — {% if override %}an uploaded replacement{% else %}the default file shipped with the system{% endif %}.
+                    </p>
+                {% endif %}
+                {{ form.file }}
+                {% for error in form.file.errors %}<p class="mt-1 text-xs font-semibold text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <div>
+                <label for="{{ form.notes.id_for_label }}" class="block text-sm font-bold text-gray-700 mb-1">Notes</label>
+                {{ form.notes }}
+                <p class="mt-1 text-xs text-gray-500">Shown on the templates screen so the next person knows what changed.</p>
+                {% for error in form.notes.errors %}<p class="mt-1 text-xs font-semibold text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+
+            <div class="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-5">
+                {% if override %}
+                <button type="submit" form="reset-form" formnovalidate
+                        class="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50"
+                        onclick="return confirm('Reset this template to the default file shipped with the system?');">
+                    Reset to default
+                </button>
+                {% endif %}
+                <a href="{% url 'proposal_templates_list' %}"
+                   class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
+                <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Save template</button>
+            </div>
+        </form>
+
+        <div class="lg:col-span-1">
+            <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm text-sm text-gray-600 space-y-3">
+                <h2 class="text-base font-black text-gray-900">About this template</h2>
+                <p><span class="font-bold text-gray-700">Slot key:</span> {{ slot_key }}</p>
+                <p><span class="font-bold text-gray-700">Format:</span> .{{ expected_extension }} only — the generator reads exactly this format.</p>
+                {% if override %}
+                    <p>
+                        <span class="font-bold text-gray-700">Replaced by</span>
+                        {{ override.uploaded_by.get_full_name|default:override.uploaded_by.username|default:"admin" }}
+                        on {{ override.updated_at|date:"M d, Y" }}.
+                    </p>
+                    {% if override.notes %}<p class="italic">“{{ override.notes }}”</p>{% endif %}
+                {% else %}
+                    <p>No replacement has been uploaded yet, so the default file shipped with the system is in use.</p>
+                {% endif %}
+                <p class="text-xs text-gray-500">
+                    Resetting removes the replacement; the bundled file is never overwritten, so the original can always be restored.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if override %}
+    <form id="reset-form" method="post" action="{% url 'proposal_template_reset' %}" class="hidden">
+        {% csrf_token %}
+        <input type="hidden" name="key" value="{{ slot_key }}">
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

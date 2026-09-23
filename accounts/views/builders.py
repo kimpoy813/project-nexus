@@ -4,6 +4,7 @@ No-code builders: document templates, proposal templates, wizard steps, role cap
 from collections import OrderedDict
 import json
 import logging
+from urllib.parse import quote
 
 from botocore.exceptions import BotoCoreError
 from botocore.exceptions import ClientError
@@ -12,6 +13,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import SuspiciousFileOperation
 from django.db import transaction
+from django.http import FileResponse
+from django.http import Http404
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
@@ -25,7 +28,10 @@ from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from details.proponent_fields import PROPONENT_STEP_NO, ensure_proponent_repeater_form
 from ..decorators import admin_required
+from ..forms import CustomProposalTemplateForm
+from ..forms import CustomProposalTemplateUploadForm
 from ..forms import DocumentTemplateForm
+from ..forms import ProposalTemplateEditForm
 from ..forms import ProposalTemplateReplacementForm
 from ..storage_diagnostics import describe_storage_exception
 from ..storage_diagnostics import storage_failure_hint
@@ -345,29 +351,82 @@ def _proposal_template_label(key):
     return TEMPLATE_FILES.get(key, (key, ""))[0]
 
 
+def _proposal_template_storage_context(**extra):
+    """Storage state shared by every screen on this page.
+
+    The office uploads straight to remote object storage, so the screens say
+    out loud when that storage is not configured instead of failing on save.
+    """
+    context = {
+        "storage_configuration_error": _template_storage_is_unavailable(),
+        "storage_configuration_warnings": getattr(
+            settings, "SUPABASE_STORAGE_CONFIGURATION_WARNINGS", ()
+        ),
+    }
+    context.update(extra)
+    return context
+
+
+def _unique_custom_template_key(candidate):
+    """A key that is free, derived from ``candidate``.
+
+    Two files titled "MOA Renewal Form" cannot share one identity, so the
+    second one is filed as ``moa-renewal-form-2.docx``.
+    """
+    from proposals.models import CustomProposalTemplate
+
+    stem, dot, extension = candidate.rpartition(".")
+    stem = stem or candidate
+    if not dot:
+        extension = ""
+
+    key = f"{stem}.{extension}" if extension else stem
+    index = 2
+    while CustomProposalTemplate.objects.filter(key=key).exists():
+        suffix = f".{extension}" if extension else ""
+        key = f"{stem}-{index}{suffix}"
+        index += 1
+    return key
+
+
+def _custom_template_title(filename):
+    """A readable default title taken from an uploaded filename."""
+    from pathlib import Path as _Path
+
+    stem = _Path(filename or "").stem
+    return stem.replace("_", " ").replace("-", " ").strip() or "Untitled template"
+
+
+def _file_download_response_from_stream(stream, filename):
+    """Serve an open stream as a named download with the right content type."""
+    from proposals.template_store import content_type_for
+
+    response = FileResponse(stream, content_type=content_type_for(filename))
+    response["Content-Disposition"] = f'attachment; filename="{quote(filename)}"'
+    return response
+
+
 @login_required
 @admin_required
 def proposal_templates_list(request):
-    """Manage the DOCX/XLSX templates the system generates documents from."""
+    """Manage the templates the system generates proposal documents from."""
+    from proposals.models import CustomProposalTemplate
     from proposals.models import ProposalTemplateOverride
-    from proposals.template_store import TEMPLATE_FILES
-
-    rows = _proposal_template_slot_rows()
-    replacement_form = ProposalTemplateReplacementForm()
+    from proposals.template_store import CUSTOM_TEMPLATE_EXTENSIONS, TEMPLATE_FILES
 
     return render(
         request,
         "dashboard/admin/proposal_templates_list.html",
-        {
-            "rows": rows,
-            "replacement_form": replacement_form,
-            "slot_count": len(TEMPLATE_FILES),
-            "override_count": ProposalTemplateOverride.objects.count(),
-            "storage_configuration_error": _template_storage_is_unavailable(),
-            "storage_configuration_warnings": getattr(
-                settings, "SUPABASE_STORAGE_CONFIGURATION_WARNINGS", ()
-            ),
-        },
+        _proposal_template_storage_context(
+            rows=_proposal_template_slot_rows(),
+            custom_templates=CustomProposalTemplate.objects.all().order_by("title"),
+            replacement_form=ProposalTemplateReplacementForm(),
+            add_form=CustomProposalTemplateUploadForm(),
+            slot_count=len(TEMPLATE_FILES),
+            override_count=ProposalTemplateOverride.objects.count(),
+            custom_template_count=CustomProposalTemplate.objects.count(),
+            accepted_extensions=CUSTOM_TEMPLATE_EXTENSIONS,
+        ),
     )
 
 
@@ -451,6 +510,280 @@ def proposal_template_reset(request):
     else:
         messages.info(request, "This template is already using the default file.")
 
+    return redirect("proposal_templates_list")
+
+
+@login_required
+@admin_required
+def proposal_template_download(request, key):
+    """Hand back the live copy of a built-in template.
+
+    The office edits these files in Word/Excel before re-uploading them, so
+    the default that ships with the code has to be downloadable too — not
+    only a replacement an administrator has already uploaded.
+    """
+    from proposals.template_store import TEMPLATE_FILES
+    from proposals.template_store import TemplateNotFound
+    from proposals.template_store import open_template
+
+    if key not in TEMPLATE_FILES:
+        raise Http404("Unknown template slot.")
+
+    label = _proposal_template_label(key)
+    try:
+        stream, filename, _is_override = open_template(key)
+    except TemplateNotFound:
+        messages.error(request, f'There is no file stored for "{label}" yet.')
+        return redirect("proposal_templates_list")
+
+    return _file_download_response_from_stream(stream, filename)
+
+
+@login_required
+@admin_required
+def proposal_template_edit(request, key):
+    """Edit one built-in slot: swap its file and/or correct its note."""
+    from proposals.models import ProposalTemplateOverride
+    from proposals.template_store import TEMPLATE_FILES
+
+    if key not in TEMPLATE_FILES:
+        raise Http404("Unknown template slot.")
+
+    label = _proposal_template_label(key)
+    override = ProposalTemplateOverride.objects.filter(key=key).first()
+    form = ProposalTemplateEditForm(
+        request.POST or None,
+        request.FILES or None,
+        slot_key=key,
+        has_override=override is not None,
+        initial={"notes": override.notes if override else ""},
+    )
+
+    if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data.get("file")
+        notes = form.cleaned_data["notes"]
+
+        storage_error = _template_storage_is_unavailable()
+        if upload and storage_error:
+            logger.error("Proposal template edit blocked: %s", storage_error)
+            messages.error(
+                request,
+                "The file was not saved. File storage needs to be configured first.",
+            )
+        else:
+            try:
+                if override is None:
+                    override = ProposalTemplateOverride.objects.create(
+                        key=key,
+                        file=upload,
+                        notes=notes,
+                        uploaded_by=request.user,
+                    )
+                else:
+                    override.notes = notes
+                    override.uploaded_by = request.user
+                    if upload:
+                        override.file = upload
+                    override.save()
+            except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
+                logger.exception(
+                    "Could not save proposal template %s (user_id=%s).", key, request.user.pk
+                )
+                messages.error(
+                    request,
+                    _storage_failure_message(
+                        f'The changes to "{label}" could not be saved to file storage. '
+                        "Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
+                        exc,
+                    ),
+                )
+            else:
+                messages.success(request, f'Template "{label}" updated successfully.')
+                return redirect("proposal_templates_list")
+
+    elif request.method == "POST":
+        messages.error(request, "Please correct the errors below and try again.")
+
+    return render(
+        request,
+        "dashboard/admin/proposal_template_form.html",
+        _proposal_template_storage_context(
+            form=form,
+            slot_key=key,
+            label=label,
+            expected_extension=TEMPLATE_FILES[key][1],
+            override=override,
+            row=next(
+                (row for row in _proposal_template_slot_rows() if row["key"] == key), None
+            ),
+        ),
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def proposal_custom_template_add(request):
+    """Store new template files the office will use as the process changes."""
+    from proposals.models import CustomProposalTemplate
+    from proposals.template_store import custom_key_for
+
+    form = CustomProposalTemplateUploadForm(request.POST, request.FILES)
+    if not form.is_valid():
+        for error_list in form.errors.values():
+            for error in error_list:
+                messages.error(request, error)
+        return redirect("proposal_templates_list")
+
+    storage_error = _template_storage_is_unavailable()
+    if storage_error:
+        logger.error("Custom proposal template upload blocked: %s", storage_error)
+        messages.error(
+            request,
+            "Nothing was added. File storage needs to be configured first.",
+        )
+        return redirect("proposal_templates_list")
+
+    notes = form.cleaned_data["notes"]
+    saved = 0
+    failed = 0
+    for upload in form.cleaned_data["files"]:
+        title = _custom_template_title(upload.name)
+        key = _unique_custom_template_key(custom_key_for(title, upload.name))
+        try:
+            CustomProposalTemplate.objects.create(
+                title=title,
+                key=key,
+                file=upload,
+                notes=notes,
+                uploaded_by=request.user,
+            )
+        except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
+            logger.exception(
+                "Could not store custom proposal template %s (user_id=%s).",
+                key,
+                request.user.pk,
+            )
+            failed += 1
+            messages.error(
+                request,
+                _storage_failure_message(
+                    f'"{upload.name}" could not be saved to file storage. '
+                    "Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
+                    exc,
+                ),
+            )
+        else:
+            saved += 1
+
+    if saved == 1:
+        messages.success(request, "Template file added successfully.")
+    elif saved > 1:
+        messages.success(request, f"{saved} template files added successfully.")
+    if failed and saved:
+        messages.warning(request, f"{failed} file(s) could not be added.")
+
+    return redirect("proposal_templates_list")
+
+
+@login_required
+@admin_required
+def proposal_custom_template_edit(request, pk):
+    """Rename, re-note, replace, or retire an added template file."""
+    from proposals.models import CustomProposalTemplate
+
+    template = get_object_or_404(CustomProposalTemplate, pk=pk)
+    form = CustomProposalTemplateForm(request.POST or None, request.FILES or None, instance=template)
+
+    if request.method == "POST" and form.is_valid():
+        if request.FILES.get("file") and _template_storage_is_unavailable():
+            storage_error = _template_storage_is_unavailable()
+            logger.error("Custom proposal template replacement blocked: %s", storage_error)
+            messages.error(
+                request,
+                "The replacement file was not uploaded. File storage needs to be configured first.",
+            )
+            template.refresh_from_db()
+        else:
+            try:
+                saved_template = form.save()
+            except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
+                logger.exception(
+                    "Could not save custom proposal template pk=%s (user_id=%s).",
+                    template.pk,
+                    request.user.pk,
+                )
+                messages.error(
+                    request,
+                    _storage_failure_message(
+                        "The template could not be saved to file storage. Check the Supabase "
+                        "bucket, endpoint, and S3 access keys, then try again.",
+                        exc,
+                    ),
+                )
+                template.refresh_from_db()
+            else:
+                saved_template.uploaded_by = request.user
+                saved_template.save(update_fields=["uploaded_by"])
+                messages.success(request, f'Template "{saved_template.title}" updated successfully.')
+                return redirect("proposal_templates_list")
+    elif request.method == "POST":
+        messages.error(request, "Please correct the errors below and try again.")
+
+    return render(
+        request,
+        "dashboard/admin/proposal_custom_template_form.html",
+        _proposal_template_storage_context(form=form, template_obj=template),
+    )
+
+
+@login_required
+@admin_required
+def proposal_custom_template_download(request, pk):
+    """Hand back an added template file."""
+    from proposals.models import CustomProposalTemplate
+
+    template = get_object_or_404(CustomProposalTemplate, pk=pk)
+    if not template.file:
+        raise Http404("This template has no file stored.")
+
+    try:
+        # Opened through the storage backend, not a disk path: Supabase's S3
+        # storage has no ``.path``, unlike local development.
+        return _file_download_response_from_stream(
+            template.file.open("rb"), template.filename or template.title
+        )
+    except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
+        logger.exception("Could not read custom proposal template pk=%s.", template.pk)
+        messages.error(
+            request,
+            _storage_failure_message(
+                f'"{template.title}" could not be read from file storage.', exc
+            ),
+        )
+        return redirect("proposal_templates_list")
+
+
+@login_required
+@admin_required
+@require_POST
+def proposal_custom_template_delete(request, pk):
+    """Remove an added template file for good."""
+    from proposals.models import CustomProposalTemplate
+
+    template = get_object_or_404(CustomProposalTemplate, pk=pk)
+    title = template.title
+    try:
+        template.delete()
+    except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
+        logger.exception("Could not delete custom proposal template pk=%s.", template.pk)
+        messages.error(
+            request,
+            _storage_failure_message(f'"{title}" could not be deleted from file storage.', exc),
+        )
+        return redirect("proposal_templates_list")
+
+    messages.success(request, f'Template "{title}" deleted successfully.')
     return redirect("proposal_templates_list")
 
 

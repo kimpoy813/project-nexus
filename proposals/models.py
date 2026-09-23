@@ -1914,3 +1914,88 @@ class ProposalTemplateOverride(models.Model):
                         )
                     }
                 )
+
+
+class CustomProposalTemplate(models.Model):
+    """A template file an administrator added to the system.
+
+    ``ProposalTemplateOverride`` replaces a file the code already generates
+    documents from. This model is the other direction: when the office's
+    process changes and a new form or format is needed, the file can be
+    stored here first — uploaded, edited, downloaded and removed from the
+    "Proposal Document Templates" screen — before any generator reads it.
+
+    ``key`` is a slug of the title plus the file's extension and is the
+    stable identity later code should ask for, exactly like a bundled slot
+    key. It never collides with one, which keeps the two namespaces apart.
+    """
+
+    title = models.CharField(max_length=180)
+    key = models.CharField(
+        max_length=120,
+        unique=True,
+        help_text="Stable identifier for this file, e.g. moa-renewal-form.docx.",
+    )
+    file = models.FileField(upload_to="proposal_templates/custom/")
+    notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="What this file is for, or what changed in this revision.",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive files stay stored but are marked as not in use.",
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["title"]
+        verbose_name = "Custom proposal template"
+        verbose_name_plural = "Custom proposal templates"
+
+    def __str__(self):
+        return f"{self.title} ({self.key})"
+
+    @property
+    def extension(self):
+        from .template_store import file_extension
+
+        return file_extension(getattr(self.file, "name", "") or "")
+
+    @property
+    def filename(self):
+        from pathlib import Path
+
+        name = getattr(self.file, "name", "") or ""
+        return Path(name).name if name else ""
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        from .template_store import TEMPLATE_FILES, custom_file_problem
+
+        super().clean()
+
+        if self.key in TEMPLATE_FILES:
+            raise ValidationError(
+                {
+                    "key": (
+                        f"'{self.key}' is a built-in template slot. Replace it on the "
+                        "Proposal Document Templates screen instead of adding it again."
+                    )
+                }
+            )
+
+        filename = getattr(self.file, "name", "") or ""
+        if filename:
+            problem = custom_file_problem(filename)
+            if problem:
+                raise ValidationError({"file": problem})

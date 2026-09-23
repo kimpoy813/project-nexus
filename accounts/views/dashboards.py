@@ -33,6 +33,7 @@ from proposals.models import ProposalEvaluatorAssignment
 from proposals.models import ProposalFinalDocument
 from proposals.models import ProposalReviewRound
 from proposals.models import ProposalSectionComment
+from proposals.models import CustomProposalTemplate
 from proposals.models import ProposalTemplateOverride
 from ..decorators import admin_required
 from ..decorators import faculty_like_required
@@ -994,6 +995,12 @@ def admin_dashboard(request):
         "signatories_count": Signatory.objects.count(),
         "document_template_count": DocumentTemplate.objects.count(),
         "proposal_template_override_count": ProposalTemplateOverride.objects.count(),
+        # Files the office added on the same screen for a process or format
+        # that is not wired into the system yet.
+        "proposal_custom_template_count": CustomProposalTemplate.objects.count(),
+        "proposal_template_count": (
+            ProposalTemplateOverride.objects.count() + CustomProposalTemplate.objects.count()
+        ),
         "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
         "campuses_count": Campus.objects.count(),
         "colleges_count": College.objects.count(),
@@ -1008,6 +1015,7 @@ def admin_dashboard(request):
             + Signatory.objects.count()
             + DocumentTemplate.objects.count()
             + ProposalTemplateOverride.objects.count()
+            + CustomProposalTemplate.objects.count()
             + ProposalWizardStepConfig.objects.count()
             + Campus.objects.count()
             + College.objects.count()
