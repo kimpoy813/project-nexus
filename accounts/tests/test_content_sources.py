@@ -526,6 +526,32 @@ class SourceItemDragOrderTests(TestCase):
         self.assertEqual(reordered[0], titles[1])
         self.assertEqual(reordered[1], titles[0])
 
+    def test_the_thrusts_screen_offers_a_handle_and_no_arrow_buttons(self):
+        """Dragging is the reorder control, so no ↑/↓ buttons sit beside it."""
+        html = self.client_admin.get(reverse("home_sections_manager")).content.decode()
+        self.assertIn("js-item-handle", html)
+        self.assertIn(
+            f'data-reorder-url="{reverse("content_source_reorder", args=["THRUST"])}"', html
+        )
+        self.assertNotIn("↑", html)
+        self.assertNotIn("↓", html)
+        thrust = HomeThrust.objects.order_by("order").first()
+        self.assertNotIn(reverse("home_thrust_move", args=[thrust.id]), html)
+
+    def test_the_nested_thrust_editor_keeps_only_the_handle(self):
+        """The same editor inside a page's section drags; it has no arrows."""
+        thrust = HomeThrust.objects.order_by("order").first()
+        self.client_admin.post(
+            reverse("page_section_add_source", args=["achievements"]), {"source": "THRUST"}
+        )
+        html = self.client_admin.get(
+            reverse("page_content_edit", args=["achievements"])
+        ).content.decode()
+        self.assertIn("js-item-handle", html)
+        self.assertNotIn("↑", html)
+        self.assertNotIn("↓", html)
+        self.assertNotIn(reverse("home_inline_thrust_move", args=[thrust.id]), html)
+
     def test_a_source_that_is_not_orderable_is_refused(self):
         self.assertIsNone(orderable_source("TEMPLATES"))
         response = self._reorder("TEMPLATES", [1, 2])

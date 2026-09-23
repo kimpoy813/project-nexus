@@ -187,10 +187,10 @@
                         focusable: arrow keys post the one-step move, so this works without a
                         pointer.
                         {% endcomment %}
-                        <div class="pc-gutter js-section-handle"
-                             title="Drag the row to reorder (or press ↑ / ↓ on the handle)">
+                        <div class="pc-gutter js-section-handle" title="Drag the row to reorder">
                             <button type="button" class="js-section-handle pc-handle"
                                     aria-label="Reorder {{ section.heading|default:'section' }}"
+                                    aria-keyshortcuts="ArrowUp ArrowDown"
                                     onkeydown="nxKeyboardMove(event, {{ section.id }})">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                     <path d="M7 5a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 11a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 17a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2z" />
@@ -252,8 +252,6 @@
                         {% endif %}
 
                         {% if section.content_source.editor_template %}
-                        {# .pc-row__editor keeps the nested editor (with its own drag lists and
-                           forms) from ever starting a whole-row drag. #}
                         <div class="pc-row__editor mt-4 overflow-hidden rounded-xl border border-slate-200">
                             {% include section.content_source.editor_template with thrust_editor_id=section.id editor_id=section.id next_url=request.path %}
                         </div>
@@ -306,7 +304,8 @@
 
 </div>
 
-{# Reorder-by-keyboard: same endpoint the ↑/↓ buttons always used. #}
+{# Reorder by keyboard: the handle's Arrow keys post a one-step move, so rows
+   can be rearranged without a pointer. #}
 <form id="keyboard-move-form" method="POST" class="hidden">
     {% csrf_token %}
     <input type="hidden" name="direction" value="">
