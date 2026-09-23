@@ -8,7 +8,9 @@ handle, the new order is POSTed as JSON, and a status line reports the result.
   [data-sortable="source"]    the items inside a source  -> content_source_reorder
 
 A third interaction drops a *new* block: dragging a palette tile into the
-section list posts the source key and the position it landed at.
+section list posts the source key and the position it landed at. The palette is
+a rail beside that list rather than a strip above it, so the tile only has to
+travel sideways into its row — see `.nx-split` in page_content_edit.html.
 
 Everything degrades safely. If Sortable fails to load, the palette tiles are
 still buttons that append a block, and each section keeps its ↑/↓ controls.
@@ -64,8 +66,14 @@ still buttons that append a block, and each section keeps its ↑/↓ controls.
             handle: ".js-section-handle",
             animation: 150,
             ghostClass: "pc-drag-ghost",
+            // Rows can be taller than the viewport once their nested editor is
+            // open, so a drag pushed to the edge keeps the page moving.
+            scroll: true,
+            scrollSensitivity: 90,
+            scrollSpeed: 12,
             group: { name: "page-sections", pull: false, put: ["palette"] },
             onEnd: function (event) {
+                document.body.classList.remove("pc-dragging-block");
                 // A tile dropped in from the palette is handled by onAdd.
                 if (event.from !== sectionList) return;
                 renumber(sectionList);
@@ -81,6 +89,7 @@ still buttons that append a block, and each section keeps its ↑/↓ controls.
                 var item = event.item;
                 var sourceKey = item.getAttribute("data-source-key");
                 item.parentNode.removeChild(item);
+                document.body.classList.remove("pc-dragging-block");
                 if (!sourceKey) return;
                 var form = document.getElementById("add-source-form");
                 if (!form) return;
@@ -92,12 +101,32 @@ still buttons that append a block, and each section keeps its ↑/↓ controls.
     }
 
     // ---- 2. Drag a builder out of the palette -------------------------
+    // Cloned, so the tile stays in the rail and can be dropped again without
+    // the palette reshuffling underneath. The fallback drag (rather than the
+    // native HTML5 one) is what makes it feel the same everywhere: it copies the
+    // tile as a floating chip on the document body, so the rail's own scroll box
+    // never clips it, and it works on touch, where a native drag never starts.
+    // The 4px tolerance is what keeps a plain click a click — tiles are buttons
+    // as well as drag sources, and a click appends the block at the end.
     var palette = document.querySelector('[data-sortable="palette"]');
     if (palette && typeof Sortable !== "undefined") {
         new Sortable(palette, {
             animation: 150,
             sort: false,
-            group: { name: "palette", pull: "clone", put: false }
+            forceFallback: true,
+            fallbackOnBody: true,
+            fallbackTolerance: 4,
+            fallbackClass: "pc-drag-clone",
+            delay: 120,
+            delayOnTouchOnly: true,
+            group: { name: "palette", pull: "clone", put: false },
+            onStart: function () {
+                // Lets the canvas advertise that it is a valid drop target.
+                document.body.classList.add("pc-dragging-block");
+            },
+            onEnd: function () {
+                document.body.classList.remove("pc-dragging-block");
+            }
         });
     }
 
@@ -124,9 +153,20 @@ still buttons that append a block, and each section keeps its ↑/↓ controls.
 })();
 </script>
 <style>
-.pc-drag-ghost { opacity: .45; background: #f1f5f9; }
+/* Where the dropped row will land: a placeholder outline reads better than a
+   faded copy, because the row keeps its height and you can see the gap. */
+.pc-drag-ghost {
+    opacity: .45; background: #f1f5f9;
+    outline: 2px dashed #94a3b8; outline-offset: -2px; border-radius: 12px;
+}
+/* The chip that follows the pointer out of the palette. */
+.pc-drag-clone {
+    opacity: .95; pointer-events: none; border-radius: 12px;
+    border-color: #103b07 !important; background: #fff !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .22); transform: rotate(-.5deg);
+}
 .pc-handle {
-    display: grid; place-items: center; height: 1.75rem; width: 1.75rem;
+    display: grid; place-items: center; height: 2rem; width: 2rem;
     border-radius: 8px; border: 1px solid #e2e8f0; background: #fff;
     color: #94a3b8; cursor: grab; transition: all .15s;
 }
