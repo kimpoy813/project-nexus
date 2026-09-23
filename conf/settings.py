@@ -19,6 +19,24 @@ except ImportError:  # Allows local tooling to import settings before dependenci
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load a project-local .env into the environment, so the README's
+# `cp .env.example .env` flow actually works. Variables already present in the
+# environment are never overridden: real deployments (Render, CI, shells that
+# export) keep exactly what they set. Blank lines and `#` comments are skipped;
+# values may be optionally quote-wrapped.
+_env_file = BASE_DIR / ".env"
+if _env_file.is_file():
+    for _line in _env_file.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _key, _, _value = _line.partition("=")
+        _key, _value = _key.strip(), _value.strip()
+        if len(_value) >= 2 and _value[0] == _value[-1] and _value[0] in "\"'":
+            _value = _value[1:-1]
+        if _key:
+            os.environ.setdefault(_key, _value)
+
 
 def env_bool(name, default=False):
     value = os.environ.get(name)
@@ -232,7 +250,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        # DEBUG serves files straight from the source folders via runserver's
+        # finders, so local work needs no collectstatic (unhashed names — the
+        # hashed manifest entries only exist in STATIC_ROOT). Production keeps
+        # WhiteNoise's hashed + compressed manifest.
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        ),
     },
 }
 

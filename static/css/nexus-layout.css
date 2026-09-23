@@ -74,6 +74,12 @@
 @media (min-width: 1024px) {
   .nx-split            { grid-template-columns: minmax(0, 1fr) var(--nx-rail-lg); }
   .nx-split--rail-left { grid-template-columns: var(--nx-rail) minmax(0, 1fr); }
+  /* The rail can be first in the DOM — so it stacks above the main column on
+     narrow screens — while sitting on the right at desktop. Explicit
+     placement does the flipping; below 1024px source order takes over. */
+  .nx-split--rail-right     { grid-template-columns: minmax(0, 1fr) var(--nx-rail); }
+  .nx-split--rail-right > .nx-split__main { grid-column: 1; grid-row: 1; }
+  .nx-split--rail-right > .nx-split__rail  { grid-column: 2; grid-row: 1; }
 }
 .nx-split > * { min-width: 0; }
 .nx-split__rail { position: relative; }

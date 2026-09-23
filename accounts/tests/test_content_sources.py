@@ -1,7 +1,7 @@
 """
 Tests for the content-source registry and the drag-and-drop page composer.
 
-Three things are pinned here:
+Four things are pinned here:
 
   * **The registry is complete.** A source that is declared but whose template
     or manager does not exist is exactly the failure that left the SDG section
@@ -10,6 +10,10 @@ Three things are pinned here:
     builder's rows, not a copy of them.
   * **Reordering is drag-and-drop**, for sections and for the items inside a
     source, and both refuse a payload that does not match what is stored.
+  * **The canvas rows collapse and drag as a whole**, with the block palette in
+    a rail on the right of the content — so a long page of blocks stays compact,
+    rearrangeable by grabbing any row, and a tile only travels a short hop into
+    the list it feeds.
 """
 
 import json
@@ -28,6 +32,7 @@ from details.content_sources import (
     resolve_order_model,
 )
 from details.models import (
+    ExtensionProcess,
     HomeThrust,
     PageSection,
     SitePage,
@@ -271,12 +276,14 @@ class BlockPaletteTests(TestCase):
         self.assertContains(self.client.get(reverse("achievements_page")), "SHARED-THRUST-MARKER")
         self.assertEqual(HomeThrust.objects.filter(title="SHARED-THRUST-MARKER").count(), 1)
 
-    def test_the_palette_is_a_rail_beside_the_section_list(self):
+    def test_the_palette_is_a_rail_on_the_right_of_the_section_list(self):
         """Drag-and-drop only works if the tile and its row are on screen together.
 
         A palette stacked above a page of dozens of rows means dragging a block
         the length of the page, so the rail and the canvas must share one split
-        container — and the rail must be sticky to stay in view.
+        container — and the rail must be sticky to stay in view. The content is
+        the main column on the left and the blocks sit in the rail on the right,
+        so a tile is a short sideways drag from the row it becomes.
         """
         html = self.client_admin.get(
             reverse("page_content_edit", args=["home"])
@@ -287,8 +294,12 @@ class BlockPaletteTests(TestCase):
         palette, sections = finder.ancestors["palette"], finder.ancestors["sections"]
         self.assertIn("nx-split__rail nx-split__rail--sticky", palette)
         self.assertTrue(
-            set(palette) & set(sections) & {"nx-split nx-split--rail-left mb-6"},
+            set(palette) & set(sections) & {"nx-split nx-split--rail-right mb-6"},
             f"palette {palette} and sections {sections} share no split container",
+        )
+        self.assertTrue(
+            any("nx-split__main" in cls for cls in sections),
+            f"the section list must be the main (left) column, got {sections}",
         )
 
     def test_a_block_dropped_at_a_position_lands_there(self):
@@ -400,6 +411,69 @@ class SectionDragOrderTests(TestCase):
             reverse("page_section_move", args=[self.c.id]), {"direction": "up"}
         )
         self.assertEqual(self._headings(), ["A", "C", "B"])
+
+
+class SectionCanvasTests(TestCase):
+    """Rows collapse to slim bars and drag by themselves.
+
+    Tall rows with open nested editors make it hard to drop a block between
+    rows or to see where a dragged row will land, so every row folds to its
+    header bar on demand — and any row can be picked up anywhere, not just by
+    its grip, while controls and nested editors stay click-through.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = factories.make_user("canvas_admin", Profile.ROLE_ADMIN)
+
+    def setUp(self):
+        self.client_admin = factories.make_client(self.admin)
+        self.page = SitePage.get_for("achievements")
+        self.page.sections.all().delete()
+        self.section = PageSection.objects.create(
+            page=self.page, heading="Canvas Row", subheading="Sub line", order=1
+        )
+
+    def _editor_html(self):
+        return self.client_admin.get(
+            reverse("page_content_edit", args=["achievements"])
+        ).content.decode()
+
+    def test_each_section_row_can_be_collapsed(self):
+        html = self._editor_html()
+        self.assertIn(f'aria-controls="pc-section-body-{self.section.id}"', html)
+        self.assertIn(f'id="pc-section-body-{self.section.id}"', html)
+        self.assertIn("pc-row__body", html)
+        self.assertIn("js-section-toggle", html)
+
+    def test_the_canvas_offers_collapse_all_and_expand_all(self):
+        html = self._editor_html()
+        self.assertIn("data-collapse-all", html)
+        self.assertIn("data-expand-all", html)
+
+    def test_a_row_is_grabbable_anywhere_except_its_controls(self):
+        """Whole-row drag, with the nested editors opted out of starting one."""
+        html = self._editor_html()
+        self.assertNotIn('handle: ".js-section-handle"', html)
+        self.assertIn("preventOnFilter: false", html)
+        self.assertIn(".pc-row__editor", html)
+
+    def test_orderable_blocks_can_be_dragged_into_order_inside_their_section(self):
+        """The items inside a source reorder by drag, where the model allows it."""
+        HomeThrust.objects.create(title="Draggable Thrust", is_visible=True)
+        ExtensionProcess.objects.create(title="Draggable Process")
+        for key in ("THRUST", "PROCESSES", "SDG"):
+            with self.subTest(source=key):
+                self.client_admin.post(
+                    reverse("page_section_add_source", args=["achievements"]),
+                    {"source": key},
+                )
+                html = self._editor_html()
+                self.assertIn(
+                    f'data-reorder-url="{reverse("content_source_reorder", args=[key])}"',
+                    html,
+                )
+                self.assertIn("js-item-handle", html)
 
 
 class SourceItemDragOrderTests(TestCase):

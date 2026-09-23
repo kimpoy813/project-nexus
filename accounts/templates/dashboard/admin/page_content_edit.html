@@ -99,20 +99,21 @@
     </form>
 
     {% comment %}
-    ── BLOCK PALETTE + PAGE CANVAS, SIDE BY SIDE ──────────────────────────
-    `.nx-split--rail-left` is the layout's shared "rail + main column" pattern:
-    the palette becomes a narrow sticky column beside the page it feeds, so a
-    block travels a few centimetres sideways into its row instead of being
-    dragged the height of the page, and the builders stay on screen while a long
-    page is scrolled. Below the split's 1024px breakpoint the palette stacks on
+    ── PAGE CANVAS + BLOCK PALETTE, SIDE BY SIDE ─────────────────────────
+    `.nx-split--rail-right` puts the content on the left — the wide main
+    column where the page is composed — and the block palette in a narrow
+    sticky rail on the right, so a builder tile is a short sideways drag from
+    the row it becomes instead of being dragged the height of the page, and
+    the palette stays on screen while a long page is scrolled. The rail is
+    first in the markup, so below the split's 1024px breakpoint it stacks on
     top again and its tiles flow back into a grid.
 
     Every tile is also a button, so clicking still appends it where dragging is
     awkward (touch screens, keyboard).
     {% endcomment %}
-    <div class="nx-split nx-split--rail-left mb-6">
+    <div class="nx-split nx-split--rail-right mb-6">
 
-        <!-- ============ BLOCK PALETTE (rail) ============ -->
+        <!-- ============ BLOCK PALETTE (rail, right) ============ -->
         <aside class="nx-split__rail nx-split__rail--sticky">
             <div class="pc-card">
                 <div class="pc-card__head">
@@ -154,17 +155,23 @@
             </div>
         </aside>
 
-        <!-- ============ SECTIONS (canvas) ============ -->
-        <div class="pc-card">
+        <!-- ============ SECTIONS (canvas, left) ============ -->
+        <div class="pc-card nx-split__main">
             <div class="pc-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="pc-card__title">Content Sections</h2>
                     <p id="section-order-status" class="pc-status pc-card__sub" aria-live="polite">
                         Blocks shown down the page, in order. Drop a builder anywhere in this list to insert
-                        it; drag a section by its handle to move it.
+                        it; drag a section — anywhere on the row — to rearrange.
                     </p>
                 </div>
-                <a href="{% url 'page_section_create' page.slug %}" class="pc-btn pc-btn--primary">Add Section</a>
+                <div class="flex flex-wrap items-center gap-2">
+                    {% if sections %}
+                    <button type="button" class="pc-btn" data-collapse-all>Collapse all</button>
+                    <button type="button" class="pc-btn" data-expand-all>Expand all</button>
+                    {% endif %}
+                    <a href="{% url 'page_section_create' page.slug %}" class="pc-btn pc-btn--primary">Add Section</a>
+                </div>
             </div>
 
             <ul class="pc-canvas divide-y divide-slate-100"
@@ -175,13 +182,13 @@
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div class="flex min-w-0 gap-3">
                         {% comment %}
-                        The whole gutter is the drag handle (it carries .js-section-handle),
-                        which gives a far bigger target than the grip button alone. The button
-                        inside stays focusable: arrow keys post the one-step move, so this works
-                        without a pointer.
+                        The whole row is the drag target (see _source_reorder_script.html), and
+                        this gutter is its most obvious grab strip. The grip button inside stays
+                        focusable: arrow keys post the one-step move, so this works without a
+                        pointer.
                         {% endcomment %}
                         <div class="pc-gutter js-section-handle"
-                             title="Drag to reorder (or press ↑ / ↓ on the handle)">
+                             title="Drag the row to reorder (or press ↑ / ↓ on the handle)">
                             <button type="button" class="js-section-handle pc-handle"
                                     aria-label="Reorder {{ section.heading|default:'section' }}"
                                     onkeydown="nxKeyboardMove(event, {{ section.id }})">
@@ -194,6 +201,19 @@
 
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
+                                {% comment %}
+                                Disclosure for the row: collapsing folds the summary and the
+                                nested editor away, leaving a slim bar that is easy to drag
+                                around and to drop blocks between.
+                                {% endcomment %}
+                                <button type="button" class="pc-collapse js-section-toggle"
+                                        aria-expanded="true" aria-controls="pc-section-body-{{ section.id }}"
+                                        title="Collapse this section">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                    <span class="sr-only">Collapse section</span>
+                                </button>
                                 <span class="text-sm font-semibold text-slate-900">
                                     {{ section.heading|default:"Untitled section" }}
                                 </span>
@@ -201,21 +221,6 @@
                                 {% if not section.is_visible %}<span class="pc-pill pc-pill--warn">Hidden</span>{% endif %}
                                 {% if section.anchor %}<span class="pc-pill pc-pill--muted">#{{ section.anchor }}</span>{% endif %}
                             </div>
-                            {% if section.subheading %}
-                                <p class="mt-1 truncate text-sm text-slate-500">{{ section.subheading }}</p>
-                            {% endif %}
-                            {% if section.content_source %}
-                                <p class="mt-1 text-xs text-slate-400">
-                                    Live data from the {{ section.content_source.label }} builder.
-                                    {% if section.content_source.manager_url_name %}
-                                        <a href="{% url section.content_source.manager_url_name %}" class="font-medium text-primary hover:underline">Open builder →</a>
-                                    {% endif %}
-                                </p>
-                            {% else %}
-                                <p class="mt-1 line-clamp-2 text-xs text-slate-400">
-                                    {{ section.body|striptags|truncatewords:26|default:"No content yet." }}
-                                </p>
-                            {% endif %}
                         </div>
                     </div>
 
@@ -229,11 +234,31 @@
                     </div>
                     </div>
 
-                    {% if section.content_source.editor_template %}
-                    <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
-                        {% include section.content_source.editor_template with thrust_editor_id=section.id editor_id=section.id next_url=request.path %}
+                    <div class="pc-row__body" id="pc-section-body-{{ section.id }}">
+                        {% if section.subheading %}
+                            <p class="pc-row__meta mt-1 truncate text-sm text-slate-500">{{ section.subheading }}</p>
+                        {% endif %}
+                        {% if section.content_source %}
+                            <p class="pc-row__meta mt-1 text-xs text-slate-400">
+                                Live data from the {{ section.content_source.label }} builder.
+                                {% if section.content_source.manager_url_name %}
+                                    <a href="{% url section.content_source.manager_url_name %}" class="font-medium text-primary hover:underline">Open builder →</a>
+                                {% endif %}
+                            </p>
+                        {% else %}
+                            <p class="pc-row__meta mt-1 line-clamp-2 text-xs text-slate-400">
+                                {{ section.body|striptags|truncatewords:26|default:"No content yet." }}
+                            </p>
+                        {% endif %}
+
+                        {% if section.content_source.editor_template %}
+                        {# .pc-row__editor keeps the nested editor (with its own drag lists and
+                           forms) from ever starting a whole-row drag. #}
+                        <div class="pc-row__editor mt-4 overflow-hidden rounded-xl border border-slate-200">
+                            {% include section.content_source.editor_template with thrust_editor_id=section.id editor_id=section.id next_url=request.path %}
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </li>
                 {% empty %}
                 {# A dashed drop zone: with no blocks yet there is nowhere else to put the first one. #}
@@ -301,6 +326,65 @@ function nxKeyboardMove(event, sectionId) {
     form.querySelector("[name=direction]").value = event.key === "ArrowUp" ? "up" : "down";
     form.submit();
 }
+
+/* ---- Collapsible section rows ------------------------------------------
+   Each row folds to its header bar so a long page of blocks stays compact
+   while arranging: fewer screens to drag across, and drop targets you can
+   actually see. Which sections are collapsed sticks per page in localStorage. */
+(function () {
+    var storageKey = "nx-pc-collapsed-{{ page.slug }}";
+    var rows = Array.prototype.slice.call(document.querySelectorAll(".pc-row[data-section-id]"));
+
+    function setCollapsed(row, collapsed) {
+        row.classList.toggle("pc-row--collapsed", collapsed);
+        var toggle = row.querySelector(".js-section-toggle");
+        if (toggle) {
+            toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+            toggle.setAttribute("title", collapsed ? "Expand this section" : "Collapse this section");
+            var label = toggle.querySelector(".sr-only");
+            if (label) label.textContent = collapsed ? "Expand section" : "Collapse section";
+        }
+    }
+
+    function loadCollapsed() {
+        var stored = {};
+        try { stored = JSON.parse(localStorage.getItem(storageKey) || "{}") || {}; } catch (e) {}
+        rows.forEach(function (row) {
+            if (stored[row.getAttribute("data-section-id")]) setCollapsed(row, true);
+        });
+    }
+
+    function saveCollapsed() {
+        var stored = {};
+        rows.forEach(function (row) {
+            if (row.classList.contains("pc-row--collapsed")) {
+                stored[row.getAttribute("data-section-id")] = 1;
+            }
+        });
+        try { localStorage.setItem(storageKey, JSON.stringify(stored)); } catch (e) {}
+    }
+
+    document.addEventListener("click", function (event) {
+        var toggle = event.target.closest(".js-section-toggle");
+        if (toggle) {
+            var row = toggle.closest(".pc-row[data-section-id]");
+            if (row) {
+                setCollapsed(row, !row.classList.contains("pc-row--collapsed"));
+                saveCollapsed();
+            }
+            return;
+        }
+        if (event.target.closest("[data-collapse-all]")) {
+            rows.forEach(function (row) { setCollapsed(row, true); });
+            saveCollapsed();
+        } else if (event.target.closest("[data-expand-all]")) {
+            rows.forEach(function (row) { setCollapsed(row, false); });
+            saveCollapsed();
+        }
+    });
+
+    loadCollapsed();
+})();
 </script>
 {% include "dashboard/admin/_source_reorder_script.html" %}
 
@@ -381,6 +465,30 @@ function nxKeyboardMove(event, sectionId) {
 .pc-row { transition: background .15s; }
 .pc-row:hover { background:#fbfcfd; }
 .pc-row:hover .pc-handle { color:#475569; border-color:#cbd5e1; }
+.pc-row { cursor: grab; }
+.pc-row:active { cursor: grabbing; }
+/* Wherever a drag cannot start — the nested editors, form controls, the empty
+   well — the pointer must not promise one. Buttons, links, and the grips
+   already carry their own cursors. */
+.pc-row__editor, .pc-empty,
+.pc-row input, .pc-row textarea, .pc-row select, .pc-row label { cursor: auto; }
+
+/* ── Collapsible rows ───────────────────────────────────────────────────
+   A collapsed row is just its header bar — the slim grab target that makes
+   rearranging a long page practical. The summary lines and the nested editor
+   live in .pc-row__body and fold away together; .pc-row__meta keeps them
+   aligned under the heading while the row is open. */
+.pc-collapse {
+    display:grid; place-items:center; flex-shrink:0;
+    height:1.4rem; width:1.4rem; border-radius:6px; border:1px solid transparent;
+    color:#94a3b8; cursor:pointer; transition:all .15s;
+}
+.pc-collapse:hover { color:#0f172a; background:#f1f5f9; border-color:#e2e8f0; }
+.pc-collapse svg { transition: transform .15s; }
+.pc-collapse[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.pc-row__body { margin-top:.35rem; }
+.pc-row--collapsed .pc-row__body { display:none; }
+.pc-row__meta { padding-left:3.15rem; }   /* gutter (2.4rem) + gap (.75rem) */
 
 /* Empty pages get a dashed well, so "drop here" is obvious before there is
    anything to drop next to. */
