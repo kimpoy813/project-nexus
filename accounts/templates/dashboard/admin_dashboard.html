@@ -229,200 +229,253 @@
         ================================================================ -->
         <section class="adm-panel hidden" data-tab-panel="content">
 
+            <!-- ============ WEBSITE CONTENT ============ -->
+            <!-- One umbrella for everything visitors see. The two sub-groups make
+                 the relationship explicit: pages are composed from the reusable
+                 libraries below them, instead of two near-identical "content" cards. -->
             <div class="adm-card mb-5">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">No-Code Builders</h2>
-                    <p class="adm-card__sub">Update processes, forms, and templates without editing source files.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px bg-slate-100">
-                    <a href="{% url 'processes_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                                <span class="adm-tile__name">Process Builder</span>
-                            </span>
-                            <span class="adm-tile__count">{{ processes_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Public process flows and office procedures.</span>
-                    </a>
-                    <a href="{% url 'wizard_steps_manager' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 9.172V5L8 4z" /></svg>
-                                <span class="adm-tile__name">Wizard Steps</span>
-                            </span>
-                            <span class="adm-tile__count">{{ wizard_step_config_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Rename, hide, or make proposal steps optional.</span>
-                    </a>
-                    <a href="{% url 'dynamic_forms_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.582z" /></svg>
-                                <span class="adm-tile__name">Form Builder</span>
-                            </span>
-                            <span class="adm-tile__count">{{ dynamic_form_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Configurable forms and checklists.</span>
-                    </a>
-                    <a href="{% url 'document_templates_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
-                                <span class="adm-tile__name">Template Library</span>
-                            </span>
-                            <span class="adm-tile__count">{{ document_template_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Official DOCX/XLSX/PDF templates.</span>
-                    </a>
-                    <a href="{% url 'sdg_goals_manager' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span class="adm-tile__name">SDG Goals</span>
-                            </span>
-                            <span class="adm-tile__count">{{ sdg_goal_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Goals shown in the SDG block and the proposal checklist.</span>
-                    </a>
-                    <a href="{% url 'role_capabilities_manager' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                                <span class="adm-tile__name">Role Capabilities</span>
-                            </span>
-                            <span class="adm-tile__count">{{ role_capability_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Turn role functions on or off.</span>
-                    </a>
-                    <a href="{% url 'signatories_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                <span class="adm-tile__name">Signatories</span>
-                            </span>
-                            <span class="adm-tile__count">{{ signatories_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Signatories for printed summaries and letters.</span>
-                    </a>
-                    <a href="{% url 'campuses_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                                <span class="adm-tile__name">Campuses</span>
-                            </span>
-                            <span class="adm-tile__count">{{ campuses_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Manage campuses available during registration.</span>
-                    </a>
-                    <a href="{% url 'colleges_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.02 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
-                                <span class="adm-tile__name">Colleges</span>
-                            </span>
-                            <span class="adm-tile__count">{{ colleges_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Manage colleges and campus associations.</span>
-                    </a>
-                    <a href="{% url 'departments_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                <span class="adm-tile__name">Departments</span>
-                            </span>
-                            <span class="adm-tile__count">{{ departments_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Manage departments and college/campus associations.</span>
-                    </a>
-                    <a href="{% url 'admin_legacy_proposal_create' %}" class="adm-tile col-span-full sm:col-span-1">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                                <span class="adm-tile__name">Legacy Proposals</span>
-                            </span>
-                        </span>
-                        <span class="adm-tile__desc">Upload pre-website proposals with their original formats and attachments.</span>
-                    </a>
-                </div>
-            </div>
-
-            <div class="adm-card mb-5">
-                <div class="adm-card__head">
-                    <h2 class="adm-card__title">Page Content</h2>
-                    <p class="adm-card__sub">Edit the text and sections shown on each public page.</p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100">
-                    {% for item in editable_pages %}
-                    <a href="{% url 'page_content_edit' item.slug %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                {% if item.slug == 'home' %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                                {% elif item.slug == 'services' %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                {% elif item.slug == 'reports' %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                {% else %}
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-                                {% endif %}
-                                <span class="adm-tile__name">{{ item.title }}</span>
-                            </span>
-                            <span class="adm-tile__count">{{ item.visible_count }}</span>
-                        </span>
-                        <span class="adm-tile__desc">
-                            {% if item.is_published %}
-                                {{ item.visible_count }} visible section{{ item.visible_count|pluralize }}
-                            {% else %}
-                                Draft — hidden from visitors
-                            {% endif %}
-                        </span>
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="adm-card">
                 <div class="adm-card__head">
                     <h2 class="adm-card__title">Website Content</h2>
-                    <p class="adm-card__sub">Content shown across the public platform.</p>
+                    <p class="adm-card__sub">Everything visitors see on the public site — composed from pages and reusable libraries.</p>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100">
-                    <a href="{% url 'personnel_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                <span class="adm-tile__name">Personnel</span>
-                            </span>
-                            <span class="adm-tile__count">{{ personnel_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Staff and faculty on the homepage.</span>
-                    </a>
-                    <a href="{% url 'activities_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                <span class="adm-tile__name">Activities</span>
-                            </span>
-                            <span class="adm-tile__count">{{ activities_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Upcoming and past extension activities.</span>
-                    </a>
-                    <a href="{% url 'targets_list' %}" class="adm-tile">
-                        <span class="adm-tile__top">
-                            <span class="flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                                <span class="adm-tile__name">Targets</span>
-                            </span>
-                            <span class="adm-tile__count">{{ targets_count|default:0 }}</span>
-                        </span>
-                        <span class="adm-tile__desc">Yearly targets and accomplishments.</span>
-                    </a>
+
+                <div class="p-5 space-y-7">
+
+                    <!-- Pages (CMS) -->
+                    <div>
+                        <div class="adm-subhead">
+                            <h3 class="adm-subhead__title">Pages <span class="adm-subhead__tag">CMS</span></h3>
+                            <p class="adm-subhead__desc">Compose each page's hero, sections, and layout.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                            {% for item in editable_pages %}
+                            <a href="{% url 'page_content_edit' item.slug %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        {% if item.slug == 'home' %}
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                                        {% elif item.slug == 'services' %}
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                        {% elif item.slug == 'reports' %}
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                        {% else %}
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                                        {% endif %}
+                                        <span class="adm-tile__name">{{ item.title }}</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ item.visible_count }}</span>
+                                </span>
+                                <span class="adm-tile__desc">
+                                    {% if item.is_published %}
+                                        {{ item.visible_count }} visible section{{ item.visible_count|pluralize }}
+                                    {% else %}
+                                        Draft — hidden from visitors
+                                    {% endif %}
+                                </span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Content Libraries -->
+                    <div>
+                        <div class="adm-subhead">
+                            <h3 class="adm-subhead__title">Content Libraries</h3>
+                            <p class="adm-subhead__desc">Reusable records that feed into the pages above.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                            <a href="{% url 'personnel_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                        <span class="adm-tile__name">Personnel</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ personnel_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Staff and faculty on the homepage.</span>
+                            </a>
+                            <a href="{% url 'activities_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                        <span class="adm-tile__name">Activities</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ activities_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Upcoming and past extension activities.</span>
+                            </a>
+                            <a href="{% url 'targets_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                        <span class="adm-tile__name">Targets</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ targets_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Yearly targets and accomplishments.</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ============ BUILDERS & TOOLS ============ -->
+            <!-- The old "No-Code Builders" card mixed 10 unrelated tools. They are
+                 now grouped by what they actually are: configurable builders, the
+                 organization reference data they depend on, and one-off imports. -->
+            <div class="adm-card">
+                <div class="adm-card__head">
+                    <h2 class="adm-card__title">Builders &amp; Tools</h2>
+                    <p class="adm-card__sub">Configure processes, forms, templates, and reference data without touching code.</p>
+                </div>
+
+                <div class="p-5 space-y-7">
+
+                    <!-- Builders -->
+                    <div>
+                        <div class="adm-subhead">
+                            <h3 class="adm-subhead__title">Builders</h3>
+                            <p class="adm-subhead__desc">No-code tools that drive the proposal workflow and site features.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                            <a href="{% url 'processes_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                                        <span class="adm-tile__name">Process Builder</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ processes_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Public process flows and office procedures.</span>
+                            </a>
+                            <a href="{% url 'wizard_steps_manager' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 9.172V5L8 4z" /></svg>
+                                        <span class="adm-tile__name">Wizard Steps</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ wizard_step_config_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Rename, hide, or make proposal steps optional.</span>
+                            </a>
+                            <a href="{% url 'dynamic_forms_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.582z" /></svg>
+                                        <span class="adm-tile__name">Form Builder</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ dynamic_form_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Configurable forms and checklists.</span>
+                            </a>
+                            <a href="{% url 'document_templates_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" /></svg>
+                                        <span class="adm-tile__name">Template Library</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ document_template_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Official DOCX/XLSX/PDF templates.</span>
+                            </a>
+                            <a href="{% url 'sdg_goals_manager' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span class="adm-tile__name">SDG Goals</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ sdg_goal_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Goals shown in the SDG block and the proposal checklist.</span>
+                            </a>
+                            <a href="{% url 'signatories_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                        <span class="adm-tile__name">Signatories</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ signatories_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Signatories for printed summaries and letters.</span>
+                            </a>
+                            <a href="{% url 'role_capabilities_manager' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                                        <span class="adm-tile__name">Role Capabilities</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ role_capability_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Turn role functions on or off.</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Organization -->
+                    <div>
+                        <div class="adm-subhead">
+                            <h3 class="adm-subhead__title">Organization</h3>
+                            <p class="adm-subhead__desc">Reference data used during registration and in proposals.</p>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                            <a href="{% url 'campuses_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                        <span class="adm-tile__name">Campuses</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ campuses_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Manage campuses available during registration.</span>
+                            </a>
+                            <a href="{% url 'colleges_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.02 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
+                                        <span class="adm-tile__name">Colleges</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ colleges_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Manage colleges and campus associations.</span>
+                            </a>
+                            <a href="{% url 'departments_list' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                        <span class="adm-tile__name">Departments</span>
+                                    </span>
+                                    <span class="adm-tile__count">{{ departments_count|default:0 }}</span>
+                                </span>
+                                <span class="adm-tile__desc">Manage departments and college/campus associations.</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Imports -->
+                    <div>
+                        <div class="adm-subhead">
+                            <h3 class="adm-subhead__title">Imports</h3>
+                            <p class="adm-subhead__desc">Bring in records created before this system.</p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                            <a href="{% url 'admin_legacy_proposal_create' %}" class="adm-tile">
+                                <span class="adm-tile__top">
+                                    <span class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                        <span class="adm-tile__name">Legacy Proposals</span>
+                                    </span>
+                                </span>
+                                <span class="adm-tile__desc">Upload pre-website proposals with their original formats and attachments.</span>
+                            </a>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>
 
-        <!-- ================================================================
+<!-- ================================================================
              SITE SETTINGS
         ================================================================ -->
         <section class="adm-panel hidden" data-tab-panel="settings">
@@ -647,6 +700,22 @@
 .adm-toggle { display:flex; align-items:flex-start; gap:.6rem; padding:.75rem .9rem; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer; transition:border-color .15s; }
 .adm-toggle:hover { border-color:#cbd5e1; }
 .adm-toggle input { margin-top:.15rem; }
+
+/* Sub-group headers inside a content card: an eyebrow label + one-line
+   description that explains how the tiles below relate (e.g. pages are
+   composed from the libraries in the next group). */
+.adm-subhead { margin-bottom:.85rem; }
+.adm-subhead__title {
+    display:flex; align-items:center; gap:.5rem;
+    font-size:.74rem; font-weight:700; text-transform:uppercase;
+    letter-spacing:.07em; color:#475569;
+}
+.adm-subhead__tag {
+    display:inline-flex; align-items:center; padding:.05rem .45rem;
+    border-radius:999px; background:var(--adm-green-l); color:var(--adm-green);
+    font-size:.58rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+}
+.adm-subhead__desc { margin-top:.15rem; font-size:.74rem; line-height:1.4; color:#94a3b8; }
 </style>
 
 <script>
