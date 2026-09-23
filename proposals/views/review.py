@@ -947,8 +947,10 @@ def proposal_print_summary(request, proposal_id):
 
 
 def _build_clear_summary_docx(*, proposal: Proposal, points):
-    template_path = Path(__file__).resolve().parent / "template_files" / "clear_summary_template.docx"
-    doc = Document(str(template_path))
+    from ..template_store import open_template
+
+    template_stream, _template_name, _is_override = open_template("clear_summary_template.docx")
+    doc = Document(template_stream)
     section = doc.sections[0]
     section.page_width = Mm(210)
     section.page_height = Mm(297)

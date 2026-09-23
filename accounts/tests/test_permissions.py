@@ -220,7 +220,7 @@ class AdminOnlyAreaTests(TestCase):
         "targets_list",
         "signatories_list",
         "document_templates_list",
-        "dynamic_forms_list",
+        "proposal_templates_list",
         "wizard_steps_manager",
         "role_capabilities_manager",
     ]

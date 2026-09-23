@@ -6,7 +6,7 @@ Why this exists
 ---------------
 A "content source" is a body of admin-managed data that already has its own
 builder screen — Extension Thrust cards, Personnel, Activities, Processes,
-Targets, the SDGs, the Template Library, the Form Builder. Before this module
+Targets, the SDGs, and the Template Library. Before this module
 each of those was described in four unrelated places:
 
   1. ``PageSection.Layout``            - the stored layout code
@@ -177,16 +177,6 @@ def _resolve_templates(section):
     }
 
 
-def _resolve_forms(section):
-    from .models import DynamicFormTemplate
-
-    return {
-        "forms": DynamicFormTemplate.objects.filter(is_active=True)
-        .prefetch_related("fields")
-        .order_by("applies_to", "name"),
-    }
-
-
 def _resolve_personnel(section):
     from .models import Personnel
 
@@ -276,16 +266,6 @@ _SOURCES = (
         manager_url_name="document_templates_list",
         editor_template="dashboard/admin/_inline_document_templates.html",
         icon_path="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2",
-    ),
-    ContentSource(
-        key="FORMS",
-        label="Office Forms",
-        description="Forms and checklists defined in the Form Builder, with their fields.",
-        block_template="details/blocks/forms.html",
-        resolve=_resolve_forms,
-        manager_url_name="dynamic_forms_list",
-        editor_template="dashboard/admin/_inline_dynamic_forms.html",
-        icon_path="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.582z",
     ),
 )
 

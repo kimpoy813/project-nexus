@@ -19,7 +19,6 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from details.models import Activity
 from details.models import DocumentTemplate
-from details.models import DynamicFormTemplate
 from details.models import ExtensionProcess
 from details.models import Personnel
 from details.models import ProposalWizardStepConfig
@@ -34,6 +33,7 @@ from proposals.models import ProposalEvaluatorAssignment
 from proposals.models import ProposalFinalDocument
 from proposals.models import ProposalReviewRound
 from proposals.models import ProposalSectionComment
+from proposals.models import ProposalTemplateOverride
 from ..decorators import admin_required
 from ..decorators import faculty_like_required
 from ..decorators import role_required
@@ -993,7 +993,7 @@ def admin_dashboard(request):
         "targets_count": Target.objects.count(),
         "signatories_count": Signatory.objects.count(),
         "document_template_count": DocumentTemplate.objects.count(),
-        "dynamic_form_count": DynamicFormTemplate.objects.count(),
+        "proposal_template_override_count": ProposalTemplateOverride.objects.count(),
         "wizard_step_config_count": ProposalWizardStepConfig.objects.count(),
         "campuses_count": Campus.objects.count(),
         "colleges_count": College.objects.count(),
@@ -1007,7 +1007,7 @@ def admin_dashboard(request):
             + Target.objects.count()
             + Signatory.objects.count()
             + DocumentTemplate.objects.count()
-            + DynamicFormTemplate.objects.count()
+            + ProposalTemplateOverride.objects.count()
             + ProposalWizardStepConfig.objects.count()
             + Campus.objects.count()
             + College.objects.count()

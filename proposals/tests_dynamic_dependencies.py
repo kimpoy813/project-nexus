@@ -1,10 +1,10 @@
 """
 Tests for admin-built dynamic form fields with depends_on conditions.
 
-The form builder lets admins make a field visible only when a parent field
-holds a particular value. The browser hides such fields, but the server-side
-required-field checks used to ignore the condition — a *hidden* required
-field blocked submission with an error the user could not resolve.
+The wizard step editor lets admins make a field visible only when a parent
+field holds a particular value. The browser hides such fields, but the
+server-side required-field checks used to ignore the condition — a *hidden*
+required field blocked submission with an error the user could not resolve.
 """
 
 from django.test import RequestFactory, TestCase

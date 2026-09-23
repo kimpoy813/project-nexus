@@ -1839,3 +1839,78 @@ def summary_sent(self):
         proposal=self,
         sent_to_proponent=True
     ).exists()
+
+def _template_key_choices():
+    """Choices for ``ProposalTemplateOverride.key``.
+
+    Imported lazily so ``template_store`` (which imports this model inside
+    its functions) never participates in a module-level import cycle.
+    """
+    from .template_store import TEMPLATE_KEY_CHOICES
+
+    return TEMPLATE_KEY_CHOICES
+
+
+class ProposalTemplateOverride(models.Model):
+    """Admin-uploaded replacement for one bundled document template.
+
+    The proposal flow generates its downloadable documents (Form 1 DOCX,
+    Training Design, clearance summary, work plan / Gantt chart / line-item
+    budget spreadsheets) from templates that ship under
+    ``proposals/template_files/``. Each row here replaces exactly one of
+    those files — selected by ``key``, the bundled filename — so the office
+    can refresh the official templates from the admin screens without a code
+    deploy. ``proposals.template_store`` resolves which copy is live and
+    falls back to the bundled file when no override exists.
+    """
+
+    key = models.CharField(
+        max_length=80,
+        unique=True,
+        choices=_template_key_choices(),
+        help_text="Which built-in template this file replaces.",
+    )
+    file = models.FileField(upload_to="proposal_templates/")
+    notes = models.TextField(
+        blank=True,
+        default="",
+        help_text="Optional note, e.g. what changed in this revision.",
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+        verbose_name = "Proposal template"
+        verbose_name_plural = "Proposal templates"
+
+    def __str__(self):
+        from .template_store import TEMPLATE_FILES
+
+        label = TEMPLATE_FILES.get(self.key, (self.key, ""))[0]
+        return f"{label} ({self.key})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        from .template_store import is_valid_replacement
+
+        super().clean()
+        if self.key and self.file:
+            filename = getattr(self.file, "name", "") or ""
+            if not is_valid_replacement(self.key, filename):
+                raise ValidationError(
+                    {
+                        "file": (
+                            f"This template slot expects a .{self.key.rsplit('.', 1)[-1]} file "
+                            f"matching '{self.key}'."
+                        )
+                    }
+                )

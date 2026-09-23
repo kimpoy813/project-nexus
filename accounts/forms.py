@@ -1,3 +1,4 @@
+import io
 import re
 
 from django import forms
@@ -92,6 +93,65 @@ class DocumentTemplateForm(StyledFormMixin, forms.ModelForm):
 
     def clean_description(self):
         return (self.cleaned_data.get("description") or "").strip()
+
+
+class ProposalTemplateReplacementForm(forms.Form):
+    """Upload a replacement for one bundled proposal document template.
+
+    Each slot (Form 1 DOCX, Training Design, work plan XLSX, ...) expects a
+    specific file type, so the upload is validated against the slot's
+    registered extension before it can replace anything.
+    """
+
+    key = forms.ChoiceField(choices=[])
+    file = forms.FileField()
+    notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, **kwargs):
+        from proposals.template_store import TEMPLATE_KEY_CHOICES
+
+        super().__init__(*args, **kwargs)
+        self.fields["key"].choices = TEMPLATE_KEY_CHOICES
+        self.fields["file"].widget.attrs["class"] = (
+            "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"
+        )
+
+    def clean_notes(self):
+        return (self.cleaned_data.get("notes") or "").strip()
+
+    def clean(self):
+        from proposals.template_store import TEMPLATE_FILES
+
+        cleaned = super().clean()
+        key = cleaned.get("key")
+        upload = cleaned.get("file")
+
+        if not key or not upload:
+            return cleaned
+
+        if key not in TEMPLATE_FILES:
+            self.add_error("key", "Unknown template slot.")
+            return cleaned
+
+        expected_extension = TEMPLATE_FILES[key][1]
+        filename = upload.name or ""
+        if not filename.lower().endswith(f".{expected_extension}"):
+            self.add_error(
+                "file",
+                f"This template must be a .{expected_extension} file.",
+            )
+            return cleaned
+
+        # DOCX and XLSX are both zip archives; reject renamed non-Office files.
+        import zipfile
+
+        upload.seek(0)
+        data = upload.read()
+        upload.seek(0)
+        if not zipfile.is_zipfile(io.BytesIO(data)):
+            self.add_error("file", "The file does not look like a valid Office document.")
+
+        return cleaned
 
 
 class CampusStructureMixin:

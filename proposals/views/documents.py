@@ -27,6 +27,8 @@ from ..docx_forms import build_extension_form_docx
 from ..models import Proposal
 from ..models import ProposalAttachment
 from ..models import ProposalFinalDocument
+from ..template_store import TemplateNotFound
+from ..template_store import open_template
 from accounts.decorators import faculty_like_required
 from accounts.decorators import role_required
 from .constants import SDG_LIST
@@ -196,22 +198,22 @@ def download_work_plan_template(request, proposal_id):
         messages.error(request, "You don't have access to this draft.")
         return redirect("services_home")
 
-    template_dir = Path(__file__).resolve().parent / "template_files"
-
     if proposal.scope_type == "PROGRAM":
-        template_path = template_dir / "program_work_plan_template.xlsx"
+        template_key = "program_work_plan_template.xlsx"
         preferred_sheet_names = ["Program Work Plan", "Work Plan", "Sheet1", "Sheet"]
         filename_prefix = "Program"
     else:
-        template_path = template_dir / "project_work_plan_template.xlsx"
+        template_key = "project_work_plan_template.xlsx"
         preferred_sheet_names = ["Project Work Plan", "Work Plan", "Sheet1", "Sheet"]
         filename_prefix = "Project"
 
-    if not template_path.exists():
+    try:
+        template_stream, _template_name, _is_override = open_template(template_key)
+    except TemplateNotFound:
         messages.error(request, "Work Plan template file not found.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=17)
 
-    wb = load_workbook(template_path)
+    wb = load_workbook(template_stream)
     ws = get_best_sheet(wb, preferred_sheet_names)
 
     title_value = proposal.title or ""
@@ -285,28 +287,28 @@ def download_gantt_chart_template(request, proposal_id):
         messages.error(request, "You don't have access to this draft.")
         return redirect("services_home")
 
-    template_dir = Path(__file__).resolve().parent / "template_files"
-
     if proposal.scope_type == "PROGRAM":
-        template_path = template_dir / "program_gantt_chart_template.xlsx"
+        template_key = "program_gantt_chart_template.xlsx"
         download_name = f"Program_Gantt_Chart_{proposal.title or 'Proposal'}.xlsx"
     else:
-        template_path = template_dir / "project_gantt_chart_template.xlsx"
+        template_key = "project_gantt_chart_template.xlsx"
         download_name = f"Project_Gantt_Chart_{proposal.title or 'Proposal'}.xlsx"
 
-    if not template_path.exists():
+    try:
+        template_stream, _template_name, _is_override = open_template(template_key)
+    except TemplateNotFound:
         messages.error(request, "Gantt Chart template file not found.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=17)
 
     if proposal.scope_type != "PROGRAM":
         return FileResponse(
-            open(template_path, "rb"),
+            template_stream,
             as_attachment=True,
             filename=download_name,
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
 
-    wb = load_workbook(template_path)
+    wb = load_workbook(template_stream)
     ws = wb[wb.sheetnames[0]]
 
     replicate_table_blocks_only(
@@ -339,20 +341,20 @@ def download_funding_template(request, proposal_id):
         messages.error(request, "You don't have access to this draft.")
         return redirect("services_home")
 
-    template_dir = Path(__file__).resolve().parent / "template_files"
-
     if proposal.scope_type == "PROGRAM":
-        template_path = template_dir / "program_funding_template.xlsx"
+        template_key = "program_funding_template.xlsx"
         download_name = f"Program_Line-Item_Budget_{proposal.title or 'Proposal'}.xlsx"
     else:
-        template_path = template_dir / "project_funding_template.xlsx"
+        template_key = "project_funding_template.xlsx"
         download_name = f"Project_Line-Item_Budget_{proposal.title or 'Proposal'}.xlsx"
 
-    if not template_path.exists():
+    try:
+        template_stream, _template_name, _is_override = open_template(template_key)
+    except TemplateNotFound:
         messages.error(request, "Funding template file not found.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=18)
 
-    wb = load_workbook(template_path)
+    wb = load_workbook(template_stream)
     ws = wb["Work Plan Template"]
 
     if proposal.scope_type == "PROGRAM":
