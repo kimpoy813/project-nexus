@@ -1,8 +1,8 @@
 """
 Dependency rules for admin-built dynamic form fields.
 
-The form builder lets admins show a field only when a parent field holds a
-particular value (``depends_on_key`` / ``depends_on_value``). The browser
+The wizard step editor lets admins show a field only when a parent field holds
+a particular value (``depends_on_key`` / ``depends_on_value``). The browser
 hides non-matching fields, and these helpers let the server reach the same
 conclusion so a *hidden* required field never blocks submission.
 """

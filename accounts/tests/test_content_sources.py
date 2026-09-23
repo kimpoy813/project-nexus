@@ -591,7 +591,8 @@ class ServicesPageCompositionTests(TestCase):
         layouts = set(
             PageSection.objects.filter(page__slug="services").values_list("layout", flat=True)
         )
-        self.assertEqual(layouts, {"PROCESSES", "TEMPLATES", "FORMS"})
+        # The Office Forms block was dropped together with the Form Builder.
+        self.assertEqual(layouts, {"PROCESSES", "TEMPLATES"})
 
     def test_a_template_is_listed_once_on_the_services_page(self):
         """Regression: the Template Library was rendered twice.
@@ -611,7 +612,8 @@ class ServicesPageCompositionTests(TestCase):
         html = self.client.get(reverse("services_home")).content.decode()
         self.assertEqual(html.count("SERVICES-TEMPLATE-MARKER"), 1)
 
-    def test_a_form_is_listed_once_on_the_services_page(self):
+    def test_dynamic_forms_are_no_longer_published_on_the_services_page(self):
+        """The Form Builder was removed, so its output has no public block."""
         from details.models import DynamicFormTemplate
 
         DynamicFormTemplate.objects.create(
@@ -619,7 +621,7 @@ class ServicesPageCompositionTests(TestCase):
         )
 
         html = self.client.get(reverse("services_home")).content.decode()
-        self.assertEqual(html.count("SERVICES-FORM-MARKER"), 1)
+        self.assertEqual(html.count("SERVICES-FORM-MARKER"), 0)
 
     def test_a_process_is_listed_once_on_the_services_page(self):
         from details.models import ExtensionProcess

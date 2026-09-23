@@ -3,8 +3,7 @@ The no-code builder's "repeatable group" settings.
 
 Step 3 (Proponents) is the first consumer: the office defines which fields each
 proponent row shows and which proponent record column each field fills in. The
-panel lives in both the wizard step editor and the free-standing form builder,
-so both are exercised here.
+panel lives in the wizard step editor, which is exercised here.
 """
 
 from django.urls import reverse
@@ -185,68 +184,6 @@ class StepEditorRepeaterTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(self._form().is_repeater)
-
-
-class FormBuilderRepeaterTests(TestCase):
-    """The same panel on the free-standing form builder."""
-
-    def setUp(self):
-        self.admin_user, self.admin_client = factories.admin()
-
-    def test_a_new_form_can_start_as_a_repeatable_group(self):
-        response = self.admin_client.post(
-            reverse("dynamic_form_create"),
-            payload_from_rows(
-                [field_row(None, label="Organisation", key="organisation")],
-                name="Partner organisations",
-                applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-                proposal_wizard_step="5",
-                is_active="on",
-                is_repeater="on",
-                repeater_label="Partner",
-                repeater_min_rows="1",
-                repeater_max_rows="0",
-                row_store="GENERIC",
-            ),
-        )
-        self.assertEqual(response.status_code, 302)
-
-        form = DynamicFormTemplate.objects.get(name="Partner organisations")
-        self.assertTrue(form.is_repeater)
-        self.assertEqual(form.repeater_label, "Partner")
-        self.assertEqual(form.repeater_min_rows, 1)
-        self.assertIsNone(form.max_rows)
-        self.assertEqual(form.fields.get().field_key, "organisation")
-
-    def test_editing_a_form_can_turn_the_group_back_off(self):
-        form = DynamicFormTemplate.objects.create(
-            name="Partners",
-            slug="partners",
-            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-            proposal_wizard_step=5,
-            is_repeater=True,
-            repeater_label="Partner",
-            row_store=DynamicFormTemplate.RowStore.PROPONENT,
-        )
-        field = DynamicFormField.objects.create(
-            form=form, label="Name", field_key="full_name", maps_to="full_name", order=1
-        )
-
-        self.admin_client.post(
-            reverse("dynamic_form_edit", args=[form.id]),
-            payload_from_rows(
-                [field_row(field)],
-                name="Partners",
-                applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
-                proposal_wizard_step="5",
-                row_store="PROPONENT",
-            ),
-        )
-
-        form.refresh_from_db()
-        self.assertFalse(form.is_repeater)
-        field.refresh_from_db()
-        self.assertEqual(field.maps_to, "")
 
 
 class DefaultFieldSeederTests(TestCase):

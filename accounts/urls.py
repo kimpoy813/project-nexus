@@ -207,10 +207,21 @@ urlpatterns = [
     path("admin/templates/create/", views.document_template_create, name="document_template_create"),
     path("admin/templates/<int:pk>/edit/", views.document_template_edit, name="document_template_edit"),
     path("admin/templates/<int:pk>/delete/", views.document_template_delete, name="document_template_delete"),
-    path("admin/forms/", views.dynamic_forms_list, name="dynamic_forms_list"),
-    path("admin/forms/create/", views.dynamic_form_create, name="dynamic_form_create"),
-    path("admin/forms/<int:pk>/edit/", views.dynamic_form_edit, name="dynamic_form_edit"),
-    path("admin/forms/<int:pk>/delete/", views.dynamic_form_delete, name="dynamic_form_delete"),
+    path(
+        "admin/proposal-templates/",
+        views.proposal_templates_list,
+        name="proposal_templates_list",
+    ),
+    path(
+        "admin/proposal-templates/replace/",
+        views.proposal_template_replace,
+        name="proposal_template_replace",
+    ),
+    path(
+        "admin/proposal-templates/reset/",
+        views.proposal_template_reset,
+        name="proposal_template_reset",
+    ),
 
     path("admin/wizard-steps/", views.wizard_steps_manager, name="wizard_steps_manager"),
     path("admin/wizard-steps/create/", views.wizard_step_create, name="wizard_step_create"),

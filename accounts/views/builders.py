@@ -1,5 +1,5 @@
 """
-No-code builders: document templates, dynamic forms, wizard steps, role capabilities.
+No-code builders: document templates, proposal templates, wizard steps, role capabilities.
 """
 from collections import OrderedDict
 import json
@@ -26,6 +26,7 @@ from details.models import RoleCapability
 from details.proponent_fields import PROPONENT_STEP_NO, ensure_proponent_repeater_form
 from ..decorators import admin_required
 from ..forms import DocumentTemplateForm
+from ..forms import ProposalTemplateReplacementForm
 from ..storage_diagnostics import describe_storage_exception
 from ..storage_diagnostics import storage_failure_hint
 from .helpers import _safe_int
@@ -326,18 +327,131 @@ def document_template_delete(request, pk):
     return redirect("document_templates_list")
 
 
+# ---------------------------------------------------------------------------
+# Proposal document templates (the files in proposals/template_files)
+# ---------------------------------------------------------------------------
+
+
+def _proposal_template_slot_rows():
+    """Slot descriptors plus their current override, for the admin screen."""
+    from proposals.template_store import template_slot_summaries
+
+    return template_slot_summaries()
+
+
+def _proposal_template_label(key):
+    from proposals.template_store import TEMPLATE_FILES
+
+    return TEMPLATE_FILES.get(key, (key, ""))[0]
+
+
 @login_required
 @admin_required
-def dynamic_forms_list(request):
-    forms_qs = DynamicFormTemplate.objects.prefetch_related("fields").order_by("applies_to", "name")
+def proposal_templates_list(request):
+    """Manage the DOCX/XLSX templates the system generates documents from."""
+    from proposals.models import ProposalTemplateOverride
+    from proposals.template_store import TEMPLATE_FILES
+
+    rows = _proposal_template_slot_rows()
+    replacement_form = ProposalTemplateReplacementForm()
+
     return render(
         request,
-        "dashboard/admin/dynamic_forms_list.html",
+        "dashboard/admin/proposal_templates_list.html",
         {
-            "forms_qs": forms_qs,
-            "applies_to_choices": DynamicFormTemplate.AppliesTo.choices,
+            "rows": rows,
+            "replacement_form": replacement_form,
+            "slot_count": len(TEMPLATE_FILES),
+            "override_count": ProposalTemplateOverride.objects.count(),
+            "storage_configuration_error": _template_storage_is_unavailable(),
+            "storage_configuration_warnings": getattr(
+                settings, "SUPABASE_STORAGE_CONFIGURATION_WARNINGS", ()
+            ),
         },
     )
+
+
+@login_required
+@admin_required
+@require_POST
+def proposal_template_replace(request):
+    """Upload a replacement file for one template slot."""
+    from proposals.models import ProposalTemplateOverride
+
+    form = ProposalTemplateReplacementForm(request.POST, request.FILES)
+    if not form.is_valid():
+        for error_list in form.errors.values():
+            for error in error_list:
+                messages.error(request, error)
+        return redirect("proposal_templates_list")
+
+    key = form.cleaned_data["key"]
+    label = _proposal_template_label(key)
+
+    storage_error = _template_storage_is_unavailable()
+    if storage_error:
+        logger.error("Proposal template replacement blocked: %s", storage_error)
+        messages.error(
+            request,
+            "The template was not replaced. File storage needs to be configured first.",
+        )
+        return redirect("proposal_templates_list")
+
+    try:
+        override, created = ProposalTemplateOverride.objects.update_or_create(
+            key=key,
+            defaults={
+                "file": form.cleaned_data["file"],
+                "notes": form.cleaned_data["notes"],
+                "uploaded_by": request.user,
+            },
+        )
+    except _DOCUMENT_TEMPLATE_STORAGE_ERRORS as exc:
+        logger.exception(
+            "Could not store proposal template replacement for %s (user_id=%s).",
+            key,
+            request.user.pk,
+        )
+        messages.error(
+            request,
+            _storage_failure_message(
+                f'The replacement for "{label}" could not be saved to file storage. '
+                "Check the Supabase bucket, endpoint, and S3 access keys, then try again.",
+                exc,
+            ),
+        )
+        return redirect("proposal_templates_list")
+
+    verb = "replaced" if not created else "uploaded"
+    messages.success(request, f'Template "{label}" {verb} successfully.')
+    return redirect("proposal_templates_list")
+
+
+@login_required
+@admin_required
+@require_POST
+def proposal_template_reset(request):
+    """Drop the admin override so the bundled template is used again."""
+    from proposals.models import ProposalTemplateOverride
+    from proposals.template_store import TEMPLATE_FILES
+
+    key = (request.POST.get("key") or "").strip()
+    if key not in TEMPLATE_FILES:
+        messages.error(request, "Unknown template slot.")
+        return redirect("proposal_templates_list")
+
+    override = ProposalTemplateOverride.objects.filter(key=key).first()
+    if override:
+        label = _proposal_template_label(key)
+        override.delete()
+        messages.success(
+            request,
+            f'Template "{label}" was reset to the default file shipped with the system.',
+        )
+    else:
+        messages.info(request, "This template is already using the default file.")
+
+    return redirect("proposal_templates_list")
 
 
 def _unique_dynamic_form_slug(name, existing=None):
@@ -354,7 +468,7 @@ def _unique_dynamic_form_slug(name, existing=None):
 
 
 def _save_repeater_settings(form_obj, post_data):
-    """Read the "repeatable group" panel of the form builder.
+    """Read the "repeatable group" panel of the wizard step editor.
 
     Kept separate from the field rows because it describes the *group*, not its
     fields. ``maps_to`` only means something for a proponent-storing group, so
@@ -469,82 +583,6 @@ def _save_dynamic_form_fields(form_obj, post_data):
 
 @login_required
 @admin_required
-def dynamic_form_create(request):
-    if request.method == "POST":
-        name = (request.POST.get("name") or "").strip()
-        if not name:
-            messages.error(request, "Form name is required.")
-        else:
-            form_obj = DynamicFormTemplate.objects.create(
-                name=name,
-                slug=_unique_dynamic_form_slug(name),
-                applies_to=(request.POST.get("applies_to") or DynamicFormTemplate.AppliesTo.GENERAL).strip(),
-                proposal_wizard_step=_safe_int(request.POST.get("proposal_wizard_step"), 0) or None,
-                blocks_proposal_submission=request.POST.get("blocks_proposal_submission") == "on",
-                description=(request.POST.get("description") or "").strip(),
-                instructions=(request.POST.get("instructions") or "").strip(),
-                is_active=request.POST.get("is_active") == "on",
-            )
-            _save_repeater_settings(form_obj, request.POST)
-            _save_dynamic_form_fields(form_obj, request.POST)
-            messages.success(request, f'Form "{name}" created successfully.')
-            return redirect("dynamic_forms_list")
-
-    return render(
-        request,
-        "dashboard/admin/dynamic_form_builder.html",
-        _builder_context(
-            mode="create",
-            applies_to_choices=DynamicFormTemplate.AppliesTo.choices,
-        ),
-    )
-
-
-@login_required
-@admin_required
-def dynamic_form_edit(request, pk):
-    form_obj = get_object_or_404(DynamicFormTemplate.objects.prefetch_related("fields"), pk=pk)
-
-    if request.method == "POST":
-        name = (request.POST.get("name") or form_obj.name).strip()
-        form_obj.name = name
-        form_obj.slug = _unique_dynamic_form_slug(name, existing=form_obj)
-        form_obj.applies_to = (request.POST.get("applies_to") or form_obj.applies_to).strip()
-        form_obj.proposal_wizard_step = _safe_int(request.POST.get("proposal_wizard_step"), 0) or None
-        form_obj.blocks_proposal_submission = request.POST.get("blocks_proposal_submission") == "on"
-        form_obj.description = (request.POST.get("description") or "").strip()
-        form_obj.instructions = (request.POST.get("instructions") or "").strip()
-        form_obj.is_active = request.POST.get("is_active") == "on"
-        form_obj.save()
-        _save_repeater_settings(form_obj, request.POST)
-        _save_dynamic_form_fields(form_obj, request.POST)
-        messages.success(request, f'Form "{form_obj.name}" updated successfully.')
-        return redirect("dynamic_forms_list")
-
-    return render(
-        request,
-        "dashboard/admin/dynamic_form_builder.html",
-        _builder_context(
-            form_obj,
-            mode="edit",
-            applies_to_choices=DynamicFormTemplate.AppliesTo.choices,
-        ),
-    )
-
-
-@login_required
-@admin_required
-@require_POST
-def dynamic_form_delete(request, pk):
-    form_obj = get_object_or_404(DynamicFormTemplate, pk=pk)
-    name = form_obj.name
-    form_obj.delete()
-    messages.success(request, f'Form "{name}" deleted successfully.')
-    return redirect("dynamic_forms_list")
-
-
-@login_required
-@admin_required
 def wizard_steps_manager(request):
     _sync_default_wizard_step_configs()
     steps = ProposalWizardStepConfig.objects.all().order_by("display_order", "step_no")
@@ -593,10 +631,10 @@ def wizard_steps_reorder(request):
 
 
 def _builder_context(form_obj=None, **extra):
-    """Template context shared by the wizard step editor and the form builder.
+    """Template context for the wizard step editor screens.
 
-    Both screens render the same field rows and the same "repeatable group"
-    panel, so the choices they need are assembled in one place.
+    The create and edit screens render the same field rows and the same
+    "repeatable group" panel, so the choices they need are assembled here.
     """
     ctx = {
         "form_obj": form_obj,

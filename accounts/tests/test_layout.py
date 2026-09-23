@@ -134,8 +134,9 @@ class AdminScreenLayoutTests(FluidContainerAssertions, TestCase):
         "campuses_list", "campus_create", "colleges_list", "college_create",
         "departments_list", "department_create", "personnel_list", "processes_list",
         "activities_list", "activity_create", "targets_list", "target_create",
-        "signatories_list", "signatory_create", "dynamic_forms_list",
-        "document_templates_list", "wizard_steps_manager", "wizard_step_create",
+        "signatories_list", "signatory_create",
+        "document_templates_list", "proposal_templates_list",
+        "wizard_steps_manager", "wizard_step_create",
         "workflow_phases_manager", "home_sections_manager", "role_capabilities_manager",
         "admin_create_account",
     )

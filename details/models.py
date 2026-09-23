@@ -633,7 +633,6 @@ class PageSection(models.Model):
         SDG = "SDG", CONTENT_SOURCES["SDG"].label
         ACTIVITIES = "ACTIVITIES", CONTENT_SOURCES["ACTIVITIES"].label
         TEMPLATES = "TEMPLATES", CONTENT_SOURCES["TEMPLATES"].label
-        FORMS = "FORMS", CONTENT_SOURCES["FORMS"].label
 
     #: Layouts backed by a content source. Derived from the registry so a
     #: source can never be half-registered (declared but not renderable).

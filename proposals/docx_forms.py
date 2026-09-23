@@ -9,11 +9,12 @@ Design goal:
   clone existing paragraphs to preserve list bullets/numbering, indents, fonts,
   spacing, and alignment.
 
-This file expects the DOCX templates to exist in:
-    proposals/template_files/
-        form1_program_template.docx
-        form1_project_template.docx
-        form2_training_design_template.docx
+Templates are resolved through ``proposals.template_store``: the bundled
+copies live in ``proposals/template_files/``
+    (form1_program_template.docx, form1_project_template.docx,
+     form2_training_design_template.docx)
+and administrators may replace any of them with an uploaded
+``ProposalTemplateOverride``.
 """
 from __future__ import annotations
 
@@ -1930,7 +1931,7 @@ def build_extension_form_docx(proposal, *args, **kwargs) -> bytes:
     Returns:
         bytes of the generated DOCX.
     """
-    base_dir = Path(__file__).resolve().parent / "template_files"
+    from .template_store import open_template
 
     extension_type = (getattr(proposal, "extension_type", "") or "").strip().upper()
     scope_type = (getattr(proposal, "scope_type", "") or "").strip().upper()
@@ -1952,18 +1953,20 @@ def build_extension_form_docx(proposal, *args, **kwargs) -> bytes:
 
     if proposal_format == "EXTENSION_PROPOSAL":
         if scope_type == "PROGRAM":
-            template_path = base_dir / "form1_program_template.docx"
+            template_key = "form1_program_template.docx"
         else:
-            template_path = base_dir / "form1_project_template.docx"
+            template_key = "form1_project_template.docx"
 
-        doc = Document(str(template_path))
+        template_stream, _template_name, _is_override = open_template(template_key)
+        doc = Document(template_stream)
         if scope_type == "PROGRAM":
             _fill_form1_program(doc, proposal)
         else:
             _fill_form1_project(doc, proposal)
     else:
-        template_path = base_dir / "form2_training_design_template.docx"
-        doc = Document(str(template_path))
+        template_key = "form2_training_design_template.docx"
+        template_stream, _template_name, _is_override = open_template(template_key)
+        doc = Document(template_stream)
         _fill_form2_training_design(doc, proposal)
     _cleanup_document_end(doc)
 
