@@ -13,6 +13,7 @@ Three things are pinned here:
 """
 
 import json
+from html.parser import HTMLParser
 
 from django.template.loader import get_template
 from django.test import TestCase
@@ -38,6 +39,35 @@ from . import factories
 
 
 DENIED = (302, 403)
+
+#: Tags that never receive an end tag, so the walk below must not count them.
+VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+             "link", "meta", "source", "track", "wbr"}
+
+
+class SortableAncestry(HTMLParser):
+    """Records the container classes wrapped around each ``data-sortable`` list.
+
+    Enough to ask a layout question of rendered HTML: two lists that share a
+    container are laid out next to each other, and two that do not are stacked.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.ancestors = {}
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        key = attrs.get("data-sortable")
+        if key and key not in self.ancestors:
+            self.ancestors[key] = list(self.stack)
+        if tag not in VOID_TAGS:
+            self.stack.append(attrs.get("class", ""))
+
+    def handle_endtag(self, tag):
+        if tag not in VOID_TAGS and self.stack:
+            self.stack.pop()
 
 
 class RegistryIntegrityTests(TestCase):
@@ -240,6 +270,26 @@ class BlockPaletteTests(TestCase):
         self.assertContains(self.client.get(reverse("reports_page")), "SHARED-THRUST-MARKER")
         self.assertContains(self.client.get(reverse("achievements_page")), "SHARED-THRUST-MARKER")
         self.assertEqual(HomeThrust.objects.filter(title="SHARED-THRUST-MARKER").count(), 1)
+
+    def test_the_palette_is_a_rail_beside_the_section_list(self):
+        """Drag-and-drop only works if the tile and its row are on screen together.
+
+        A palette stacked above a page of dozens of rows means dragging a block
+        the length of the page, so the rail and the canvas must share one split
+        container — and the rail must be sticky to stay in view.
+        """
+        html = self.client_admin.get(
+            reverse("page_content_edit", args=["home"])
+        ).content.decode()
+        finder = SortableAncestry()
+        finder.feed(html)
+
+        palette, sections = finder.ancestors["palette"], finder.ancestors["sections"]
+        self.assertIn("nx-split__rail nx-split__rail--sticky", palette)
+        self.assertTrue(
+            set(palette) & set(sections) & {"nx-split nx-split--rail-left mb-6"},
+            f"palette {palette} and sections {sections} share no split container",
+        )
 
     def test_a_block_dropped_at_a_position_lands_there(self):
         self.client_admin.post(
