@@ -1,16 +1,25 @@
 {% comment %}
 Shared drag-and-drop wiring for the page content editor.
 
-Two kinds of list are draggable, and both work the same way: drag a row by its
-handle, the new order is POSTed as JSON, and a status line reports the result.
+Two kinds of list are draggable, and both work the same way: drag a row into
+its new place, the order is POSTed as JSON, and a status line reports the
+result.
 
   [data-sortable="sections"]  the page's sections        -> page_sections_reorder
   [data-sortable="source"]    the items inside a source  -> content_source_reorder
 
+The section rows are grabbed anywhere — headings, padding, the lot — so
+rearranging the page is just dragging the rows themselves. Buttons, links,
+forms, and the nested editors opt out of starting a drag (`.pc-row__editor`
+covers the editors, which host their own drag lists and stay editable while a
+row is in flight). The items inside a source keep their grip handles: those
+rows are mostly forms, and a handle leaves text selection and typing intact.
+
 A third interaction drops a *new* block: dragging a palette tile into the
 section list posts the source key and the position it landed at. The palette is
-a rail beside that list rather than a strip above it, so the tile only has to
-travel sideways into its row — see `.nx-split` in page_content_edit.html.
+a narrow sticky rail beside that list rather than a strip above it, so the tile
+only has to travel sideways into its row — see `.nx-split--rail-right` in
+page_content_edit.html.
 
 Everything degrades safely. If Sortable fails to load, the palette tiles are
 still buttons that append a block, and each section keeps its ↑/↓ controls.
@@ -63,9 +72,26 @@ still buttons that append a block, and each section keeps its ↑/↓ controls.
     if (sectionList && typeof Sortable !== "undefined") {
         var sectionStatus = document.getElementById("section-order-status");
         new Sortable(sectionList, {
-            handle: ".js-section-handle",
+            // The whole row is the grab target: rearranging is just dragging
+            // the rows. Interactive controls, the empty-page well, and the
+            // nested editors never start a row drag — clicks, typing, and the
+            // item-level handles inside those editors keep working.
+            filter: "button, a, form, input, textarea, select, label, .pc-row__editor, .pc-empty",
+            preventOnFilter: false,
             animation: 150,
             ghostClass: "pc-drag-ghost",
+            // The fallback drag (whose clone rides outside the scrolling
+            // canvas) keeps rows out of the canvas card's overflow, works on
+            // touch where native HTML5 drag never starts, and never fights
+            // text selection in the row.
+            forceFallback: true,
+            fallbackOnBody: true,
+            fallbackTolerance: 3,
+            fallbackClass: "pc-drag-row",
+            // A short hold before a touch drag starts, so a flick to scroll a
+            // long canvas still scrolls.
+            delay: 150,
+            delayOnTouchOnly: true,
             // Rows can be taller than the viewport once their nested editor is
             // open, so a drag pushed to the edge keeps the page moving.
             scroll: true,
@@ -164,6 +190,15 @@ still buttons that append a block, and each section keeps its ↑/↓ controls.
     opacity: .95; pointer-events: none; border-radius: 12px;
     border-color: #103b07 !important; background: #fff !important;
     box-shadow: 0 10px 28px rgba(15, 23, 42, .22); transform: rotate(-.5deg);
+}
+/* A lifted section row following the pointer. Same idea as the tile chip,
+   sized for a wide row: shadow and outline read as "picked up", the in-list
+   ghost above shows where it will land. */
+.pc-drag-row {
+    opacity: .95; pointer-events: none; border-radius: 12px;
+    background: #fff !important;
+    outline: 2px solid #103b07; outline-offset: -2px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, .25);
 }
 .pc-handle {
     display: grid; place-items: center; height: 2rem; width: 2rem;
