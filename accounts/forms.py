@@ -1,4 +1,3 @@
-import io
 import re
 
 from django import forms
@@ -16,6 +15,8 @@ from .campus_data import (
 )
 from .models import Profile
 from details.models import DocumentTemplate
+from proposals.models import CustomProposalTemplate
+from proposals.template_store import custom_key_for
 
 User = get_user_model()
 
@@ -143,15 +144,214 @@ class ProposalTemplateReplacementForm(forms.Form):
             return cleaned
 
         # DOCX and XLSX are both zip archives; reject renamed non-Office files.
-        import zipfile
+        from proposals.template_store import is_valid_replacement
 
         upload.seek(0)
         data = upload.read()
         upload.seek(0)
-        if not zipfile.is_zipfile(io.BytesIO(data)):
+        if not is_valid_replacement(key, filename, data):
             self.add_error("file", "The file does not look like a valid Office document.")
 
         return cleaned
+
+
+def _validate_slot_upload(form, slot_key, upload):
+    """Add the right error to ``form`` unless ``upload`` fits ``slot_key``.
+
+    Shared by the replace and edit forms: both write the same column, so both
+    have to insist on the slot's own format and on a real Office document.
+    """
+    from proposals.template_store import TEMPLATE_FILES, is_valid_replacement
+
+    if slot_key not in TEMPLATE_FILES:
+        form.add_error(None, "Unknown template slot.")
+        return False
+
+    expected_extension = TEMPLATE_FILES[slot_key][1]
+    filename = upload.name or ""
+    if not filename.lower().endswith(f".{expected_extension}"):
+        form.add_error("file", f"This template must be a .{expected_extension} file.")
+        return False
+
+    upload.seek(0)
+    data = upload.read()
+    upload.seek(0)
+    if not is_valid_replacement(slot_key, filename, data):
+        form.add_error("file", "The file does not look like a valid Office document.")
+        return False
+
+    return True
+
+
+class ProposalTemplateEditForm(forms.Form):
+    """Edit one built-in template slot: its note and, optionally, its file.
+
+    Leaving the picker empty keeps whichever copy is live right now, so an
+    administrator can correct a note or swap the file alone. The file is only
+    compulsory when the slot has no replacement yet, because the note is
+    stored on the replacement row.
+    """
+
+    file = forms.FileField(required=False)
+    notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 4}))
+
+    def __init__(self, *args, slot_key, has_override=False, **kwargs):
+        from proposals.template_store import TEMPLATE_FILES
+
+        super().__init__(*args, **kwargs)
+        self.slot_key = slot_key
+        self.has_override = has_override
+        self.expected_extension = TEMPLATE_FILES.get(slot_key, ("", ""))[1]
+        self.fields["file"].widget.attrs.update(
+            {
+                "class": "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm",
+                "accept": f".{self.expected_extension}" if self.expected_extension else "",
+            }
+        )
+        self.fields["notes"].widget.attrs["class"] = (
+            "w-full rounded-xl border border-gray-300 px-4 py-2.5 "
+            "focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+        )
+        self.fields["file"].required = not has_override
+
+    def clean_notes(self):
+        return (self.cleaned_data.get("notes") or "").strip()
+
+    def clean(self):
+        cleaned = super().clean()
+        upload = cleaned.get("file")
+        if upload and not _validate_slot_upload(self, self.slot_key, upload):
+            return cleaned
+        return cleaned
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    """A file picker that accepts several files at once."""
+
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    """Clean a multi-file picker into a list of uploads."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput)
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(item, initial) for item in data]
+        return [single_file_clean(data, initial)]
+
+
+class CustomProposalTemplateUploadForm(forms.Form):
+    """Add template files the office will use before any code reads them."""
+
+    files = MultipleFileField()
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Applied to every file added in this batch.",
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["files"].widget.attrs.update(
+            {
+                "class": "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm",
+                "multiple": True,
+            }
+        )
+        self.fields["notes"].widget.attrs["class"] = (
+            "w-full rounded-xl border border-gray-300 px-4 py-2.5 "
+            "focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+        )
+
+    def clean_notes(self):
+        return (self.cleaned_data.get("notes") or "").strip()
+
+    def clean_files(self):
+        from proposals.template_store import custom_file_problem
+
+        uploads = self.cleaned_data.get("files") or []
+        if not uploads:
+            raise ValidationError("Choose at least one file to add.")
+
+        for upload in uploads:
+            upload.seek(0)
+            content = upload.read()
+            upload.seek(0)
+            problem = custom_file_problem(upload.name or "", content)
+            if problem:
+                raise ValidationError(f"{upload.name}: {problem}")
+        return uploads
+
+
+class CustomProposalTemplateForm(StyledFormMixin, forms.ModelForm):
+    """Add or edit one template file the office keeps in the system."""
+
+    class Meta:
+        model = CustomProposalTemplate
+        fields = ["title", "file", "notes", "is_active"]
+        widgets = {
+            "notes": forms.Textarea(attrs={"rows": 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_styled_widgets()
+        self.fields["file"].widget.attrs["class"] = (
+            "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"
+        )
+        self.fields["is_active"].widget.attrs["class"] = "sr-only peer"
+
+        # Replacing the file is optional once the template exists.
+        if self.instance and self.instance.pk:
+            self.fields["file"].required = False
+
+    def clean_title(self):
+        return (self.cleaned_data.get("title") or "").strip()
+
+    def clean_notes(self):
+        return (self.cleaned_data.get("notes") or "").strip()
+
+    def clean(self):
+        from proposals.template_store import custom_file_problem
+
+        cleaned = super().clean()
+        upload = cleaned.get("file")
+        if not upload:
+            # Required-field errors are already reported by _clean_fields; an
+            # existing row may simply keep the file it has.
+            return cleaned
+
+        upload.seek(0)
+        content = upload.read()
+        upload.seek(0)
+        problem = custom_file_problem(upload.name or "", content)
+        if problem:
+            self.add_error("file", problem)
+            return cleaned
+
+        # A new file decides the key of a brand-new row; an existing row keeps
+        # the key it was filed under so anything already pointing at it still
+        # resolves.
+        if self.instance and self.instance.pk:
+            cleaned["key"] = self.instance.key
+        else:
+            cleaned["key"] = custom_key_for(cleaned.get("title") or "", upload.name or "")
+
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        key = self.cleaned_data.get("key")
+        if key:
+            instance.key = key
+        if commit:
+            instance.save()
+        return instance
 
 
 class CampusStructureMixin:

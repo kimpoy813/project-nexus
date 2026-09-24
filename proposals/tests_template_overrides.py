@@ -23,7 +23,7 @@ from accounts.models import Profile
 from accounts.tests import factories
 from openpyxl import load_workbook
 
-from .models import Proposal, ProposalTemplateOverride
+from .models import CustomProposalTemplate, Proposal, ProposalTemplateOverride
 from .template_store import (
     TEMPLATE_FILES,
     TemplateNotFound,
@@ -54,6 +54,14 @@ def xlsx_bytes_with_marker_sheet(marker):
     buffer = io.BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
+
+
+def response_body(response):
+    """The bytes a response sent, streaming (FileResponse) or not."""
+    if getattr(response, "streaming", False):
+        return b"".join(response.streaming_content)
+    return response.content
+
 
 
 class TemplateStoreTests(TestCase):
@@ -286,3 +294,334 @@ class DjangoAdminRegistrationTests(TestCase):
         self.assertEqual(changelist.status_code, 200)
         add_form = client.get("/admin/proposals/proposaltemplateoverride/add/")
         self.assertEqual(add_form.status_code, 200)
+
+
+class TemplateDownloadTests(TestCase):
+    """Every template on the screen can be downloaded, default included."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user, cls.admin_client = factories.admin("tpl_dl_admin")
+        cls.faculty = factories.make_user("tpl_dl_faculty", Profile.ROLE_FACULTY)
+
+    def test_a_slot_without_an_override_downloads_the_bundled_file(self):
+        key = "project_work_plan_template.xlsx"
+        response = self.admin_client.get(reverse("proposal_template_download", args=[key]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("attachment", response["Content-Disposition"])
+        self.assertEqual(response_body(response), bundled_path(key).read_bytes())
+
+    def test_a_replaced_slot_downloads_the_uploaded_file(self):
+        marker = docx_bytes_with_marker("DOWNLOAD-THE-OVERRIDE")
+        key = "form2_training_design_template.docx"
+        ProposalTemplateOverride.objects.create(
+            key=key,
+            file=SimpleUploadedFile("revised_form2.docx", marker),
+        )
+
+        response = self.admin_client.get(reverse("proposal_template_download", args=[key]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        self.assertEqual(response_body(response), marker)
+
+    def test_an_unknown_slot_is_not_found(self):
+        response = self.admin_client.get(
+            reverse("proposal_template_download", args=["not_a_template.docx"])
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_only_admins_can_download(self):
+        status = factories.make_client(self.faculty).get(
+            reverse("proposal_template_download", args=["clear_summary_template.docx"])
+        ).status_code
+        self.assertIn(status, (302, 403))
+
+
+class BuiltInTemplateEditTests(TestCase):
+    """The per-slot edit screen: note, file, or both."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user, cls.admin_client = factories.admin("tpl_edit_admin")
+        cls.faculty = factories.make_user("tpl_edit_faculty", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.key = "form2_training_design_template.docx"
+        self.url = reverse("proposal_template_edit", args=[self.key])
+
+    def test_the_edit_screen_opens_for_every_slot(self):
+        for key in TEMPLATE_FILES:
+            with self.subTest(key=key):
+                response = self.admin_client.get(reverse("proposal_template_edit", args=[key]))
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(TEMPLATE_FILES[key][0], response.content.decode())
+
+    def test_an_unknown_slot_is_not_found(self):
+        response = self.admin_client.get(
+            reverse("proposal_template_edit", args=["not_a_template.docx"])
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_only_admins_can_edit(self):
+        status = factories.make_client(self.faculty).get(self.url).status_code
+        self.assertIn(status, (302, 403))
+
+    def test_editing_the_note_keeps_the_file(self):
+        original = docx_bytes_with_marker("EDIT-KEEPS-FILE")
+        ProposalTemplateOverride.objects.create(
+            key=self.key,
+            file=SimpleUploadedFile("current.docx", original),
+            notes="old note",
+        )
+
+        response = self.admin_client.post(self.url, {"notes": "2026 budget revision"})
+
+        self.assertEqual(response.status_code, 302)
+        override = ProposalTemplateOverride.objects.get(key=self.key)
+        self.assertEqual(override.notes, "2026 budget revision")
+        stream, _name, is_override = open_template(self.key)
+        try:
+            self.assertTrue(is_override)
+            self.assertEqual(stream.read(), original)
+        finally:
+            stream.close()
+
+    def test_a_new_file_replaces_the_stored_one(self):
+        ProposalTemplateOverride.objects.create(
+            key=self.key,
+            file=SimpleUploadedFile("current.docx", docx_bytes_with_marker("OLD")),
+        )
+        revised = docx_bytes_with_marker("REVISED-BY-ADMIN")
+
+        response = self.admin_client.post(
+            self.url,
+            {"notes": "new format", "file": SimpleUploadedFile("revised.docx", revised)},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ProposalTemplateOverride.objects.filter(key=self.key).count(), 1)
+        stream, _name, _is_override = open_template(self.key)
+        try:
+            self.assertEqual(stream.read(), revised)
+        finally:
+            stream.close()
+
+    def test_a_slot_without_a_replacement_needs_a_file(self):
+        response = self.admin_client.post(self.url, {"notes": "no file yet"})
+
+        self.assertEqual(response.status_code, 200)  # re-rendered with the error
+        self.assertFalse(ProposalTemplateOverride.objects.filter(key=self.key).exists())
+
+    def test_a_wrong_extension_is_refused(self):
+        response = self.admin_client.post(
+            self.url,
+            {"file": SimpleUploadedFile("sheet.xlsx", xlsx_bytes_with_marker_sheet("X"))},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(ProposalTemplateOverride.objects.filter(key=self.key).exists())
+
+
+class CustomProposalTemplateTests(TestCase):
+    """Files the office adds for a process or format that is not wired in yet."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin_user, cls.admin_client = factories.admin("tpl_custom_admin")
+        cls.faculty = factories.make_user("tpl_custom_faculty", Profile.ROLE_FACULTY)
+
+    def add_file(self, name="MOA_Renewal_Form.docx", content=None, **extra):
+        payload = {
+            "files": SimpleUploadedFile(
+                name, content if content is not None else docx_bytes_with_marker("CUSTOM")
+            ),
+            "notes": extra.pop("notes", "for the 2027 process"),
+        }
+        payload.update(extra)
+        return self.admin_client.post(reverse("proposal_custom_template_add"), payload)
+
+    def test_an_admin_can_add_a_file(self):
+        response = self.add_file()
+
+        self.assertEqual(response.status_code, 302)
+        template = CustomProposalTemplate.objects.get()
+        self.assertEqual(template.title, "MOA Renewal Form")
+        self.assertEqual(template.key, "moa-renewal-form.docx")
+        self.assertEqual(template.uploaded_by, self.admin_user)
+        self.assertTrue(template.is_active)
+
+    def test_several_files_can_be_added_at_once(self):
+        response = self.admin_client.post(
+            reverse("proposal_custom_template_add"),
+            {
+                "files": [
+                    SimpleUploadedFile("Evaluation_Form.docx", docx_bytes_with_marker("A")),
+                    SimpleUploadedFile("Budget_Matrix.xlsx", xlsx_bytes_with_marker_sheet("B")),
+                ],
+                "notes": "incoming formats",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            sorted(CustomProposalTemplate.objects.values_list("key", flat=True)),
+            ["budget-matrix.xlsx", "evaluation-form.docx"],
+        )
+
+    def test_the_same_title_gets_a_second_key(self):
+        self.add_file()
+        self.add_file()
+
+        self.assertEqual(
+            sorted(CustomProposalTemplate.objects.values_list("key", flat=True)),
+            ["moa-renewal-form-2.docx", "moa-renewal-form.docx"],
+        )
+
+    def test_a_key_never_collides_with_a_built_in_slot(self):
+        response = self.add_file(name="Clearance_Summary.docx")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(CustomProposalTemplate.objects.get().key, "clearance-summary.docx")
+        self.assertIn("clearance-summary.docx", [t.key for t in CustomProposalTemplate.objects.all()])
+        self.assertNotIn("clearance-summary.docx", TEMPLATE_FILES)
+
+    def test_an_unsupported_format_is_refused(self):
+        response = self.add_file(name="photo.png", content=b"\x89PNG\r\n\x1a\n" + b"0" * 32)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(CustomProposalTemplate.objects.exists())
+
+    def test_a_renamed_file_is_refused(self):
+        response = self.add_file(name="pretend.docx", content=b"this is not a zip archive")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(CustomProposalTemplate.objects.exists())
+
+    def test_added_files_appear_on_the_screen(self):
+        self.add_file()
+        html = self.admin_client.get(reverse("proposal_templates_list")).content.decode()
+
+        self.assertIn("MOA Renewal Form", html)
+        self.assertIn("moa-renewal-form.docx", html)
+        self.assertIn("Added template files", html)
+
+    def test_an_added_file_can_be_downloaded(self):
+        marker = docx_bytes_with_marker("CUSTOM-DOWNLOAD")
+        self.add_file(content=marker)
+        template = CustomProposalTemplate.objects.get()
+
+        response = self.admin_client.get(
+            reverse("proposal_custom_template_download", args=[template.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+        self.assertEqual(response_body(response), marker)
+
+    def test_an_added_file_can_be_edited(self):
+        self.add_file()
+        template = CustomProposalTemplate.objects.get()
+        revised = docx_bytes_with_marker("CUSTOM-REVISED")
+
+        response = self.admin_client.post(
+            reverse("proposal_custom_template_edit", args=[template.pk]),
+            {
+                "title": "MOA Renewal Form 2027",
+                "notes": "updated for the new signatories",
+                "file": SimpleUploadedFile("renewal_2027.docx", revised),
+                "is_active": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        template.refresh_from_db()
+        self.assertEqual(template.title, "MOA Renewal Form 2027")
+        self.assertEqual(template.notes, "updated for the new signatories")
+        self.assertEqual(template.key, "moa-renewal-form.docx")  # identity is stable
+        self.assertTrue(template.is_active)
+        template.file.open("rb")
+        self.assertEqual(template.file.read(), revised)
+
+    def test_an_edit_can_retire_a_file_without_touching_it(self):
+        self.add_file()
+        template = CustomProposalTemplate.objects.get()
+
+        response = self.admin_client.post(
+            reverse("proposal_custom_template_edit", args=[template.pk]),
+            {"title": template.title, "notes": "superseded"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        template.refresh_from_db()
+        self.assertFalse(template.is_active)
+        self.assertTrue(template.file)
+
+    def test_an_added_file_can_be_deleted(self):
+        self.add_file()
+        template = CustomProposalTemplate.objects.get()
+
+        response = self.admin_client.post(
+            reverse("proposal_custom_template_delete", args=[template.pk])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(CustomProposalTemplate.objects.exists())
+
+    def test_only_admins_can_manage_added_files(self):
+        self.add_file()
+        template = CustomProposalTemplate.objects.get()
+        client = factories.make_client(self.faculty)
+
+        for url in (
+            reverse("proposal_custom_template_edit", args=[template.pk]),
+            reverse("proposal_custom_template_download", args=[template.pk]),
+        ):
+            with self.subTest(url=url):
+                self.assertIn(client.get(url).status_code, (302, 403))
+
+        self.assertIn(
+            client.post(reverse("proposal_custom_template_add"), {}).status_code, (302, 403)
+        )
+        self.assertIn(
+            client.post(
+                reverse("proposal_custom_template_delete", args=[template.pk])
+            ).status_code,
+            (302, 403),
+        )
+        self.assertTrue(CustomProposalTemplate.objects.filter(pk=template.pk).exists())
+
+
+class CustomTemplateAdminRegistrationTests(TestCase):
+    """Added files are editable through the built-in Django admin too."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from django.contrib.auth import get_user_model
+
+        cls.superuser = get_user_model().objects.create_superuser(
+            username="nx_custom_su", email="csu@example.com", password="sup3r-Secret"
+        )
+
+    def test_the_model_is_registered(self):
+        self.assertIn(CustomProposalTemplate, django_admin.site._registry)
+
+    def test_the_changelist_and_add_form_are_reachable(self):
+        client = factories.make_client(self.superuser)
+        self.assertEqual(
+            client.get("/admin/proposals/customproposaltemplate/").status_code, 200
+        )
+        self.assertEqual(
+            client.get("/admin/proposals/customproposaltemplate/add/").status_code, 200
+        )

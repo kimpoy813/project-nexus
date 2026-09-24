@@ -13,11 +13,18 @@ bundled copy. ``open_template`` is the single place that decides which copy
 is live, so every generator and download view resolves templates the same
 way. When no override exists — or the stored file cannot be read — the
 bundled file is served instead, so a bad upload can never break downloads.
+
+The same screen also lets the office *add* files that no code reads yet
+(``CustomProposalTemplate``), so a new form or a changed format can be kept
+in the system before the generator that uses it is written. The helpers
+here cover both directions: which formats are acceptable, what content type
+a download should carry, and the stable ``key`` a new file is filed under.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -49,6 +56,40 @@ TEMPLATE_FILES: Dict[str, Tuple[str, str]] = {
 
 #: Choices for the ``ProposalTemplateOverride.key`` column.
 TEMPLATE_KEY_CHOICES = [(key, label) for key, (label, _ext) in TEMPLATE_FILES.items()]
+
+#: Content type a download of each supported format should carry. Office
+#: formats have no reliable ``mimetypes`` entry on every platform, so the
+#: answer is looked up here first.
+CONTENT_TYPES: Dict[str, str] = {
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "doc": "application/msword",
+    "xls": "application/vnd.ms-excel",
+    "pdf": "application/pdf",
+    "csv": "text/csv",
+    "txt": "text/plain",
+    "zip": "application/zip",
+}
+
+#: Formats an administrator may add as a *new* template file. A built-in slot
+#: keeps validating against its own registered extension instead, because the
+#: generator behind it reads exactly one format.
+CUSTOM_TEMPLATE_EXTENSIONS: Tuple[str, ...] = (
+    "docx",
+    "xlsx",
+    "doc",
+    "xls",
+    "pptx",
+    "pdf",
+    "csv",
+)
+
+#: The OOXML formats are zip archives; the legacy Office formats are OLE2
+#: compound files. Either signature is enough to reject a renamed file.
+_ZIP_EXTENSIONS = {"docx", "xlsx", "pptx"}
+_OLE_EXTENSIONS = {"doc", "xls"}
+_OLE_SIGNATURE = b"\xd0\xcf\x11\xe0"
 
 
 class TemplateNotFound(Exception):
@@ -88,6 +129,76 @@ def is_valid_replacement(key: str, filename: str, content: bytes | None = None) 
         except Exception:
             return False
     return True
+
+
+def file_extension(filename: str) -> str:
+    """The lower-case extension of ``filename``, without the dot."""
+    return Path(filename or "").suffix.lower().lstrip(".")
+
+
+def content_type_for(filename: str) -> str:
+    """The download content type for ``filename``.
+
+    Falls back to a generic binary stream, so an unexpected extension is
+    still downloadable rather than served as something the browser tries to
+    render.
+    """
+    import mimetypes
+
+    extension = file_extension(filename)
+    if extension in CONTENT_TYPES:
+        return CONTENT_TYPES[extension]
+    return mimetypes.guess_type(filename or "")[0] or "application/octet-stream"
+
+
+def custom_file_problem(filename: str, content: bytes | None = None) -> str:
+    """Why ``filename`` cannot be added as a new template, or ``""`` if it can.
+
+    Built-in slots are validated by :func:`is_valid_replacement` against the
+    one format their generator reads. A file the office adds itself is only
+    held to the format list on this screen, plus a signature check so a
+    renamed file cannot be stored as an Office document.
+    """
+    extension = file_extension(filename)
+    if not extension:
+        return "The file needs a name ending in its format, for example budget.xlsx."
+    if extension not in CUSTOM_TEMPLATE_EXTENSIONS:
+        allowed = ", ".join(f".{ext}" for ext in CUSTOM_TEMPLATE_EXTENSIONS)
+        return f".{extension} files are not accepted here. Use one of: {allowed}."
+
+    if content is None:
+        return ""
+
+    if extension in _ZIP_EXTENSIONS:
+        try:
+            if not zipfile.is_zipfile(BytesIO(content)):
+                return f"The file is not a valid .{extension} document."
+        except Exception:
+            return f"The file is not a valid .{extension} document."
+    elif extension in _OLE_EXTENSIONS:
+        if not content.startswith(_OLE_SIGNATURE):
+            return f"The file is not a valid .{extension} document."
+    elif extension == "pdf" and not content.lstrip()[:4] == b"%PDF":
+        return "The file is not a valid .pdf document."
+    elif not content.strip():
+        return "The file is empty."
+
+    return ""
+
+
+def custom_key_for(title: str, filename: str) -> str:
+    """The stable identity an added template is filed under.
+
+    The key is a slug of the title plus the file's extension, so later code
+    can ask for ``"moa_renewal_form.docx"`` the same way it asks for a
+    bundled slot. A title with no usable characters falls back to the
+    uploaded filename.
+    """
+    from django.utils.text import slugify
+
+    extension = file_extension(filename)
+    stem = slugify(title or "") or slugify(Path(filename or "template").stem) or "template"
+    return f"{stem}.{extension}" if extension else stem
 
 
 def open_template(key: str) -> Tuple[BinaryIO, str, bool]:
@@ -134,7 +245,9 @@ def template_slot_summaries():
     """One descriptor per slot for the admin "Proposal Templates" screen.
 
     Each entry pairs the slot's static metadata with its current override
-    (when one is uploaded) so the screen can show which copy is live.
+    (when one is uploaded) so the screen can show which copy is live, name
+    the file a download will hand back, and only offer the download when
+    there is something to serve.
     """
     from .models import ProposalTemplateOverride
 
@@ -143,13 +256,32 @@ def template_slot_summaries():
     rows = []
     for key, (label, extension) in TEMPLATE_FILES.items():
         override = overrides.get(key)
+        bundled = bundled_path(key)
+        bundled_exists = bundled.exists()
+
+        if override is not None and override.file:
+            live_filename = Path(override.file.name).name
+            size = override.file.size
+        elif bundled_exists:
+            live_filename = bundled.name
+            try:
+                size = bundled.stat().st_size
+            except OSError:
+                size = 0
+        else:
+            live_filename = ""
+            size = 0
+
         rows.append(
             {
                 "key": key,
                 "label": label,
                 "extension": extension,
                 "override": override,
-                "bundled_exists": bundled_path(key).exists(),
+                "bundled_exists": bundled_exists,
+                "live_filename": live_filename,
+                "size": size,
+                "downloadable": bool(live_filename),
             }
         )
     return rows

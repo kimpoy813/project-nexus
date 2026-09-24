@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Proposal Templates - NExUS{% endblock %}
+{% block title %}Proposal Document Templates - NExUS{% endblock %}
 {% block content %}
 <div class="nx-page py-8">
     <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -7,9 +7,10 @@
             <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Builder</p>
             <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Proposal Document Templates</h1>
             <p class="mt-2 text-sm text-gray-600">
-                Replace the DOCX / XLSX templates the system uses to generate proposal documents
+                Download, edit, and add the DOCX / XLSX files behind every generated proposal document
                 (Form 1, Training Design, clearance summary, work plan, Gantt chart, and line-item budget).
-                Slots without a replacement use the default file shipped with the system.
+                Download any file to edit it in Word or Excel, replace it here when the office revises the
+                format, and add brand-new files ahead of a change in the process.
             </p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -20,7 +21,7 @@
     {% if storage_configuration_error %}
     <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
         <p class="font-black">File storage is not configured.</p>
-        <p class="mt-1">{{ storage_configuration_error }} Replacements are disabled until file storage is fixed.</p>
+        <p class="mt-1">{{ storage_configuration_error }} Replacements and new files are disabled until file storage is fixed. Downloads still work.</p>
     </div>
     {% endif %}
     {% for warning in storage_configuration_warnings %}
@@ -31,11 +32,14 @@
     {% endfor %}
 
     <div class="grid gap-6 lg:grid-cols-3">
-        <!-- Upload / replace panel -->
-        <div class="lg:col-span-1">
+        <!-- Upload / add panel -->
+        <div class="lg:col-span-1 space-y-6">
             <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h2 class="text-lg font-black text-gray-900">Upload a replacement</h2>
-                <p class="mt-1 text-xs text-gray-500">The new file is used immediately for every generated document.</p>
+                <h2 class="text-lg font-black text-gray-900">Replace a template</h2>
+                <p class="mt-1 text-xs text-gray-500">
+                    Download the file first, edit it, then upload the revised copy. It is used immediately
+                    for every generated document.
+                </p>
                 <form method="post" action="{% url 'proposal_template_replace' %}" enctype="multipart/form-data" class="mt-5 space-y-4">
                     {% csrf_token %}
                     <div>
@@ -65,11 +69,49 @@
                     </button>
                 </form>
             </div>
+
+            <div class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 class="text-lg font-black text-gray-900">Add template files</h2>
+                <p class="mt-1 text-xs text-gray-500">
+                    For a new form or a changed format: keep the file here now, then wire it into the
+                    process later. Pick as many files as you like.
+                    <span class="mt-1 block font-bold text-gray-600">
+                        Accepted: {% for ext in accepted_extensions %}.{{ ext }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                    </span>
+                </p>
+                <form method="post" action="{% url 'proposal_custom_template_add' %}" enctype="multipart/form-data" class="mt-5 space-y-4">
+                    {% csrf_token %}
+                    <div>
+                        <label for="id_files" class="text-xs font-black uppercase tracking-wide text-gray-500">Files</label>
+                        <input type="file" name="files" id="id_files" multiple required
+                               accept="{% for ext in accepted_extensions %}.{{ ext }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                               class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="id_batch_notes" class="text-xs font-black uppercase tracking-wide text-gray-500">Notes (optional)</label>
+                        <textarea name="notes" id="id_batch_notes" rows="3"
+                                  placeholder="What is this file for?"
+                                  class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary outline-none"></textarea>
+                    </div>
+                    <button type="submit"
+                            class="w-full rounded-xl border border-primary px-4 py-2.5 text-sm font-black text-primary hover:bg-primary hover:text-white"
+                            {% if storage_configuration_error %}disabled title="File storage needs to be configured first."{% endif %}>
+                        Add files
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <!-- Slot table -->
-        <div class="lg:col-span-2">
+        <!-- Slot + custom tables -->
+        <div class="lg:col-span-2 space-y-6">
             <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-gray-100 px-6 py-4">
+                    <h2 class="text-base font-black text-gray-900">Built-in templates</h2>
+                    <p class="mt-1 text-xs text-gray-500">
+                        These files generate the documents the system produces. Download the one you need,
+                        edit it, and replace it. Resetting brings the default file back.
+                    </p>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-100">
                         <thead>
@@ -86,6 +128,7 @@
                                 <td class="px-6 py-4">
                                     <p class="font-bold text-gray-900">{{ row.label }}</p>
                                     <p class="text-xs text-gray-500">{{ row.key }}</p>
+                                    {% if row.size %}<p class="text-xs text-gray-400">{{ row.size|filesizeformat }}</p>{% endif %}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-700">.{{ row.extension }}</span>
@@ -105,9 +148,12 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-wrap gap-2">
-                                        {% if row.override and row.override.file %}
-                                        <a href="{{ row.override.file.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>
+                                        {% if row.downloadable %}
+                                        <a href="{% url 'proposal_template_download' row.key %}"
+                                           class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>
                                         {% endif %}
+                                        <a href="{% url 'proposal_template_edit' row.key %}"
+                                           class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white">Edit</a>
                                         {% if row.override %}
                                         <form method="post" action="{% url 'proposal_template_reset' %}"
                                               onsubmit="return confirm('Reset this template to the default file shipped with the system?');">
@@ -123,11 +169,84 @@
                         </tbody>
                     </table>
                 </div>
+                <p class="border-t border-gray-100 px-6 py-3 text-xs text-gray-500">
+                    {{ override_count }} of {{ slot_count }} templates replaced. Generated documents always use the
+                    replacement when one exists, and fall back to the system default otherwise.
+                </p>
             </div>
-            <p class="mt-3 text-xs text-gray-500">
-                {{ override_count }} of {{ slot_count }} templates replaced. Generated documents always use the
-                replacement when one exists, and fall back to the system default otherwise.
-            </p>
+
+            <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                <div class="border-b border-gray-100 px-6 py-4">
+                    <h2 class="text-base font-black text-gray-900">Added template files</h2>
+                    <p class="mt-1 text-xs text-gray-500">
+                        Files the office uploaded for a process or format that is not wired into the system yet.
+                        Download, edit, or delete them here — nothing else in the app reads them.
+                    </p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Template</th>
+                                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Added</th>
+                                <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for item in custom_templates %}
+                            <tr>
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-gray-900">{{ item.title }}</p>
+                                    <p class="text-xs text-gray-500">{{ item.key }}</p>
+                                    {% if item.file.size %}<p class="text-xs text-gray-400">{{ item.file.size|filesizeformat }}</p>{% endif %}
+                                    {% if item.notes %}<p class="mt-1 text-xs text-gray-500 italic">“{{ item.notes|truncatewords:14 }}”</p>{% endif %}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black uppercase text-slate-700">.{{ item.extension }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-sm">
+                                    {% if item.is_active %}
+                                        <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">In use</span>
+                                    {% else %}
+                                        <span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600">Not in use</span>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        by {{ item.uploaded_by.get_full_name|default:item.uploaded_by.username|default:"admin" }}
+                                        on {{ item.updated_at|date:"M d, Y" }}
+                                    </p>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap gap-2">
+                                        {% if item.file %}
+                                        <a href="{% url 'proposal_custom_template_download' item.pk %}"
+                                           class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>
+                                        {% endif %}
+                                        <a href="{% url 'proposal_custom_template_edit' item.pk %}"
+                                           class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white">Edit</a>
+                                        <form method="post" action="{% url 'proposal_custom_template_delete' item.pk %}"
+                                              onsubmit="return confirm('Delete this template file for good?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50">Delete</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
+                                    No added files yet. Use “Add template files” when the office introduces a new form or format.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="border-t border-gray-100 px-6 py-3 text-xs text-gray-500">
+                    {{ custom_template_count }} added file(s). They are stored with the rest of the office files and can be
+                    attached to a generated document once the process needs them.
+                </p>
+            </div>
         </div>
     </div>
 </div>
