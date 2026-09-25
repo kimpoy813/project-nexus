@@ -3,22 +3,18 @@
 
 {% block content %}
 <section class="bg-gray-50 pt-16 pb-10">
-    <div class="nx-page nx-auth">
+    <div class="nx-page nx-auth nx-auth--wide">
 
         {% include "accounts/_auth_panel.html" with auth_panel_title="Create your NExUS account" auth_panel_text="Register once, then follow every proposal you submit from draft to accomplishment report." %}
 
-        <div class="nx-auth__form nx-auth__form--wide bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="bg-primary text-white px-8 py-6 text-center">
-            <img src="{% static 'images/nexus-logo-128.png' %}"
-                 alt="NExUS logo"
-                 class="h-16 w-16 object-contain mx-auto mb-3 rounded-2xl bg-white p-2 shadow">
-            <h2 class="text-3xl font-bold text-center">Create Account</h2>
-            <p class="text-sm text-center text-white/80 mt-1">
-                Register your NExUS account
-            </p>
+        <div class="nx-auth__form nx-auth__form--wide bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div class="nx-auth__header">
+            <p class="nx-auth__eyebrow">Join NExUS</p>
+            <h2>Create an account</h2>
+            <p>Set up your institutional access.</p>
         </div>
 
-        <div class="p-8">
+        <div class="nx-auth__body">
             {% if messages %}
                 <div class="space-y-3 mb-6">
                     {% for message in messages %}
@@ -124,10 +120,10 @@
                         <p class="text-red-600 text-sm mt-1">{{ form.password.errors.0 }}</p>
                     {% endif %}
 
-                    <ul id="password-rules" class="text-sm mt-2 space-y-1">
-                        <li id="length" class="text-red-500">• At least 8 characters</li>
-                        <li id="number" class="text-red-500">• Contains a number</li>
-                        <li id="uppercase" class="text-red-500">• Contains uppercase letter</li>
+                    <ul id="password-rules" class="text-sm mt-2 space-y-1" aria-live="polite">
+                        <li id="length" class="text-gray-600">Need: at least 8 characters</li>
+                        <li id="number" class="text-gray-600">Need: a number</li>
+                        <li id="uppercase" class="text-gray-600">Need: an uppercase letter</li>
                     </ul>
                 </div>
 
@@ -252,21 +248,14 @@ document.addEventListener("DOMContentLoaded", function () {
         passwordInput.addEventListener("input", function () {
             const value = passwordInput.value;
 
-            const lengthEl = document.getElementById("length");
-            const numberEl = document.getElementById("number");
-            const uppercaseEl = document.getElementById("uppercase");
-
-            if (lengthEl) {
-                lengthEl.className = value.length >= 8 ? "text-green-500" : "text-red-500";
-            }
-
-            if (numberEl) {
-                numberEl.className = /\d/.test(value) ? "text-green-500" : "text-red-500";
-            }
-
-            if (uppercaseEl) {
-                uppercaseEl.className = /[A-Z]/.test(value) ? "text-green-500" : "text-red-500";
-            }
+            const update = (id, met, rule) => {
+                const item = document.getElementById(id);
+                item.className = met ? "text-green-700" : "text-gray-600";
+                item.textContent = (met ? "Met: " : "Need: ") + rule;
+            };
+            update("length", value.length >= 8, "at least 8 characters");
+            update("number", /\d/.test(value), "a number");
+            update("uppercase", /[A-Z]/.test(value), "an uppercase letter");
         });
     }
 });

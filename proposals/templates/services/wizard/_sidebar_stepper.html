@@ -1,8 +1,8 @@
 <aside class="nx-wizard-rail self-start">
   <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden sticky top-28">
     <div class="p-6 border-b border-gray-100">
-      <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Proposal Wizard</p>
-      <h1 class="mt-1 text-xl font-black tracking-tight text-gray-900">Create Proposal</h1>
+      <p class="text-xs font-semibold uppercase tracking-[0.12em] text-primary/70">Proposal workspace</p>
+      <h1 class="mt-1 text-xl font-bold tracking-tight text-gray-900">Proposal steps</h1>
       <p class="text-sm leading-5 text-gray-600 mt-1">
         Complete each section to prepare your proposal draft.
       </p>
@@ -30,7 +30,7 @@
         {% for s in wizard_steps %}
           {# Keep ?readonly=1 through every stepper link so the param is never lost #}
           <a href="{% url 'proposal_wizard' proposal.id s.no %}{% if request.GET.readonly %}?readonly=1{% endif %}"
-             {% if s.state == 'current' %}data-current-step="true"{% endif %}
+             {% if s.state == 'current' %}data-current-step="true" aria-current="step"{% endif %}
              {% if s.state == 'completed' %}data-step-state="completed"{% endif %}
              class="group relative z-0 flex items-start gap-3 px-3 py-3 min-h-[76px] rounded-xl transition border
                {% if s.state == 'current' %}
@@ -94,7 +94,7 @@
                 </p>
 
                 {% if not s.is_required %}
-                  <span class="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">Optional</span>
+                  <span class="shrink-0 rounded-md bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary">Optional</span>
                 {% endif %}
 
                 {# Comment marker (shows when this step has reviewer comments) #}

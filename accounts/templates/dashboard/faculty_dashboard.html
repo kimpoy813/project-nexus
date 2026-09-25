@@ -265,24 +265,15 @@
             </div>
             </div>
             {% else %}
-            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
-                <div class="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                    <svg class="h-5 w-5 text-primary"...></svg>
-                </div>
-                <h3 class="text-base font-semibold text-gray-900">No proposals yet</h3>
-                <p class="mt-2 text-sm text-gray-500 max-w-xs mx-auto">
-                    Start by creating your first extension proposal. It takes about 15–20 minutes to complete all 20 sections.
-                </p>
-                <div class="mt-6 flex justify-center gap-3">
-                    <a href="{% url 'proposal_create' %}"
-                    class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-secondary"
-                    data-nx-skeleton="wizard">
-                    Create Your First Proposal
-                    </a>
-                    <a href="{% url 'services_home' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-5 py-2.5 text-sm text-gray-700 hover:border-primary">
-                    How it works
-                    </a>
+            <div class="nx-empty nx-getting-started">
+                <span class="nx-getting-started__step" aria-hidden="true">01</span>
+                <div>
+                    <h3>No proposals yet</h3>
+                    <p>Create your first extension proposal in the guided wizard. You can save a draft and return to it later.</p>
+                    <div class="mt-5 flex flex-wrap items-center gap-4">
+                        <a href="{% url 'proposal_create' %}" class="inline-flex items-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" data-nx-skeleton="wizard">Create a proposal</a>
+                        <a href="{% url 'services_home' %}" class="text-sm font-semibold text-primary" data-nx-skeleton="marketing">See how it works <span aria-hidden="true">→</span></a>
+                    </div>
                 </div>
             </div>
             {% endif %}

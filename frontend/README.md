@@ -1,16 +1,14 @@
-# React + Vite
+# NExUS frontend assets
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Django serves the actual NExUS pages from `templates/`, `accounts/templates/`, `details/templates/`, and `proposals/templates/`. The React/Vite entry in this folder builds the small Goey Toast module; the stock React `App.jsx` is not a second NExUS web application.
 
-Currently, two official plugins are available:
+The served Django interface still uses **Tailwind, Alpine, AOS, Chart.js, and SortableJS**. To avoid blank or unusable pages when a third-party CDN is unavailable, these assets are versioned locally:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm ci --prefix frontend
+npm --prefix frontend run build:django-css
+```
 
-## React Compiler
+The Tailwind source is `static/css/tailwind-input.css`, its scanning/theme config is `frontend/tailwind.config.cjs`, and the generated `static/css/nexus-tailwind.css` is committed because the Python-only deployment build runs without Node. Rebuild and commit this file after adding or changing template utility classes. Colors refer to the CSS custom properties in `static/css/nexus-ui.css`, so administrator-configured brand colors still apply. Third-party distribution files are copied into `static/vendor/`; their versions are pinned in `package-lock.json` and their notices live alongside them. To update a vendor library, update its npm version, recopy its distribution file and license, and verify the corresponding Django screens.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+`npm --prefix frontend run build` remains the existing Vite build for the toast module in `static/goey/`. Do not run it merely to update Tailwind CSS; it rewrites the toast bundle.
