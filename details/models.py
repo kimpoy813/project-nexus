@@ -435,6 +435,32 @@ class ProposalWizardStepConfig(models.Model):
     title = models.CharField(max_length=160)
     description = models.CharField(max_length=255, blank=True, default="")
     instructions = models.TextField(blank=True, default="")
+    template_download_heading = models.CharField(
+        max_length=120,
+        blank=True,
+        default="Proposal Templates",
+        help_text="Heading above downloadable office templates on this step.",
+    )
+    template_download_instructions = models.TextField(
+        blank=True,
+        default="Download the editable workbook, complete it, and upload the finished .xlsx file below.",
+        help_text="Instructions shown beside the template download buttons.",
+    )
+    work_plan_download_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="Download Work Plan Template",
+    )
+    gantt_chart_download_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="Download Gantt Chart Template",
+    )
+    funding_download_label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="Download Line-Item Budget Template",
+    )
     is_visible = models.BooleanField(default=True)
     is_required = models.BooleanField(default=True)
     display_order = models.PositiveIntegerField(

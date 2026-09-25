@@ -355,7 +355,20 @@ def download_funding_template(request, proposal_id):
         return redirect("proposal_wizard", proposal_id=proposal.id, step=18)
 
     wb = load_workbook(template_stream)
-    ws = wb["Work Plan Template"]
+    # The active Proposal Template is admin-editable. Prefer the bundled
+    # workbook's familiar sheet names, but don't make a renamed worksheet turn
+    # a valid customized template into a server error.
+    ws = get_best_sheet(
+        wb,
+        [
+            "Funding Strategy",
+            "Funding Template",
+            "Line-Item Budget",
+            "Work Plan Template",
+            "Sheet1",
+            "Sheet",
+        ],
+    )
 
     if proposal.scope_type == "PROGRAM":
         phase_titles = [

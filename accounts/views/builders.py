@@ -124,20 +124,46 @@ DEFAULT_STEP_FIELDS = {
         14: [
             {"key": "general_objective", "label": "General Objective", "type": "TEXTAREA", "placeholder": "Enter general objective"},
         ],
+        17: [
+            {
+                "key": "work_plan_file",
+                "label": "Work Plan File",
+                "type": "FILE",
+                "help_text": "Upload the completed editable Excel work plan workbook.",
+            },
+            {
+                "key": "gantt_chart_file",
+                "label": "Gantt Chart File",
+                "type": "FILE",
+                "help_text": "Upload the completed editable Excel Gantt chart workbook.",
+            },
+        ],
+        18: [
+            {
+                "key": "funding_file",
+                "label": "Funding Strategy",
+                "type": "FILE",
+                "help_text": "Upload the completed editable Excel funding workbook.",
+            },
+        ],
 }
 
 
 def _seed_step_fields(form_obj, step_no):
-    """Fill an *empty* step form with the built-in mirror rows for ``step_no``.
+    """Seed built-in mirror rows without overwriting office-built fields.
 
-    A form the office already built or edited on this step is left alone:
-    the defaults exist to give a fresh step a usable shape, not to add
-    surprise fields to a custom one (including a repeatable group).
+    For steps 17 and 18 the native file upload mirrors are also appended to an
+    existing form, if missing, so admins can relabel built-in uploads even on
+    installations where the step form was customized before these mirrors were
+    introduced.
     """
-    if form_obj.fields.exists():
+    existing_fields = form_obj.fields.exists()
+    if existing_fields and step_no not in {17, 18}:
         return
-    for idx, f in enumerate(DEFAULT_STEP_FIELDS.get(step_no, [])):
-        DynamicFormField.objects.get_or_create(
+
+    next_order = (form_obj.fields.order_by("-order").values_list("order", flat=True).first() or 0)
+    for f in DEFAULT_STEP_FIELDS.get(step_no, []):
+        _field, created = DynamicFormField.objects.get_or_create(
             form=form_obj,
             field_key=f["key"],
             defaults={
@@ -145,12 +171,15 @@ def _seed_step_fields(form_obj, step_no):
                 "field_type": f["type"],
                 "choices_text": f.get("choices", ""),
                 "placeholder": f.get("placeholder", ""),
+                "help_text": f.get("help_text", ""),
                 "required": f.get("required", True),
                 "depends_on_key": f.get("depends_on_key", ""),
                 "depends_on_value": f.get("depends_on_value", ""),
-                "order": idx + 1,
-            }
+                "order": next_order + 1,
+            },
         )
+        if created:
+            next_order += 1
 
 
 def _seed_default_fields():
@@ -1023,6 +1052,27 @@ def wizard_step_edit(request, step_no):
         step_config.title = (request.POST.get("title") or step_config.title).strip()
         step_config.description = (request.POST.get("description") or "").strip()
         step_config.instructions = (request.POST.get("instructions") or "").strip()
+        step_config.template_download_heading = (
+            request.POST.get("template_download_heading", step_config.template_download_heading) or ""
+        ).strip()
+        step_config.template_download_instructions = (
+            request.POST.get(
+                "template_download_instructions",
+                step_config.template_download_instructions,
+            ) or ""
+        ).strip()
+        step_config.work_plan_download_label = (
+            request.POST.get("work_plan_download_label", step_config.work_plan_download_label) or ""
+        ).strip()
+        step_config.gantt_chart_download_label = (
+            request.POST.get(
+                "gantt_chart_download_label",
+                step_config.gantt_chart_download_label,
+            ) or ""
+        ).strip()
+        step_config.funding_download_label = (
+            request.POST.get("funding_download_label", step_config.funding_download_label) or ""
+        ).strip()
         step_config.is_visible = request.POST.get("is_visible") == "on"
         step_config.is_required = request.POST.get("is_required") == "on"
         step_config.save()

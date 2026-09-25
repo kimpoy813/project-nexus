@@ -6,10 +6,11 @@
     <div>
       <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">No-code Wizard Manager</p>
       <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Proposal Wizard Steps</h1>
-      <p class="mt-2 text-sm text-gray-600">Rename steps, change instructions, hide optional steps, and decide which steps are required for submission. Drag a row to change the sequence proponents walk through.</p>
+      <p class="mt-2 text-sm text-gray-600">Rename steps, edit instructions and fields, control what is required, and reorder the flow. For Details of Activities and Funding Strategy, edit the download panel and button labels here; replace their actual Excel files in Proposal Templates.</p>
     </div>
     <div class="flex flex-wrap gap-2">
       <a href="{% url 'wizard_step_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary">Add New Step</a>
+      <a href="{% url 'proposal_templates_list' %}" class="rounded-xl border border-primary px-4 py-2 text-sm font-bold text-primary hover:bg-primary hover:text-white">Manage Proposal Templates</a>
       <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
     </div>
   </div>

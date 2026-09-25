@@ -37,7 +37,7 @@ at a time with the Arrow keys on its drag handle.
         el.dataset.state = kind || "idle";
     }
 
-    function postOrder(url, payload, statusEl, okText) {
+    function postOrder(url, payload, statusEl, okText, rollback) {
         setStatus(statusEl, "Saving order…", "busy");
         return fetch(url, {
             method: "POST",
@@ -50,7 +50,14 @@ at a time with the Arrow keys on its drag handle.
             if (!data || !data.ok) throw new Error(data && data.error ? data.error : "save failed");
             setStatus(statusEl, okText, "ok");
         }).catch(function () {
-            setStatus(statusEl, "Could not save the new order. Reload the page and try again.", "err");
+            if (typeof rollback === "function") rollback();
+            setStatus(
+                statusEl,
+                typeof rollback === "function"
+                    ? "Could not save the new order. Your previous order was restored."
+                    : "Could not save the new order. Please try again.",
+                "err"
+            );
         });
     }
 
@@ -62,17 +69,65 @@ at a time with the Arrow keys on its drag handle.
     }
 
     function renumber(list) {
-        var labels = list.querySelectorAll(".js-position");
-        Array.prototype.forEach.call(labels, function (el, index) {
-            el.textContent = String(index + 1);
+        var idAttribute = list.dataset.sortable === "sections"
+            ? "data-section-id"
+            : "data-item-id";
+        var rows = Array.prototype.filter.call(list.children, function (row) {
+            return row.hasAttribute(idAttribute);
+        });
+        rows.forEach(function (row, index) {
+            var label = row.querySelector(".js-position");
+            if (label) label.textContent = String(index + 1);
         });
     }
 
     // ---- 1. Reorder the page's sections -------------------------------
     var sectionList = document.querySelector('[data-sortable="sections"]');
+
+    // Arrow-key moves use the same JSON endpoint as drag-and-drop, so the
+    // accessible reorder control never submits the page or loses editor state.
+    window.nxKeyboardMove = function (event, sectionId) {
+        if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+        event.preventDefault();
+        if (!sectionList) return;
+
+        var rows = Array.prototype.filter.call(sectionList.children, function (item) {
+            return item.hasAttribute("data-section-id");
+        });
+        var row = rows.find(function (item) {
+            return item.getAttribute("data-section-id") === String(sectionId);
+        });
+        var index = rows.indexOf(row);
+        var target = event.key === "ArrowUp" ? index - 1 : index + 1;
+        if (!row || index < 0 || target < 0 || target >= rows.length) return;
+
+        var oldOrder = rows.slice();
+        if (event.key === "ArrowUp") sectionList.insertBefore(row, rows[index - 1]);
+        else sectionList.insertBefore(rows[index + 1], row);
+        renumber(sectionList);
+
+        postOrder(
+            sectionList.dataset.reorderUrl,
+            { section_ids: idsOf(sectionList, "data-section-id") },
+            document.getElementById("section-order-status"),
+            "Order saved. This is the order visitors will see.",
+            function () {
+                oldOrder.forEach(function (item) { sectionList.appendChild(item); });
+                renumber(sectionList);
+            }
+        );
+    };
+
     if (sectionList && typeof Sortable !== "undefined") {
         var sectionStatus = document.getElementById("section-order-status");
+        var previousSectionOrder = [];
         new Sortable(sectionList, {
+            onStart: function () {
+                previousSectionOrder = Array.prototype.filter.call(
+                    sectionList.children,
+                    function (item) { return item.hasAttribute("data-section-id"); }
+                );
+            },
             // The whole row is the grab target: rearranging is just dragging
             // the rows. Interactive controls, the empty-page well, and the
             // nested editors never start a row drag — clicks, typing, and the
@@ -103,12 +158,17 @@ at a time with the Arrow keys on its drag handle.
                 document.body.classList.remove("pc-dragging-block");
                 // A tile dropped in from the palette is handled by onAdd.
                 if (event.from !== sectionList) return;
+                var rollbackOrder = previousSectionOrder.slice();
                 renumber(sectionList);
                 postOrder(
                     sectionList.dataset.reorderUrl,
                     { section_ids: idsOf(sectionList, "data-section-id") },
                     sectionStatus,
-                    "Order saved. This is the order visitors will see."
+                    "Order saved. This is the order visitors will see.",
+                    function () {
+                        rollbackOrder.forEach(function (item) { sectionList.appendChild(item); });
+                        renumber(sectionList);
+                    }
                 );
             },
             onAdd: function (event) {
@@ -162,17 +222,29 @@ at a time with the Arrow keys on its drag handle.
     Array.prototype.forEach.call(sourceLists, function (list) {
         if (typeof Sortable === "undefined") return;
         var status = document.getElementById(list.dataset.statusId);
+        var previousItemOrder = [];
         new Sortable(list, {
             handle: ".js-item-handle",
             animation: 150,
             ghostClass: "pc-drag-ghost",
+            onStart: function () {
+                previousItemOrder = Array.prototype.filter.call(
+                    list.children,
+                    function (item) { return item.hasAttribute("data-item-id"); }
+                );
+            },
             onEnd: function () {
+                var rollbackOrder = previousItemOrder.slice();
                 renumber(list);
                 postOrder(
                     list.dataset.reorderUrl,
                     { item_ids: idsOf(list, "data-item-id") },
                     status,
-                    "Order saved. It applies everywhere this block is published."
+                    "Order saved. It applies everywhere this block is published.",
+                    function () {
+                        rollbackOrder.forEach(function (item) { list.appendChild(item); });
+                        renumber(list);
+                    }
                 );
             }
         });

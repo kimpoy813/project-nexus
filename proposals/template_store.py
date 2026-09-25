@@ -85,8 +85,13 @@ CUSTOM_TEMPLATE_EXTENSIONS: Tuple[str, ...] = (
     "csv",
 )
 
-#: The OOXML formats are zip archives; the legacy Office formats are OLE2
-#: compound files. Either signature is enough to reject a renamed file.
+#: The OOXML formats are zip archives, but a generic ZIP signature is not
+#: enough to tell an editable workbook from a renamed Word document. Require
+#: the package parts each built-in slot needs before accepting a replacement.
+_OOXML_REQUIRED_PARTS = {
+    "docx": {"[Content_Types].xml", "_rels/.rels", "word/document.xml"},
+    "xlsx": {"[Content_Types].xml", "_rels/.rels", "xl/workbook.xml"},
+}
 _ZIP_EXTENSIONS = {"docx", "xlsx", "pptx"}
 _OLE_EXTENSIONS = {"doc", "xls"}
 _OLE_SIGNATURE = b"\xd0\xcf\x11\xe0"
@@ -117,16 +122,29 @@ def is_valid_replacement(key: str, filename: str, content: bytes | None = None) 
     """Check an upload before it becomes an override.
 
     The filename must end with the slot's extension, and (when the bytes are
-    available) the payload must be a zip archive — DOCX and XLSX both are —
-    so a renamed PDF can never masquerade as an Office template.
+    available) the payload must contain the package parts for that exact
+    Office format. DOCX and XLSX are both ZIP archives, so checking only the
+    ZIP signature would allow a renamed Word document to replace a workbook.
     """
     extension = expected_extension(key)
     if not extension or not filename.lower().endswith(f".{extension}"):
         return False
     if content is not None:
         try:
+            with zipfile.ZipFile(BytesIO(content)) as package:
+                names = set(package.namelist())
+            required_parts = _OOXML_REQUIRED_PARTS.get(extension)
+            if required_parts:
+                if not required_parts.issubset(names):
+                    return False
+                if extension == "xlsx" and not any(
+                    name.startswith("xl/worksheets/") and name.endswith(".xml")
+                    for name in names
+                ):
+                    return False
+                return True
             return zipfile.is_zipfile(BytesIO(content))
-        except Exception:
+        except (OSError, zipfile.BadZipFile, ValueError):
             return False
     return True
 

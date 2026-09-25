@@ -18,6 +18,7 @@ input names. Saving that form from the admin step editor must:
 
 import re
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
@@ -68,6 +69,22 @@ class MirrorFieldRenderingTests(TestCase):
         html = response.content.decode()
         self.assertEqual(html.count('name="implementing_agency"'), 1)
         self.assertNotContains(response, "Admin-managed requirements")
+
+    def test_step_17_upload_mirrors_render_the_native_inputs_once(self):
+        response = self._get(17)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertEqual(html.count('name="work_plan_file"'), 1)
+        self.assertEqual(html.count('name="gantt_chart_file"'), 1)
+        self.assertContains(response, "Work Plan File")
+        self.assertContains(response, "Gantt Chart File")
+
+    def test_step_18_upload_mirror_renders_the_native_input_once(self):
+        response = self._get(18)
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertEqual(html.count('name="funding_file"'), 1)
+        self.assertContains(response, "Funding Strategy")
 
     def test_admin_label_edit_applies_to_the_hardcoded_input(self):
         """Relabelling the mirror field changes the existing input's label."""
@@ -168,6 +185,48 @@ class MirrorFieldSaveTests(TestCase):
         )
         self.proposal.refresh_from_db()
         self.assertIn(4, self.proposal.completed_steps)
+
+    def test_step_17_file_mirrors_save_native_uploads_without_shadow_answers(self):
+        response = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 17]),
+            {
+                "action": "next",
+                "work_plan_file": SimpleUploadedFile("work-plan.xlsx", b"plan"),
+                "gantt_chart_file": SimpleUploadedFile("gantt.xlsx", b"gantt"),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertTrue(self.proposal.work_plan_file)
+        self.assertTrue(self.proposal.gantt_chart_file)
+        self.assertIn(17, self.proposal.completed_steps)
+        form = DynamicFormTemplate.objects.get(proposal_wizard_step=17)
+        self.assertFalse(
+            DynamicFormAnswer.objects.filter(
+                field__form=form,
+                field__field_key__in=("work_plan_file", "gantt_chart_file"),
+            ).exists()
+        )
+
+    def test_step_18_file_mirror_saves_native_upload_without_shadow_answer(self):
+        response = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 18]),
+            {
+                "action": "next",
+                "funding_file": SimpleUploadedFile("funding.xlsx", b"funding"),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertTrue(self.proposal.funding_file)
+        self.assertIn(18, self.proposal.completed_steps)
+        form = DynamicFormTemplate.objects.get(proposal_wizard_step=18)
+        self.assertFalse(
+            DynamicFormAnswer.objects.filter(
+                field__form=form,
+                field__field_key="funding_file",
+            ).exists()
+        )
 
     def test_step_1_save_next_advances_for_non_research_type(self):
         response = self._post(

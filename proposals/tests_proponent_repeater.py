@@ -246,7 +246,7 @@ class ProponentRepeaterFillTests(TestCase):
         self.client_owner.post(self.url, self._row_payload(1, full_name="Ana Reyes"))
         first, second = self.proposal.proponents.order_by("sort_order")
 
-        # A move button submits the whole step, exactly like the browser does.
+        # Legacy/direct clients can submit the full step plus one move command.
         payload = self._row_payload(0, full_name="Juan Dela Cruz")
         payload.update(self._row_payload(1, full_name="Ana Reyes"))
         payload.update(
@@ -402,3 +402,43 @@ class GenericRepeaterTests(TestCase):
         )
 
         self.assertEqual(response.rows.count(), 0)
+
+    def test_a_legacy_move_command_reorders_generic_rows_after_saving(self):
+        self.client_owner.post(
+            self.url,
+            {
+                "action": "next",
+                f"repeater_{self.form.id}_rows": 2,
+                f"repeater_{self.form.id}_row_id_0": "",
+                f"repeater_{self.form.id}_row_0_field_{self.name_field.id}": "ISPSC",
+                f"repeater_{self.form.id}_row_0_field_{self.contact_field.id}": "Dr. Reyes",
+                f"repeater_{self.form.id}_row_id_1": "",
+                f"repeater_{self.form.id}_row_1_field_{self.name_field.id}": "Partner College",
+                f"repeater_{self.form.id}_row_1_field_{self.contact_field.id}": "Prof. Santos",
+            },
+        )
+        response = DynamicFormResponse.objects.get(form=self.form, proposal=self.proposal)
+        first, second = response.rows.order_by("row_index")
+
+        self.client_owner.post(
+            self.url,
+            {
+                "action": "next",
+                f"repeater_{self.form.id}_rows": 2,
+                f"repeater_{self.form.id}_row_id_0": str(first.id),
+                f"repeater_{self.form.id}_row_0_field_{self.name_field.id}": "ISPSC",
+                f"repeater_{self.form.id}_row_0_field_{self.contact_field.id}": "Dr. Reyes",
+                f"repeater_{self.form.id}_row_id_1": str(second.id),
+                f"repeater_{self.form.id}_row_1_field_{self.name_field.id}": "Partner College",
+                f"repeater_{self.form.id}_row_1_field_{self.contact_field.id}": "Prof. Santos",
+                f"repeater_{self.form.id}_move": f"{second.id}:up",
+            },
+        )
+
+        names = list(
+            response.rows.order_by("row_index").values_list("data", flat=True)
+        )
+        self.assertEqual(
+            [row["organisation"] for row in names],
+            ["Partner College", "ISPSC"],
+        )
