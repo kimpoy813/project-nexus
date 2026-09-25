@@ -183,9 +183,8 @@
                     <div class="flex min-w-0 gap-3">
                         {% comment %}
                         The whole row is the drag target (see _source_reorder_script.html), and
-                        this gutter is its most obvious grab strip. The grip button inside stays
-                        focusable: arrow keys post the one-step move, so this works without a
-                        pointer.
+                        this gutter is its most obvious grab strip. The grip button stays
+                        keyboard-accessible and saves the new order with AJAX without navigating.
                         {% endcomment %}
                         <div class="pc-gutter js-section-handle" title="Drag the row to reorder">
                             <button type="button" class="js-section-handle pc-handle"
@@ -304,25 +303,11 @@
 
 </div>
 
-{# Reorder by keyboard: the handle's Arrow keys post a one-step move, so rows
-   can be rearranged without a pointer. #}
-<form id="keyboard-move-form" method="POST" class="hidden">
-    {% csrf_token %}
-    <input type="hidden" name="direction" value="">
-</form>
 <script>
 function nxAddSource(key) {
     var form = document.getElementById("add-source-form");
     form.querySelector("[name=source]").value = key;
     form.querySelector("[name=position]").value = "";
-    form.submit();
-}
-function nxKeyboardMove(event, sectionId) {
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-    event.preventDefault();
-    var form = document.getElementById("keyboard-move-form");
-    form.action = "{% url 'page_section_move' 0 %}".replace("/0/", "/" + sectionId + "/");
-    form.querySelector("[name=direction]").value = event.key === "ArrowUp" ? "up" : "down";
     form.submit();
 }
 

@@ -405,8 +405,8 @@ class SectionDragOrderTests(TestCase):
         self.assertIn(status, DENIED)
         self.assertEqual(self._headings(), ["A", "B", "C"])
 
-    def test_the_keyboard_move_still_works(self):
-        """The drag handle's Arrow keys post here, so it must stay correct."""
+    def test_the_legacy_one_step_move_still_updates_section_order(self):
+        """Older/direct clients can still request a one-position move."""
         self.client_admin.post(
             reverse("page_section_move", args=[self.c.id]), {"direction": "up"}
         )
@@ -457,6 +457,19 @@ class SectionCanvasTests(TestCase):
         self.assertNotIn('handle: ".js-section-handle"', html)
         self.assertIn("preventOnFilter: false", html)
         self.assertIn(".pc-row__editor", html)
+
+    def test_keyboard_reordering_uses_ajax_without_submitting_the_page(self):
+        html = self._editor_html()
+        start = html.index("window.nxKeyboardMove = function (event, sectionId)")
+        end = html.index("};", start) + 2
+        keyboard_handler = html[start:end]
+
+        self.assertIn("postOrder(", keyboard_handler)
+        self.assertNotIn(".submit(", keyboard_handler)
+        self.assertNotIn('id="keyboard-move-form"', html)
+        self.assertIn("fetch(url", html)
+        self.assertIn("window.goeyToast", html)
+        self.assertIn('showToast("success", okText)', html)
 
     def test_orderable_blocks_can_be_dragged_into_order_inside_their_section(self):
         """The items inside a source reorder by drag, where the model allows it."""

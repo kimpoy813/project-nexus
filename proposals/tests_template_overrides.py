@@ -105,6 +105,24 @@ class TemplateStoreTests(TestCase):
         self.assertFalse(is_valid_replacement("project_work_plan_template.xlsx", "anything.docx"))
         self.assertFalse(is_valid_replacement("unknown_key.docx", "anything.docx"))
 
+    def test_a_word_document_cannot_replace_an_excel_template(self):
+        self.assertFalse(
+            is_valid_replacement(
+                "project_work_plan_template.xlsx",
+                "renamed_word_file.xlsx",
+                docx_bytes_with_marker("NOT-A-WORKBOOK"),
+            )
+        )
+
+    def test_a_workbook_cannot_replace_a_word_template(self):
+        self.assertFalse(
+            is_valid_replacement(
+                "form1_project_template.docx",
+                "renamed_workbook.docx",
+                xlsx_bytes_with_marker_sheet("NOT-A-WORD-DOCUMENT"),
+            )
+        )
+
 
 class GeneratedDocumentOverrideTests(TestCase):
     """Generated downloads must use the admin replacement."""
@@ -147,6 +165,58 @@ class GeneratedDocumentOverrideTests(TestCase):
         self.assertEqual(response.status_code, 200)
         workbook = load_workbook(io.BytesIO(response.content))
         self.assertIn("OVERRIDE-MARKER-SHEET", workbook.sheetnames)
+
+    def test_activity_and_funding_downloads_use_editable_proposal_templates(self):
+        """Both scopes use the current office-edited XLSX slots.
+
+        Each replacement deliberately has a renamed worksheet. This exercises
+        the editable-template path rather than only the bundled workbook's
+        sheet names.
+        """
+        route_templates = {
+            "PROJECT": {
+                "download_work_plan_template": (
+                    "project_work_plan_template.xlsx", "PROJECT-WORK-PLAN-V2"
+                ),
+                "download_gantt_chart_template": (
+                    "project_gantt_chart_template.xlsx", "PROJECT-GANTT-V2"
+                ),
+                "download_funding_template": (
+                    "project_funding_template.xlsx", "PROJECT-FUNDING-V2"
+                ),
+            },
+            "PROGRAM": {
+                "download_work_plan_template": (
+                    "program_work_plan_template.xlsx", "PROGRAM-WORK-PLAN-V2"
+                ),
+                "download_gantt_chart_template": (
+                    "program_gantt_chart_template.xlsx", "PROGRAM-GANTT-V2"
+                ),
+                "download_funding_template": (
+                    "program_funding_template.xlsx", "PROGRAM-FUNDING-V2"
+                ),
+            },
+        }
+        for scope, templates in route_templates.items():
+            for key, marker in templates.values():
+                ProposalTemplateOverride.objects.create(
+                    key=key,
+                    file=SimpleUploadedFile(
+                        f"{marker.lower()}.xlsx", xlsx_bytes_with_marker_sheet(marker)
+                    ),
+                )
+
+        client = factories.make_client(self.owner)
+        for scope, templates in route_templates.items():
+            self.proposal.scope_type = scope
+            self.proposal.save(update_fields=["scope_type"])
+            for route, (_key, marker) in templates.items():
+                with self.subTest(scope=scope, route=route):
+                    response = client.get(reverse(route, args=[self.proposal.id]))
+                    self.assertEqual(response.status_code, 200)
+                    self.assertIn("attachment", response["Content-Disposition"])
+                    workbook = load_workbook(io.BytesIO(response_body(response)))
+                    self.assertIn(marker, workbook.sheetnames)
 
     def test_downloads_still_work_without_any_override(self):
         client = factories.make_client(self.owner)

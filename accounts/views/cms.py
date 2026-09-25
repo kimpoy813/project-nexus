@@ -518,11 +518,11 @@ def page_section_delete(request, pk):
 @admin_required
 @require_POST
 def page_section_move(request, pk):
-    """Move a section one place up or down.
+    """Move a section one place up or down for legacy/direct form clients.
 
-    Drag-and-drop is the normal way to reorder (see ``page_sections_reorder``);
-    this endpoint is what the drag handle's Arrow-key shortcuts post to, so the
-    same reordering works without a pointer and without JavaScript.
+    The page editor's current keyboard and pointer controls use the shared
+    AJAX ``page_sections_reorder`` endpoint, so a move does not navigate away
+    from the editor.
     """
     section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
     direction = request.POST.get("direction")
@@ -697,7 +697,7 @@ def home_thrust_delete(request, pk):
     title = thrust.title
     thrust.delete()
     messages.success(request, f'Thrust "{title}" deleted.')
-    return redirect("home_sections_manager")
+    return redirect("page_content_edit", slug=section.page.slug)
 
 
 @login_required

@@ -281,12 +281,19 @@ def save_repeater_rows(proposal, form, request, user):
     _apply_row_commands(proposal, form, request)
 
     if form.row_store == form.RowStore.PROPONENT:
-        return _save_proponent_rows(proposal, form, request)
-    return _save_generic_rows(proposal, form, request, user)
+        result = _save_proponent_rows(proposal, form, request)
+    else:
+        result = _save_generic_rows(proposal, form, request, user)
+
+    # Save the submitted row values/order first, then apply legacy move-button
+    # commands. Otherwise the row order posted with the form overwrites the
+    # swap that the command just made.
+    _apply_row_move(proposal, form, request)
+    return result
 
 
 def _apply_row_commands(proposal, form, request):
-    """Handle the per-row remove / move submit buttons (before reading values)."""
+    """Apply removals before saving so deleted rows are not re-created."""
     if form.row_store == form.RowStore.PROPONENT:
         _apply_proponent_row_commands(proposal, form, request)
     else:
@@ -300,10 +307,41 @@ def _apply_proponent_row_commands(proposal, form, request):
             user_id=proposal.created_by_id
         ).delete()
 
+
+def _apply_row_move(proposal, form, request):
+    """Apply one legacy move command after the submitted rows are persisted.
+
+    Current browsers reorder row DOM before submission and leave this input
+    blank. Keeping the server-side command working is useful for older clients
+    and direct form submissions that send the order unchanged plus a move.
+    """
     move = (request.POST.get(_move_input(form)) or "").strip()
-    if move:
-        row_id, _, direction = move.partition(":")
+    if not move:
+        return
+
+    row_id, _, direction = move.partition(":")
+    if direction not in {"up", "down"}:
+        return
+
+    if form.row_store == form.RowStore.PROPONENT:
         _move_proponent_row(proposal, _to_int(row_id), direction)
+        return
+
+    response = DynamicFormResponse.objects.filter(form=form, proposal=proposal).first()
+    if response is None:
+        return
+
+    rows = list(response.rows.all())
+    index = next((i for i, row in enumerate(rows) if row.id == _to_int(row_id)), None)
+    if index is None:
+        return
+    target = index - 1 if direction == "up" else index + 1
+    if 0 <= target < len(rows):
+        rows[index].row_index, rows[target].row_index = (
+            rows[target].row_index,
+            rows[index].row_index,
+        )
+        DynamicFormRow.objects.bulk_update(rows, ["row_index"])
 
 
 def _move_proponent_row(proposal, row_id, direction):
@@ -335,20 +373,6 @@ def _apply_generic_row_commands(proposal, form, request):
     remove_ids = _int_list(request.POST.getlist(_remove_input(form)))
     if remove_ids:
         response.rows.filter(id__in=remove_ids).delete()
-
-    move = (request.POST.get(_move_input(form)) or "").strip()
-    if move:
-        row_id, _, direction = move.partition(":")
-        rows = list(response.rows.all())
-        index = next((i for i, row in enumerate(rows) if row.id == _to_int(row_id)), None)
-        if index is not None:
-            target = index - 1 if direction == "up" else index + 1
-            if 0 <= target < len(rows):
-                rows[index].row_index, rows[target].row_index = (
-                    rows[target].row_index,
-                    rows[index].row_index,
-                )
-                DynamicFormRow.objects.bulk_update(rows, ["row_index"])
 
 
 def _save_proponent_rows(proposal, form, request):

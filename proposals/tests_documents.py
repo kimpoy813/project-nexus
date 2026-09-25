@@ -497,6 +497,8 @@ class TemplateFileTests(TestCase):
         for name in [
             "program_work_plan_template.xlsx",
             "project_work_plan_template.xlsx",
+            "program_gantt_chart_template.xlsx",
+            "project_gantt_chart_template.xlsx",
             "program_funding_template.xlsx",
             "project_funding_template.xlsx",
         ]:

@@ -54,6 +54,11 @@ NATIVE_STEP_FIELDS = {
     12: {"rationale_background": "rationale_background"},
     13: {"significance": "significance"},
     14: {"general_objective": "general_objective"},
+    17: {
+        "work_plan_file": "work_plan_file",
+        "gantt_chart_file": "gantt_chart_file",
+    },
+    18: {"funding_file": "funding_file"},
 }
 
 

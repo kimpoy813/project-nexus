@@ -72,20 +72,20 @@
 
         {% if is_edit_mode %}
         <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 class="text-sm font-semibold text-gray-900">Template Downloads</h3>
-            <p class="text-xs text-gray-500 mt-1">
-                Download the template workbook for the required formats.
-            </p>
+            <h3 class="text-sm font-semibold text-gray-900">{{ wizard_step_config.template_download_heading|default:"Proposal Templates" }}</h3>
+            {% if wizard_step_config.template_download_instructions %}
+            <p class="text-xs text-gray-500 mt-1">{{ wizard_step_config.template_download_instructions }}</p>
+            {% endif %}
 
             <div class="mt-4 flex flex-col sm:flex-row gap-3">
                 <a href="{% url 'download_work_plan_template' proposal.id %}"
                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
-                    Download Work Plan Template
+                    {{ wizard_step_config.work_plan_download_label|default:"Download Work Plan Template" }}
                 </a>
 
                 <a href="{% url 'download_gantt_chart_template' proposal.id %}"
                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
-                    Download Gantt Chart Template
+                    {{ wizard_step_config.gantt_chart_download_label|default:"Download Gantt Chart Template" }}
                 </a>
             </div>
         </div>
@@ -94,7 +94,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="rounded-2xl border border-gray-200 p-5">
                 <label for="work_plan_file" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Work Plan File
+                    {{ step_fields.work_plan_file.label|default:"Work Plan File" }}
                 </label>
 
                 {% if is_edit_mode %}
@@ -102,7 +102,13 @@
                     type="file"
                     id="work_plan_file"
                     name="work_plan_file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                {% if step_fields.work_plan_file %}
+                    {% if step_fields.work_plan_file.help_text %}<p class="mt-2 text-xs text-gray-500">{{ step_fields.work_plan_file.help_text }}</p>{% endif %}
+                {% else %}
+                    <p class="mt-2 text-xs text-gray-500">Upload the completed workbook. A new upload replaces the current work plan.</p>
+                {% endif %}
                 {% endif %}
 
                 {% if proposal.work_plan_file %}
@@ -123,7 +129,7 @@
 
             <div class="rounded-2xl border border-gray-200 p-5">
                 <label for="gantt_chart_file" class="block text-sm font-semibold text-gray-900 mb-2">
-                    Gantt Chart File
+                    {{ step_fields.gantt_chart_file.label|default:"Gantt Chart File" }}
                 </label>
 
                 {% if is_edit_mode %}
@@ -131,7 +137,13 @@
                     type="file"
                     id="gantt_chart_file"
                     name="gantt_chart_file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+                {% if step_fields.gantt_chart_file %}
+                    {% if step_fields.gantt_chart_file.help_text %}<p class="mt-2 text-xs text-gray-500">{{ step_fields.gantt_chart_file.help_text }}</p>{% endif %}
+                {% else %}
+                    <p class="mt-2 text-xs text-gray-500">Upload the completed workbook. A new upload replaces the current Gantt chart.</p>
+                {% endif %}
                 {% endif %}
 
                 {% if proposal.gantt_chart_file %}

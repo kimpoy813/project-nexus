@@ -10,6 +10,7 @@ can see and do — so they keep holding if the wizard is later split into
 smaller functions.
 """
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
@@ -280,6 +281,83 @@ class WizardInPageNavigationTests(TestCase):
         self.assertEqual(self.proposal.extension_type, "REQUEST_BASED")
         self.assertEqual(self.proposal.scope_type, "PROJECT")
         self.assertIn("/edit/step/", response["Location"])
+
+
+class WizardTemplateUploadTests(TestCase):
+    """Activity and funding steps offer live templates and accept the filled files."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = factories.make_user("template_flow_owner", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        self.proposal = Proposal.objects.create(
+            created_by=self.owner,
+            title="Template Flow Proposal",
+            extension_type="REQUEST_BASED",
+            scope_type="PROJECT",
+        )
+        self.client_owner = factories.make_client(self.owner)
+
+    def _url(self, step):
+        return reverse("proposal_wizard", args=[self.proposal.id, step])
+
+    def test_details_of_activities_explains_download_edit_and_reupload(self):
+        response = self.client_owner.get(self._url(17))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Proposal Templates")
+        self.assertContains(response, "Download the editable workbook, complete it")
+        self.assertContains(response, "Download Work Plan Template")
+        self.assertContains(
+            response,
+            reverse("download_work_plan_template", args=[self.proposal.id]),
+        )
+        self.assertContains(
+            response,
+            reverse("download_gantt_chart_template", args=[self.proposal.id]),
+        )
+        self.assertContains(response, 'accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"')
+        self.assertContains(response, "Work Plan File")
+        self.assertContains(response, "Gantt Chart File")
+        self.assertContains(response, "Upload the completed workbook. A new upload replaces the current work plan.")
+
+    def test_funding_strategy_explains_download_edit_and_reupload(self):
+        response = self.client_owner.get(self._url(18))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Proposal Templates")
+        self.assertContains(response, "Download the editable workbook, complete it")
+        self.assertContains(response, "Download Line-Item Budget Template")
+        self.assertContains(
+            response,
+            reverse("download_funding_template", args=[self.proposal.id]),
+        )
+        self.assertContains(response, "Funding Strategy")
+        self.assertContains(response, "Upload the completed workbook. A new upload replaces the current funding strategy.")
+
+    def test_filled_activity_and_funding_templates_can_be_uploaded(self):
+        activity_response = self.client_owner.post(
+            self._url(17),
+            {
+                "action": "next",
+                "work_plan_file": SimpleUploadedFile("filled-work-plan.xlsx", b"work plan"),
+                "gantt_chart_file": SimpleUploadedFile("filled-gantt.xlsx", b"gantt chart"),
+            },
+        )
+        self.assertEqual(activity_response.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.work_plan_file.read(), b"work plan")
+        self.assertEqual(self.proposal.gantt_chart_file.read(), b"gantt chart")
+
+        funding_response = self.client_owner.post(
+            self._url(18),
+            {
+                "action": "next",
+                "funding_file": SimpleUploadedFile("filled-funding.xlsx", b"funding strategy"),
+            },
+        )
+        self.assertEqual(funding_response.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.funding_file.read(), b"funding strategy")
 
 
 class WizardNavigatorAssetTests(SimpleTestCase):

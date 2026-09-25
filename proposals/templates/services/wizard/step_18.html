@@ -72,15 +72,15 @@
 
         {% if is_edit_mode %}
         <div class="rounded-2xl border border-gray-200 bg-gray-50 p-5">
-            <h3 class="text-sm font-semibold text-gray-900">Template Download</h3>
-            <p class="text-xs text-gray-500 mt-1">
-                Download the funding template based on the proposal scope.
-            </p>
+            <h3 class="text-sm font-semibold text-gray-900">{{ wizard_step_config.template_download_heading|default:"Proposal Templates" }}</h3>
+            {% if wizard_step_config.template_download_instructions %}
+            <p class="text-xs text-gray-500 mt-1">{{ wizard_step_config.template_download_instructions }}</p>
+            {% endif %}
 
             <div class="mt-4">
                 <a href="{% url 'download_funding_template' proposal.id %}"
                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
-                    Download Line-Item Budget Template
+                    {{ wizard_step_config.funding_download_label|default:"Download Line-Item Budget Template" }}
                 </a>
             </div>
         </div>
@@ -88,7 +88,7 @@
 
         <div class="rounded-2xl border border-gray-200 p-5">
             <label for="funding_file" class="block text-sm font-semibold text-gray-900 mb-2">
-                Funding Strategy
+                {{ step_fields.funding_file.label|default:"Funding Strategy" }}
             </label>
 
             {% if is_edit_mode %}
@@ -96,7 +96,13 @@
                 type="file"
                 id="funding_file"
                 name="funding_file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary/10 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20">
+            {% if step_fields.funding_file %}
+                {% if step_fields.funding_file.help_text %}<p class="mt-2 text-xs text-gray-500">{{ step_fields.funding_file.help_text }}</p>{% endif %}
+            {% else %}
+                <p class="mt-2 text-xs text-gray-500">Upload the completed workbook. A new upload replaces the current funding strategy.</p>
+            {% endif %}
             {% endif %}
 
             {% if proposal.funding_file %}
