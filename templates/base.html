@@ -5,21 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_control.site_name|default:"NExUS" }} - {{ site_control.tagline|default:"Networked Extension Unified System" }}{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}{{ site_control.tagline|default:'Manage institutional extension proposals, reviews, and implementation in one place.' }}{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ site_control.site_name|default:'NExUS' }}">
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/nexus-logo-512.png' %}">
+    <meta name="theme-color" content="#103b07">
 
-    <!-- Tailwind CDN + single institutional theme (logo palette + one font) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind and Alpine remain in place, but ship as local assets so core
+         navigation and layout work without a third-party runtime request. -->
+    <link href="{% static 'css/nexus-tailwind.css' %}" rel="stylesheet">
     <script src="{% static 'js/nexus-theme.js' %}"></script>
-
-    <!-- One typeface everywhere: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-    <!-- Institutional logo -->
+    <link rel="preload" href="{% static 'fonts/public-sans-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'fonts/manrope-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
     <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <link href="{% static 'vendor/aos.css' %}" rel="stylesheet">
 
     <!-- NExUS UI Refresh -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
@@ -27,7 +28,7 @@
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
     <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
-    <!-- Loading skeletons (plain CSS so they paint without the CDN bundle) -->
+    <!-- Loading skeletons paint immediately, before the page scripts. -->
     <link href="{% static 'css/nexus-skeleton.css' %}" rel="stylesheet">
     {% if site_control %}
     <style>
@@ -49,7 +50,7 @@
     {% endcomment %}
     {{ workflow_phase_shares|json_script:"nexus-phase-shares" }}
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
 
     <style>
         [x-cloak] { display: none !important; }
@@ -90,17 +91,27 @@
                 </div>
             </div>
 
-            {% comment %} 1. Landing / CMS pages: full-bleed hero band, section
-               nav, then stacked full-width sections with centred headings. {% endcomment %}
+            {% comment %} 1. Public pages: editorial hero + process rail, anchor
+               wayfinding, then a left-aligned section index. {% endcomment %}
             <div class="nx-skel-l nx-skel-l--marketing">
                 <div class="nx-skel-mkt__hero">
-                    <div class="nx-skel-mkt__measure">
-                        <div class="nx-skel nx-skel--title" style="width: 46%;"></div>
-                        <div class="nx-skel nx-skel--text" style="width: 74%;"></div>
-                        <div class="nx-skel nx-skel--text" style="width: 52%;"></div>
-                        <div class="nx-skel-mkt__cta">
-                            <div class="nx-skel nx-skel--chip" style="width: 9.5rem;"></div>
-                            <div class="nx-skel nx-skel--chip" style="width: 7rem;"></div>
+                    <div class="nx-skel-mkt__inner">
+                        <div class="nx-skel-mkt__measure">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 9rem;"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 86%; height: 3rem;"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 63%; height: 3rem;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 74%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 55%;"></div>
+                            <div class="nx-skel-mkt__cta">
+                                <div class="nx-skel nx-skel--button" style="width: 10rem;"></div>
+                                <div class="nx-skel nx-skel--text" style="width: 6rem;"></div>
+                            </div>
+                        </div>
+                        <div class="nx-skel-mkt__rail">
+                            <div class="nx-skel nx-skel--text-sm" style="width: 45%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 82%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 74%;"></div>
+                            <div class="nx-skel nx-skel--text" style="width: 65%;"></div>
                         </div>
                     </div>
                 </div>
@@ -109,10 +120,10 @@
                     <div class="nx-skel nx-skel--text" style="width: 6.5rem;"></div>
                     <div class="nx-skel nx-skel--text" style="width: 4rem;"></div>
                     <div class="nx-skel nx-skel--text" style="width: 7rem;"></div>
-                    <div class="nx-skel nx-skel--text" style="width: 5.5rem;"></div>
                 </div>
                 <div class="nx-skel-mkt__section">
-                    <div class="nx-skel nx-skel--title" style="width: 24%;"></div>
+                    <div class="nx-skel nx-skel--title" style="width: 17rem;"></div>
+                    <div class="nx-skel nx-skel--text" style="width: 22rem; max-width: 80%;"></div>
                     <div class="nx-skel-cards">
                         <div class="nx-skel nx-skel--card"></div>
                         <div class="nx-skel nx-skel--card"></div>
@@ -122,8 +133,8 @@
                 </div>
             </div>
 
-            {% comment %} 2. Auth screens: `.nx-auth` — brand panel beside the
-               form card, which opens with a coloured header block. {% endcomment %}
+            {% comment %} 2. Auth screens: `.nx-auth` — brand panel beside a
+               quiet, light form card with a short introductory header. {% endcomment %}
             <div class="nx-skel-l nx-skel-l--auth">
                 <div class="nx-skel-auth">
                     <div class="nx-skel-auth__panel">
@@ -154,9 +165,9 @@
                     </div>
                     <div class="nx-skel-auth__card">
                         <div class="nx-skel-auth__head">
-                            <div class="nx-skel nx-skel--circle"></div>
-                            <div class="nx-skel nx-skel--title" style="width: 9rem;"></div>
                             <div class="nx-skel nx-skel--text-sm" style="width: 6.5rem;"></div>
+                            <div class="nx-skel nx-skel--title" style="width: 9rem;"></div>
+                            <div class="nx-skel nx-skel--text-sm" style="width: 12rem;"></div>
                         </div>
                         <div class="nx-skel-auth__body">
                             <div class="nx-skel-field">
@@ -573,6 +584,7 @@
     <!-- NAVBAR -->
     <nav x-data="{ mobileMenu: false }"
          @keydown.escape.window="mobileMenu = false"
+         aria-label="Primary navigation"
          class="nexus-navbar fixed top-0 w-full z-50">
         <div class="nx-bar h-full flex justify-between items-center">
             <!-- Logo + NEXUS Name -->
@@ -587,14 +599,14 @@
 
             <!-- Main Menu -->
             <div class="hidden lg:flex items-center gap-1 text-sm">
-                <a href="/" class="nexus-menu-link" data-nx-skeleton="marketing">Home</a>
-                <a href="/proposals/" class="nexus-menu-link" data-nx-skeleton="marketing">Services</a>
-                <a href="{% url 'reports_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Reports</a>
-                <a href="{% url 'achievements_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Achievements</a>
+                <a href="/" class="nexus-menu-link" {% if nx_nav_section == 'home' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Home</a>
+                <a href="/proposals/" class="nexus-menu-link" {% if nx_nav_section == 'services' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Services</a>
+                <a href="{% url 'reports_page' %}" class="nexus-menu-link" {% if nx_nav_section == 'reports' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Reports</a>
+                <a href="{% url 'achievements_page' %}" class="nexus-menu-link" {% if nx_nav_section == 'achievements' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Achievements</a>
 
                 {% if user.is_authenticated %}
                     <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
-                       class="nexus-menu-link is-strong" data-nx-skeleton="dashboard">
+                       class="nexus-menu-link" {% if nx_nav_section == 'dashboard' %}aria-current="page"{% endif %} data-nx-skeleton="dashboard">
                         Dashboard
                     </a>
 
@@ -604,6 +616,8 @@
                             <button type="button"
                                     @click="openNotif = !openNotif"
                                     @keydown.escape.window="openNotif = false"
+                                    :aria-expanded="openNotif.toString()"
+                                    aria-controls="nexus-notifications"
                                     class="nexus-icon-button relative"
                                     aria-label="Notifications">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -618,11 +632,11 @@
                                 {% endif %}
                             </button>
 
-                            <div x-show="openNotif"
+                            <div id="nexus-notifications" x-show="openNotif"
                                  x-cloak
                                  @click.away="openNotif = false"
                                  x-transition.origin.top.right
-                                 class="nexus-dropdown absolute right-0 mt-3 w-80 rounded-3xl overflow-hidden z-50">
+                                 class="nexus-dropdown absolute right-0 mt-3 w-80 max-w-[calc(100vw-2rem)] overflow-hidden z-50">
                                 <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-br from-primary/5 to-accent/20">
                                     <p class="text-sm font-black text-gray-900">Notifications</p>
                                     <p class="text-xs text-gray-500">Updates that need your attention.</p>
@@ -660,8 +674,9 @@
 
                         <!-- Profile menu -->
                         <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open"
-                                    class="flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 py-1.5 pl-1.5 pr-3 text-sm font-bold text-primary transition hover:bg-primary/10 focus:outline-none focus:ring-4 focus:ring-primary/10"
+                            <button type="button" @click="open = !open" @keydown.escape.window="open = false"
+                                    :aria-expanded="open.toString()" aria-controls="nexus-profile-menu"
+                                    class="nexus-profile-trigger flex items-center gap-2 border border-primary/10 bg-primary/5 py-1.5 pl-1.5 pr-3 text-sm font-semibold text-primary transition hover:bg-primary/10"
                                     aria-label="Open profile menu">
                                 <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-white text-sm font-black shadow-sm">
                                     {{ request.user.username|first|upper }}
@@ -670,11 +685,11 @@
                                 <svg class="h-4 w-4 text-primary/70" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
                             </button>
 
-                            <div x-show="open"
+                            <div id="nexus-profile-menu" x-show="open"
                                  x-cloak
                                  @click.away="open = false"
                                  x-transition.origin.top.right
-                                 class="nexus-dropdown absolute right-0 mt-3 w-60 rounded-3xl overflow-hidden z-50">
+                                 class="nexus-dropdown absolute right-0 mt-3 w-60 overflow-hidden z-50">
                                 <div class="px-4 py-4 border-b border-gray-100">
                                     <p class="truncate text-sm font-black text-gray-900">{{ request.user.profile.full_name|default:request.user.username }}</p>
                                     <p class="text-xs font-semibold text-primary">{{ request.user.profile.get_role_display|default:request.user.profile.role }}</p>
@@ -716,13 +731,13 @@
              x-transition.origin.top
              class="nexus-mobile-panel lg:hidden mx-4 mt-2 rounded-3xl overflow-hidden">
             <div class="p-3 space-y-1">
-                <a href="/" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Home</a>
-                <a href="/proposals/" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Services</a>
-                <a href="{% url 'reports_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Reports</a>
-                <a href="{% url 'achievements_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Achievements</a>
+                <a href="/" class="nexus-menu-link w-full" {% if nx_nav_section == 'home' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Home</a>
+                <a href="/proposals/" class="nexus-menu-link w-full" {% if nx_nav_section == 'services' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Services</a>
+                <a href="{% url 'reports_page' %}" class="nexus-menu-link w-full" {% if nx_nav_section == 'reports' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Reports</a>
+                <a href="{% url 'achievements_page' %}" class="nexus-menu-link w-full" {% if nx_nav_section == 'achievements' %}aria-current="page"{% endif %} data-nx-skeleton="marketing">Achievements</a>
                 {% if user.is_authenticated %}
                     <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
-                       class="nexus-menu-link is-strong w-full" data-nx-skeleton="dashboard">Dashboard</a>
+                       class="nexus-menu-link w-full" {% if nx_nav_section == 'dashboard' %}aria-current="page"{% endif %} data-nx-skeleton="dashboard">Dashboard</a>
                     <div class="my-2 border-t border-gray-100"></div>
                     <a href="{% url 'profile_view' %}" class="nexus-menu-link w-full" data-nx-skeleton="record">Profile</a>
                     {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Accomplishment Reports</a>{% endif %}
@@ -756,15 +771,16 @@
     </div>
     {% endif %}
 
-    {# `.nexus-shell` owns the fixed-navbar offset (see static/css/nexus-ui.css),
-       so every page starts *below* the header instead of sliding under it.
-       Pages keep their own py-* rhythm on top of that. #}
+    {% comment %}
+      `.nexus-shell` owns the fixed-navbar offset (see static/css/nexus-ui.css),
+      so every page starts below the header. Page-specific spacing starts after it.
+    {% endcomment %}
     <main id="main-content" class="nexus-shell">
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="nexus-footer text-gray-300 pt-16 pb-10 mt-24">
-        <div class="nx-bar grid gap-12 md:grid-cols-3">
+    <footer class="nexus-footer text-gray-300 pt-14 pb-8 mt-20">
+        <div class="nx-bar grid gap-10 md:grid-cols-[minmax(0,1.5fr)_minmax(9rem,.7fr)_minmax(11rem,.8fr)]">
             <div>
                 <div class="flex items-center gap-3 mb-4">
                     <img src="{% static 'images/nexus-logo-128.png' %}"
@@ -778,7 +794,7 @@
             </div>
 
             <div>
-                <h4 class="text-white font-bold mb-4">Important Links</h4>
+                <h4 class="text-white font-semibold mb-4">Explore</h4>
                 <ul class="space-y-2 text-sm">
                     <li><a href="/" class="hover:text-white transition" data-nx-skeleton="marketing">Home</a></li>
                     <li><a href="/proposals/" class="hover:text-white transition" data-nx-skeleton="marketing">Services</a></li>
@@ -793,10 +809,12 @@
             </div>
 
             <div>
-                <h4 class="text-white font-bold mb-4">Contact</h4>
+                <h4 class="text-white font-semibold mb-4">Extension office</h4>
                 <ul class="space-y-2 text-sm text-white/90">
-                    <li><a href="mailto:{{ site_control.contact_email|default:'ispsc.nexus@gmail.com' }}" class="hover:text-white transition">{{ site_control.contact_email|default:"ispsc.nexus@gmail.com" }}</a></li>
-                    <li><a href="{{ site_control.facebook_url|default:'https://facebook.com' }}" target="_blank" class="hover:text-white transition">Facebook Page</a></li>
+                    <li><a href="mailto:{{ site_control.contact_email|default:'ispsc.nexus@gmail.com' }}" class="hover:text-white transition break-all">{{ site_control.contact_email|default:"ispsc.nexus@gmail.com" }}</a></li>
+                    {% if site_control.facebook_url %}
+                        <li><a href="{{ site_control.facebook_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-white transition">Facebook page <span aria-hidden="true">↗</span></a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -815,7 +833,7 @@
     {% endif %}
 
     <!-- AOS Script -->
-    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="{% static 'vendor/aos.min.js' %}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const messagesData = document.getElementById('messages-data');
@@ -879,7 +897,9 @@
             }
         });
 
-        AOS.init({ duration: 700, once: true });
+        if (window.AOS && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            AOS.init({ duration: 500, once: true });
+        }
 
         (function () {
             const IDLE_LIMIT_MS = 30 * 60 * 1000;

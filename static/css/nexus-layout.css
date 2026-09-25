@@ -1,9 +1,9 @@
 /* ==========================================================================
    NExUS FLUID LAYOUT SYSTEM
    --------------------------------------------------------------------------
-   Every page in the system spans the full viewport width instead of floating
-   in a centred 1024–1280px column. Width is used; the layout stays tidy
-   because the *rhythm* is shared, not because everything is boxed in:
+   Workspaces use the full viewport width so tables and dashboards have room.
+   Public reading sections cap their *content* at 88rem in public-pages.css;
+   their backgrounds remain full bleed. Both families share the same gutter:
 
      • one fluid side gutter for navbar, page content and footer, so the left
        and right edges line up on every screen (`--nx-gutter`);
@@ -26,7 +26,7 @@
   /* Vertical rhythm between page sections. */
   --nx-stack:       1.5rem;
   /* Long-form text measure (~68 characters) — prose only. */
-  --nx-measure:     68ch;
+  --nx-measure:     66ch;
   /* Sidebar / rail widths for split layouts. */
   --nx-rail:        minmax(15rem, 19rem);
   --nx-rail-lg:     minmax(17rem, 22rem);
@@ -133,14 +133,15 @@
      ordinary page gutter (this overrides .nx-page's padding-inline for these
      screens) and cap + centre the panel/card pair on very wide displays. */
   padding-inline: clamp(1.5rem, .5rem + 4vw, 8rem);
-  max-width: 110rem;
+  max-width: 84rem;
   margin-inline: auto;
 }
 @media (min-width: 1024px) {
   .nx-auth {
     grid-template-columns: minmax(0, 1fr) minmax(24rem, 32rem);
-    gap: clamp(2rem, 5vw, 6rem);
+    gap: clamp(2rem, 5vw, 5rem);
   }
+  .nx-auth--wide { grid-template-columns: minmax(0, 1fr) minmax(30rem, 40rem); }
 }
 .nx-auth__form { width: 100%; max-width: 34rem; }
 .nx-auth__form--wide { max-width: 44rem; }
@@ -149,8 +150,8 @@
 .nx-auth__bullets { display: grid; gap: .65rem; margin-top: 1.5rem; }
 .nx-auth__bullets li {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: .65rem;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: .8rem;
   align-items: start;
   font-size: .875rem;
   line-height: 1.5;
@@ -169,8 +170,13 @@
   .nexus-wizard-layout {
     grid-template-columns: var(--nx-rail) minmax(0, 1fr) var(--nx-rail-lg);
   }
+  /* When there are no review comments, give the form the spare rail width. */
+  .nexus-wizard-layout:has(> .nx-wizard-rail[aria-hidden="true"]) {
+    grid-template-columns: var(--nx-rail) minmax(0, 1fr);
+  }
 }
 .nexus-wizard-layout > * { min-width: 0; }
+.nexus-wizard-layout > .nx-wizard-rail[aria-hidden="true"] { display: none !important; }
 
 /* In-page step changes dim the rails instead of covering the whole screen. */
 #nx-wizard-root.is-nx-wizard-loading {

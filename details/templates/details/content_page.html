@@ -3,10 +3,11 @@
 
 {% block title %}{{ page.meta_title|default:page.title }} - {{ site_control.short_name|default:"NExUS" }}{% endblock %}
 
+{% block meta_description %}{{ page.meta_description|default:page.hero_subheading|default:page.title }}{% endblock %}
+{% block body_class %}public-content-body{% endblock %}
 {% block extra_head %}
-    {% if page.meta_description %}
-        <meta name="description" content="{{ page.meta_description }}">
-    {% endif %}
+    <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
+    <script defer src="{% static 'js/nexus-public.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -19,24 +20,18 @@
 </div>
 {% endif %}
 
-<!-- HERO -->
-<section class="relative bg-primary text-white py-28 overflow-hidden">
-    <div class="nx-page nx-page--measure text-center">
-        {% if page.hero_eyebrow %}
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
-                {{ page.hero_eyebrow }}
-            </p>
-        {% endif %}
-
-        <h1 class="text-4xl md:text-5xl font-semibold leading-tight tracking-wide">
-            {{ page.hero_heading|default:page.title }}
-        </h1>
-
-        {% if page.hero_subheading %}
-            <p class="mt-6 text-lg text-white/80 nx-measure mx-auto leading-relaxed">
-                {{ page.hero_subheading }}
-            </p>
-        {% endif %}
+<div class="nx-public-page">
+<!-- Public information: same visual language as Home and Services. -->
+<section class="nx-public-hero">
+    <div class="nx-page nx-public-hero__inner nx-public-hero__inner--single">
+        <div class="nx-public-hero__content">
+            <p class="nx-public-hero__eyebrow">{{ page.hero_eyebrow|default:"From the Extension Office" }}</p>
+            <h1 class="nx-public-hero__title">{{ page.hero_heading|default:page.title }}</h1>
+            {% if page.hero_subheading %}<p class="nx-public-hero__copy">{{ page.hero_subheading }}</p>{% endif %}
+            <div class="nx-public-hero__actions">
+                <a href="/" class="nx-public-hero__link" data-nx-skeleton="marketing"><span aria-hidden="true">←</span> Back to home</a>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -45,22 +40,22 @@ Anchor navigation, shown only when sections define anchors.
 {% endcomment %}
 {% if sections %}
     {% with anchored=sections %}
-        <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
-            <div class="nx-page py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
+        <nav class="nx-section-nav" aria-label="On this page">
+            <div class="nx-page nx-section-nav__links">
                 {% for section in anchored %}
                     {% if section.anchor and section.heading %}
-                        <a href="#{{ section.anchor }}" class="hover:text-primary transition whitespace-nowrap">{{ section.heading }}</a>
+                        <a href="#{{ section.anchor }}" >{{ section.heading }}</a>
                     {% endif %}
                 {% endfor %}
             </div>
-        </section>
+        </nav>
     {% endwith %}
 {% endif %}
 
 <!-- SECTIONS (shared block renderer - see details/_page_section.html) -->
 {% for section, data in visible_blocks %}
     <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-             class="scroll-mt-32 py-16 {% cycle 'bg-white' 'bg-gray-50' %}">
+             class="nx-public-section scroll-mt-32 {% cycle 'bg-white' 'bg-gray-50' %}">
         <div class="nx-page">
             {% include "details/_page_section.html" %}
         </div>
@@ -79,5 +74,5 @@ Anchor navigation, shown only when sections define anchors.
     </section>
 {% endfor %}
 
-
+</div>
 {% endblock %}

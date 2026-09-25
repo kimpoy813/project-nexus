@@ -5,47 +5,57 @@
 
 {% block extra_head %}
     <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
+    <script defer src="{% static 'js/nexus-public.js' %}"></script>
 {% endblock %}
 
 {% block content %}
 <div class="home-page">
 
-<!-- HERO SECTION (admin-editable via Page Content) -->
-<section class="relative bg-primary text-white py-36 overflow-hidden">
-    <div class="nx-page nx-page--measure text-center">
-        {% if page.hero_eyebrow %}
-            <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
-                {{ page.hero_eyebrow }}
-            </p>
-        {% endif %}
-
-        <h1 class="text-4xl md:text-5xl font-semibold leading-tight mb-6 tracking-wide">
-            {{ page.hero_heading|default:"Networked Extension Unified System" }}
-        </h1>
-
-        <p class="text-lg text-white/80 nx-measure mx-auto leading-relaxed">
-            {{ page.hero_subheading|default:"A digital platform for managing, monitoring, and advancing institutional extension initiatives aligned with sustainable development goals." }}
-        </p>
+<!-- The copy stays admin-editable. The process rail describes real NExUS flows. -->
+<section class="nx-public-hero">
+    <div class="nx-page nx-public-hero__inner">
+        <div class="nx-public-hero__content">
+            <p class="nx-public-hero__eyebrow">{{ page.hero_eyebrow|default:"ISPSC / Extension Office" }}</p>
+            <h1 class="nx-public-hero__title">{{ page.hero_heading|default:"Networked Extension Unified System" }}</h1>
+            <p class="nx-public-hero__copy">{{ page.hero_subheading|default:"Plan, review, and follow through on institutional extension work in one place." }}</p>
+            <div class="nx-public-hero__actions">
+                <a href="{% url 'services_home' %}" class="nx-public-hero__button" data-nx-skeleton="marketing">Explore services <span aria-hidden="true">↗</span></a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard_redirect' %}" class="nx-public-hero__link" data-nx-skeleton="dashboard">Open dashboard <span aria-hidden="true">→</span></a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="nx-public-hero__link" data-nx-skeleton="auth">Sign in <span aria-hidden="true">→</span></a>
+                {% endif %}
+            </div>
+        </div>
+        <aside class="nx-public-hero__rail" aria-label="Extension lifecycle">
+            <p class="nx-public-hero__rail-label">One connected process</p>
+            <ol class="nx-public-hero__steps">
+                <li><span>01</span><div><strong>Plan</strong><p>Prepare an extension proposal.</p></div></li>
+                <li><span>02</span><div><strong>Review</strong><p>Coordinate feedback and approvals.</p></div></li>
+                <li><span>03</span><div><strong>Deliver</strong><p>Track implementation and outcomes.</p></div></li>
+            </ol>
+            <p class="nx-public-hero__rail-foot">From first draft to final report</p>
+        </aside>
     </div>
 </section>
 
 <!-- Section Navigation (derived dynamically from visible anchored sections) -->
 {% if visible_blocks %}
-<section class="home-section-nav bg-white border-b border-gray-100 sticky top-20 z-40">
-    <div class="nx-page py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
+<nav class="home-section-nav nx-section-nav" aria-label="On this page">
+    <div class="nx-page nx-section-nav__links">
         {% for section, data in visible_blocks %}
             {% if section.anchor and section.heading %}
-                <a href="#{{ section.anchor }}" class="hover:text-primary transition whitespace-nowrap">{{ section.heading }}</a>
+                <a href="#{{ section.anchor }}">{{ section.heading }}</a>
             {% endif %}
         {% endfor %}
     </div>
-</section>
+</nav>
 {% endif %}
 
 <!-- SECTIONS (fully admin-managed via Page Content) -->
 {% for section, data in visible_blocks %}
     <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-             class="scroll-mt-32 py-20 {% cycle 'bg-white' 'bg-gray-50' %}">
+             class="nx-public-section scroll-mt-32 {% cycle 'bg-white' 'bg-gray-50' %}">
         <div class="nx-page">
             {% include "details/_page_section.html" %}
         </div>

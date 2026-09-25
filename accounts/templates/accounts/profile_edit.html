@@ -2,19 +2,25 @@
 
 {% block content %}
 <div class="nx-page py-8">
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div class="border-b border-gray-100 px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-900">Edit Profile</h1>
-            <p class="mt-1 text-sm text-gray-600">
-                Update your personal and organizational details.
-            </p>
+    <header class="nx-profile__heading">
+        <div>
+            <p class="nx-profile__eyebrow">Account / Profile</p>
+            <h1 class="nx-dash__title">Edit profile</h1>
+            <p class="nx-dash__subtitle">Update your personal and organizational details.</p>
         </div>
+        <a href="{% url 'profile_view' %}" class="nexus-btn-secondary" data-nx-skeleton="record">View profile</a>
+    </header>
 
-        <form method="post" class="p-6 space-y-5" data-nx-skeleton="record">
+    <section class="nx-profile__card" aria-labelledby="edit-details-title">
+        <div class="nx-profile__card-header">
+            <h2 id="edit-details-title">Personal &amp; campus details</h2>
+            <p>Keep this information current so colleagues can find the right contact.</p>
+        </div>
+        <form method="post" class="nx-profile__form space-y-5" data-nx-skeleton="record">
             {% csrf_token %}
 
             {% if form.non_field_errors %}
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div class="nx-form-error" role="alert">
                     {% for error in form.non_field_errors %}
                         <div>{{ error }}</div>
                     {% endfor %}
@@ -65,24 +71,24 @@
                 </div>
             </div>
 
-            <div class="flex gap-3 pt-2">
+            <div class="flex flex-wrap gap-3 pt-3 border-t border-gray-100">
                 <button
                     type="submit"
-                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary"
+                    class="nexus-btn-primary"
                 >
-                    Save Changes
+                    Save changes
                 </button>
 
                 <a
                     href="{% url 'profile_view' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    class="nexus-btn-secondary"
                     data-nx-skeleton="record"
                 >
                     Cancel
                 </a>
             </div>
         </form>
-    </div>
+    </section>
 </div>
 
 <script>

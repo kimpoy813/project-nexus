@@ -1,140 +1,288 @@
-/* Public landing-page refinements.
-   Keep the two public entry pages calm: one institutional accent, neutral
-   surfaces, and copy that is easy to scan before a user opens the detail. */
-
+/* Public content language: editorial hierarchy for institutional information,
+   with one brand accent and restrained texture. Home, Services, Reports and
+   Achievements share these rules; admin-managed copy is never hard-coded here. */
 body.home-page-body,
-body.services-page-body {
-  background: #f6f8f3 !important;
-}
+body.services-page-body,
+body.public-content-body { background: var(--nexus-bg) !important; }
+.home-page, .services-page, .nx-public-page { background: #fff; }
 
-body.home-page-body .nexus-footer,
-body.services-page-body .nexus-footer {
-  background: var(--nexus-primary) !important;
-}
+/* Backgrounds bleed edge to edge; reading content stops growing at 88rem.
+   Workspaces and data tables deliberately remain fluid (nexus-layout.css). */
+.home-page > section > .nx-page,
+.services-page > section > .nx-page,
+.nx-public-page > section > .nx-page,
+.nx-section-nav > .nx-page { max-width: 88rem; margin-inline: auto; }
 
-/* ── Home ──────────────────────────────────────────────────────────────── */
-.home-page {
+.nx-public-hero {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
-  background: #fff;
+  color: #fff;
+  background:
+    radial-gradient(ellipse 38% 65% at 93% 6%, rgba(245, 229, 135, .15), transparent 90%),
+    radial-gradient(ellipse 60% 70% at 0% 95%, rgba(5, 28, 8, .35), transparent 85%),
+    var(--nexus-primary);
 }
-
-.home-page > section {
-  border-top: 1px solid rgba(15, 23, 42, .06);
+.nx-public-hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 44%;
+  opacity: .16;
+  background-image:
+    linear-gradient(90deg, rgba(255, 255, 255, .3) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255, 255, 255, .3) 1px, transparent 1px);
+  background-size: 3.5rem 3.5rem;
+  mask-image: linear-gradient(90deg, transparent, #000);
+  pointer-events: none;
 }
-
-.home-page > section:first-child {
-  border-top: 0;
+.nx-public-hero::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 32rem;
+  aspect-ratio: 1;
+  right: -12rem;
+  bottom: -21rem;
+  border: 1px solid rgba(245, 229, 135, .2);
+  border-radius: 50%;
+  pointer-events: none;
 }
-
-.home-page .home-section-nav {
-  border-top: 0;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
+.nx-public-hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(16rem, .7fr);
+  gap: clamp(2.5rem, 6vw, 8rem);
+  align-items: center;
+  min-height: clamp(27rem, 37vw, 35rem);
+  padding-block: clamp(4rem, 6vw, 6.5rem);
 }
-
-.home-page .home-thrust-card,
-.home-page .home-person-card,
-.home-page .home-sdg-card,
-.home-page .home-activity-card {
-  border-color: rgba(15, 23, 42, .10) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .04) !important;
+.nx-public-hero__inner--single { grid-template-columns: minmax(0, 1fr); min-height: 21rem; }
+.nx-public-hero__content { max-width: 47rem; }
+.nx-public-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: 1.35rem;
+  color: #d5e9cc;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
 }
-
-.home-page .home-thrust-card:hover,
-.home-page .home-person-card:hover,
-.home-page .home-sdg-card:hover,
-.home-page .home-activity-card:hover {
-  border-color: rgba(16, 59, 7, .24) !important;
+.nx-public-hero__eyebrow::before {
+  content: '';
+  display: block;
+  width: 1.25rem;
+  height: 2px;
+  background: var(--nexus-accent);
 }
-
-/* Thrust names and SDG labels use the same brand ink. The SDG artwork stays
-   recognizable, but its many colours no longer compete with the page copy. */
-.home-page .home-thrust-card h4,
-.home-page .home-sdg-card h4 {
-  color: var(--nexus-primary) !important;
+.nx-public-hero__title {
+  max-width: 17ch;
+  margin: 0;
+  color: #fff;
+  font-family: var(--nexus-font-display);
+  font-size: clamp(2.55rem, 5.1vw, 5.1rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -.055em;
+  text-wrap: balance;
 }
-
-.home-page .home-sdg-grid {
-  gap: 1rem !important;
+.nx-public-hero__copy {
+  max-width: 56ch;
+  margin-top: 1.5rem;
+  color: #e2edde;
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  line-height: 1.75;
 }
-
-.home-page .home-sdg-card {
-  padding: 1rem !important;
-  border-radius: .9rem !important;
+.nx-public-hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin-top: 2rem; }
+.nx-public-hero__button,
+.nx-public-hero__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .85rem;
+  min-height: 3rem;
+  font-size: .88rem;
+  font-weight: 700;
+  text-decoration: none;
 }
-
-.home-page .home-sdg-card img {
-  width: 5.5rem;
-  margin-bottom: .75rem;
-  filter: grayscale(.55) saturate(.65);
-}
-
-.home-page .home-sdg-card:hover img {
-  filter: grayscale(.2) saturate(.8);
-}
-
-.home-page .home-muted-section {
-  background: #f8faf7 !important;
-}
-
-/* ── Services ─────────────────────────────────────────────────────────── */
-.services-page {
-  overflow: hidden;
-  background: #fff;
-}
-
-.services-page .services-hero__heading {
-  max-width: 18ch;
-  margin-inline: auto;
-}
-
-.services-page .services-hero__copy {
-  max-width: 44ch;
-  margin-inline: auto;
-  font-size: 1rem;
-}
-
-.services-page .services-jump-links {
-  background: #f8faf7;
-}
-
-.services-page .services-jump-link {
-  min-height: 3.5rem;
-  border-color: rgba(15, 23, 42, .10) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
-}
-
-.services-page .services-jump-link:hover,
-.services-page .services-jump-link:focus-visible {
-  border-color: rgba(16, 59, 7, .26) !important;
+.nx-public-hero__button {
+  padding: .7rem 1.1rem;
+  border: 1px solid #eff6ec;
+  border-radius: .6rem;
   color: var(--nexus-primary);
+  background: #f7faf4;
+  box-shadow: 0 10px 24px -17px rgba(0, 0, 0, .55);
 }
-
-.services-page .services-section {
-  border-top: 1px solid rgba(15, 23, 42, .07);
+.nx-public-hero__button:hover { color: var(--nexus-primary); background: #e8f0e3; transform: translateY(-2px); }
+.nx-public-hero__link {
+  padding: .6rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .45);
+  color: #fff;
 }
-
-.services-page .services-section__intro {
-  max-width: 42rem;
+.nx-public-hero__link:hover { border-color: #fff; color: #fff; }
+.nx-public-hero :is(a, button):focus-visible { outline-color: #f5e587 !important; }
+.nx-public-hero__rail {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: clamp(1.5rem, 3vw, 3.5rem);
+  border-left: 1px solid rgba(255, 255, 255, .22);
 }
-
-.services-page .services-process-card,
-.services-page .services-info-card,
-.services-page .services-phase-card,
-.services-page .services-status-card {
-  border-color: rgba(15, 23, 42, .10) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+.nx-public-hero__rail-label,
+.nx-public-hero__rail-foot { color: #c8dec1; font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
+.nx-public-hero__rail-label { margin-bottom: 1.45rem; text-transform: uppercase; letter-spacing: .13em; }
+.nx-public-hero__rail-foot { margin-top: 1.5rem; }
+.nx-public-hero__steps { display: grid; gap: 0; }
+.nx-public-hero__steps li {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1.05rem 0;
+  border-top: 1px solid rgba(255, 255, 255, .17);
 }
+.nx-public-hero__steps li:last-child { border-bottom: 1px solid rgba(255, 255, 255, .17); }
+.nx-public-hero__steps li > span { padding-top: .2rem; color: var(--nexus-accent); font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.nx-public-hero__steps strong, .nx-public-hero__steps a { color: #fff; font-family: var(--nexus-font-display); font-size: 1.07rem; font-weight: 700; }
+.nx-public-hero__steps a:hover { text-decoration: underline; text-underline-offset: .2em; }
+.nx-public-hero__steps p { margin-top: .22rem; color: #ccdfc8; font-size: .8rem; line-height: 1.5; }
 
-.services-page .services-step-copy {
-  max-width: 68ch;
+/* Section wayfinding (with current anchor tracked by nexus-public.js). */
+.nx-section-nav {
+  position: sticky;
+  z-index: 40;
+  top: var(--nx-header-h);
+  border-bottom: 1px solid var(--nexus-line);
+  background: #fcfdfa;
 }
-
-.services-page .services-wizard-card {
-  min-height: 4rem;
+.nx-section-nav__links {
+  display: flex;
+  gap: clamp(1.25rem, 3vw, 2.5rem);
+  overflow-x: auto;
+  padding-block: .25rem;
+  scrollbar-width: thin;
+  white-space: nowrap;
 }
+.nx-section-nav__links a {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 3.25rem;
+  border-bottom: 2px solid transparent;
+  color: var(--nexus-muted);
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.nx-section-nav__links a:hover,
+.nx-section-nav__links a[aria-current="location"] { border-bottom-color: var(--nexus-primary); color: var(--nexus-primary); }
 
-@media (max-width: 640px) {
-  .services-page .services-hero__heading {
-    max-width: 15ch;
-  }
+/* Sections use a consistent rhythm, warm neutral alternation, and a readable
+   left edge. CMS callouts and CTAs remain authored by the extension office. */
+.nx-public-section { padding-block: clamp(4rem, 6.5vw, 6rem); border-bottom: 1px solid #e9eee6; }
+.nx-public-section.bg-gray-50 { background: var(--nexus-bg) !important; }
+.nx-public-section.bg-white { background: #fff !important; }
+.nx-public-heading,
+.nx-public-section .services-section__intro h2 {
+  max-width: 25ch;
+  color: var(--nexus-ink);
+  font-family: var(--nexus-font-display);
+  font-size: clamp(1.95rem, 3.1vw, 3rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -.045em;
+  text-align: left;
+}
+.nx-public-deck { max-width: 66ch; margin-top: .75rem; color: var(--nexus-muted); font-size: 1rem; line-height: 1.7; text-align: left; }
+.nx-public-section .nexus-richtext > p { max-width: 68ch; }
+.nx-public-section > .nx-page > img { max-height: 34rem; }
+.nx-section-kicker { color: var(--nexus-primary); font-size: .76rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+
+/* Thrusts are a numbered programme index, not a wall of floating cards. */
+.nx-thrust-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(2rem, 6vw, 6rem); }
+.nx-thrust-list__item { display: grid; grid-template-columns: 2.8rem minmax(0, 1fr); gap: .9rem; padding: 1.4rem .25rem 1.55rem 0; border-top: 1px solid var(--nexus-line); }
+.nx-thrust-list__index { padding-top: .17rem; font-family: var(--nexus-font-display); font-size: .9rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.nx-thrust-list h3 { color: var(--nexus-ink); font-size: 1.1rem; font-weight: 750; line-height: 1.35; }
+.nx-thrust-list p { max-width: 44ch; margin-top: .55rem; color: var(--nexus-muted); font-size: .87rem; line-height: 1.65; }
+
+/* Personnel and activities are small directories/stories, never decorative
+   button-like cards. SDG artwork keeps its actual UN colors and labels. */
+.nx-personnel-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 3rem; }
+.nx-person { display: flex; align-items: center; gap: 1.2rem; padding: 1.2rem 0; border-top: 1px solid var(--nexus-line); }
+.nx-person__photo, .nx-person__initial { width: 4.5rem; height: 4.5rem; flex: none; border-radius: .8rem; object-fit: cover; }
+.nx-person__initial { display: grid; place-items: center; color: var(--nexus-primary); background: #e4efdf; font-family: var(--nexus-font-display); font-size: 1.65rem; font-weight: 700; }
+.nx-person h3 { font-size: 1rem; font-weight: 750; }
+.nx-person p { margin-top: .2rem; color: var(--nexus-muted); font-size: .84rem; }
+.nx-activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+.nx-activity { overflow: hidden; border: 1px solid var(--nexus-line); border-radius: var(--nexus-radius); background: #fff; }
+.nx-activity img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.nx-activity__body { padding: 1.5rem; }
+.nx-activity h3 { font-size: 1.2rem; font-weight: 750; line-height: 1.35; }
+.nx-activity time, .nx-activity__date { display: block; margin-top: .6rem; color: var(--nexus-muted); font-size: .75rem; }
+.nx-activity__body > p:last-child { max-width: 52ch; margin-top: .75rem; color: var(--nexus-muted); font-size: .88rem; line-height: 1.6; }
+.home-sdg-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)) !important; gap: 1rem !important; }
+.home-sdg-card { padding: 1.2rem !important; border-color: var(--nexus-line) !important; border-radius: .75rem !important; box-shadow: none !important; text-align: left !important; }
+.home-sdg-card img { width: 4.25rem !important; height: 4.25rem; margin: 0 0 1rem !important; object-fit: contain; }
+.home-sdg-card h4 { color: var(--nexus-ink); font-size: .85rem; line-height: 1.45; }
+.home-sdg-card p { color: var(--nexus-muted); line-height: 1.5; }
+
+/* Numeric targets: strong figures with aligned labels, no colored paragraphs
+   pretending to be charts. */
+.nx-target-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 1rem; margin-bottom: 2.75rem; }
+.nx-target-metric { padding: 1.25rem; border-top: 2px solid var(--nexus-primary); background: #fff; }
+.nx-target-metric h3 { color: var(--nexus-muted); font-size: .78rem; font-weight: 700; }
+.nx-target-metric dl { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; margin-top: .75rem; }
+.nx-target-metric dl > div { display: grid; gap: .25rem; }
+.nx-target-metric dt { color: var(--nexus-muted); font-size: .72rem; }
+.nx-target-metric dd { color: var(--nexus-ink); font-family: var(--nexus-font-display); font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* The three real workflow phases read as one continuous path. */
+.services-workflow { border-bottom: 1px solid var(--nexus-line); }
+.services-workflow > .nx-page { padding-block: .5rem; }
+.services-workflow h2 { font-family: var(--nexus-font-display); font-size: clamp(1.45rem, 2.4vw, 2rem); font-weight: 750; letter-spacing: -.035em; }
+.nx-phase-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--nexus-line); border-radius: var(--nexus-radius); overflow: hidden; }
+.nx-phase-track__item { display: flex; align-items: center; gap: 1.15rem; padding: 1.35rem; background: var(--nexus-bg); }
+.nx-phase-track__item + .nx-phase-track__item { border-left: 1px solid var(--nexus-line); }
+.nx-phase-track__index { color: var(--nexus-muted); font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.nx-phase-track h3 { margin-top: .4rem; font-size: 1.05rem; font-weight: 750; }
+.nx-phase-track p { margin-top: .3rem; color: var(--nexus-muted); font-size: .8rem; line-height: 1.45; }
+.nx-phase-track .nx-ring { flex-shrink: 0; }
+
+.services-jump-links { background: #fff; border-color: var(--nexus-line) !important; }
+.nx-services-links { display: flex; gap: .65rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: thin; }
+.services-page .services-jump-link { flex: none; min-height: 2.8rem; border-color: var(--nexus-line) !important; border-radius: .55rem; background: var(--nexus-bg); box-shadow: none; }
+.services-page .services-jump-link:hover, .services-page .services-jump-link[aria-current="location"] { border-color: var(--nexus-primary) !important; color: var(--nexus-primary); background: #e4efdf; }
+.services-section__intro { max-width: 44rem; }
+.services-section__intro p:last-child { color: var(--nexus-muted); line-height: 1.65; }
+.nx-checklist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 2rem; }
+.services-page .services-wizard-card { min-height: 3.8rem; padding: .75rem 0; border-bottom: 1px solid var(--nexus-line); }
+.services-wizard-card > span { border-radius: .45rem; background: #e4efdf; font-variant-numeric: tabular-nums; }
+.services-page .services-status-card { border-color: var(--nexus-line) !important; border-radius: var(--nexus-radius); box-shadow: none; }
+.services-page .services-status-card ol { border-color: var(--nexus-line); }
+
+/* CMS-authored text blocks follow the same system without touching the editor
+   or limiting admin-provided content and URLs. */
+.nx-editorial-callout { border-left: 3px solid var(--nexus-primary); background: var(--nexus-bg-2); }
+.nx-editorial-card { background: var(--nexus-bg); border: 1px solid var(--nexus-line); }
+.nx-editorial-cta { padding: clamp(1.75rem, 4vw, 3rem); border: 1px solid var(--nexus-line); border-radius: var(--nexus-radius); background: var(--nexus-bg-2); }
+.nx-editorial-cta .nx-public-heading { max-width: 30ch; }
+
+@media (max-width: 1023px) {
+  .nx-public-hero__inner { grid-template-columns: minmax(0, 1fr); min-height: auto; gap: 2.5rem; }
+  .nx-public-hero__rail { border-left: 0; border-top: 1px solid rgba(255, 255, 255, .2); padding: 1.65rem 0 0; }
+  .nx-public-hero__steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+  .nx-public-hero__steps li { grid-template-columns: 1.6rem minmax(0, 1fr); }
+  .nx-public-hero__rail-foot { display: none; }
+  .nx-phase-track { grid-template-columns: minmax(0, 1fr); }
+  .nx-phase-track__item + .nx-phase-track__item { border-left: 0; border-top: 1px solid var(--nexus-line); }
+}
+@media (max-width: 639px) {
+  .nx-public-hero__inner { padding-block: 3.5rem; }
+  .nx-public-hero__title { font-size: clamp(2.25rem, 9.2vw, 3.3rem); }
+  .nx-public-hero__steps { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .nx-public-hero__steps li { padding: .8rem 0; }
+  .nx-public-hero__rail-label { margin-bottom: .65rem; }
+  .nx-thrust-list, .nx-personnel-grid, .nx-activity-grid, .nx-checklist { grid-template-columns: minmax(0, 1fr); }
+  .services-workflow > .nx-page > div:first-child { align-items: flex-start; }
 }

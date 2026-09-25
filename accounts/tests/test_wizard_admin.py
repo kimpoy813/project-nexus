@@ -272,7 +272,7 @@ class WizardAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "wizard-steps-list")
         self.assertContains(response, "js-step-handle")
-        self.assertContains(response, "sortablejs")
+        self.assertContains(response, "vendor/sortable.min.js")
         self.assertContains(response, reverse("wizard_steps_reorder"))
         self.assertContains(response, "fetch(reorderUrl")
         self.assertContains(response, "goey-toast-root")
