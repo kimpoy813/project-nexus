@@ -96,11 +96,21 @@
     });
   }
 
+  function showToast(type, message) {
+    var toaster = window.goeyToast;
+    if (toaster && typeof toaster[type] === "function") toaster[type](message);
+  }
+
+  var previousOrder = [];
   new Sortable(list, {
     handle: ".js-step-handle",
     animation: 150,
     ghostClass: "bg-primary/5",
+    onStart: function () {
+      previousOrder = Array.prototype.slice.call(list.children);
+    },
     onEnd: function () {
+      var rollbackOrder = previousOrder.slice();
       renumber();
       var stepNos = Array.prototype.map.call(
         list.querySelectorAll("[data-step-no]"),
@@ -118,10 +128,16 @@
         if (!response.ok) throw new Error("save failed");
         return response.json();
       }).then(function (data) {
-        if (data && data.ok) setStatus("Order saved. This is the sequence proponents will see.", "ok");
-        else throw new Error("save failed");
+        if (!data || !data.ok) throw new Error("save failed");
+        var successText = "Order saved. This is the sequence proponents will see.";
+        setStatus(successText, "ok");
+        showToast("success", successText);
       }).catch(function () {
-        setStatus("Could not save the new order. Reload the page and try again.", "err");
+        rollbackOrder.forEach(function (row) { list.appendChild(row); });
+        renumber();
+        var errorText = "Could not save the new order. Your previous order was restored.";
+        setStatus(errorText, "err");
+        showToast("error", errorText);
       });
     }
   });

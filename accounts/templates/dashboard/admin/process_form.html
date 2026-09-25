@@ -11,7 +11,7 @@
         <input name="title" value="{{ process.title|default:'' }}" class="w-full border rounded p-2" required>
         </div>
 
-        <p class="text-sm text-gray-600 mt-2">Steps (drag to reorder):</p>
+        <p id="process-order-status" class="text-sm text-gray-600 mt-2" aria-live="polite">Steps (drag to reorder):</p>
 
         <div id="stepsList" class="space-y-2">
         {% if process %}
@@ -77,31 +77,63 @@
     }
 
     const stepsList = document.getElementById('stepsList');
+    const orderStatus = document.getElementById('process-order-status');
+    let previousStepOrder = [];
 
-    if (stepsList) {
+    function setOrderStatus(message, kind) {
+        if (!orderStatus) return;
+        orderStatus.textContent = message;
+        orderStatus.className = 'text-sm mt-2 ' + (
+            kind === 'ok' ? 'text-green-700'
+            : kind === 'err' ? 'text-red-700'
+            : 'text-gray-600'
+        );
+    }
+
+    function showToast(type, message) {
+        const toaster = window.goeyToast;
+        if (toaster && typeof toaster[type] === 'function') toaster[type](message);
+    }
+
+    if (stepsList && typeof Sortable !== 'undefined') {
         new Sortable(stepsList, {
         handle: '.cursor-move',
         animation: 150,
+        onStart: function () {
+            previousStepOrder = Array.prototype.slice.call(stepsList.children);
+        },
         onEnd: async function () {
             {% if process %}
+            const rollbackOrder = previousStepOrder.slice();
             const REORDER_URL = "{% url 'reorder_process_steps' process.id %}";
             const csrftoken = getCookie('csrftoken');
 
-            const ids = [...document.querySelectorAll('#stepsList [data-step-id]')]
+            const ids = [...stepsList.querySelectorAll('[data-step-id]')]
                 .map(el => el.getAttribute('data-step-id'))
                 .filter(id => id); // ignore blank rows (new steps)
 
+            setOrderStatus('Saving step order…');
             try {
-                await fetch(REORDER_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": csrftoken
-                },
-                body: JSON.stringify({ step_ids: ids })
+                const response = await fetch(REORDER_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrftoken
+                    },
+                    body: JSON.stringify({ step_ids: ids })
                 });
+                if (!response.ok) throw new Error('Could not save step order.');
+                const data = await response.json();
+                if (!data || !data.ok) throw new Error('Could not save step order.');
+
+                const successText = 'Step order saved.';
+                setOrderStatus(successText, 'ok');
+                showToast('success', successText);
             } catch (e) {
-                console.error(e);
+                rollbackOrder.forEach(function (row) { stepsList.appendChild(row); });
+                const errorText = 'Could not save step order. Your previous order was restored.';
+                setOrderStatus(errorText, 'err');
+                showToast('error', errorText);
             }
             {% endif %}
         }

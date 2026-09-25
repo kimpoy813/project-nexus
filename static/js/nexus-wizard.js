@@ -86,11 +86,21 @@
     function showToastsFrom(doc) {
         var data = doc.getElementById("messages-data");
         var container = document.getElementById("toast-container");
-        if (!data || !container) return;
+        var toaster = window.goeyToast;
+        if (!data || (!container && !toaster)) return;
 
         Array.prototype.slice.call(data.querySelectorAll("[data-message]")).forEach(function (msgElement, index) {
             var message = msgElement.getAttribute("data-message") || "";
             var tags = msgElement.getAttribute("data-tags") || "info";
+            var toastType = tags.indexOf("success") !== -1 ? "success"
+                : tags.indexOf("error") !== -1 ? "error"
+                : tags.indexOf("warning") !== -1 ? "warning"
+                : "info";
+            if (toaster && typeof toaster[toastType] === "function") {
+                toaster[toastType](message);
+                return;
+            }
+            if (!container) return;
             var bgColor = "bg-gray-900";
             if (tags.indexOf("success") !== -1) bgColor = "bg-green-700";
             else if (tags.indexOf("error") !== -1) bgColor = "bg-red-700";

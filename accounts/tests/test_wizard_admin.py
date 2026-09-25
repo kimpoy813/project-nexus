@@ -275,6 +275,9 @@ class WizardAdminTests(TestCase):
         self.assertContains(response, "sortablejs")
         self.assertContains(response, reverse("wizard_steps_reorder"))
         self.assertContains(response, "fetch(reorderUrl")
+        self.assertContains(response, "goey-toast-root")
+        self.assertContains(response, "goey/toaster.js")
+        self.assertContains(response, 'showToast("success"')
         self.assertNotContains(response, "window.location.reload")
 
     def test_steps_can_be_reordered(self):

@@ -26,6 +26,7 @@
     <link href="{% static 'css/nexus-layout.css' %}" rel="stylesheet">
     <link href="{% static 'css/dashboard-views.css' %}" rel="stylesheet">
     <link href="{% static 'css/nexus-richtext.css' %}" rel="stylesheet">
+    <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
     <!-- Loading skeletons (plain CSS so they paint without the CDN bundle) -->
     <link href="{% static 'css/nexus-skeleton.css' %}" rel="stylesheet">
     {% if site_control %}
@@ -826,6 +827,15 @@
                 messageElements.forEach(function(msgElement, index) {
                     const message = msgElement.getAttribute('data-message');
                     const tags = msgElement.getAttribute('data-tags') || 'info';
+                    const toastType = tags.includes('success') ? 'success'
+                        : tags.includes('error') ? 'error'
+                        : tags.includes('warning') ? 'warning'
+                        : 'info';
+                    const goeyToast = window.goeyToast;
+                    if (goeyToast && typeof goeyToast[toastType] === 'function') {
+                        goeyToast[toastType](message);
+                        return;
+                    }
 
                     let bgColor = 'bg-gray-900';
                     if (tags.includes('success')) bgColor = 'bg-green-700';
@@ -1160,5 +1170,7 @@
     });
     </script>
     {% block extra_scripts %}{% endblock %}
+    <div id="goey-toast-root"></div>
+    <script type="module" src="{% static 'goey/toaster.js' %}"></script>
 </body>
 </html>

@@ -468,6 +468,8 @@ class SectionCanvasTests(TestCase):
         self.assertNotIn(".submit(", keyboard_handler)
         self.assertNotIn('id="keyboard-move-form"', html)
         self.assertIn("fetch(url", html)
+        self.assertIn("window.goeyToast", html)
+        self.assertIn('showToast("success", okText)', html)
 
     def test_orderable_blocks_can_be_dragged_into_order_inside_their_section(self):
         """The items inside a source reorder by drag, where the model allows it."""

@@ -37,6 +37,11 @@ at a time with the Arrow keys on its drag handle.
         el.dataset.state = kind || "idle";
     }
 
+    function showToast(type, message) {
+        var toaster = window.goeyToast;
+        if (toaster && typeof toaster[type] === "function") toaster[type](message);
+    }
+
     function postOrder(url, payload, statusEl, okText, rollback) {
         setStatus(statusEl, "Saving order…", "busy");
         return fetch(url, {
@@ -49,15 +54,14 @@ at a time with the Arrow keys on its drag handle.
         }).then(function (data) {
             if (!data || !data.ok) throw new Error(data && data.error ? data.error : "save failed");
             setStatus(statusEl, okText, "ok");
+            showToast("success", okText);
         }).catch(function () {
             if (typeof rollback === "function") rollback();
-            setStatus(
-                statusEl,
-                typeof rollback === "function"
-                    ? "Could not save the new order. Your previous order was restored."
-                    : "Could not save the new order. Please try again.",
-                "err"
-            );
+            var errorText = typeof rollback === "function"
+                ? "Could not save the new order. Your previous order was restored."
+                : "Could not save the new order. Please try again.";
+            setStatus(statusEl, errorText, "err");
+            showToast("error", errorText);
         });
     }
 

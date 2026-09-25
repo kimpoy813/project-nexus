@@ -71,6 +71,9 @@ class ProcessStep(models.Model):
     description = models.TextField()
     order = models.PositiveIntegerField(blank=True, null=True)  # IMPORTANT: no default=1
 
+    class Meta:
+        ordering = ("order", "id")
+
     def save(self, *args, **kwargs):
         # Auto-increment ONLY when creating a new step
         if self._state.adding:
