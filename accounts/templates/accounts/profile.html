@@ -2,49 +2,29 @@
 
 {% block content %}
 <div class="nx-page py-8">
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div class="border-b border-gray-100 px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-900">My Profile</h1>
-            <p class="mt-1 text-sm text-gray-600">View your account and organizational details.</p>
+    <header class="nx-profile__heading">
+        <div>
+            <p class="nx-profile__eyebrow">Account / Profile</p>
+            <h1 class="nx-dash__title">My profile</h1>
+            <p class="nx-dash__subtitle">Your account and organizational details.</p>
         </div>
+        <a href="{% url 'profile_edit' %}" class="nexus-btn-primary" data-nx-skeleton="form">Edit profile</a>
+    </header>
 
-        <div class="p-6 space-y-4">
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">Username</p>
-                <p class="text-sm text-gray-900">{{ request.user.username }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">Email</p>
-                <p class="text-sm text-gray-900">{{ request.user.email }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">Full Name</p>
-                <p class="text-sm text-gray-900">{{ profile.full_name|default:"—" }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">Campus</p>
-                <p class="text-sm text-gray-900">{{ profile.campus|default:"—" }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">College</p>
-                <p class="text-sm text-gray-900">{{ profile.college|default:"—" }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">Department</p>
-                <p class="text-sm text-gray-900">{{ profile.department|default:"—" }}</p>
-            </div>
-            <div>
-                <p class="text-xs uppercase tracking-wide text-gray-400">Role</p>
-                <p class="text-sm text-gray-900">{{ profile.get_role_display }}</p>
-            </div>
-
-            <div class="pt-2">
-                <a href="{% url 'profile_edit' %}"
-                   class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary">
-                    Edit Profile
-                </a>
-            </div>
+    <section class="nx-profile__card" aria-labelledby="account-details-title">
+        <div class="nx-profile__card-header">
+            <h2 id="account-details-title">Account details</h2>
+            <p>Contact and campus information associated with your NExUS account.</p>
         </div>
-    </div>
+        <dl class="nx-profile__grid">
+            <div><dt>Full name</dt><dd>{{ profile.full_name|default:"—" }}</dd></div>
+            <div><dt>Username</dt><dd>{{ request.user.username }}</dd></div>
+            <div><dt>Email</dt><dd class="break-all">{{ request.user.email }}</dd></div>
+            <div><dt>Role</dt><dd>{{ profile.get_role_display }}</dd></div>
+            <div><dt>Campus</dt><dd>{{ profile.campus|default:"—" }}</dd></div>
+            <div><dt>College</dt><dd>{{ profile.college|default:"—" }}</dd></div>
+            <div><dt>Department</dt><dd>{{ profile.department|default:"—" }}</dd></div>
+        </dl>
+    </section>
 </div>
 {% endblock %}

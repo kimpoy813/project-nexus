@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#103b07">
+    <title>Service unavailable — NExUS</title>
+    <link rel="preload" href="{% static 'fonts/public-sans-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'fonts/manrope-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
+    <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
+    <style>
+        body { display: grid; min-height: 100dvh; place-items: center; padding: 1rem; background: var(--nexus-bg); }
+        main { width: 100%; }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="nx-not-found" aria-labelledby="service-title">
+            <img src="{% static 'images/nexus-logo-128.png' %}" width="56" height="56" alt="NExUS">
+            <p class="nx-not-found__code" style="margin-top: 1.5rem;">500 / Service unavailable</p>
+            <h1 id="service-title">We couldn't load this page.</h1>
+            <p>Something went wrong on our side. Please try again in a moment. If the problem continues, contact the extension office.</p>
+            <div class="nx-not-found__actions">
+                <a href="/" class="nexus-btn-primary">Return to home</a>
+                <a href="mailto:ispsc.nexus@gmail.com" class="nexus-btn-secondary">Contact support</a>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

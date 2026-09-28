@@ -13,8 +13,8 @@
     <!-- MAIN CONTENT: fluid column, takes every spare pixel -->
     <section class="nx-wizard-main space-y-6">
       {% if wizard_step_config and wizard_step_config.instructions %}
-        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-blue-900 shadow-sm">
-          <p class="mb-1 text-xs font-black uppercase tracking-[0.18em] text-blue-700">Office Instructions</p>
+        <div class="nx-instruction">
+          <p class="nx-instruction__label">Office instructions</p>
           <div class="whitespace-pre-line">{{ wizard_step_config.instructions }}</div>
         </div>
       {% endif %}

@@ -1,28 +1,24 @@
-{% comment %}
-Block: Extension Personnel (source key PERSONNEL).
-Context: section, data.personnel
-{% endcomment %}
+{% comment %}Block: Extension Personnel (PERSONNEL).{% endcomment %}
 {% include "details/blocks/_heading.html" %}
 
 <div class="mt-10">
     {% if data.personnel %}
-        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <ul class="nx-personnel-grid">
             {% for person in data.personnel %}
-            <div class="bg-white border border-gray-100 rounded-2xl p-6 text-center hover:border-primary transition duration-300 shadow-sm">
-                {% if person.photo %}
-                    <img src="{{ person.photo.url }}" alt="{{ person.name }}"
-                         class="w-24 h-24 mx-auto rounded-full object-cover mb-4 border-4 border-primary">
-                {% else %}
-                    <span class="w-24 h-24 mx-auto mb-4 grid place-items-center rounded-full border-4 border-primary bg-primary/5 text-2xl font-semibold text-primary">
-                        {{ person.name|first|upper }}
-                    </span>
-                {% endif %}
-                <h3 class="text-base font-semibold text-gray-900">{{ person.name }}</h3>
-                <p class="mt-1 text-sm text-primary font-medium">{{ person.position }}</p>
-            </div>
+                <li class="nx-person">
+                    {% if person.photo %}
+                        <img src="{{ person.photo.url }}" alt="{{ person.name }}" class="nx-person__photo">
+                    {% else %}
+                        <span class="nx-person__initial" aria-hidden="true">{{ person.name|first|upper }}</span>
+                    {% endif %}
+                    <div>
+                        <h3>{{ person.name }}</h3>
+                        <p>{{ person.position }}</p>
+                    </div>
+                </li>
             {% endfor %}
-        </div>
+        </ul>
     {% else %}
-        <p class="py-10 text-center text-sm text-gray-400">No personnel listed yet.</p>
+        <p class="nx-empty">No personnel have been published yet.</p>
     {% endif %}
 </div>

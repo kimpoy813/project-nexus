@@ -330,7 +330,7 @@ class StepOneProposalFormatChipTests(TestCase):
     def _chip_classes(html, value):
         """The class list on the format chip carrying ``data-value``."""
         match = re.search(
-            r'<div\s+class="(format-chip[^"]*)"\s+data-value="%s"' % re.escape(value),
+            r'<button\b[^>]*class="(format-chip[^"]*)"\s+data-value="%s"' % re.escape(value),
             html,
         )
         return match.group(1) if match else ""

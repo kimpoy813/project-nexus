@@ -322,12 +322,13 @@ once the shared system above is fully adopted.
 
 ### 3.3 Tailwind loaded from CDN
 
-`templates/base.html` loads `https://cdn.tailwindcss.com`. The CDN build is explicitly documented
-by Tailwind as unsuitable for production: it ships the entire framework, compiles in the browser
-on every page load, and introduces a third-party runtime dependency for your site to render.
-
-**Fix:** a build step producing a purged stylesheet. This is a genuine improvement but adds a
-Node toolchain to deployment, so it is a deliberate trade-off rather than an obvious win.
+The original `templates/base.html` loaded `https://cdn.tailwindcss.com`, which compiled
+utilities in each visitor's browser and left the interface dependent on the CDN. It now loads
+`static/css/nexus-tailwind.css`, a purged stylesheet generated from Django templates via
+`npm --prefix frontend run build:django-css` and committed for the Python-only deployment.
+Alpine, AOS, Chart.js and SortableJS are likewise self-hosted in `static/vendor/`. The existing
+Tailwind/Alpine stack remains; Node is only needed when changing source utility classes or
+updating a vendor library. See `frontend/README.md` for the rebuild steps.
 
 ### 3.4 `details` app is misnamed and overloaded
 
@@ -357,14 +358,12 @@ carries real risk for modest gain. **Recommendation: leave it.** Noted for aware
 10. ✅ Document generation covered; `docx_forms` handlers narrowed 42 → 28 *(1.4, 2.3)*
 11. ✅ `proposal_wizard` split 629 → 470 lines; MOA/implementation transitions covered *(2.1, 1.4)*
 12. ✅ `media/` untracked; Home page hardened for a fresh install *(1.3)*
+13. ✅ Runtime Tailwind CDN replaced with a compiled, committed stylesheet; other UI libraries self-hosted *(3.3)*
 
 **Every finding in this document is now closed.**
 
 Deliberately **not** recommended as further work:
 
-* **The Tailwind CDN → build step** *(3.3)*. It is a real improvement on paper, but it introduces
-  a Node toolchain into a Python deployment for a purely cosmetic gain. Not worth the operational
-  cost at this project's size unless page weight becomes a measured problem.
 * **Further splitting of `proposal_wizard`** *(2.1)* — see the note under that finding.
 * **Renaming the `details` app** *(3.4)* — migration risk outweighs the clarity gain.
 

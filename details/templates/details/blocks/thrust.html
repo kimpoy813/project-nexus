@@ -1,20 +1,23 @@
 {% comment %}
-Block: Extension Thrust cards (source key THRUST).
-Context: section, data.thrusts
+Block: Extension Thrusts (THRUST). Colors remain an admin-managed attribute,
+but are used only on the small index marker so headings stay readable.
 {% endcomment %}
 {% include "details/blocks/_heading.html" %}
 
-<div class="mt-8">
+<div class="mt-10">
     {% if data.thrusts %}
-        <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <ol class="nx-thrust-list">
             {% for thrust in data.thrusts %}
-            <div class="home-thrust-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
-                <h4 class="font-semibold text-lg mb-2 {{ thrust.color_class|default:'text-primary' }}">{{ thrust.title }}</h4>
-                <p class="text-gray-500 text-sm">{{ thrust.description }}</p>
-            </div>
+                <li class="nx-thrust-list__item">
+                    <span class="nx-thrust-list__index {{ thrust.color_class|default:'text-primary' }}" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+                    <div>
+                        <h3>{{ thrust.title }}</h3>
+                        {% if thrust.description %}<p>{{ thrust.description }}</p>{% endif %}
+                    </div>
+                </li>
             {% endfor %}
-        </div>
+        </ol>
     {% else %}
-        <p class="py-10 text-center text-sm text-gray-400">No extension thrusts configured yet.</p>
+        <p class="nx-empty">No extension thrusts have been published yet.</p>
     {% endif %}
 </div>

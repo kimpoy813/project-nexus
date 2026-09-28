@@ -921,8 +921,8 @@ class PageBlockTests(TestCase):
 
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "2026 targets")
-        self.assertContains(response, "Planned: 20")
-        self.assertNotContains(response, "Planned: 10")
+        self.assertContains(response, "<dt>Planned</dt><dd>20</dd>")
+        self.assertNotContains(response, "<dt>Planned</dt><dd>10</dd>")
 
     def test_targets_block_respects_target_year(self):
         from details.models import Target
@@ -940,8 +940,8 @@ class PageBlockTests(TestCase):
 
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "2025 targets")
-        self.assertContains(response, "Planned: 10")
-        self.assertNotContains(response, "Planned: 20")
+        self.assertContains(response, "<dt>Planned</dt><dd>10</dd>")
+        self.assertNotContains(response, "<dt>Planned</dt><dd>20</dd>")
 
     def test_targets_block_shows_progress_percentages(self):
         from details.models import Target

@@ -189,8 +189,34 @@ _SKELETON_PATH_PREFIXES = (
 
 
 def skeleton_variant(request):
-    """Tell the page skeleton which layout the screen being rendered uses."""
-    return {"nx_skeleton_variant": _resolve_skeleton_variant(request)}
+    """Resolve the loading layout and active primary navigation together."""
+    return {
+        "nx_skeleton_variant": _resolve_skeleton_variant(request),
+        "nx_nav_section": _resolve_navigation_section(request),
+    }
+
+
+def _resolve_navigation_section(request):
+    """Keep desktop and mobile navigation in sync for every named route."""
+    try:
+        match = getattr(request, "resolver_match", None)
+        name = getattr(match, "url_name", None)
+        public = {
+            "details_page": "home",
+            "services_home": "services",
+            "reports_page": "reports",
+            "achievements_page": "achievements",
+        }
+        if name in public:
+            return public[name]
+        # Auth and missing pages have no active top-level destination.
+        if name and _SKELETON_BY_URL_NAME.get(name) != "auth":
+            user = getattr(request, "user", None)
+            if getattr(user, "is_authenticated", False):
+                return "dashboard"
+    except Exception:
+        logger.exception("Unexpected error resolving primary navigation.")
+    return ""
 
 
 def _resolve_skeleton_variant(request):

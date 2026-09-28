@@ -7,18 +7,18 @@ Context: section, data.year, data.overall, data.by_campus
 
 <div class="mt-10">
     {% if data.by_campus %}
-        <p class="mb-6 text-center text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-            {{ data.year }} targets
-        </p>
+        <p class="nx-section-kicker mb-6">{{ data.year }} targets</p>
 
-        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="nx-target-summary">
             {% for key, metric in data.overall.items %}
-                <div class="bg-white p-5 rounded-xl border border-gray-100 text-center shadow-sm">
-                    <div class="text-xs font-semibold text-gray-500 mb-2">{{ metric.label }}</div>
-                    <div class="text-xl font-bold text-primary">Planned: {{ metric.planned|intcomma }}</div>
-                    <div class="text-base font-semibold text-primary mt-1">Actual: {{ metric.actual|intcomma }}</div>
+                <div class="nx-target-metric">
+                    <h3>{{ metric.label }}</h3>
+                    <dl>
+                        <div><dt>Planned</dt><dd>{{ metric.planned|intcomma }}</dd></div>
+                        <div><dt>Actual</dt><dd>{{ metric.actual|intcomma }}</dd></div>
+                    </dl>
                     {% if metric.progress is not None %}
-                        <div class="mt-1 text-xs text-gray-500">{{ metric.progress }}% of plan</div>
+                        <p class="mt-3 text-xs text-gray-600">{{ metric.progress }}% of plan</p>
                     {% endif %}
                 </div>
             {% endfor %}

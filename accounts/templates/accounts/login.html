@@ -6,73 +6,43 @@
 
         {% include "accounts/_auth_panel.html" with auth_panel_title="Sign in to continue" auth_panel_text="Use your institutional account to work on proposals, reviews, and accomplishment reports." %}
 
-        <div class="nx-auth__form bg-white rounded-2xl shadow-xl border border-gray-100">
-
-            <!-- Header -->
-            <div class="bg-primary text-white rounded-t-2xl px-8 py-6 text-center">
-                <img src="{% static 'images/nexus-logo-128.png' %}"
-                     alt="NExUS logo"
-                     class="h-16 w-16 object-contain mx-auto mb-3 rounded-2xl bg-white p-2 shadow">
-                <h2 class="text-2xl font-bold">Welcome Back</h2>
-                <p class="text-sm opacity-80">Sign in to continue</p>
+        <div class="nx-auth__form bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div class="nx-auth__header">
+                <p class="nx-auth__eyebrow">Account access</p>
+                <h2>Sign in</h2>
+                <p>Use your institutional account to continue.</p>
             </div>
-
-            <!-- Body -->
-            <div class="p-8">
-
+            <div class="nx-auth__body">
                 {% if error %}
-                <div class="bg-secondary/10 border border-secondary text-secondary p-3 rounded-lg mb-6 text-sm">
-                    {{ error }}
-                </div>
+                    <div id="login-error" class="nx-form-error" role="alert">{{ error }}</div>
                 {% endif %}
-
-                <form method="POST" class="space-y-6" data-nx-skeleton="dashboard">
+                <form id="login-form" method="POST" class="space-y-5" data-nx-skeleton="dashboard">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.GET.next }}">
-
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Username/Email
-                        </label>
-                        <input name="username" required
-                            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                        <label for="login-username" class="block text-sm mb-2">Username or email</label>
+                        <input id="login-username" name="username" type="text" autocomplete="username" required
+                               {% if error %}aria-invalid="true" aria-describedby="login-error"{% endif %}
+                               class="w-full px-4 py-3 border">
                     </div>
-
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Password
-                        </label>
-                        <input type="password" name="password" required
-                            class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
+                        <label for="login-password" class="block text-sm mb-2">Password</label>
+                        <input id="login-password" name="password" type="password" autocomplete="current-password" required
+                               {% if error %}aria-invalid="true" aria-describedby="login-error"{% endif %}
+                               class="w-full px-4 py-3 border">
                     </div>
-
-                    <div class="text-right -mt-2">
-                        <a href="{% url 'password_reset' %}"
-                           class="text-sm text-primary font-medium hover:text-secondary transition"
-                           data-nx-skeleton="auth">
-                            Forgot Password?
-                        </a>
+                    <div class="text-right">
+                        <a href="{% url 'password_reset' %}" class="text-sm font-semibold text-primary" data-nx-skeleton="auth">Forgot password?</a>
                     </div>
-
-                    <button type="submit"
-                        class="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary transition font-semibold">
-                        Login
-                    </button>
+                    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-semibold">Sign in</button>
                 </form>
-
                 {% if not site_control or site_control.registration_enabled %}
-                <p class="text-center mt-6 text-sm text-gray-600">
-                    Don’t have an account?
-                    <a href="{% url 'register' %}" class="text-primary font-semibold hover:text-secondary transition" data-nx-skeleton="auth">
-                        Register
-                    </a>
-                </p>
+                    <p class="nx-auth__secondary">New to NExUS?
+                        <a href="{% url 'register' %}" class="text-primary font-semibold" data-nx-skeleton="auth">Create an account</a>
+                    </p>
                 {% else %}
-                <p class="text-center mt-6 text-sm text-amber-700 rounded-xl bg-amber-50 px-4 py-3 border border-amber-200">
-                    Public registration is currently closed by the system administrator.
-                </p>
+                    <p class="nx-form-note">Public registration is currently closed by the system administrator.</p>
                 {% endif %}
-
             </div>
         </div>
 
@@ -80,26 +50,11 @@
 </section>
 
 <script>
-function togglePassword(id, iconId) {
-    const input = document.getElementById(id);
-    const icon = document.getElementById(iconId);
-
-    if (input.type === "password") {
-        input.type = "text";
-        icon.innerText = "🙈";
-    } else {
-        input.type = "password";
-        icon.innerText = "👁";
-    }
-}
-
-document.querySelector('form').addEventListener('submit', function(e) {
-    const submitBtn = this.querySelector('button[type="submit"]');
-    if (submitBtn.disabled) {
-        e.preventDefault();
-    } else {
-        submitBtn.disabled = true;
-    }
+document.getElementById('login-form').addEventListener('submit', function (event) {
+    const button = this.querySelector('button[type="submit"]');
+    if (button.disabled) { event.preventDefault(); return; }
+    button.disabled = true;
+    button.textContent = 'Signing in…';
 });
 </script>
 {% endblock %}

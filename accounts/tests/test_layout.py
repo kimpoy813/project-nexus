@@ -309,6 +309,7 @@ class RenderedHeaderOffsetTests(TestCase):
 #: Matched against the end of the path, so they stay app-relative.
 STANDALONE_TEMPLATES = (
     "templates/maintenance.html",                    # 503 interstitial
+    "templates/500.html",                            # must render even when DB/context processors fail
     "accounts/templates/debug_login.html",           # local debug helper
     "accounts/email/password_reset_email.html",      # e-mail bodies
     "accounts/email/verification_email.html",

@@ -26,17 +26,17 @@
    ──────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --nx-skel-bg: rgba(15, 23, 42, 0.07);
-  --nx-skel-bg-strong: rgba(15, 23, 42, 0.11);
-  --nx-skel-sheen: rgba(255, 255, 255, 0.72);
-  --nx-skel-radius: 0.75rem;
+  --nx-skel-bg: rgba(26, 62, 30, .08);
+  --nx-skel-bg-strong: rgba(26, 62, 30, .13);
+  --nx-skel-sheen: rgba(255, 255, 255, .65);
+  --nx-skel-radius: .55rem;
   --nx-skel-speed: 1.4s;
-  --nx-skel-overlay-bg: #f7faf4;
+  --nx-skel-overlay-bg: #f5f8f3;
   /* Shapes that sit on a coloured band (the landing hero, the auth card head)
      need to be light or they disappear into it. */
   --nx-skel-bg-invert: rgba(255, 255, 255, 0.26);
-  --nx-skel-card-bg: rgba(255, 255, 255, 0.7);
-  --nx-skel-line: rgba(15, 23, 42, 0.08);
+  --nx-skel-card-bg: rgba(255, 255, 255, .88);
+  --nx-skel-line: rgba(26, 62, 30, .1);
   /* Side gutter and rail widths, kept in step with nexus-layout.css so the
      skeleton lines up with the page it is standing in for. */
   --nx-skel-gutter: clamp(1rem, .35rem + 2.2vw, 3.5rem);
@@ -76,15 +76,15 @@
 .nx-skel--text  { height: 0.75rem;  border-radius: 999px; }
 .nx-skel--text-sm { height: 0.6rem; border-radius: 999px; }
 .nx-skel--title { height: 1.75rem;  border-radius: 0.6rem; }
-.nx-skel--chip  { height: 1.9rem;   border-radius: 999px; }
-.nx-skel--button { height: 2.6rem;  border-radius: 0.85rem; }
-.nx-skel--field { height: 2.75rem;  border-radius: 0.85rem; }
+.nx-skel--chip  { height: 1.9rem;   border-radius: .5rem; }
+.nx-skel--button { height: 2.6rem;  border-radius: .6rem; }
+.nx-skel--field { height: 2.75rem;  border-radius: .6rem; }
 .nx-skel--block { height: 8rem; }
 .nx-skel--card  { height: 9.5rem; }
 .nx-skel--avatar {
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 999px;
+  border-radius: .5rem;
   flex: none;
 }
 .nx-skel--circle {
@@ -198,7 +198,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  height: 5.5rem;
+  height: 5rem;
   flex: none;
   padding-inline: var(--nx-skel-bar-gutter);
   border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line));
@@ -364,46 +364,34 @@
   .nx-skel-table__row > :nth-child(n + 3) { display: none; }
 }
 
-/* ── 1. Landing / CMS pages ─────────────────────────────────────────────── */
-/* Full-bleed coloured hero (centred, capped measure), a sticky section nav,
-   then stacked full-width sections — `details_page.html`, `content_page.html`,
-   `services_home.html`. */
-.nx-skel-mkt__hero {
-  padding: 5rem var(--nx-skel-gutter) 4.5rem;
-  background: var(--nx-skel-primary);
-}
-.nx-skel-mkt__measure {
+/* ── 1. Public pages ─────────────────────────────────────────────────────── */
+/* An asymmetric green hero, narrow process rail, horizontal wayfinding,
+   then the left-aligned section introduction and two-column programme index. */
+.nx-skel-mkt__hero { padding: clamp(4rem, 6vw, 6.5rem) var(--nx-skel-gutter); background: var(--nx-skel-primary); }
+.nx-skel-mkt__inner {
   display: grid;
-  gap: 0.9rem;
-  justify-items: center;
-  max-width: min(100%, 58rem);
+  grid-template-columns: minmax(0, 1.3fr) minmax(16rem, .7fr);
+  gap: clamp(2.5rem, 6vw, 8rem);
+  align-items: center;
+  max-width: 88rem;
   margin-inline: auto;
 }
-/* Shapes on the coloured band read as light blocks. */
-.nx-skel-mkt__hero .nx-skel,
-.nx-skel-auth__head .nx-skel { background-color: var(--nx-skel-bg-invert); }
-.nx-skel-mkt__cta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
+.nx-skel-mkt__measure { display: grid; gap: .95rem; align-content: center; max-width: 47rem; }
+.nx-skel-mkt__hero .nx-skel { background-color: var(--nx-skel-bg-invert); }
+.nx-skel-mkt__cta { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem; }
+.nx-skel-mkt__rail { display: grid; gap: 1.7rem; align-content: center; padding: 2rem 0 2rem 2rem; border-left: 1px solid rgba(255, 255, 255, .2); }
+.nx-skel-mkt__nav { display: flex; gap: 2rem; padding: 1.25rem var(--nx-skel-gutter); border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line)); background: #fcfdfa; }
+.nx-skel-mkt__section { display: grid; gap: 1rem; padding: 4rem var(--nx-skel-gutter); max-width: 88rem; margin-inline: auto; }
+.nx-skel-mkt__section .nx-skel-cards { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1.5rem; }
+.nx-skel-mkt__section .nx-skel--card { height: 6rem; border-radius: .25rem; }
+@media (max-width: 1023px) {
+  .nx-skel-mkt__inner { grid-template-columns: minmax(0, 1fr); }
+  .nx-skel-mkt__rail { display: none; }
 }
-.nx-skel-mkt__nav {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  padding: 1.1rem var(--nx-skel-gutter);
-  border-bottom: 1px solid var(--nexus-line, var(--nx-skel-line));
-  background: rgba(255, 255, 255, 0.7);
+@media (max-width: 639px) {
+  .nx-skel-mkt__section .nx-skel-cards { grid-template-columns: minmax(0, 1fr); }
+  .nx-skel-mkt__measure .nx-skel--title { height: 2.4rem !important; }
 }
-.nx-skel-mkt__section {
-  display: grid;
-  gap: 2rem;
-  justify-items: center;
-  padding: 3.5rem var(--nx-skel-gutter) 3rem;
-}
-.nx-skel-mkt__section .nx-skel-cards { width: 100%; }
 
 /* ── 2. Auth screens ────────────────────────────────────────────────────── */
 /* `.nx-auth`: brand panel on the left, form card on the right, the pair capped
@@ -413,7 +401,7 @@
   gap: var(--nx-skel-stack);
   align-items: center;
   grid-template-columns: minmax(0, 1fr);
-  max-width: 110rem;
+  max-width: 84rem;
   margin-inline: auto;
   padding: 4rem clamp(1.5rem, .5rem + 4vw, 8rem) 3rem;
 }
@@ -436,19 +424,21 @@
   max-width: 34rem;
   border: 1px solid var(--nexus-line, var(--nx-skel-line));
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 18px 40px -30px rgba(15, 23, 42, 0.55);
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 25px 55px -30px rgba(20, 53, 28, .4);
   overflow: hidden;
 }
 @media (min-width: 1024px) { .nx-skel-auth__card { justify-self: end; } }
 .nx-skel-auth__head {
   display: grid;
-  gap: 0.6rem;
-  justify-items: center;
-  padding: 1.5rem 2rem;
-  background: var(--nx-skel-primary);
+  gap: .6rem;
+  justify-items: start;
+  padding: 1.8rem 2rem 1.35rem;
+  border-bottom: 1px solid var(--nx-skel-line);
+  background: #f5f8f3;
 }
 .nx-skel-auth__body { display: grid; gap: 1.35rem; padding: 2rem; }
+@media (max-width: 1023px) { .nx-skel-auth__bullets { display: none; } }
 
 /* ── 3. Role dashboards ─────────────────────────────────────────────────── */
 /* Title bar over a 240px navigation rail beside the KPI row and the queue

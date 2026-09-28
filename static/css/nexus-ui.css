@@ -1,182 +1,188 @@
-/* NExUS global UX/UI refresh
-   Centralized visual language for menus, dashboards, wizards, trackers, forms,
-   tables, cards, and admin pages. Uses plain CSS so it works with Tailwind CDN. */
+/* NExUS interface foundations. Brand green is the sole interactive accent;
+   maroon and gold are reserved for the institutional mark and phase gauges.
+   See docs/DESIGN_SYSTEM.md before introducing a new surface or control. */
+@font-face {
+  font-family: 'Public Sans';
+  src: url('../fonts/public-sans-latin-variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Public Sans';
+  src: url('../fonts/public-sans-latin-italic-variable.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Manrope';
+  src: url('../fonts/manrope-latin-variable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
 
 :root {
-  /* Brand palette sampled from the ISPSC-RDEI Extension Office logo.
-     Keep in sync with static/js/nexus-theme.js (Tailwind tokens). */
-  --nexus-primary: #103b07;   /* forest green  */
+  /* Keep brand values in sync with nexus-theme.js. A SiteConfiguration can
+     override the first three tokens on rendered pages. */
+  --nexus-primary: #103b07;
   --nexus-primary-2: #1f5b12;
-  --nexus-secondary: #5a1113; /* maroon        */
-  --nexus-accent: #f5e587;    /* cream yellow  */
-  --nexus-gold: #e8c31e;      /* vivid gold    */
-  --nexus-ink: #0f172a;
-  --nexus-muted: #64748b;
-  --nexus-subtle: #94a3b8;
-  --nexus-line: rgba(15, 23, 42, 0.10);
-  --nexus-line-strong: rgba(15, 23, 42, 0.16);
-  --nexus-surface: rgba(255, 255, 255, 0.92);
-  --nexus-surface-solid: #ffffff;
-  --nexus-bg: #f6f8f3;
-  --nexus-bg-2: #eef4e8;
-  --nexus-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --nexus-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-  --nexus-shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.14);
-  --nexus-radius: 1.25rem;
-  --nexus-radius-lg: 1.75rem;
+  --nexus-secondary: #5a1113;
+  --nexus-accent: #f5e587;
+  --nexus-gold: #e8c31e;
 
-  /* Height of the fixed navbar. `.nexus-shell` (the <main> in base.html) uses
-     it as its top padding, so page content can never slide under the header,
-     and in-page anchors clear it too. Keep it in step with `.nexus-navbar`. */
+  --nexus-ink: #1a2a20;
+  --nexus-muted: #526357;
+  --nexus-subtle: #69796e;
+  --nexus-line: #d9e3d7;
+  --nexus-line-strong: #b8cbb6;
+  --nexus-surface: #ffffff;
+  --nexus-surface-solid: #ffffff;
+  --nexus-bg: #f5f8f3;
+  --nexus-bg-2: #edf3eb;
+  --nexus-shadow-sm: 0 1px 3px rgba(20, 53, 28, .045);
+  --nexus-shadow: 0 12px 30px -20px rgba(20, 53, 28, .30);
+  --nexus-shadow-lg: 0 25px 55px -30px rgba(20, 53, 28, .40);
+  --nexus-radius: 1rem;
+  --nexus-radius-lg: 1.5rem;
+  --nexus-focus: #397c33;
+  --nexus-font-body: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+  --nexus-font-display: 'Manrope', 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* The fixed navbar and the page shell share this single measurement. */
   --nx-header-h: 5rem;
 }
 
 html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /* Anchor targets and scrollIntoView calls land below the fixed navbar. */
-  scroll-padding-top: calc(var(--nx-header-h) + 1rem);
+  scroll-padding-top: calc(var(--nx-header-h) + 1.25rem);
 }
+html:focus-within { scroll-behavior: smooth; }
 
-/* ONE typeface for the entire system (paired with the Inter webfont loaded
-   in the page heads and the fontFamily tokens in nexus-theme.js). Applied
-   broadly so headings, buttons, inputs, tables, and badges never drift. */
-html,
-body,
-button,
-input,
-select,
-textarea,
-h1, h2, h3, h4, h5, h6,
-.nexus-richtext,
-.nexus-richtext * {
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+body, button, input, select, textarea, .nexus-richtext {
+  font-family: var(--nexus-font-body);
 }
-
+h1, h2, h3, h4, h5, h6, .nexus-brand, .nx-dash__title {
+  font-family: var(--nexus-font-display);
+  text-wrap: balance;
+}
+h1, h2 { letter-spacing: -.035em; }
+h3, h4 { letter-spacing: -.016em; }
 body {
   color: var(--nexus-ink);
-  background:
-    radial-gradient(circle at top left, rgba(245, 229, 135, 0.24), transparent 32rem),
-    radial-gradient(circle at top right, rgba(16, 59, 7, 0.10), transparent 30rem),
-    linear-gradient(180deg, #f9fbf6 0%, var(--nexus-bg) 44%, #f8fafc 100%) !important;
+  background: var(--nexus-bg) !important;
+}
+::selection { background: #d5e6cc; color: var(--nexus-primary); }
+:where(p, li) { text-wrap: pretty; }
+:where(time, table, .nx-kpi__value, .nx-ring__figure, [class*="count"], [class*="progress"]) {
+  font-variant-numeric: tabular-nums;
 }
 
-::selection {
-  background: rgba(16, 59, 7, 0.18);
-  color: var(--nexus-primary);
+/* A visible keyboard path on every template, including Alpine menus, the
+   wizard, dense admin tables, and the public page jump links. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--nexus-focus) !important;
+  outline-offset: 3px;
 }
+:where(a, button):active:not(:disabled) { transform: translateY(1px); }
+:where(a, button) { transition: color .2s ease, background-color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+:where(a, button):disabled { cursor: not-allowed; }
 
-/* Accessibility */
 .skip-link {
   position: fixed;
-  left: 1rem;
-  top: 1rem;
-  z-index: 9999;
-  transform: translateY(-150%);
-  border-radius: 999px;
-  background: var(--nexus-primary);
-  color: #fff;
+  z-index: 100;
+  top: .75rem;
+  left: .75rem;
+  transform: translateY(-160%);
   padding: .7rem 1rem;
-  font-weight: 800;
+  border-radius: .55rem;
+  color: #fff;
+  background: var(--nexus-primary);
   font-size: .875rem;
+  font-weight: 700;
   box-shadow: var(--nexus-shadow-lg);
-  transition: transform .18s ease;
 }
-.skip-link:focus { transform: translateY(0); outline: 3px solid rgba(245, 229, 135, .9); }
+.skip-link:focus { transform: translateY(0); }
+.skip-link:focus-visible { outline-color: #fff !important; }
 
-/* Layout shells */
-/* The navbar is `fixed top-0`, so the page shell carries its height as top
-   padding. Without this, every screen renders its first row underneath the
-   header (the proposal wizard step pages made that obvious). Pages add their
-   own py-* rhythm on top of this offset. */
 .nexus-shell {
   padding-top: var(--nx-header-h);
-  min-height: 100vh;
+  min-height: 100dvh;
   box-sizing: border-box;
 }
-
-/* Page containers fade in as one, whatever width they span. */
-.nexus-page,
-.nx-page,
-.nx-page--measure {
-  animation: nexusFadeIn .32s ease both;
+.nexus-page, .nx-page, .nx-page--measure {
+  animation: nx-enter .42s cubic-bezier(.2, .8, .2, 1) both;
 }
-
-@keyframes nexusFadeIn {
+@keyframes nx-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Navbar */
+/* Navigation: a clear current page, minimal chrome, and a dependable mobile
+   menu instead of pills and translucent layers on every surface. */
 .nexus-navbar {
   height: var(--nx-header-h);
-  background: rgba(255, 255, 255, 0.86) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--nexus-line);
+  background: #fcfdfa !important;
+  box-shadow: none !important;
 }
-
-.nexus-brand {
-  letter-spacing: -0.035em;
-}
-
+.nexus-brand { letter-spacing: -.05em; }
+.nexus-brand > span { font-weight: 800; }
 .nexus-menu-link {
-  position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: 2.5rem;
-  border-radius: 999px;
-  padding: .55rem .85rem;
-  color: #475569;
+  min-height: 2.6rem;
+  padding: .6rem .9rem;
+  border-radius: .5rem;
+  color: var(--nexus-muted);
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.nexus-menu-link:hover, .nexus-menu-link:focus-visible {
+  color: var(--nexus-primary);
+  background: var(--nexus-bg-2);
+}
+.nexus-menu-link[aria-current="page"],
+.nexus-menu-link.is-strong[aria-current="page"] {
+  color: var(--nexus-primary);
+  background: #e4efdf;
   font-weight: 700;
-  transition: color .18s ease, background .18s ease, transform .18s ease;
+  box-shadow: inset 0 -2px var(--nexus-primary);
 }
-.nexus-menu-link:hover,
-.nexus-menu-link:focus-visible {
-  color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.07);
-  outline: none;
-}
-.nexus-menu-link.is-strong {
-  color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.08);
-}
-
 .nexus-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.55rem;
-  height: 2.55rem;
-  border-radius: 999px;
-  border: 1px solid transparent;
+  width: 2.65rem;
+  height: 2.65rem;
+  border: 1px solid var(--nexus-line);
+  border-radius: .65rem;
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.06);
-  transition: transform .16s ease, background .16s ease, border-color .16s ease;
+  background: var(--nexus-surface);
 }
-.nexus-icon-button:hover,
-.nexus-icon-button:focus-visible {
-  transform: translateY(-1px);
-  background: rgba(16, 59, 7, 0.10);
-  border-color: rgba(16, 59, 7, 0.14);
-  outline: none;
-}
-
-.nexus-dropdown,
-.nexus-mobile-panel {
-  background: rgba(255, 255, 255, .96) !important;
-  border: 1px solid rgba(15, 23, 42, 0.10) !important;
+.nexus-icon-button:hover { background: var(--nexus-bg-2); border-color: var(--nexus-line-strong); }
+.nexus-profile-trigger { border-radius: .65rem; }
+.nexus-profile-trigger > span:first-child { border-radius: .5rem; }
+.nexus-dropdown, .nexus-mobile-panel {
+  border: 1px solid var(--nexus-line) !important;
+  border-radius: var(--nexus-radius) !important;
+  background: var(--nexus-surface) !important;
   box-shadow: var(--nexus-shadow-lg) !important;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+}
+.nexus-dropdown a:hover { color: var(--nexus-primary); background: var(--nexus-bg-2); }
+.nexus-mobile-panel { max-height: calc(100dvh - var(--nx-header-h) - 1rem); overflow-y: auto; }
+@media (min-width: 1024px) {
+  /* The component's display: inline-flex must not override Tailwind lg:hidden. */
+  .nexus-navbar [aria-controls="mobile-navigation"],
+  .nexus-navbar #mobile-navigation { display: none !important; }
 }
 
-/* Cards, panels, dashboards */
-.nexus-card,
-.dir-card,
-.section-block,
+/* Surfaces have hierarchy. Working panels get a hairline; content cards in
+   public sections use spacing and tinted backgrounds instead of elevation. */
+.nexus-card, .dir-card, .section-block,
 .rounded-2xl.border.bg-white,
 .rounded-2xl.border.border-gray-200.bg-white,
 .rounded-2xl.border.border-gray-100.bg-white,
@@ -186,230 +192,180 @@ body {
   background: var(--nexus-surface) !important;
   box-shadow: var(--nexus-shadow-sm) !important;
 }
-
-.nexus-card:hover,
-.dir-card:hover,
-.section-block:hover,
-.ext-card:hover,
-.mine-card:hover {
-  box-shadow: var(--nexus-shadow) !important;
-}
-
-.section-block,
-.dir-card,
-.ext-card,
-.mine-card {
-  border-radius: var(--nexus-radius) !important;
-}
-
-/* Dashboard cards stretch to equal heights in their grids; flex columns let
-   each card pin its footer/actions to the bottom so buttons align across a row. */
-.ext-card,
-.rq-card,
-.mine-card {
-  display: flex;
-  flex-direction: column;
-}
-
-.ext-card,
-.mine-card {
-  background: var(--nexus-surface-solid);
+.section-block, .dir-card, .ext-card, .mine-card { border-radius: var(--nexus-radius) !important; }
+.ext-card, .rq-card, .mine-card { display: flex; flex-direction: column; }
+.ext-card, .mine-card {
   border: 1px solid var(--nexus-line);
+  background: var(--nexus-surface);
   box-shadow: var(--nexus-shadow-sm);
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
-.ext-card:hover,
-.mine-card:hover {
+.ext-card:hover, .mine-card:hover {
+  border-color: var(--nexus-line-strong);
+  box-shadow: var(--nexus-shadow);
   transform: translateY(-2px);
-  border-color: rgba(16, 59, 7, .22);
 }
+.dir-card-accent { height: 3px !important; border-radius: var(--nexus-radius) var(--nexus-radius) 0 0; }
 
-.dir-card-accent {
-  height: 4px !important;
-  border-radius: 999px 999px 0 0;
-}
-
-/* Buttons */
-.dir-btn,
-.dir-btn-primary,
-button[type="submit"],
-.bg-primary,
-.nexus-btn-primary {
-  transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
-}
-
-.dir-btn,
-.nexus-btn-secondary {
-  border: 1px solid var(--nexus-line) !important;
-  background: #fff !important;
-  color: #334155 !important;
-  border-radius: .9rem !important;
-  box-shadow: 0 1px 1px rgba(15, 23, 42, .04);
-}
-.dir-btn:hover,
-.nexus-btn-secondary:hover {
-  color: var(--nexus-primary) !important;
-  border-color: rgba(16, 59, 7, .22) !important;
-  box-shadow: var(--nexus-shadow-sm);
-  transform: translateY(-1px);
-}
-
-.dir-btn-primary,
-.nexus-btn-primary,
-.bg-primary,
-button.bg-primary,
-a.bg-primary {
-  background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-primary-2)) !important;
+/* One solid primary action, quiet secondary actions, no gradient buttons or
+   red hover on green actions. Status reds and maroons remain semantic only. */
+.dir-btn-primary, .nexus-btn-primary, .nx-btn--primary,
+a.bg-primary, button.bg-primary, input[type="submit"].bg-primary {
+  border-color: var(--nexus-primary) !important;
   color: #fff !important;
-  border-color: transparent !important;
-  box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
+  background: var(--nexus-primary) !important;
+  box-shadow: 0 5px 12px -9px rgba(16, 59, 7, .7);
 }
-.dir-btn-primary:hover,
-.nexus-btn-primary:hover,
-.bg-primary:hover,
-button.bg-primary:hover,
-a.bg-primary:hover {
-  background: linear-gradient(135deg, #123f08, #2a7218) !important;
-  box-shadow: 0 14px 30px rgba(16, 59, 7, .24);
-  transform: translateY(-1px);
+.dir-btn-primary:hover, .nexus-btn-primary:hover, .nx-btn--primary:hover,
+a.bg-primary:hover, button.bg-primary:hover, input[type="submit"].bg-primary:hover,
+[class*="hover:bg-secondary"]:hover {
+  color: #fff !important;
+  background: var(--nexus-primary-2) !important;
+  box-shadow: 0 9px 18px -13px rgba(16, 59, 7, .75);
 }
-
-button:disabled,
-.disabled\:opacity-40:disabled {
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-/* Forms */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-select,
-textarea,
-.dir-input {
-  border-color: rgba(15, 23, 42, 0.14) !important;
-  border-radius: .9rem !important;
-  background-color: rgba(255, 255, 255, 0.96) !important;
+[class*="hover:text-secondary"]:hover { color: var(--nexus-primary-2) !important; }
+.dir-btn, .nexus-btn-secondary {
+  border: 1px solid var(--nexus-line) !important;
+  border-radius: .7rem !important;
   color: var(--nexus-ink) !important;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.03);
-  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  background: var(--nexus-surface) !important;
+  box-shadow: none;
 }
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="number"]:focus,
-input[type="date"]:focus,
-input[type="search"]:focus,
-input[type="tel"]:focus,
-input[type="url"]:focus,
-select:focus,
-textarea:focus,
-.dir-input:focus {
-  border-color: rgba(16, 59, 7, .52) !important;
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .10) !important;
-  outline: none !important;
+.dir-btn:hover, .nexus-btn-secondary:hover {
+  border-color: var(--nexus-line-strong) !important;
+  color: var(--nexus-primary) !important;
+  background: var(--nexus-bg) !important;
 }
-label {
-  color: #334155;
+:where(button, input[type="submit"]):disabled {
+  opacity: .55;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
+/* Controls and validation: no placeholder-only forms, and focus feedback is
+   visible even when a template uses Tailwind's focus:outline-none utility. */
+input:not([type]), input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="date"], input[type="search"], input[type="tel"],
+input[type="url"], select, textarea, .dir-input {
+  border-color: var(--nexus-line-strong) !important;
+  border-radius: .65rem !important;
+  color: var(--nexus-ink) !important;
+  background-color: #fff !important;
+  box-shadow: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+:where(input:not([type]), input[type="text"], input[type="email"], input[type="password"],
+  input[type="number"], input[type="date"], input[type="search"], input[type="tel"],
+  input[type="url"], select, textarea, .dir-input):focus {
+  border-color: var(--nexus-focus) !important;
+  box-shadow: 0 0 0 3px rgba(57, 124, 51, .13) !important;
+}
+:where(input, textarea)::placeholder { color: #6a786d; opacity: 1; }
+:where(input, select, textarea)[aria-invalid="true"],
+:where(input, select, textarea):user-invalid {
+  border-color: #a23935 !important;
+  box-shadow: 0 0 0 3px rgba(162, 57, 53, .10) !important;
+}
+:where(label) { color: var(--nexus-ink); font-weight: 600; }
+:where(.errorlist, .invalid-feedback) { color: #8a2726; font-size: .84rem; line-height: 1.5; }
 input[type="file"]::file-selector-button {
-  border: 0;
-  border-radius: .75rem;
-  padding: .55rem .9rem;
-  margin-right: .75rem;
-  background: var(--nexus-primary);
-  color: white;
-  font-weight: 700;
+  margin-right: .85rem;
+  padding: .55rem .8rem;
+  border: 1px solid var(--nexus-line-strong);
+  border-radius: .5rem;
+  color: var(--nexus-primary);
+  background: var(--nexus-bg-2);
+  font-weight: 600;
   cursor: pointer;
 }
 
-/* Tables */
-table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
+/* Quiet, readable data surfaces. Phase/status colors can still carry their
+   meaning, but are never the only signal: every badge keeps a text label. */
+table { border-collapse: separate; border-spacing: 0; }
 thead th {
-  background: #f8faf7 !important;
-  color: #64748b !important;
-  letter-spacing: .045em;
+  background: var(--nexus-bg-2) !important;
+  color: #405548 !important;
+  font-weight: 700;
+  letter-spacing: .06em;
   text-transform: uppercase;
 }
-tbody tr {
-  transition: background .14s ease;
-}
-tbody tr:hover {
-  background: rgba(16, 59, 7, 0.035) !important;
-}
-
-/* Badges */
-.badge,
-[class*=" rounded-full"][class*="text-"][class*="px-3"] {
-  border: 1px solid currentColor;
-  border-color: color-mix(in srgb, currentColor 16%, transparent);
-  font-weight: 800 !important;
-}
-
-/* Dashboard navigation */
-.dashboard-nav-btn {
-  border-radius: .95rem !important;
-  padding: .72rem .85rem !important;
-  color: #64748b;
-  font-weight: 800;
-  text-align: left;
-  transition: background .16s ease, color .16s ease, transform .16s ease;
-}
-.dashboard-nav-btn:hover {
-  background: rgba(16, 59, 7, .07) !important;
-  color: var(--nexus-primary) !important;
-}
+tbody tr { transition: background-color .16s ease; }
+tbody tr:hover, tbody tr:focus-within { background: #f0f6ec !important; }
+.badge, .nx-badge { border-radius: .45rem !important; font-weight: 700; }
+.dashboard-nav-btn { border-radius: .65rem !important; font-weight: 600; }
+.dashboard-nav-btn:hover { color: var(--nexus-primary) !important; background: var(--nexus-bg-2) !important; }
 .dashboard-nav-btn.active {
-  background: linear-gradient(135deg, rgba(16, 59, 7, .12), rgba(245, 229, 135, .22)) !important;
   color: var(--nexus-primary) !important;
+  background: #e4efdf !important;
+  box-shadow: inset 3px 0 var(--nexus-primary);
+  font-weight: 700;
 }
-
-/* Wizards and trackers */
-#wizard-stepper-scroll,
-.max-h-\[75vh\].overflow-y-auto,
-.max-h-\[65vh\].overflow-y-auto {
+#wizard-stepper-scroll, .max-h-\[75vh\].overflow-y-auto, .max-h-\[65vh\].overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 59, 7, .32) rgba(15, 23, 42, .05);
+  scrollbar-color: var(--nexus-line-strong) var(--nexus-bg);
 }
-#wizard-stepper-scroll::-webkit-scrollbar,
-.max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar,
-.max-h-\[65vh\].overflow-y-auto::-webkit-scrollbar {
-  width: 8px;
+[data-current-step="true"] { box-shadow: inset 3px 0 var(--nexus-primary); }
+#wizard-stepper-scroll a { border-radius: .6rem; }
+#wizard-stepper-scroll a[aria-current="step"] { background: #e4efdf; border-color: var(--nexus-line-strong); }
+#wizard-stepper-scroll a:hover { background: var(--nexus-bg-2); }
+.wizard-step-circle { box-shadow: none; }
+.nx-instruction {
+  padding: 1.2rem 1.4rem;
+  border-left: 3px solid var(--nexus-primary);
+  border-radius: .4rem .8rem .8rem .4rem;
+  color: var(--nexus-ink);
+  background: var(--nexus-bg-2);
+  font-size: .88rem;
+  line-height: 1.7;
 }
-#wizard-stepper-scroll::-webkit-scrollbar-thumb,
-.max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar-thumb,
-.max-h-\[65vh\].overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(16, 59, 7, .28);
-  border-radius: 999px;
-}
+.nx-instruction__label { margin-bottom: .35rem; color: var(--nexus-primary); font-size: .71rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
 
-.wizard-step-circle {
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .05);
-}
-
-[data-current-step="true"] {
-  box-shadow: inset 4px 0 0 var(--nexus-primary), var(--nexus-shadow-sm);
-}
-
-/* Auth screens */
-.auth-card {
-  box-shadow: var(--nexus-shadow-lg) !important;
-}
-
-/* Footer */
 .nexus-footer {
-  background:
-    radial-gradient(circle at 20% 20%, rgba(245, 229, 135, .18), transparent 28rem),
-    linear-gradient(135deg, #0b2b04, var(--nexus-primary)) !important;
+  background: #17351b !important;
+  color: #e1ebdf;
+}
+.nexus-footer a:hover { text-decoration: underline; text-underline-offset: .2em; }
+.nexus-footer a:focus-visible { outline-color: #fff !important; }
+
+/* Account access is a quiet two-column work surface, not a second dark hero.
+   The brand panel explains the flow; the form carries the single main action. */
+.nx-auth__panel { max-width: 34rem; }
+.nx-auth__identity { display: flex; align-items: center; gap: 1rem; }
+.nx-auth__logo { width: 3.65rem; height: 3.65rem; object-fit: contain; }
+.nx-auth__wordmark { color: var(--nexus-primary); font-family: var(--nexus-font-display); font-size: 1.4rem; font-weight: 800; letter-spacing: -.04em; }
+.nx-auth__tagline { max-width: 28ch; margin-top: .1rem; color: var(--nexus-muted); font-size: .7rem; line-height: 1.45; }
+.nx-auth__headline { max-width: 16ch; margin-top: 2.5rem !important; color: var(--nexus-ink); font-size: clamp(2rem, 3.3vw, 3.25rem); font-weight: 800; line-height: 1.18; letter-spacing: -.045em; }
+.nx-auth__description { max-width: 48ch; margin-top: 1rem !important; color: var(--nexus-muted); font-size: .96rem; line-height: 1.7; }
+.nx-auth__bullets { display: grid; gap: 0; margin-top: 2rem !important; border-top: 1px solid var(--nexus-line); }
+.nx-auth__bullets li { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: .8rem; padding: .8rem 0; border-bottom: 1px solid var(--nexus-line); color: var(--nexus-muted); font-size: .83rem; line-height: 1.55; }
+.nx-auth__bullets li > span { color: var(--nexus-primary); font-family: var(--nexus-font-display); font-size: .75rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.nx-auth__form { margin-top: 0 !important; border-color: var(--nexus-line) !important; border-radius: var(--nexus-radius) !important; background: #fff; box-shadow: var(--nexus-shadow-lg) !important; }
+.nx-auth__header { padding: 1.8rem 2rem 1.35rem; border-bottom: 1px solid var(--nexus-line); background: var(--nexus-bg); text-align: left; }
+.nx-auth__eyebrow { color: var(--nexus-primary); font-size: .7rem; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+.nx-auth__header h2 { margin-top: .4rem; color: var(--nexus-ink); font-size: 1.7rem; font-weight: 800; letter-spacing: -.045em; }
+.nx-auth__header > p:last-child { margin-top: .3rem; color: var(--nexus-muted); font-size: .84rem; }
+.nx-auth__body { padding: 2rem; }
+.nx-auth__secondary { margin-top: 1.5rem; color: var(--nexus-muted); font-size: .84rem; text-align: center; }
+.nx-auth__secondary a:hover, .nx-auth__body a:hover { text-decoration: underline; text-underline-offset: .18em; }
+.nx-form-error { margin-bottom: 1.5rem; padding: .9rem 1rem; border-left: 3px solid #9a3631; border-radius: .35rem; color: #7f2824; background: #faeeec; font-size: .86rem; line-height: 1.55; }
+.nx-form-note { margin-top: 1.5rem; padding: 1rem; border-left: 3px solid #8d6520; color: #68480f; background: #faf2dd; font-size: .83rem; line-height: 1.55; }
+.nx-not-found { max-width: 47rem; margin: 0 auto; padding: clamp(2rem, 5vw, 4rem); border-top: 3px solid var(--nexus-primary); background: #fff; box-shadow: var(--nexus-shadow); }
+.nx-not-found__code { color: var(--nexus-primary); font-size: .75rem; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+.nx-not-found h1 { margin-top: 1.1rem; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 800; line-height: 1.15; }
+.nx-not-found > p:not(.nx-not-found__code) { max-width: 52ch; margin-top: 1rem; color: var(--nexus-muted); line-height: 1.7; }
+.nx-not-found__actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 2rem; }
+.nx-not-found__actions a { display: inline-flex; align-items: center; justify-content: center; padding: .75rem 1.1rem; border-radius: .6rem; font-size: .86rem; font-weight: 700; text-decoration: none; }
+@media (max-width: 1023px) {
+  .nx-auth { align-items: start; }
+  .nx-auth__panel { max-width: 40rem; }
+  .nx-auth__headline { margin-top: 1.1rem !important; }
+  .nx-auth__bullets { display: none; }
+  .nx-auth__form { max-width: 40rem; justify-self: start; }
+}
+@media (max-width: 639px) {
+  .nx-auth__body, .nx-auth__header { padding-inline: 1.4rem; }
+  .nx-auth__headline { font-size: 1.85rem; }
+  .nx-auth__description { font-size: .87rem; }
 }
 
 /* Progress rings — how a single percentage is drawn across the system
@@ -420,7 +376,7 @@ tbody tr:hover {
 .nx-ring {
   --nx-ring-pct: 0;
   --nx-ring-color: var(--nexus-primary);
-  --nx-ring-track: rgba(15, 23, 42, .10);
+  --nx-ring-track: rgba(26, 42, 32, .12);
   --nx-ring-size: 6rem;
   --nx-ring-stroke: 9;
   position: relative;
@@ -472,6 +428,7 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--nexus-font-display);
   font-weight: 800;
   line-height: 1;
   color: var(--nexus-ink);
@@ -499,15 +456,12 @@ tbody tr:hover {
   /* One knob: the shell's offset and the anchor clearance follow the bar. */
   :root { --nx-header-h: 4.5rem; }
   #toast-container { top: 5.25rem !important; left: 1rem; right: 1rem; }
-  .section-block,
-  .dir-card,
-  .ext-card,
-  .mine-card,
-  .rounded-2xl { border-radius: 1rem !important; }
+  .section-block, .dir-card, .ext-card, .mine-card { border-radius: .85rem !important; }
   table { font-size: .875rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: .001ms !important;
     animation-iteration-count: 1 !important;

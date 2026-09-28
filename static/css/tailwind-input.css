@@ -1,0 +1,4 @@
+/* Source for frontend/tailwind.config.cjs; edit template utilities, not the built file. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

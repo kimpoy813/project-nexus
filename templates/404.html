@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Page not found — NExUS{% endblock %}
+{% block meta_description %}This page could not be found. Return to NExUS to continue your extension work.{% endblock %}
+
+{% block content %}
+<section class="nx-page py-16 md:py-24" aria-labelledby="not-found-title">
+    <div class="nx-not-found">
+        <p class="nx-not-found__code" aria-label="Error 404">404 / Page not found</p>
+        <h1 id="not-found-title">This page isn't available.</h1>
+        <p>The address may have changed, or the page may no longer be published. Return to the site{% if user.is_authenticated %} or pick up your work from the dashboard{% else %} or browse available services{% endif %}.</p>
+        <div class="nx-not-found__actions">
+            <a href="/" class="nexus-btn-primary" data-nx-skeleton="marketing">Go to home</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard_redirect' %}" class="nexus-btn-secondary" data-nx-skeleton="dashboard">Open dashboard</a>
+            {% else %}
+                <a href="{% url 'services_home' %}" class="nexus-btn-secondary" data-nx-skeleton="marketing">Browse services</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,19 +1,22 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_head %}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen" style="background:#f6f7f5;">
+<div class="min-h-[100dvh]" style="background:var(--nexus-bg);">
     <div class="nx-page py-8">
 
         <!-- TOP BAR -->
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
             <div>
-                <h1 class="text-xl font-semibold" style="color:#103b07;letter-spacing:-.02em;">Director Dashboard</h1>
-                <p class="mt-0.5 text-sm text-slate-400">Monitor proposals, reviews, campus activity, and completion.</p>
+                <h1 class="nx-dash__title">Director Dashboard</h1>
+                <p class="nx-dash__subtitle">Monitor proposals, reviews, campus activity, and completion.</p>
             </div>
             <a href="{% url 'proposal_create' %}" class="dir-btn-primary" data-nx-skeleton="wizard">Create Proposal</a>
         </div>
+
+        <div id="dashboard-feedback" class="nx-form-error hidden" role="alert"></div>
 
         <!-- GRID: SIDEBAR + MAIN -->
         <div class="grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-6">
@@ -126,10 +129,10 @@
     --blue-l: #e6f1fb;
     --purple: #3C3489;
     --purple-l:#eeedfe;
-    --border: rgba(0,0,0,.07);
-    --text:   #0f172a;
-    --muted:  #64748b;
-    --subtle: #94a3b8;
+    --border: var(--nexus-line);
+    --text:   var(--nexus-ink);
+    --muted:  var(--nexus-muted);
+    --subtle: #5f6f63;
 }
 
 /* Layout */
@@ -169,7 +172,7 @@
     color:var(--muted);background:transparent;border:none;text-align:left;
     transition:all .15s;
 }
-.dashboard-nav-btn:hover { background:#f1f5f9;color:var(--text); }
+.dashboard-nav-btn:hover { background:var(--nexus-bg-2);color:var(--text); }
 .dashboard-nav-btn.active { background:var(--green-l);color:var(--green);font-weight:600; }
 
 /* Quick nav */
@@ -214,7 +217,7 @@ select.dir-input {
 .badge-amber  { background:var(--amber-l);color:var(--amber); }
 .badge-blue   { background:var(--blue-l);color:var(--blue); }
 .badge-purple { background:var(--purple-l);color:var(--purple); }
-.badge-gray   { background:#f1f5f9;color:#475569; }
+.badge-gray   { background:var(--nexus-bg-2);color:#475569; }
 
 /* Section label */
 .section-label {
@@ -223,24 +226,24 @@ select.dir-input {
 }
 
 /* Stage bar */
-.stage-bar-track { height:4px;border-radius:4px;background:#f1f5f9;overflow:hidden;margin-top:8px; }
+.stage-bar-track { height:4px;border-radius:4px;background:var(--nexus-bg-2);overflow:hidden;margin-top:8px; }
 .stage-bar-fill  { height:100%;border-radius:4px;width:0;transition:width 1.4s cubic-bezier(.4,0,.2,1); }
 
 /* Segment bar */
-.seg-bar { height:6px;border-radius:4px;background:#f1f5f9;overflow:hidden;display:flex; }
+.seg-bar { height:6px;border-radius:4px;background:var(--nexus-bg-2);overflow:hidden;display:flex; }
 .seg-fill { height:100%;width:0;transition:width 1.6s cubic-bezier(.4,0,.2,1); }
 
 /* Proposal rows */
 .prop-row {
     display:flex;align-items:center;gap:10px;padding:10px 12px;
-    border-radius:10px;border:1px solid rgba(0,0,0,.06);background:#fafafa;
+    border-radius:10px;border:1px solid var(--nexus-line);background:var(--nexus-bg);
     transition:all .15s;
 }
 .prop-row:hover { background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06); }
 
 /* Extension / proposal cards */
 .ext-card, .rq-card, .mine-card {
-    background:#fafafa;border:1px solid rgba(0,0,0,.07);border-radius:12px;
+    background:var(--nexus-bg);border:1px solid var(--nexus-line);border-radius:12px;
     padding:16px;transition:all .15s;
 }
 .ext-card:hover, .rq-card:hover, .mine-card:hover {
@@ -877,7 +880,7 @@ select.dir-input {
 <div class="flex flex-col gap-5">
 
     <div class="grid grid-cols-2 xl:grid-cols-5 gap-3">
-        <div class="kpi-card" style="border-top-color:#94a3b8;">
+        <div class="kpi-card" style="border-top-color:var(--nexus-line-strong);">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Drafts</p>
             <p id="draft-count" class="text-4xl font-bold tracking-tight text-slate-500">{{ draft_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">In progress</p>
@@ -1030,17 +1033,24 @@ select.dir-input {
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'vendor/chart.umd.min.js' %}"></script>
 
 <script>
 /* ── helpers ── */
 function getCookie(name){let v=null;if(document.cookie){for(const c of document.cookie.split(';')){const t=c.trim();if(t.startsWith(name+'=')){v=decodeURIComponent(t.slice(name.length+1));break;}}}return v;}
+function showDashboardError(message){
+    if(window.goeyToast && typeof window.goeyToast.error==='function'){
+        window.goeyToast.error(message);return;
+    }
+    const node=document.getElementById('dashboard-feedback');
+    if(node){node.textContent=message;node.classList.remove('hidden');node.scrollIntoView({block:'nearest'});}
+}
 
 /* ── delete draft modal ── */
 let deleteDraftState={proposalId:null,url:null,title:null};
 function openDeleteModal(proposalId,url,title){deleteDraftState={proposalId,url,title};document.getElementById('deleteDraftTitle').textContent=`"${title}"`;document.getElementById('deleteDraftModal').classList.remove('hidden');document.body.classList.add('overflow-hidden');}
 function closeDeleteModal(){document.getElementById('deleteDraftModal').classList.add('hidden');document.body.classList.remove('overflow-hidden');deleteDraftState={proposalId:null,url:null,title:null};}
-async function deleteDraft(proposalId,url){try{const response=await fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const data=await response.json();if(!data.ok){alert(data.message||'Failed to delete draft.');return;}const card=document.getElementById(`proposal-card-${proposalId}`);if(card)card.remove();const el=document.getElementById('draft-count');if(el)el.textContent=typeof data.draft_count!=='undefined'?String(data.draft_count):String(Math.max(0,(parseInt(el.textContent)||0)-1));closeDeleteModal();window.location.reload();}catch(e){alert('Something went wrong while deleting the draft.');console.error(e);}}
+async function deleteDraft(proposalId,url){try{const response=await fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const data=await response.json();if(!data.ok){showDashboardError(data.message||'We could not delete the draft.');return;}const card=document.getElementById(`proposal-card-${proposalId}`);if(card)card.remove();const el=document.getElementById('draft-count');if(el)el.textContent=typeof data.draft_count!=='undefined'?String(data.draft_count):String(Math.max(0,(parseInt(el.textContent)||0)-1));closeDeleteModal();window.location.reload();}catch(e){showDashboardError('We could not delete the draft. Please try again.');console.error(e);}}
 document.getElementById('confirmDeleteDraftBtn')?.addEventListener('click',()=>{if(deleteDraftState.proposalId&&deleteDraftState.url)deleteDraft(deleteDraftState.proposalId,deleteDraftState.url);});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDeleteModal();});
 
@@ -1170,10 +1180,10 @@ document.addEventListener('DOMContentLoaded',function(){
     function isAssigned(proposalId,evaluatorId){return(localAssigned[proposalId]||[]).some(ev=>String(ev.id)===String(evaluatorId));}
     function clearSearchUI(proposalId){const inp=document.getElementById(`faculty-search-${proposalId}`);const res=document.getElementById(`faculty-results-${proposalId}`);if(inp)inp.value='';if(res){res.innerHTML='';res.classList.add('hidden');}}
     async function postAjax(url){const r=await fetch(url,{method:'POST',headers:{'X-CSRFToken':getCookie('csrftoken'),'X-Requested-With':'XMLHttpRequest'}});const ct=r.headers.get('content-type')||'';if(!ct.includes('application/json'))throw new Error('Server returned an unexpected response.');const data=await r.json();if(!r.ok||!data.ok)throw new Error(data.message||'Request failed.');return data;}
-    function bindRemoveButtons(scope=document){scope.querySelectorAll('.remove-evaluator-btn').forEach(btn=>{if(btn.dataset.bound==='1')return;btn.dataset.bound='1';btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,removeUrl=this.dataset.removeUrl;localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));renderChips(proposalId);const chip=this.closest('.evaluator-chip');const name=chip?chip.querySelector('span').textContent:'';if(name){const pool=evaluatorPools[proposalId]||[];if(!pool.some(p=>String(p.id)===String(evaluatorId))){pool.push({id:evaluatorId,name});evaluatorPools[proposalId]=pool;}}try{const data=await postAjax(removeUrl);if(Array.isArray(data.assigned_evaluators)){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;}catch(e){alert(e.message||'Failed to remove evaluator.');}});});}
+    function bindRemoveButtons(scope=document){scope.querySelectorAll('.remove-evaluator-btn').forEach(btn=>{if(btn.dataset.bound==='1')return;btn.dataset.bound='1';btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,removeUrl=this.dataset.removeUrl;localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));renderChips(proposalId);const chip=this.closest('.evaluator-chip');const name=chip?chip.querySelector('span').textContent:'';if(name){const pool=evaluatorPools[proposalId]||[];if(!pool.some(p=>String(p.id)===String(evaluatorId))){pool.push({id:evaluatorId,name});evaluatorPools[proposalId]=pool;}}try{const data=await postAjax(removeUrl);if(Array.isArray(data.assigned_evaluators)){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;}catch(e){showDashboardError(e.message||'We could not remove the evaluator.');}});});}
     bindRemoveButtons();
     document.querySelectorAll('.faculty-search-input').forEach(input=>{
-        input.addEventListener('input',function(){const pId=this.dataset.proposalId,q=this.value.trim().toLowerCase();const res=document.getElementById(`faculty-results-${pId}`),pool=evaluatorPools[pId]||[];if(!q){res.innerHTML='';res.classList.add('hidden');return;}const available=pool.filter(p=>!isAssigned(pId,p.id));const matches=available.filter(p=>p.name.toLowerCase().includes(q));if(!matches.length){const alreadyAssigned=pool.some(p=>p.name.toLowerCase().includes(q)&&isAssigned(pId,p.id));res.innerHTML=`<div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-400 shadow-sm">${escapeHtml(alreadyAssigned?'Already assigned.':'No matching faculty found.')}</div>`;res.classList.remove('hidden');return;}res.innerHTML=matches.map(p=>`<button type="button" class="faculty-result-item w-full text-left rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-green-50 hover:border-green-200 transition" data-proposal-id="${pId}" data-evaluator-id="${p.id}" data-evaluator-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`).join('');res.classList.remove('hidden');res.querySelectorAll('.faculty-result-item').forEach(btn=>{btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,evaluatorName=this.dataset.evaluatorName;const inp=getSearchInput(proposalId);const url=inp.dataset.assignUrlTemplate.replace(/\/0\/?$/,`/${evaluatorId}/`);if(isAssigned(proposalId,evaluatorId)){clearSearchUI(proposalId);return;}localAssigned[proposalId]=localAssigned[proposalId]||[];localAssigned[proposalId].push({id:String(evaluatorId),name:evaluatorName});evaluatorPools[proposalId]=(evaluatorPools[proposalId]||[]).filter(p=>String(p.id)!==String(evaluatorId));renderChips(proposalId);clearSearchUI(proposalId);try{const data=await postAjax(url);if(Array.isArray(data.assigned_evaluators)&&data.assigned_evaluators.length){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;}catch(e){localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));evaluatorPools[proposalId]=evaluatorPools[proposalId]||[];evaluatorPools[proposalId].push({id:evaluatorId,name:evaluatorName});renderChips(proposalId);alert(e.message||'Failed to add evaluator.');}});});});
+        input.addEventListener('input',function(){const pId=this.dataset.proposalId,q=this.value.trim().toLowerCase();const res=document.getElementById(`faculty-results-${pId}`),pool=evaluatorPools[pId]||[];if(!q){res.innerHTML='';res.classList.add('hidden');return;}const available=pool.filter(p=>!isAssigned(pId,p.id));const matches=available.filter(p=>p.name.toLowerCase().includes(q));if(!matches.length){const alreadyAssigned=pool.some(p=>p.name.toLowerCase().includes(q)&&isAssigned(pId,p.id));res.innerHTML=`<div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-400 shadow-sm">${escapeHtml(alreadyAssigned?'Already assigned.':'No matching faculty found.')}</div>`;res.classList.remove('hidden');return;}res.innerHTML=matches.map(p=>`<button type="button" class="faculty-result-item w-full text-left rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-green-50 hover:border-green-200 transition" data-proposal-id="${pId}" data-evaluator-id="${p.id}" data-evaluator-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`).join('');res.classList.remove('hidden');res.querySelectorAll('.faculty-result-item').forEach(btn=>{btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,evaluatorName=this.dataset.evaluatorName;const inp=getSearchInput(proposalId);const url=inp.dataset.assignUrlTemplate.replace(/\/0\/?$/,`/${evaluatorId}/`);if(isAssigned(proposalId,evaluatorId)){clearSearchUI(proposalId);return;}localAssigned[proposalId]=localAssigned[proposalId]||[];localAssigned[proposalId].push({id:String(evaluatorId),name:evaluatorName});evaluatorPools[proposalId]=(evaluatorPools[proposalId]||[]).filter(p=>String(p.id)!==String(evaluatorId));renderChips(proposalId);clearSearchUI(proposalId);try{const data=await postAjax(url);if(Array.isArray(data.assigned_evaluators)&&data.assigned_evaluators.length){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;}catch(e){localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));evaluatorPools[proposalId]=evaluatorPools[proposalId]||[];evaluatorPools[proposalId].push({id:evaluatorId,name:evaluatorName});renderChips(proposalId);showDashboardError(e.message||'We could not add the evaluator.');}});});});
         input.addEventListener('blur',function(){const res=document.getElementById(`faculty-results-${this.dataset.proposalId}`);setTimeout(()=>{if(res)res.classList.add('hidden');},200);});
         input.addEventListener('focus',function(){if(this.value.trim())this.dispatchEvent(new Event('input'));});
     });
