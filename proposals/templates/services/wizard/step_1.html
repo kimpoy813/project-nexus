@@ -70,27 +70,26 @@
     {% csrf_token %}
 
     <div>
-      <p id="extension-type-label" class="block text-sm font-semibold text-gray-900 mb-3">
-          {{ step_fields.extension_type.label|default:"Extension Type" }}{% if step_fields.extension_type.required %} <span class="text-red-600" aria-label="required">*</span>{% endif %}
-      </p>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+          {{ step_fields.extension_type.label|default:"Extension Type" }}{% if step_fields.extension_type.required %} <span class="text-red-600">*</span>{% endif %}
+      </label>
 
       <input type="hidden" name="extension_type" id="extensionTypeValue" value="{{ proposal.extension_type }}">
 
-      <div class="flex flex-wrap gap-3" role="group" aria-labelledby="extension-type-label">
+      <div class="flex flex-wrap gap-3">
         {% for item in step_fields.extension_type.parsed_choices|default:proposal.ExtensionType.choices %}
-          <button type="button" {% if not is_edit_mode %}disabled{% endif %}
-            aria-pressed="{% if proposal.extension_type == item.value or proposal.extension_type == item.0 %}true{% else %}false{% endif %}"
+          <div
             class="ext-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
-              {% if proposal.extension_type == item.value or proposal.extension_type == item.0 %}
+              {% if proposal.extension_type == item.value or proposal.extension_type == item %}
                 bg-primary text-white border-primary
               {% else %}
                 bg-white text-gray-700 border-gray-300
               {% endif %}
               {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item.0 }}{% endif %}"
-            data-label="{% if item.label %}{{ item.label }}{% else %}{{ item.1 }}{% endif %}">
-            {% if item.label %}{{ item.label }}{% else %}{{ item.1 }}{% endif %}
-          </button>
+            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item }}{% endif %}"
+            data-label="{% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}">
+            {% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}
+          </div>
         {% endfor %}
       </div>
 
@@ -100,21 +99,20 @@
     </div>
 
     <div id="proposalFormatWrap" class="{% if proposal.extension_type != 'REQUEST_BASED' %}hidden{% endif %}">
-      <p id="proposal-format-label" class="block text-sm font-semibold text-gray-900 mb-3">
-        Proposal format <span class="text-red-600" aria-label="required">*</span>
-      </p>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+        Proposal Format <span class="text-red-600">*</span>
+      </label>
 
       {# Same selection UI as Extension Type / Scope: chips backed by a hidden #}
       {# input, defaulted the way the view and the document generator do. #}
       <input type="hidden" name="proposal_format" id="proposalFormatValue"
              value="{% if proposal.proposal_format %}{{ proposal.proposal_format }}{% elif proposal.extension_type == 'RESEARCH_FACULTY' or proposal.extension_type == 'RESEARCH_STUDENT' %}EXTENSION_PROPOSAL{% else %}TRAINING_DESIGN{% endif %}">
 
-      <div class="flex flex-wrap gap-3" role="group" aria-labelledby="proposal-format-label">
+      <div class="flex flex-wrap gap-3">
         {# Reversed so Training Design — the format a blank request-based pick #}
         {# is saved as — leads, exactly like the dropdown this replaced. #}
         {% for value, label in proposal.ProposalFormat.choices reversed %}
-          <button type="button" {% if not is_edit_mode %}disabled{% endif %}
-            aria-pressed="{% if proposal.proposal_format == value or not proposal.proposal_format and value == 'TRAINING_DESIGN' %}true{% else %}false{% endif %}"
+          <div
             class="format-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
               {% if proposal.proposal_format == value or not proposal.proposal_format and value == 'TRAINING_DESIGN' %}
                 bg-primary text-white border-primary
@@ -125,7 +123,7 @@
             data-value="{{ value }}"
             data-label="{{ label }}">
             {{ label }}
-          </button>
+          </div>
         {% endfor %}
       </div>
 
@@ -135,7 +133,7 @@
     </div>
 
     <div id="researchTitleWrap" class="{% if proposal.extension_type != 'RESEARCH_FACULTY' and proposal.extension_type != 'RESEARCH_STUDENT' %}hidden{% endif %}">
-      <label for="researchTitleInput" class="block text-sm font-semibold text-gray-900">
+      <label class="block text-sm font-semibold text-gray-900">
           {{ step_fields.research_title.label|default:"Research Title" }}{% if step_fields.research_title.required %} <span class="text-red-600">*</span>{% endif %}
       </label>
       <input
@@ -151,26 +149,25 @@
     </div>
 
     <div>
-      <p id="scope-type-label" class="block text-sm font-semibold text-gray-900 mb-3">
-          {{ step_fields.scope_type.label|default:"Scope" }}{% if step_fields.scope_type.required %} <span class="text-red-600" aria-label="required">*</span>{% endif %}
-      </p>
+      <label class="block text-sm font-semibold text-gray-900 mb-3">
+          {{ step_fields.scope_type.label|default:"Scope" }}{% if step_fields.scope_type.required %} <span class="text-red-600">*</span>{% endif %}
+      </label>
 
       <input type="hidden" name="scope_type" id="scopeTypeValue" value="{{ proposal.scope_type }}">
 
-      <div class="flex flex-wrap gap-3" role="group" aria-labelledby="scope-type-label">
+      <div class="flex flex-wrap gap-3">
         {% for item in step_fields.scope_type.parsed_choices|default:proposal.ScopeType.choices %}
-          <button type="button" {% if not is_edit_mode %}disabled{% endif %}
-            aria-pressed="{% if proposal.scope_type == item.value or proposal.scope_type == item.0 %}true{% else %}false{% endif %}"
+          <div
             class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
-              {% if proposal.scope_type == item.value or proposal.scope_type == item.0 %}
+              {% if proposal.scope_type == item.value or proposal.scope_type == item %}
                 bg-primary text-white border-primary
               {% else %}
                 bg-white text-gray-700 border-gray-300
               {% endif %}
               {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item.0 }}{% endif %}">
-            {% if item.label %}{{ item.label }}{% else %}{{ item.1 }}{% endif %}
-          </button>
+            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item }}{% endif %}">
+            {% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}
+          </div>
         {% endfor %}
       </div>
 
@@ -242,7 +239,6 @@
       chip.classList.toggle("bg-white", !isActive);
       chip.classList.toggle("text-gray-700", !isActive);
       chip.classList.toggle("border-gray-300", !isActive);
-      chip.setAttribute("aria-pressed", String(isActive));
     });
   }
 
