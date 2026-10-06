@@ -1,10 +1,10 @@
 {% comment %}
 Block: Extension Targets (source key TARGETS).
 
-Renders the year's target vs. actual figures per metric and campus:
-  • accessible year and campus filters that scope the displayed figures,
-  • metric summary cards with colour-coded progress bars,
-  • per-campus tables with an inline progress bar per metric.
+Renders annual target vs. actual figures per metric and campus:
+  • an accessible year filter and an Alpine campus filter,
+  • radial summary cards with a matching progress track,
+  • campus scorecards with clear actual/target figures and status labels.
 
 Context: section, data.year, data.years, data.overall, data.by_campus
 {% endcomment %}
@@ -28,9 +28,17 @@ Context: section, data.year, data.years, data.overall, data.by_campus
     {% endif %}
 
     {% if data.by_campus %}
-        <p class="mb-5 text-center text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-            {{ data.year }} targets
-        </p>
+        <div class="mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] text-primary">{{ data.year }} targets</p>
+                <h3 class="mt-1 text-xl font-bold text-gray-900">Progress by metric</h3>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-2 text-[0.68rem] font-semibold text-gray-500" aria-label="Progress status legend">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Achieved</span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-primary"><span class="h-2 w-2 rounded-full bg-primary"></span>On track</span>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-amber-700"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Getting started</span>
+            </div>
+        </div>
 
         {# ---------- Campus filter ---------- #}
         <div class="mb-8 flex flex-wrap justify-center gap-2" role="group" aria-label="Filter targets by campus">
@@ -53,10 +61,10 @@ Context: section, data.year, data.years, data.overall, data.by_campus
         </div>
 
         {# ---------- Metric summary cards (follow the campus filter) ---------- #}
-        <div class="mb-8">
+        <div class="mb-10">
             <div x-show="campus === 'all'">
                 <p class="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">All campuses combined</p>
-                <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                     {% for key, metric in data.overall.items %}
                         {% include "details/blocks/_target_metric_card.html" %}
                     {% endfor %}
@@ -65,7 +73,7 @@ Context: section, data.year, data.years, data.overall, data.by_campus
             {% for campus, campus_targets in data.by_campus.items %}
                 <div x-show="campus === '{{ campus|escapejs }}'" x-cloak>
                     <p class="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">{{ campus }}</p>
-                    <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                         {% for metric in campus_targets %}
                             {% include "details/blocks/_target_metric_card.html" %}
                         {% endfor %}
@@ -74,54 +82,80 @@ Context: section, data.year, data.years, data.overall, data.by_campus
             {% endfor %}
         </div>
 
-        {# ---------- Per-campus tables (follow the campus filter) ---------- #}
-        {% for campus, campus_targets in data.by_campus.items %}
-        <div class="mb-8" x-show="campus === 'all' || campus === '{{ campus|escapejs }}'">
-            <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h3 class="text-xl font-semibold text-primary">{{ campus }}</h3>
-                <span class="text-xs font-semibold text-gray-400">{{ campus_targets|length }} metric{{ campus_targets|length|pluralize }}</span>
-            </div>
-            <div class="overflow-x-auto bg-white rounded-xl border border-gray-100 shadow-sm">
-                <table class="min-w-full text-sm text-left">
-                    <thead class="bg-gray-100 text-gray-700">
-                        <tr>
-                            <th class="px-4 py-2">Metric</th>
-                            <th class="px-4 py-2 text-center">Target</th>
-                            <th class="px-4 py-2 text-center">Actual</th>
-                            <th class="px-4 py-2 w-2/5">Progress</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        {# ---------- Campus scorecards (follow the campus filter) ---------- #}
+        <div class="space-y-5">
+            {% for campus, campus_targets in data.by_campus.items %}
+                <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm" x-show="campus === 'all' || campus === '{{ campus|escapejs }}'">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 bg-gray-50/80 px-5 py-4 sm:px-6">
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white shadow-sm" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 21h18"></path><path d="M5 21V7l7-4 7 4v14"></path><path d="M9 21v-4h6v4"></path><path d="M9 10h.01M15 10h.01M9 13h.01M15 13h.01"></path>
+                                </svg>
+                            </span>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900">{{ campus }}</h3>
+                                <p class="text-xs text-gray-500">{{ campus_targets|length }} metric{{ campus_targets|length|pluralize }} tracked for {{ data.year }}</p>
+                            </div>
+                        </div>
+                        <span class="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-500">Actual vs. annual target</span>
+                    </div>
+
+                    <div class="divide-y divide-gray-100">
                         {% for t in campus_targets %}
-                        <tr class="border-b last:border-0 hover:bg-gray-50">
-                            <td class="px-4 py-3 font-medium text-gray-800">{{ t.label }}</td>
-                            <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.target|intcomma }}</td>
-                            <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.actual|intcomma }}</td>
-                            <td class="px-4 py-3">
-                                {% if t.progress is not None %}
-                                    <div class="flex items-center gap-3"
-                                         role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ t.progress }}"
-                                         aria-label="{{ t.label }}: {{ t.progress }}% of target">
-                                        <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                                            <div class="h-full rounded-full {% if t.progress >= 100 %}bg-emerald-500{% elif t.progress >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}"
-                                                 style="width: {% if t.progress > 100 %}100{% else %}{{ t.progress }}{% endif %}%"></div>
-                                        </div>
-                                        <span class="w-12 shrink-0 text-right text-xs font-bold tabular-nums {% if t.progress >= 100 %}text-emerald-600{% elif t.progress >= 50 %}text-primary{% else %}text-amber-600{% endif %}">
-                                            {{ t.progress }}%
-                                        </span>
+                            <div class="px-5 py-5 transition hover:bg-gray-50/70 sm:px-6">
+                                <div class="grid gap-4 md:grid-cols-[minmax(10rem,0.8fr)_minmax(16rem,1.5fr)_auto] md:items-center md:gap-8">
+                                    <div class="min-w-0">
+                                        <p class="truncate font-bold text-gray-800">{{ t.label }}</p>
+                                        <p class="mt-1 text-xs text-gray-500"><span class="font-bold text-gray-900 tabular-nums">{{ t.actual|intcomma }}</span> actual <span class="mx-1 text-gray-300">/</span> <span class="font-semibold tabular-nums">{{ t.target|intcomma }}</span> target</p>
                                     </div>
-                                {% else %}
-                                    <span class="text-xs text-gray-400">No target set</span>
-                                {% endif %}
-                            </td>
-                        </tr>
+
+                                    {% if t.progress is not None %}
+                                        <div role="progressbar"
+                                             aria-valuemin="0" aria-valuemax="100"
+                                             aria-valuenow="{% if t.progress > 100 %}100{% else %}{{ t.progress }}{% endif %}"
+                                             aria-valuetext="{{ t.progress }}% of target"
+                                             aria-label="{{ t.label }}: {{ t.progress }}% of target">
+                                            <div class="mb-2 flex items-center justify-between gap-3 text-xs">
+                                                <span class="font-semibold text-gray-500">Completion</span>
+                                                <span class="font-black tabular-nums {% if t.progress >= 100 %}text-emerald-600{% elif t.progress >= 50 %}text-primary{% else %}text-amber-600{% endif %}">{{ t.progress }}% of target</span>
+                                            </div>
+                                            <div class="h-3 w-full overflow-hidden rounded-full bg-gray-100 shadow-inner">
+                                                <div class="h-full rounded-full transition-all {% if t.progress >= 100 %}bg-emerald-500{% elif t.progress >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}"
+                                                     style="width: {% if t.progress > 100 %}100{% else %}{{ t.progress }}{% endif %}%"></div>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-xs font-medium text-gray-400">No annual target set yet</div>
+                                    {% endif %}
+
+                                    <div class="md:text-right">
+                                        {% if t.progress is not None %}
+                                            {% if t.progress >= 100 %}
+                                                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700"><span aria-hidden="true">✓</span> Achieved</span>
+                                            {% elif t.progress >= 50 %}
+                                                <span class="inline-flex rounded-full bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary">On track</span>
+                                            {% else %}
+                                                <span class="inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">Getting started</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                    </div>
+                </section>
+            {% endfor %}
         </div>
-        {% endfor %}
     {% else %}
-        <p class="py-10 text-center text-sm text-gray-400">No targets recorded for {{ data.year|default:"the selected year" }} yet.</p>
+        <div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
+            <div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-5"></path><path d="M12 16V8"></path><path d="M16 16v-3"></path>
+                </svg>
+            </div>
+            <p class="mt-4 font-semibold text-gray-700">No targets recorded for {{ data.year|default:"the selected year" }} yet.</p>
+            <p class="mt-1 text-sm text-gray-500">Choose another year or check back when targets have been added.</p>
+        </div>
     {% endif %}
 </div>
