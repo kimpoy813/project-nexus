@@ -8,7 +8,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
         <div class="min-w-0">
             <p class="text-xs font-semibold text-slate-800">Targets <span class="pc-pill pc-pill--muted">{{ home_targets|length }}</span></p>
-            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each planned vs. actual figure here. Changes show on the public page immediately.</p>
+            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each target vs. actual figure here. Changes show on the public page immediately.</p>
         </div>
         <button type="button" onclick="document.getElementById('add-target-form-{{ eid }}').classList.toggle('hidden')" class="pc-btn pc-btn--primary shrink-0">+ Add Target</button>
     </div>
@@ -43,10 +43,10 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
             </div>
             <div class="rounded-xl border border-primary/15 bg-white p-3">
                 <div class="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-                    <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" min="0" placeholder="0" class="pc-input"></div>
-                    <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" min="0" placeholder="0" class="pc-input"></div>
-                    <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" min="0" placeholder="0" class="pc-input"></div>
-                    <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Target Q1</label><input type="number" name="planned_q1" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Target Q2</label><input type="number" name="planned_q2" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Target Q3</label><input type="number" name="planned_q3" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Target Q4</label><input type="number" name="planned_q4" min="0" placeholder="0" class="pc-input"></div>
                     <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" min="0" placeholder="0" class="pc-input"></div>
                     <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" min="0" placeholder="0" class="pc-input"></div>
                     <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" min="0" placeholder="0" class="pc-input"></div>
@@ -68,7 +68,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                     <th class="text-left p-3 font-medium">Year</th>
                     <th class="text-left p-3 font-medium">Campus</th>
                     <th class="text-left p-3 font-medium">Metric</th>
-                    <th class="text-center p-3 font-medium">Planned</th>
+                    <th class="text-center p-3 font-medium">Target</th>
                     <th class="text-center p-3 font-medium">Actual</th>
                     <th class="text-center p-3 font-medium">Total</th>
                     <th class="text-left p-3 font-medium">Actions</th>
@@ -92,9 +92,16 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                         <span class="whitespace-nowrap">Q3 {{t.actual_q3|intcomma}}</span> ·
                         <span class="whitespace-nowrap">Q4 {{t.actual_q4|intcomma}}</span>
                     </td>
-                    <td class="p-3 text-center">
-                        <span class="font-semibold">{{ t.actual_total|intcomma }}</span>
-                        {% if t.completion_percentage is not None %}<span class="block text-[0.65rem] text-slate-500">of {{ t.planned_total|intcomma }} ({{ t.completion_percentage }}%)</span>{% endif %}
+                    <td class="p-3 text-center min-w-[7rem]">
+                        <span class="font-semibold tabular-nums">{{ t.actual_total|intcomma }}</span>
+                        {% if t.completion_percentage is not None %}
+                        <div class="mx-auto mt-1.5 h-1.5 w-24 overflow-hidden rounded-full bg-slate-200"
+                             role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ t.completion_percentage }}"
+                             aria-label="{{ t.get_metric_display }} progress">
+                            <div class="h-full rounded-full {% if t.completion_percentage >= 100 %}bg-emerald-500{% elif t.completion_percentage >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}" style="width:{% if t.completion_percentage > 100 %}100{% else %}{{ t.completion_percentage }}{% endif %}%"></div>
+                        </div>
+                        <span class="block text-[0.65rem] text-slate-500">of {{ t.planned_total|intcomma }} ({{ t.completion_percentage }}%)</span>
+                        {% endif %}
                     </td>
                     <td class="p-3">
                         <div class="flex items-center gap-2">
@@ -112,12 +119,12 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                         <form method="POST" action="{% url 'home_inline_target_update' t.id %}" class="space-y-3">
                             {% csrf_token %}
                             {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
-                            <p class="text-xs font-semibold text-slate-600">Editing {{ t.campus }} · {{ t.get_metric_display }} ({{ t.year }}) — update the planned and actual figures by quarter below.</p>
+                            <p class="text-xs font-semibold text-slate-600">Editing {{ t.campus }} · {{ t.get_metric_display }} ({{ t.year }}) — update the target and actual figures by quarter below.</p>
                             <div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
-                                <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" min="0" value="{{ t.planned_q1 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" min="0" value="{{ t.planned_q2 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" min="0" value="{{ t.planned_q3 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" min="0" value="{{ t.planned_q4 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Target Q1</label><input type="number" name="planned_q1" min="0" value="{{ t.planned_q1 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Target Q2</label><input type="number" name="planned_q2" min="0" value="{{ t.planned_q2 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Target Q3</label><input type="number" name="planned_q3" min="0" value="{{ t.planned_q3 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Target Q4</label><input type="number" name="planned_q4" min="0" value="{{ t.planned_q4 }}" class="pc-input"></div>
                                 <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" min="0" value="{{ t.actual_q1 }}" class="pc-input"></div>
                                 <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" min="0" value="{{ t.actual_q2 }}" class="pc-input"></div>
                                 <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" min="0" value="{{ t.actual_q3 }}" class="pc-input"></div>
@@ -135,7 +142,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
         </table>
     </div>
     {% else %}
-    <div class="p-8 text-center text-sm text-slate-500 bg-white">No targets yet. Add the planned vs. actual figures that fill this section.</div>
+    <div class="p-8 text-center text-sm text-slate-500 bg-white">No targets yet. Add the target vs. actual figures that fill this section.</div>
     {% endif %}
 </div>
 {% endwith %}

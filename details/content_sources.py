@@ -134,11 +134,18 @@ def _resolve_targets(section):
     by_campus = OrderedDict()
     for row in rows:
         by_campus.setdefault(row.campus, []).append({
+            "key": row.metric,
             "label": row.get_metric_display(),
             "planned": row.planned_total,
             "actual": row.actual_total,
             "progress": _progress(row),
         })
+
+    # Show each campus's metrics in the canonical METRIC_CHOICES order so the
+    # per-campus cards and tables line up with the "all campuses" summary.
+    metric_rank = {value: i for i, (value, _label) in enumerate(Target.METRIC_CHOICES)}
+    for campus_targets in by_campus.values():
+        campus_targets.sort(key=lambda t: metric_rank.get(t["key"], len(metric_rank)))
 
     overall = {}
     for key, label in Target.METRIC_CHOICES:
@@ -216,7 +223,7 @@ _SOURCES = (
     ContentSource(
         key="TARGETS",
         label="Extension Targets",
-        description="Planned vs. actual figures for a year, by campus.",
+        description="Target vs. actual figures for a year, by campus.",
         block_template="details/blocks/targets.html",
         resolve=_resolve_targets,
         manager_url_name="targets_list",

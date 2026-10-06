@@ -93,7 +93,7 @@ class Target(models.Model):
     campus = models.CharField(max_length=100)
     metric = models.CharField(max_length=32, choices=METRIC_CHOICES)
 
-    # Planned targets are set by quarter; accomplishments are also recorded by
+    # Targets are set by quarter; accomplishments are also recorded by
     # quarter as the year progresses.
     planned_q1 = models.PositiveIntegerField(default=0)
     planned_q2 = models.PositiveIntegerField(default=0)

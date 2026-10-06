@@ -957,8 +957,8 @@ class PageBlockTests(TestCase):
 
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "2026 targets")
-        self.assertContains(response, "Planned: 20")
-        self.assertNotContains(response, "Planned: 10")
+        self.assertContains(response, "55% of target")
+        self.assertNotContains(response, "90% of target")
 
     def test_targets_block_respects_target_year(self):
         from details.models import Target
@@ -976,8 +976,8 @@ class PageBlockTests(TestCase):
 
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "2025 targets")
-        self.assertContains(response, "Planned: 10")
-        self.assertNotContains(response, "Planned: 20")
+        self.assertContains(response, "90% of target")
+        self.assertNotContains(response, "55% of target")
 
     def test_targets_block_shows_progress_percentages(self):
         from details.models import Target
@@ -991,6 +991,44 @@ class PageBlockTests(TestCase):
 
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "25%")
+
+    def test_targets_block_renders_a_campus_filter(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            planned_q4=10, actual_q1=9,
+        )
+        Target.objects.create(
+            year=2026, campus="Urdaneta Campus", metric="programs",
+            planned_q4=20, actual_q1=11,
+        )
+
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"))
+
+        # The filter group offers every campus plus an "all" reset, and every
+        # campus keeps its own table so the filter has something to toggle.
+        self.assertContains(response, 'aria-label="Filter targets by campus"')
+        self.assertContains(response, "All campuses")
+        self.assertContains(response, "Main Campus")
+        self.assertContains(response, "Urdaneta Campus")
+
+    def test_targets_block_renders_progress_bars(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            planned_q4=100, actual_q1=75,
+        )
+
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertContains(response, 'role="progressbar"')
+        self.assertContains(response, 'aria-valuenow="75"')
+        self.assertContains(response, "75% of target")
 
     def test_processes_block_renders_steps(self):
         from details.models import ExtensionProcess, ProcessStep
