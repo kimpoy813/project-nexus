@@ -2,12 +2,13 @@
 Inline CRUD for Target rows. Nested under TARGETS Content Sections.
 Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next_url
 {% endcomment %}
+{% load humanize %}
 {% with eid=editor_id|default:"main" %}
 <div class="home-targets-inline" id="home-inline-targets-{{ eid }}">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
         <div class="min-w-0">
             <p class="text-xs font-semibold text-slate-800">Targets <span class="pc-pill pc-pill--muted">{{ home_targets|length }}</span></p>
-            <p class="mt-0.5 text-[0.7rem] text-slate-500">Edit each planned vs. actual figure here. Changes show on the public page immediately.</p>
+            <p class="mt-0.5 text-[0.7rem] text-slate-500">Set one annual target and update only the actual accomplishment for Q1–Q4.</p>
         </div>
         <button type="button" onclick="document.getElementById('add-target-form-{{ eid }}').classList.toggle('hidden')" class="pc-btn pc-btn--primary shrink-0">+ Add Target</button>
     </div>
@@ -40,15 +41,17 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                     </select>
                 </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" value="0" class="pc-input"></div>
-                <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" value="0" class="pc-input"></div>
+            <div class="rounded-xl border border-primary/15 bg-white p-3">
+                <div class="grid sm:grid-cols-5 gap-3">
+                    <div>
+                        <label class="pc-label">Annual target *</label>
+                        <input type="number" name="target" min="0" value="0" class="pc-input font-semibold" required>
+                    </div>
+                    <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" min="0" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" min="0" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" min="0" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" min="0" value="0" class="pc-input"></div>
+                </div>
             </div>
             <div class="flex justify-end gap-2">
                 <button type="button" onclick="document.getElementById('add-target-form-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
@@ -65,8 +68,9 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                     <th class="text-left p-3 font-medium">Year</th>
                     <th class="text-left p-3 font-medium">Campus</th>
                     <th class="text-left p-3 font-medium">Metric</th>
-                    <th class="text-center p-3 font-medium">Planned</th>
-                    <th class="text-center p-3 font-medium">Actual</th>
+                    <th class="text-center p-3 font-medium">Target</th>
+                    <th class="text-center p-3 font-medium">Quarterly actuals</th>
+                    <th class="text-center p-3 font-medium">Total</th>
                     <th class="text-left p-3 font-medium">Actions</th>
                 </tr>
             </thead>
@@ -76,8 +80,17 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                     <td class="p-3 font-medium">{{ t.year }}</td>
                     <td class="p-3">{{ t.campus }}</td>
                     <td class="p-3">{{ t.get_metric_display }}</td>
-                    <td class="p-3 text-center text-xs">Q1 {{t.planned_q1}} | Q2 {{t.planned_q2}} | Q3 {{t.planned_q3}} | Q4 {{t.planned_q4}}</td>
-                    <td class="p-3 text-center text-xs">Q1 {{t.actual_q1}} | Q2 {{t.actual_q2}} | Q3 {{t.actual_q3}} | Q4 {{t.actual_q4}}</td>
+                    <td class="p-3 text-center font-semibold text-primary">{{ t.target|intcomma }}</td>
+                    <td class="p-3 text-center text-xs">
+                        <span class="whitespace-nowrap">Q1 {{t.actual_q1|intcomma}}</span> ·
+                        <span class="whitespace-nowrap">Q2 {{t.actual_q2|intcomma}}</span> ·
+                        <span class="whitespace-nowrap">Q3 {{t.actual_q3|intcomma}}</span> ·
+                        <span class="whitespace-nowrap">Q4 {{t.actual_q4|intcomma}}</span>
+                    </td>
+                    <td class="p-3 text-center">
+                        <span class="font-semibold">{{ t.actual_total|intcomma }}</span>
+                        {% if t.completion_percentage is not None %}<span class="block text-[0.65rem] text-slate-500">{{ t.completion_percentage }}%</span>{% endif %}
+                    </td>
                     <td class="p-3">
                         <div class="flex items-center gap-2">
                             <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn text-xs px-2 py-1">Edit</button>
@@ -90,20 +103,17 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                     </td>
                 </tr>
                 <tr id="edit-target-{{ t.id }}-{{ eid }}" class="hidden bg-slate-50/70">
-                    <td colspan="6" class="p-4">
+                    <td colspan="7" class="p-4">
                         <form method="POST" action="{% url 'home_inline_target_update' t.id %}" class="space-y-3">
                             {% csrf_token %}
                             {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
-                            <p class="text-xs font-semibold text-slate-600">Editing {{ t.campus }} · {{ t.get_metric_display }} ({{ t.year }}) — only quarterly figures are editable (year/campus/metric are fixed; delete and re-add to change them).</p>
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                <div><label class="pc-label">Planned Q1</label><input type="number" name="planned_q1" value="{{ t.planned_q1 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Planned Q2</label><input type="number" name="planned_q2" value="{{ t.planned_q2 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Planned Q3</label><input type="number" name="planned_q3" value="{{ t.planned_q3 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Planned Q4</label><input type="number" name="planned_q4" value="{{ t.planned_q4 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" value="{{ t.actual_q1 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" value="{{ t.actual_q2 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" value="{{ t.actual_q3 }}" class="pc-input"></div>
-                                <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" value="{{ t.actual_q4 }}" class="pc-input"></div>
+                            <p class="text-xs font-semibold text-slate-600">Editing {{ t.campus }} · {{ t.get_metric_display }} ({{ t.year }}) — update the annual target and quarterly actuals below.</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                <div><label class="pc-label">Annual target</label><input type="number" name="target" min="0" value="{{ t.target }}" class="pc-input font-semibold" required></div>
+                                <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" min="0" value="{{ t.actual_q1 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" min="0" value="{{ t.actual_q2 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" min="0" value="{{ t.actual_q3 }}" class="pc-input"></div>
+                                <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" min="0" value="{{ t.actual_q4 }}" class="pc-input"></div>
                             </div>
                             <div class="flex justify-end gap-2">
                                 <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
@@ -117,7 +127,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
         </table>
     </div>
     {% else %}
-    <div class="p-8 text-center text-sm text-slate-500 bg-white">No targets yet. Add the planned vs. actual figures that fill this section.</div>
+    <div class="p-8 text-center text-sm text-slate-500 bg-white">No targets yet. Add an annual target and its quarterly actual accomplishments.</div>
     {% endif %}
 </div>
 {% endwith %}

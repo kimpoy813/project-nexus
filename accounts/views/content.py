@@ -24,6 +24,7 @@ from ..campus_data import get_college_choices
 from ..campus_data import get_department_choices
 from ..decorators import admin_required
 from ..models import Profile
+from .target_helpers import _parse_target_numbers
 from ..models import Signatory
 from ..models import Campus
 from ..models import College
@@ -497,11 +498,28 @@ def target_create(request):
     # install, which used to leave this dropdown blank even when the admin had
     # already set up campuses, colleges, and departments.
     campus_choices = [value for value, _label in get_campus_choices()]
+    context = {
+        "campuses": campus_choices,
+        "metric_choices": Target.METRIC_CHOICES,
+    }
 
     if request.method == "POST":
         year = request.POST.get("year")
-        campus = request.POST.get("campus")
-        metric = request.POST.get("metric")
+        campus = (request.POST.get("campus") or "").strip()
+        metric = (request.POST.get("metric") or "").strip()
+
+        try:
+            year = int(year)
+            if year < 2000 or year > 2100:
+                raise ValueError("Year must be between 2000 and 2100.")
+            if not campus:
+                raise ValueError("Select a campus.")
+            if metric not in dict(Target.METRIC_CHOICES):
+                raise ValueError("Select a valid metric.")
+            values = _parse_target_numbers(request.POST)
+        except (TypeError, ValueError) as exc:
+            messages.error(request, str(exc) or "Enter valid target values.")
+            return render(request, "dashboard/admin/target_form.html", context)
 
         if Target.objects.filter(year=year, campus=campus, metric=metric).exists():
             messages.error(request, "Target already exists for this year, campus, and metric.")
@@ -511,20 +529,13 @@ def target_create(request):
             year=year,
             campus=campus,
             metric=metric,
-            planned_q1=request.POST.get("planned_q1", 0),
-            planned_q2=request.POST.get("planned_q2", 0),
-            planned_q3=request.POST.get("planned_q3", 0),
-            planned_q4=request.POST.get("planned_q4", 0),
-            actual_q1=request.POST.get("actual_q1", 0),
-            actual_q2=request.POST.get("actual_q2", 0),
-            actual_q3=request.POST.get("actual_q3", 0),
-            actual_q4=request.POST.get("actual_q4", 0),
+            **values,
         )
 
         messages.success(request, f"Target created for {campus} ({year})")
         return redirect("targets_list")
 
-    return render(request, "dashboard/admin/target_form.html", {"campuses": campus_choices})
+    return render(request, "dashboard/admin/target_form.html", context)
 
 
 @login_required
@@ -533,18 +544,16 @@ def target_edit(request, pk):
     target = get_object_or_404(Target, pk=pk)
 
     if request.method == "POST":
-        target.planned_q1 = request.POST.get("planned_q1", 0)
-        target.planned_q2 = request.POST.get("planned_q2", 0)
-        target.planned_q3 = request.POST.get("planned_q3", 0)
-        target.planned_q4 = request.POST.get("planned_q4", 0)
-        target.actual_q1 = request.POST.get("actual_q1", 0)
-        target.actual_q2 = request.POST.get("actual_q2", 0)
-        target.actual_q3 = request.POST.get("actual_q3", 0)
-        target.actual_q4 = request.POST.get("actual_q4", 0)
-        target.save()
-
-        messages.success(request, "Target updated successfully!")
-        return redirect("targets_list")
+        try:
+            values = _parse_target_numbers(request.POST)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+        else:
+            for field, value in values.items():
+                setattr(target, field, value)
+            target.save()
+            messages.success(request, "Target updated successfully!")
+            return redirect("targets_list")
 
     return render(request, "dashboard/admin/target_form.html", {"target": target})
 

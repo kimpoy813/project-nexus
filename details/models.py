@@ -93,43 +93,34 @@ class Target(models.Model):
     campus = models.CharField(max_length=100)
     metric = models.CharField(max_length=32, choices=METRIC_CHOICES)
 
-    # Planned by quarter (editable)
-    planned_q1 = models.PositiveIntegerField(default=0)
-    planned_q2 = models.PositiveIntegerField(default=0)
-    planned_q3 = models.PositiveIntegerField(default=0)
-    planned_q4 = models.PositiveIntegerField(default=0)
-    # Yearly planned total (editable, but auto-filled if zero)
-    planned_total = models.PositiveIntegerField(default=0)
-
-    # Actual accomplishments by quarter (editable)
+    # One annual goal; only accomplishments are recorded by quarter.
+    target = models.PositiveIntegerField("annual target", default=0)
     actual_q1 = models.PositiveIntegerField(default=0)
     actual_q2 = models.PositiveIntegerField(default=0)
     actual_q3 = models.PositiveIntegerField(default=0)
     actual_q4 = models.PositiveIntegerField(default=0)
-    # Yearly actual total (editable, but auto-filled if zero)
-    actual_total = models.PositiveIntegerField(default=0)
+    # Cached for efficient public-page aggregation. It is never user-editable.
+    actual_total = models.PositiveIntegerField(default=0, editable=False)
 
     class Meta:
         unique_together = ('year', 'campus', 'metric')
         ordering = ['campus', 'metric']
 
     def save(self, *args, **kwargs):
-        # If totals left as 0, auto-calc from quarters
-        calc_planned = self.planned_q1 + self.planned_q2 + self.planned_q3 + self.planned_q4
-        calc_actual = self.actual_q1 + self.actual_q2 + self.actual_q3 + self.actual_q4
-
-        if not self.planned_total:
-            self.planned_total = calc_planned
-        if not self.actual_total:
-            self.actual_total = calc_actual
-
+        self.actual_total = self.computed_actual_total()
+        # Keep the cached total in sync even when a caller saves selected fields.
+        if kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | {"actual_total"}
         super().save(*args, **kwargs)
-
-    def computed_planned_total(self):
-        return self.planned_q1 + self.planned_q2 + self.planned_q3 + self.planned_q4
 
     def computed_actual_total(self):
         return self.actual_q1 + self.actual_q2 + self.actual_q3 + self.actual_q4
+
+    @property
+    def completion_percentage(self):
+        if not self.target:
+            return None
+        return round(100 * self.actual_total / self.target)
 
     def __str__(self):
         return f"{self.year} • {self.campus} • {self.get_metric_display()}"

@@ -14,6 +14,7 @@ from .models import (
     HomeThrust,
     PageSection,
     SitePage,
+    Target,
     WorkflowPhase,
 )
 
@@ -88,6 +89,44 @@ class HomeSectionHeadingModelTests(TestCase):
 
         row = HomeSectionHeading.get_for(HomeSectionHeading.Section.SDG)
         self.assertEqual(row.section, "sdg")
+
+
+class TargetModelTests(TestCase):
+    def test_actual_total_is_calculated_from_quarters(self):
+        target = Target.objects.create(
+            year=2026,
+            campus="Main Campus",
+            metric="programs",
+            target=100,
+            actual_q1=10,
+            actual_q2=20,
+            actual_q3=5,
+            actual_q4=15,
+        )
+
+        self.assertEqual(target.actual_total, 50)
+        self.assertEqual(target.completion_percentage, 50)
+
+    def test_actual_total_stays_in_sync_after_an_update_fields_save(self):
+        target = Target.objects.create(
+            year=2026,
+            campus="Urdaneta",
+            metric="partners",
+            target=20,
+            actual_q1=2,
+        )
+
+        target.actual_q2 = 3
+        target.save(update_fields=["actual_q2"])
+        target.refresh_from_db()
+
+        self.assertEqual(target.actual_total, 5)
+
+    def test_zero_target_has_no_completion_percentage(self):
+        target = Target(target=0, actual_q1=4)
+        target.actual_total = target.computed_actual_total()
+
+        self.assertIsNone(target.completion_percentage)
 
 
 class WorkflowPhaseModelTests(TestCase):

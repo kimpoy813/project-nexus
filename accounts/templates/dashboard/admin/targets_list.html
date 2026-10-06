@@ -1,55 +1,70 @@
 {% extends "dashboard/dashboard_base.html" %}
+{% load humanize %}
 {% block content %}
 <div class="nx-page py-6">
-    <div class="flex items-center justify-between mb-4">
-        <h1 class="text-2xl font-bold">Targets ({{ current_year }})</h1>
-        <a href="{% url 'target_create' %}" title="Add Target" class="bg-primary text-white p-2.5 rounded-xl hover:bg-secondary transition flex items-center justify-center shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <div class="flex items-start justify-between gap-4 mb-5">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Extension targets</p>
+            <h1 class="mt-1 text-2xl font-bold text-slate-900">Annual targets ({{ current_year }})</h1>
+            <p class="mt-1 text-sm text-slate-500">One annual target with actual accomplishments tracked by quarter.</p>
+        </div>
+        <a href="{% url 'target_create' %}" title="Add Target" class="bg-primary text-white px-4 py-2.5 rounded-xl hover:bg-secondary transition inline-flex items-center gap-2 shadow-sm font-semibold text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
               <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
             </svg>
+            Add target
         </a>
     </div>
 
     <form method="GET" class="mb-4 flex gap-2 items-center">
-        <select name="year" class="border border-gray-300 rounded-xl p-2 bg-white text-sm outline-none">
+        <label for="target-year" class="text-sm font-semibold text-slate-600">Year</label>
+        <select id="target-year" name="year" class="border border-gray-300 rounded-xl px-3 py-2 bg-white text-sm outline-none">
         {% for y in years %}
             <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
         {% endfor %}
         </select>
-        <button class="p-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition flex items-center justify-center bg-white shadow-sm" type="submit" title="Filter">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-          </svg>
-        </button>
+        <button class="px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition bg-white text-sm font-semibold text-slate-600 shadow-sm" type="submit">View</button>
     </form>
 
-    <div class="bg-white border rounded-lg overflow-hidden">
-        <table class="w-full">
-        <thead class="bg-gray-50">
+    <div class="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
+        <table class="min-w-full text-sm">
+        <thead class="bg-slate-50 text-slate-600">
             <tr>
-            <th class="text-left p-3">Campus</th>
-            <th class="text-left p-3">Metric</th>
-            <th class="text-left p-3">Planned</th>
-            <th class="text-left p-3">Actual</th>
-            <th class="text-left p-3">Actions</th>
+            <th class="text-left p-3 font-semibold">Campus</th>
+            <th class="text-left p-3 font-semibold">Metric</th>
+            <th class="text-center p-3 font-semibold">Annual target</th>
+            <th class="text-center p-3 font-semibold">Quarterly actuals</th>
+            <th class="text-center p-3 font-semibold">Total actual</th>
+            <th class="text-left p-3 font-semibold">Actions</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-slate-100">
             {% for t in targets %}
-            <tr class="border-t">
-            <td class="p-3">{{ t.campus }}</td>
-            <td class="p-3">{{ t.get_metric_display }}</td>
-            <td class="p-3">Q1 {{ t.planned_q1 }} | Q2 {{ t.planned_q2 }} | Q3 {{ t.planned_q3 }} | Q4 {{ t.planned_q4 }}</td>
-            <td class="p-3">Q1 {{ t.actual_q1 }} | Q2 {{ t.actual_q2 }} | Q3 {{ t.actual_q3 }} | Q4 {{ t.actual_q4 }}</td>
+            <tr class="hover:bg-slate-50/70">
+            <td class="p-3 font-medium text-slate-800">{{ t.campus }}</td>
+            <td class="p-3 text-slate-700">{{ t.get_metric_display }}</td>
+            <td class="p-3 text-center font-bold text-primary">{{ t.target|intcomma }}</td>
+            <td class="p-3">
+                <div class="flex flex-wrap justify-center gap-1.5 text-xs">
+                    <span class="rounded-md bg-slate-100 px-2 py-1"><b>Q1</b> {{ t.actual_q1|intcomma }}</span>
+                    <span class="rounded-md bg-slate-100 px-2 py-1"><b>Q2</b> {{ t.actual_q2|intcomma }}</span>
+                    <span class="rounded-md bg-slate-100 px-2 py-1"><b>Q3</b> {{ t.actual_q3|intcomma }}</span>
+                    <span class="rounded-md bg-slate-100 px-2 py-1"><b>Q4</b> {{ t.actual_q4|intcomma }}</span>
+                </div>
+            </td>
+            <td class="p-3 text-center">
+                <div class="font-bold text-slate-900">{{ t.actual_total|intcomma }}</div>
+                {% if t.completion_percentage is not None %}<div class="text-xs text-slate-500">{{ t.completion_percentage }}% achieved</div>{% else %}<div class="text-xs text-slate-400">No target set</div>{% endif %}
+            </td>
             <td class="p-3">
                 <div class="flex items-center gap-2">
                   <a href="{% url 'target_edit' t.id %}" title="Edit Target" class="p-1.5 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h3.828l8.38-8.379-2.83-2.828z" />
                     </svg>
                   </a>
                   <a href="{% url 'target_delete' t.id %}" title="Delete Target" class="p-1.5 rounded-lg border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                   </a>
@@ -57,7 +72,7 @@
             </td>
             </tr>
             {% empty %}
-            <tr><td class="p-3" colspan="5">No targets yet.</td></tr>
+            <tr><td class="p-8 text-center text-slate-500" colspan="6">No targets recorded for {{ current_year }} yet.</td></tr>
             {% endfor %}
         </tbody>
         </table>

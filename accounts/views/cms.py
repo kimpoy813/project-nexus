@@ -45,6 +45,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from ..decorators import admin_required
 from ..forms import PageSectionForm
+from .target_helpers import _parse_target_numbers
 
 PAGE_PUBLIC_URL_NAMES = {
     "home": "details_page",
@@ -1043,26 +1044,26 @@ def home_inline_target_create(request):
     except ValueError:
         messages.error(request, "Year must be a number.")
         return _home_inline_redirect(request)
+    if year_int < 2000 or year_int > 2100:
+        messages.error(request, "Year must be between 2000 and 2100.")
+        return _home_inline_redirect(request)
     if Target.objects.filter(year=year_int, campus=campus, metric=metric).exists():
         messages.error(request, "Target already exists for this year, campus and metric.")
         return _home_inline_redirect(request)
-    try:
-        Target.objects.create(
-            year=year_int,
-            campus=campus,
-            metric=metric,
-            planned_q1=int(request.POST.get("planned_q1") or 0),
-            planned_q2=int(request.POST.get("planned_q2") or 0),
-            planned_q3=int(request.POST.get("planned_q3") or 0),
-            planned_q4=int(request.POST.get("planned_q4") or 0),
-            actual_q1=int(request.POST.get("actual_q1") or 0),
-            actual_q2=int(request.POST.get("actual_q2") or 0),
-            actual_q3=int(request.POST.get("actual_q3") or 0),
-            actual_q4=int(request.POST.get("actual_q4") or 0),
-        )
-    except ValueError:
-        messages.error(request, "Quarter values must be numbers.")
+    if metric not in dict(Target.METRIC_CHOICES):
+        messages.error(request, "Select a valid target metric.")
         return _home_inline_redirect(request)
+    try:
+        values = _parse_target_numbers(request.POST)
+    except ValueError as exc:
+        messages.error(request, str(exc))
+        return _home_inline_redirect(request)
+    Target.objects.create(
+        year=year_int,
+        campus=campus,
+        metric=metric,
+        **values,
+    )
     messages.success(request, f"Target for {campus} ({year_int}) created.")
     return _home_inline_redirect(request)
 
@@ -1073,17 +1074,12 @@ def home_inline_target_create(request):
 def home_inline_target_update(request, pk):
     target = get_object_or_404(Target, pk=pk)
     try:
-        target.planned_q1 = int(request.POST.get("planned_q1") or 0)
-        target.planned_q2 = int(request.POST.get("planned_q2") or 0)
-        target.planned_q3 = int(request.POST.get("planned_q3") or 0)
-        target.planned_q4 = int(request.POST.get("planned_q4") or 0)
-        target.actual_q1 = int(request.POST.get("actual_q1") or 0)
-        target.actual_q2 = int(request.POST.get("actual_q2") or 0)
-        target.actual_q3 = int(request.POST.get("actual_q3") or 0)
-        target.actual_q4 = int(request.POST.get("actual_q4") or 0)
-    except ValueError:
-        messages.error(request, "Quarter values must be numbers.")
+        values = _parse_target_numbers(request.POST)
+    except ValueError as exc:
+        messages.error(request, str(exc))
         return _home_inline_redirect(request)
+    for field, value in values.items():
+        setattr(target, field, value)
     target.save()
     messages.success(request, "Target updated.")
     return _home_inline_redirect(request)
