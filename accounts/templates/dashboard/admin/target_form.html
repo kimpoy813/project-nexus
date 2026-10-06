@@ -1,68 +1,233 @@
 {% extends "dashboard/dashboard_base.html" %}
 {% block content %}
-<div class="nx-page py-6 max-w-5xl">
-    <div class="mb-5">
+<div class="nx-page py-6 max-w-4xl">
+    <nav class="mb-4 flex items-center gap-1.5 text-sm text-slate-500" aria-label="Breadcrumb">
+        <a href="{% url 'targets_list' %}" class="font-semibold text-primary hover:underline">Annual targets</a>
+        <svg class="h-3.5 w-3.5 text-slate-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/></svg>
+        <span class="text-slate-700">{% if target %}Edit target{% else %}Add target{% endif %}</span>
+    </nav>
+
+    <div class="mb-6">
         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Extension targets</p>
-        <h1 class="mt-1 text-2xl font-bold text-slate-900">{% if target %}Edit{% else %}Add{% endif %} annual target</h1>
-        <p class="mt-1 text-sm text-slate-500">Set one target for the year, then record the actual accomplishment for each quarter.</p>
+        <h1 class="mt-1 text-2xl font-bold text-slate-900">{% if target %}Edit annual target{% else %}Add annual target{% endif %}</h1>
+        <p class="mt-1 text-sm text-slate-500">Set one target for the year, then record the actual accomplishment for each quarter as it is completed.</p>
     </div>
 
-    <form method="POST" class="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 space-y-6 shadow-sm">
+    <form method="POST" id="target-form" class="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100" novalidate>
         {% csrf_token %}
 
         {% if not target %}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Year</label>
-                <input type="number" name="year" value="{{ request.POST.year|default:'2026' }}" min="2000" max="2100" class="w-full border border-slate-300 rounded-xl px-3 py-2.5" required>
+        <section class="p-5 md:p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800">What is this target for?</h2>
+                    <p class="text-xs text-slate-500">Each campus can have one target per metric per year.</p>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Campus</label>
-                <select name="campus" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white" required>
-                    <option value="" disabled {% if not request.POST.campus %}selected{% endif %}>Select campus</option>
-                    {% for c in campuses %}
-                    <option value="{{ c }}" {% if request.POST.campus == c %}selected{% endif %}>{{ c }}</option>
-                    {% endfor %}
-                </select>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5" for="field-year">Year <span class="text-red-500">*</span></label>
+                    <input id="field-year" type="number" name="year" value="{{ request.POST.year|default:default_year }}" min="2000" max="2100" inputmode="numeric" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5" for="field-campus">Campus <span class="text-red-500">*</span></label>
+                    <select id="field-campus" name="campus" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                        <option value="" disabled {% if not request.POST.campus and not prefill_campus %}selected{% endif %}>Select campus</option>
+                        {% for c in campuses %}
+                        <option value="{{ c }}" {% if request.POST.campus == c or prefill_campus == c and not request.POST.campus %}selected{% endif %}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1.5" for="field-metric">Metric <span class="text-red-500">*</span></label>
+                    <select id="field-metric" name="metric" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+                        <option value="" disabled {% if not request.POST.metric %}selected{% endif %}>Select metric</option>
+                        {% for value, label in metric_choices %}
+                        <option value="{{ value }}" {% if request.POST.metric == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Metric</label>
-                <select name="metric" class="w-full border border-slate-300 rounded-xl px-3 py-2.5 bg-white" required>
-                    <option value="" disabled {% if not request.POST.metric %}selected{% endif %}>Select metric</option>
-                    {% for value, label in metric_choices %}
-                    <option value="{{ value }}" {% if request.POST.metric == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
+
+            <div id="duplicate-warning" class="hidden mt-4 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+                <svg class="mt-0.5 h-5 w-5 shrink-0 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                <div class="text-sm">
+                    <p class="font-semibold text-amber-800">A target already exists for this combination.</p>
+                    <p class="mt-0.5 text-amber-700">Saving again would create a duplicate, so it is blocked. <a id="duplicate-edit-link" href="#" class="font-semibold underline hover:text-amber-900">Edit the existing target instead</a>.</p>
+                </div>
             </div>
-        </div>
+        </section>
         {% else %}
-        <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Editing</p>
-            <p class="mt-1 font-semibold text-slate-800">{{ target.campus }} · {{ target.get_metric_display }} · {{ target.year }}</p>
-        </div>
+        <section class="p-5 md:p-6">
+            <div class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Editing target</p>
+                    <p class="mt-1 font-semibold text-slate-800">{{ target.campus }} · {{ target.get_metric_display }} · {{ target.year }}</p>
+                </div>
+                <span class="hidden sm:inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{{ target.year }}</span>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">Year, campus, and metric identify this target and can’t be changed. To move it, delete this target and add a new one.</p>
+        </section>
         {% endif %}
 
-        <div>
-            <label class="block text-sm font-semibold text-slate-800 mb-1.5" for="target">Annual target</label>
-            <input id="target" type="number" name="target" min="0" value="{% if target %}{{ target.target }}{% else %}{{ request.POST.target|default:'0' }}{% endif %}" class="w-full md:max-w-xs border-2 border-primary/30 rounded-xl px-4 py-3 text-lg font-bold text-slate-900 focus:border-primary focus:outline-none" required>
-            <p class="mt-1.5 text-xs text-slate-500">This single value replaces separate planned targets for Q1–Q4.</p>
-        </div>
-
-        <fieldset>
-            <legend class="text-sm font-semibold text-slate-800">Quarterly actual accomplishments</legend>
-            <p class="mt-1 text-xs text-slate-500">Update these figures as each quarter is completed. The annual actual total is calculated automatically.</p>
-            <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Actual Q1</label><input type="number" name="actual_q1" min="0" value="{% if target %}{{ target.actual_q1 }}{% else %}{{ request.POST.actual_q1|default:'0' }}{% endif %}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5"></div>
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Actual Q2</label><input type="number" name="actual_q2" min="0" value="{% if target %}{{ target.actual_q2 }}{% else %}{{ request.POST.actual_q2|default:'0' }}{% endif %}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5"></div>
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Actual Q3</label><input type="number" name="actual_q3" min="0" value="{% if target %}{{ target.actual_q3 }}{% else %}{{ request.POST.actual_q3|default:'0' }}{% endif %}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5"></div>
-                <div><label class="block text-xs font-semibold text-slate-600 mb-1">Actual Q4</label><input type="number" name="actual_q4" min="0" value="{% if target %}{{ target.actual_q4 }}{% else %}{{ request.POST.actual_q4|default:'0' }}{% endif %}" class="w-full border border-slate-300 rounded-xl px-3 py-2.5"></div>
+        <section class="p-5 md:p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">{% if target %}1{% else %}2{% endif %}</span>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800">Annual target</h2>
+                    <p class="text-xs text-slate-500">The single goal for the whole year — no separate quarterly targets.</p>
+                </div>
             </div>
-        </fieldset>
+            <label class="sr-only" for="field-target">Annual target</label>
+            <input id="field-target" type="number" name="target" min="0" inputmode="numeric" placeholder="e.g. 120"
+                   value="{% if target %}{{ target.target }}{% else %}{{ request.POST.target|default:'' }}{% endif %}"
+                   class="w-full md:max-w-xs border-2 border-primary/30 rounded-xl px-4 py-3 text-lg font-bold text-slate-900 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition" required>
+            <p id="target-error" class="hidden mt-1.5 text-xs font-semibold text-red-600">Enter the annual target (a whole number, 0 or more).</p>
+        </section>
 
-        <div class="flex gap-2 pt-1">
-            <button class="px-5 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-secondary transition" type="submit">Save target</button>
-            <a class="px-5 py-2.5 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-50 transition" href="{% url 'targets_list' %}">Back</a>
+        <section class="p-5 md:p-6">
+            <div class="flex items-center gap-3 mb-1">
+                <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">{% if target %}2{% else %}3{% endif %}</span>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800">Quarterly actual accomplishments <span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500 align-middle">optional</span></h2>
+                    <p class="text-xs text-slate-500">Leave blank for quarters that haven’t happened yet — blank counts as 0. Update them as the year progresses.</p>
+                </div>
+            </div>
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                {% with q1=target.actual_q1|default_if_none:'' q2=target.actual_q2|default_if_none:'' q3=target.actual_q3|default_if_none:'' q4=target.actual_q4|default_if_none:'' %}
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-q1">Q1 actual</label><input id="field-q1" type="number" name="actual_q1" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ q1 }}{% else %}{{ request.POST.actual_q1 }}{% endif %}" class="actual-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-q2">Q2 actual</label><input id="field-q2" type="number" name="actual_q2" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ q2 }}{% else %}{{ request.POST.actual_q2 }}{% endif %}" class="actual-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-q3">Q3 actual</label><input id="field-q3" type="number" name="actual_q3" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ q3 }}{% else %}{{ request.POST.actual_q3 }}{% endif %}" class="actual-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
+                <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-q4">Q4 actual</label><input id="field-q4" type="number" name="actual_q4" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ q4 }}{% else %}{{ request.POST.actual_q4 }}{% endif %}" class="actual-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
+                {% endwith %}
+            </div>
+
+            <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <p class="text-slate-600">Total actual: <span id="live-total" class="font-bold text-slate-900">0</span>
+                        <span class="text-slate-400">/</span>
+                        <span id="live-target" class="font-semibold text-slate-700">0</span></p>
+                    <p id="live-percent" class="text-xs font-bold text-primary">0% of annual target</p>
+                </div>
+                <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                    <div id="live-bar" class="h-full rounded-full bg-primary transition-all duration-300" style="width:0%"></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:items-center gap-2 p-5 md:px-6">
+            <a class="px-5 py-2.5 text-center border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition" href="{% url 'targets_list' %}{% if target %}?year={{ target.year }}{% endif %}">Cancel</a>
+            <div class="flex-1"></div>
+            {% if not target %}
+            <button class="px-5 py-2.5 border border-primary text-primary font-semibold rounded-xl hover:bg-primary/5 transition" type="submit" name="save_and_add" value="1">Save &amp; add another</button>
+            {% endif %}
+            <button class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-secondary transition shadow-sm" type="submit">{% if target %}Save changes{% else %}Save target{% endif %}</button>
         </div>
     </form>
 </div>
+
+{% if not target %}
+{{ existing_targets_json|json_script:"existing-targets-data" }}
+{% endif %}
+<script>
+(function () {
+    var form = document.getElementById('target-form');
+    if (!form) return;
+
+    /* ---------- Live total / progress ---------- */
+    var targetInput = document.getElementById('field-target');
+    var actualInputs = Array.prototype.slice.call(form.querySelectorAll('.actual-input'));
+    var liveTotal = document.getElementById('live-total');
+    var liveTarget = document.getElementById('live-target');
+    var livePercent = document.getElementById('live-percent');
+    var liveBar = document.getElementById('live-bar');
+
+    function toInt(el) {
+        var v = parseInt(el.value, 10);
+        return isNaN(v) || v < 0 ? 0 : v;
+    }
+
+    function fmt(n) { return n.toLocaleString(); }
+
+    function refreshSummary() {
+        var total = actualInputs.reduce(function (sum, el) { return sum + toInt(el); }, 0);
+        var goal = toInt(targetInput);
+        liveTotal.textContent = fmt(total);
+        liveTarget.textContent = fmt(goal);
+        if (goal > 0) {
+            var pct = Math.round(100 * total / goal);
+            livePercent.textContent = pct + '% of annual target';
+            liveBar.style.width = Math.min(pct, 100) + '%';
+        } else {
+            livePercent.textContent = 'Set an annual target to track progress';
+            liveBar.style.width = '0%';
+        }
+    }
+
+    actualInputs.concat([targetInput]).forEach(function (el) {
+        el.addEventListener('input', refreshSummary);
+    });
+    refreshSummary();
+
+    /* ---------- Required annual target feedback ---------- */
+    var targetError = document.getElementById('target-error');
+    form.addEventListener('submit', function (e) {
+        if (targetInput.value.trim() === '') {
+            e.preventDefault();
+            targetError.classList.remove('hidden');
+            targetInput.classList.add('border-red-400');
+            targetInput.focus();
+        }
+    });
+    targetInput.addEventListener('input', function () {
+        targetError.classList.add('hidden');
+        targetInput.classList.remove('border-red-400');
+    });
+
+    /* ---------- Live duplicate detection (create only) ---------- */
+    var dataEl = document.getElementById('existing-targets-data');
+    if (!dataEl) return;
+    var existing = JSON.parse(dataEl.textContent);
+    var yearEl = document.getElementById('field-year');
+    var campusEl = document.getElementById('field-campus');
+    var metricEl = document.getElementById('field-metric');
+    var warning = document.getElementById('duplicate-warning');
+    var editLink = document.getElementById('duplicate-edit-link');
+    var submitButtons = Array.prototype.slice.call(form.querySelectorAll('button[type="submit"]'));
+
+    function checkDuplicate() {
+        var year = parseInt(yearEl.value, 10);
+        var campus = campusEl.value;
+        var metric = metricEl.value;
+        var match = null;
+        if (year && campus && metric) {
+            for (var i = 0; i < existing.length; i++) {
+                var t = existing[i];
+                if (t.year === year && t.campus === campus && t.metric === metric) { match = t; break; }
+            }
+        }
+        if (match) {
+            warning.classList.remove('hidden');
+            editLink.href = match.edit_url;
+            submitButtons.forEach(function (b) {
+                b.disabled = true;
+                b.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+        } else {
+            warning.classList.add('hidden');
+            submitButtons.forEach(function (b) {
+                b.disabled = false;
+                b.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
+        }
+    }
+
+    [yearEl, campusEl, metricEl].forEach(function (el) {
+        el.addEventListener('input', checkDuplicate);
+        el.addEventListener('change', checkDuplicate);
+    });
+    checkDuplicate();
+})();
+</script>
 {% endblock %}

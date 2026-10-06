@@ -20,7 +20,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
             <div class="grid sm:grid-cols-3 gap-4">
                 <div>
                     <label class="pc-label">Year *</label>
-                    <input type="number" name="year" value="2026" class="pc-input" required min="2000" max="2100">
+                    <input type="number" name="year" value="{% now 'Y' %}" class="pc-input" required min="2000" max="2100">
                 </div>
                 <div>
                     <label class="pc-label">Campus *</label>
@@ -45,12 +45,12 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                 <div class="grid sm:grid-cols-5 gap-3">
                     <div>
                         <label class="pc-label">Annual target *</label>
-                        <input type="number" name="target" min="0" value="0" class="pc-input font-semibold" required>
+                        <input type="number" name="target" min="0" placeholder="e.g. 120" class="pc-input font-semibold" required>
                     </div>
-                    <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" min="0" value="0" class="pc-input"></div>
-                    <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" min="0" value="0" class="pc-input"></div>
-                    <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" min="0" value="0" class="pc-input"></div>
-                    <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" min="0" value="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q1</label><input type="number" name="actual_q1" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q2</label><input type="number" name="actual_q2" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q3</label><input type="number" name="actual_q3" min="0" placeholder="0" class="pc-input"></div>
+                    <div><label class="pc-label">Actual Q4</label><input type="number" name="actual_q4" min="0" placeholder="0" class="pc-input"></div>
                 </div>
             </div>
             <div class="flex justify-end gap-2">

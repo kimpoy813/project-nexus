@@ -12,6 +12,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.urls import reverse
+from django.utils import timezone
+from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
 from details.models import Activity
 from details.models import ActivityDate
@@ -475,33 +478,67 @@ def reorder_process_steps(request, pk):
 @login_required
 @admin_required
 def targets_list(request):
-    year = request.GET.get("year", 2026)
-    targets = Target.objects.filter(year=year).order_by("campus", "metric")
-    years = Target.objects.values_list("year", flat=True).distinct().order_by("-year")
+    current_year = timezone.now().year
+    try:
+        year = int(request.GET.get("year", current_year))
+    except (TypeError, ValueError):
+        year = current_year
 
-    if not years:
-        years = [int(year)]
+    targets = Target.objects.filter(year=year).order_by("campus", "metric")
+    years = list(Target.objects.values_list("year", flat=True).distinct().order_by("-year"))
+
+    # Always offer the selected and current year so the dropdown never dead-ends.
+    for extra in (year, current_year):
+        if extra not in years:
+            years.append(extra)
+    years.sort(reverse=True)
 
     context = {
         "targets": targets,
-        "current_year": int(year),
+        "current_year": year,
         "years": years,
     }
     return render(request, "dashboard/admin/targets_list.html", context)
 
 
-@login_required
-@admin_required
-def target_create(request):
+def _target_form_context(request, *, default_year=None):
+    """Shared context for the create form, including data the template needs
+    for live duplicate detection."""
     # Campus choices must come from the admin-managed Campus table (with the
     # static fallback), NOT from user profiles — profiles are empty on a fresh
     # install, which used to leave this dropdown blank even when the admin had
     # already set up campuses, colleges, and departments.
     campus_choices = [value for value, _label in get_campus_choices()]
-    context = {
+    existing_targets = [
+        {
+            "year": t.year,
+            "campus": t.campus,
+            "metric": t.metric,
+            "edit_url": reverse("target_edit", args=[t.id]),
+        }
+        for t in Target.objects.all().only("id", "year", "campus", "metric")
+    ]
+    return {
         "campuses": campus_choices,
         "metric_choices": Target.METRIC_CHOICES,
+        "default_year": default_year or timezone.now().year,
+        "existing_targets_json": json.dumps(existing_targets),
     }
+
+
+@login_required
+@admin_required
+def target_create(request):
+    # Allow the list page (or "Save & add another") to pre-select year/campus.
+    try:
+        prefill_year = int(request.GET.get("year", ""))
+        if prefill_year < 2000 or prefill_year > 2100:
+            raise ValueError
+    except (TypeError, ValueError):
+        prefill_year = None
+
+    context = _target_form_context(request, default_year=prefill_year)
+    context["prefill_campus"] = (request.GET.get("campus") or "").strip()
 
     if request.method == "POST":
         year = request.POST.get("year")
@@ -522,18 +559,33 @@ def target_create(request):
             return render(request, "dashboard/admin/target_form.html", context)
 
         if Target.objects.filter(year=year, campus=campus, metric=metric).exists():
-            messages.error(request, "Target already exists for this year, campus, and metric.")
-            return redirect("targets_list")
+            # Re-render (not redirect) so the admin keeps everything they typed.
+            messages.error(
+                request,
+                "A target already exists for this year, campus, and metric. "
+                "Edit the existing one instead.",
+            )
+            return render(request, "dashboard/admin/target_form.html", context)
 
-        Target.objects.create(
+        target = Target.objects.create(
             year=year,
             campus=campus,
             metric=metric,
             **values,
         )
 
-        messages.success(request, f"Target created for {campus} ({year})")
-        return redirect("targets_list")
+        messages.success(
+            request,
+            f"Target saved: {target.campus} · {target.get_metric_display()} ({target.year}).",
+        )
+
+        # Admins usually add several metrics for the same campus in one
+        # sitting — keep them in the form with year and campus pre-selected.
+        if request.POST.get("save_and_add"):
+            params = urlencode({"year": year, "campus": campus})
+            return redirect(f"{reverse('target_create')}?{params}")
+
+        return redirect(f"{reverse('targets_list')}?{urlencode({'year': year})}")
 
     return render(request, "dashboard/admin/target_form.html", context)
 
@@ -553,13 +605,14 @@ def target_edit(request, pk):
                 setattr(target, field, value)
             target.save()
             messages.success(request, "Target updated successfully!")
-            return redirect("targets_list")
+            return redirect(f"{reverse('targets_list')}?{urlencode({'year': target.year})}")
 
     return render(request, "dashboard/admin/target_form.html", {"target": target})
 
 
 @login_required
 @admin_required
+@require_POST
 def target_delete(request, pk):
     target = get_object_or_404(Target, pk=pk)
     campus = target.campus
@@ -568,7 +621,7 @@ def target_delete(request, pk):
     target.delete()
 
     messages.success(request, f"Target deleted: {campus} - {metric} ({year})")
-    return redirect("targets_list")
+    return redirect(f"{reverse('targets_list')}?{urlencode({'year': year})}")
 
 
 @login_required
