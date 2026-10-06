@@ -766,7 +766,7 @@ class PageSection(models.Model):
         }
 
 
-def resolve_section_data(section):
+def resolve_section_data(section, request=None):
     """
     Query the data a section's content source needs.
 
@@ -778,12 +778,14 @@ def resolve_section_data(section):
     so the public pages, the admin preview, and the nested editors all read
     exactly the same query. A section bound to a source that has been removed
     from the registry resolves to ``None`` rather than raising, so an outdated
-    row can never take a public page down.
+    row can never take a public page down. ``request`` is optional so public
+    blocks can use safe, accessible GET filters without changing admin
+    previews or existing source callers.
     """
     source = get_content_source(section.layout)
     if source is None:
         return None
-    return source.resolve(section)
+    return source.resolve(section, request=request)
 
 
 class PageContentLog(models.Model):

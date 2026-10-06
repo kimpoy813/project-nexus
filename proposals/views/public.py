@@ -62,6 +62,6 @@ def services_home(request):
         "wizard_steps": STEP_LABELS,
         "total_wizard_steps": TOTAL_STEPS,
         "page": page,
-        "visible_blocks": build_visible_blocks(page),
+        "visible_blocks": build_visible_blocks(page, request=request),
     }
     return render(request, "services/services_home.html", context)

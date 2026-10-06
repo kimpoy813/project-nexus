@@ -2,17 +2,31 @@
 Block: Extension Targets (source key TARGETS).
 
 Renders the year's target vs. actual figures per metric and campus:
-  • a campus filter (pills) that scopes both the summary cards and the
-    per-campus tables — Alpine-driven, degrades to the full list without JS,
+  • accessible year and campus filters that scope the displayed figures,
   • metric summary cards with colour-coded progress bars,
   • per-campus tables with an inline progress bar per metric.
 
-Context: section, data.year, data.overall, data.by_campus
+Context: section, data.year, data.years, data.overall, data.by_campus
 {% endcomment %}
 {% load humanize %}
 {% include "details/blocks/_heading.html" %}
 
 <div class="mt-10" x-data="{ campus: 'all' }">
+    {% if data.years %}
+        <form method="get" class="mb-8 flex flex-wrap items-center justify-center gap-3" aria-label="Filter targets by year">
+            <label for="targets-year" class="text-sm font-semibold text-gray-600">Year</label>
+            <select id="targets-year" name="targets_year" onchange="this.form.submit()"
+                    class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20">
+                {% for year in data.years %}
+                    <option value="{{ year }}" {% if year == data.year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+            <noscript>
+                <button type="submit" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-600 shadow-sm hover:border-primary/50 hover:text-primary transition">View</button>
+            </noscript>
+        </form>
+    {% endif %}
+
     {% if data.by_campus %}
         <p class="mb-5 text-center text-sm font-semibold uppercase tracking-[0.2em] text-primary">
             {{ data.year }} targets
