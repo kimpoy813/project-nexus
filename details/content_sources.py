@@ -87,19 +87,19 @@ class ContentSource:
 # ==============================================================
 
 
-def _resolve_thrust(section):
+def _resolve_thrust(section, request=None):
     from .models import HomeThrust
 
     return {"thrusts": HomeThrust.objects.filter(is_visible=True)}
 
 
-def _resolve_sdg(section):
+def _resolve_sdg(section, request=None):
     from .models import SustainableDevelopmentGoal
 
     return {"goals": SustainableDevelopmentGoal.objects.filter(is_visible=True)}
 
 
-def _resolve_activities(section):
+def _resolve_activities(section, request=None):
     from django.db.models import Max, Min
 
     from .models import Activity
@@ -114,16 +114,31 @@ def _resolve_activities(section):
     return {"activities": qs}
 
 
-def _resolve_targets(section):
+def _resolve_targets(section, request=None):
     from django.db.models import Sum
     from django.utils import timezone
 
     from .models import Target
 
-    year = section.target_year or (
-        Target.objects.order_by("-year").values_list("year", flat=True).first()
-        or timezone.now().year
+    available_years = list(
+        Target.objects.values_list("year", flat=True).distinct().order_by("-year")
     )
+    default_year = section.target_year or (
+        available_years[0] if available_years else timezone.now().year
+    )
+
+    # The section setting remains the default chosen by an administrator, but
+    # the public block can be narrowed to another year through its accessible
+    # GET filter. Invalid/unavailable values fall back to that default.
+    year = default_year
+    requested_year = request.GET.get("targets_year") if request is not None else None
+    try:
+        requested_year = int(requested_year)
+    except (TypeError, ValueError):
+        requested_year = None
+    if requested_year in available_years:
+        year = requested_year
+
     rows = Target.objects.filter(year=year).order_by("campus", "metric")
 
     def _progress(target):
@@ -161,10 +176,15 @@ def _resolve_targets(section):
             "progress": round(100 * actual / target) if target else None,
         }
 
-    return {"year": year, "by_campus": by_campus, "overall": overall}
+    return {
+        "year": year,
+        "years": available_years,
+        "by_campus": by_campus,
+        "overall": overall,
+    }
 
 
-def _resolve_processes(section):
+def _resolve_processes(section, request=None):
     from .models import ExtensionProcess
 
     return {
@@ -174,7 +194,7 @@ def _resolve_processes(section):
     }
 
 
-def _resolve_templates(section):
+def _resolve_templates(section, request=None):
     from .models import DocumentTemplate
 
     return {
@@ -184,7 +204,7 @@ def _resolve_templates(section):
     }
 
 
-def _resolve_personnel(section):
+def _resolve_personnel(section, request=None):
     from .models import Personnel
 
     qs = Personnel.objects.all().order_by("pk")
