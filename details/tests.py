@@ -92,46 +92,39 @@ class HomeSectionHeadingModelTests(TestCase):
 
 
 class TargetModelTests(TestCase):
-    def test_totals_are_calculated_from_quarters(self):
+    def test_actual_total_is_calculated_from_quarters(self):
         target = Target.objects.create(
             year=2026,
             campus="Main Campus",
             metric="programs",
-            planned_q1=10,
-            planned_q2=20,
-            planned_q3=30,
-            planned_q4=40,
+            target=100,
             actual_q1=10,
             actual_q2=20,
             actual_q3=5,
             actual_q4=15,
         )
 
-        self.assertEqual(target.planned_total, 100)
         self.assertEqual(target.actual_total, 50)
         self.assertEqual(target.completion_percentage, 50)
 
-    def test_totals_stay_in_sync_after_an_update_fields_save(self):
+    def test_actual_total_stays_in_sync_after_an_update_fields_save(self):
         target = Target.objects.create(
             year=2026,
             campus="Urdaneta",
             metric="partners",
-            planned_q1=5,
-            planned_q2=15,
+            target=30,
             actual_q1=2,
         )
 
         target.actual_q2 = 3
-        target.planned_q3 = 10
-        target.save(update_fields=["actual_q2", "planned_q3"])
+        target.save(update_fields=["actual_q2"])
         target.refresh_from_db()
 
-        self.assertEqual(target.planned_total, 30)
+        self.assertEqual(target.target, 30)
         self.assertEqual(target.actual_total, 5)
 
-    def test_zero_plan_has_no_completion_percentage(self):
-        target = Target(planned_q1=0, actual_q1=4)
-        target.planned_total = target.computed_planned_total()
+    def test_zero_target_has_no_completion_percentage(self):
+        target = Target(target=0, actual_q1=4)
         target.actual_total = target.computed_actual_total()
 
         self.assertIsNone(target.completion_percentage)
