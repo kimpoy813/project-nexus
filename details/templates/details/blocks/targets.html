@@ -81,7 +81,7 @@ Context: section, data.year, data.overall, data.by_campus
                         {% for t in campus_targets %}
                         <tr class="border-b last:border-0 hover:bg-gray-50">
                             <td class="px-4 py-3 font-medium text-gray-800">{{ t.label }}</td>
-                            <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.planned|intcomma }}</td>
+                            <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.target|intcomma }}</td>
                             <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.actual|intcomma }}</td>
                             <td class="px-4 py-3">
                                 {% if t.progress is not None %}

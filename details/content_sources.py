@@ -127,16 +127,16 @@ def _resolve_targets(section):
     rows = Target.objects.filter(year=year).order_by("campus", "metric")
 
     def _progress(target):
-        if not target.planned_total:
+        if not target.target:
             return None
-        return round(100 * target.actual_total / target.planned_total)
+        return round(100 * target.actual_total / target.target)
 
     by_campus = OrderedDict()
     for row in rows:
         by_campus.setdefault(row.campus, []).append({
             "key": row.metric,
             "label": row.get_metric_display(),
-            "planned": row.planned_total,
+            "target": row.target,
             "actual": row.actual_total,
             "progress": _progress(row),
         })
@@ -150,15 +150,15 @@ def _resolve_targets(section):
     overall = {}
     for key, label in Target.METRIC_CHOICES:
         sums = rows.filter(metric=key).aggregate(
-            planned=Sum("planned_total"), actual=Sum("actual_total")
+            target=Sum("target"), actual=Sum("actual_total")
         )
-        planned = sums["planned"] or 0
+        target = sums["target"] or 0
         actual = sums["actual"] or 0
         overall[key] = {
             "label": label,
-            "planned": planned,
+            "target": target,
             "actual": actual,
-            "progress": round(100 * actual / planned) if planned else None,
+            "progress": round(100 * actual / target) if target else None,
         }
 
     return {"year": year, "by_campus": by_campus, "overall": overall}

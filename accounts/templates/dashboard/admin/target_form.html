@@ -10,7 +10,7 @@
     <div class="mb-6">
         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Extension targets</p>
         <h1 class="mt-1 text-2xl font-bold text-slate-900">{% if target %}Edit target{% else %}Add target{% endif %}</h1>
-        <p class="mt-1 text-sm text-slate-500">Plan the target for each quarter, then record the actual accomplishment for each quarter as it is completed.</p>
+        <p class="mt-1 text-sm text-slate-500">Set one target for the whole year, then record the actual accomplishment for each quarter as it is completed.</p>
     </div>
 
     <form method="POST" id="target-form" class="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100" novalidate>
@@ -75,21 +75,17 @@
             <div class="flex items-center gap-3 mb-4">
                 <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">{% if target %}1{% else %}2{% endif %}</span>
                 <div>
-                    <h2 class="text-sm font-bold text-slate-800">Quarterly figures</h2>
-                    <p class="text-xs text-slate-500">Targets and actual accomplishments are both recorded by quarter — leave blank what hasn’t been set yet, blank counts as 0.</p>
+                    <h2 class="text-sm font-bold text-slate-800">Target &amp; accomplishments</h2>
+                    <p class="text-xs text-slate-500">The target is one figure for the entire year — accomplishments are recorded by quarter as they happen. Blank counts as 0.</p>
                 </div>
             </div>
 
             <div class="grid gap-6 xl:grid-cols-2">
                 <div class="rounded-xl border border-primary/15 bg-white p-4">
-                    <p class="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-primary">Target by quarter</p>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-pq1">Q1 target</label><input id="field-pq1" type="number" name="planned_q1" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ target.planned_q1 }}{% else %}{{ request.POST.planned_q1 }}{% endif %}" class="planned-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
-                        <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-pq2">Q2 target</label><input id="field-pq2" type="number" name="planned_q2" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ target.planned_q2 }}{% else %}{{ request.POST.planned_q2 }}{% endif %}" class="planned-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
-                        <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-pq3">Q3 target</label><input id="field-pq3" type="number" name="planned_q3" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ target.planned_q3 }}{% else %}{{ request.POST.planned_q3 }}{% endif %}" class="planned-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
-                        <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-pq4">Q4 target</label><input id="field-pq4" type="number" name="planned_q4" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ target.planned_q4 }}{% else %}{{ request.POST.planned_q4 }}{% endif %}" class="planned-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
-                    </div>
-                    <p class="mt-3 text-xs text-slate-500">Target total: <span id="live-planned" class="font-bold text-slate-800">0</span></p>
+                    <p class="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-primary">Yearly target</p>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1" for="field-target">Target for the whole year <span class="text-red-500">*</span></label>
+                    <input id="field-target" type="number" name="target" min="0" inputmode="numeric" placeholder="0" required value="{% if target %}{{ target.target }}{% else %}{{ request.POST.target }}{% endif %}" class="target-input w-full border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
+                    <p class="mt-2 text-xs text-slate-500">A single annual figure — the target is not split by quarter.</p>
                 </div>
 
                 <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
@@ -137,9 +133,8 @@
     if (!form) return;
 
     /* ---------- Live totals / progress ---------- */
-    var plannedInputs = Array.prototype.slice.call(form.querySelectorAll('.planned-input'));
+    var targetInput = form.querySelector('.target-input');
     var actualInputs = Array.prototype.slice.call(form.querySelectorAll('.actual-input'));
-    var livePlanned = document.getElementById('live-planned');
     var liveTotal = document.getElementById('live-total');
     var liveTotalMain = document.getElementById('live-total-main');
     var liveTargetMain = document.getElementById('live-target-main');
@@ -154,14 +149,13 @@
     function fmt(n) { return n.toLocaleString(); }
 
     function refreshSummary() {
-        var planned = plannedInputs.reduce(function (sum, el) { return sum + toInt(el); }, 0);
+        var target = toInt(targetInput);
         var total = actualInputs.reduce(function (sum, el) { return sum + toInt(el); }, 0);
-        livePlanned.textContent = fmt(planned);
         liveTotal.textContent = fmt(total);
         liveTotalMain.textContent = fmt(total);
-        liveTargetMain.textContent = fmt(planned);
-        if (planned > 0) {
-            var pct = Math.round(100 * total / planned);
+        liveTargetMain.textContent = fmt(target);
+        if (target > 0) {
+            var pct = Math.round(100 * total / target);
             livePercent.textContent = pct + '% of target';
             liveBar.style.width = Math.min(pct, 100) + '%';
             liveBar.className = 'h-full rounded-full transition-all duration-300 ' + (pct >= 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-primary' : 'bg-amber-500');
@@ -173,7 +167,8 @@
         }
     }
 
-    plannedInputs.concat(actualInputs).forEach(function (el) {
+    actualInputs.unshift(targetInput);
+    actualInputs.forEach(function (el) {
         el.addEventListener('input', refreshSummary);
     });
     refreshSummary();

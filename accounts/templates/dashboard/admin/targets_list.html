@@ -32,7 +32,7 @@
             <tr>
             <th class="text-left p-3 font-semibold">Campus</th>
             <th class="text-left p-3 font-semibold">Metric</th>
-            <th class="text-center p-3 font-semibold">Target (Q1–Q4)</th>
+            <th class="text-center p-3 font-semibold">Target (yearly)</th>
             <th class="text-center p-3 font-semibold">Actual (Q1–Q4)</th>
             <th class="text-center p-3 font-semibold">Progress</th>
             <th class="text-left p-3 font-semibold">Actions</th>
@@ -43,14 +43,9 @@
             <tr class="hover:bg-slate-50/70">
             <td class="p-3 font-medium text-slate-800">{{ t.campus }}</td>
             <td class="p-3 text-slate-700">{{ t.get_metric_display }}</td>
-            <td class="p-3">
-                <div class="flex flex-wrap justify-center gap-1.5 text-xs">
-                    <span class="rounded-md bg-primary/10 px-2 py-1"><b>Q1</b> {{ t.planned_q1|intcomma }}</span>
-                    <span class="rounded-md bg-primary/10 px-2 py-1"><b>Q2</b> {{ t.planned_q2|intcomma }}</span>
-                    <span class="rounded-md bg-primary/10 px-2 py-1"><b>Q3</b> {{ t.planned_q3|intcomma }}</span>
-                    <span class="rounded-md bg-primary/10 px-2 py-1"><b>Q4</b> {{ t.planned_q4|intcomma }}</span>
-                </div>
-                <p class="mt-1 text-center text-xs font-bold text-primary">Total: {{ t.planned_total|intcomma }}</p>
+            <td class="p-3 text-center">
+                <span class="text-base font-bold text-primary tabular-nums">{{ t.target|intcomma }}</span>
+                <p class="mt-0.5 text-[0.65rem] text-slate-400">for the year</p>
             </td>
             <td class="p-3">
                 <div class="flex flex-wrap justify-center gap-1.5 text-xs">
