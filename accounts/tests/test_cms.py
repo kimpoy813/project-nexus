@@ -464,7 +464,7 @@ class HomeInlineSectionEditorTests(TestCase):
         process = ExtensionProcess.objects.create(title="INLINE-PROC-MARKER")
         target = Target.objects.create(
             year=2026, campus="Main Campus", metric="programs",
-            target=1,
+            planned_q1=1,
         )
 
         response = self.client_admin.get(reverse("page_content_edit", args=["home"]))
@@ -560,7 +560,7 @@ class HomeInlineSectionEditorTests(TestCase):
 
         target = Target.objects.create(
             year=2026, campus="Urdaneta", metric="programs",
-            target=4, actual_q1=1,
+            planned_q1=4, actual_q1=1,
         )
         section = self._section(PageSection.Layout.TARGETS)
         next_url = reverse("page_section_edit", args=[section.id])
@@ -568,7 +568,10 @@ class HomeInlineSectionEditorTests(TestCase):
         response = self.client_admin.post(
             reverse("home_inline_target_update", args=[target.id]),
             {
-                "target": "10",
+                "planned_q1": "10",
+                "planned_q2": "0",
+                "planned_q3": "0",
+                "planned_q4": "0",
                 "actual_q1": "5",
                 "actual_q2": "0",
                 "actual_q3": "0",
@@ -578,20 +581,21 @@ class HomeInlineSectionEditorTests(TestCase):
         )
         self.assertRedirects(response, next_url)
         target.refresh_from_db()
-        self.assertEqual(target.target, 10)
+        self.assertEqual(target.planned_q1, 10)
+        self.assertEqual(target.planned_total, 10)
         self.assertEqual(target.actual_q1, 5)
         self.assertEqual(target.actual_total, 5)
 
-    def test_inline_target_editor_uses_one_target_and_quarterly_actuals(self):
+    def test_inline_target_editor_uses_planned_and_actual_quarters(self):
         response = self.client_admin.get(reverse("page_content_edit", args=["home"]))
 
-        self.assertContains(response, 'name="target"')
+        self.assertContains(response, 'name="planned_q1"')
+        self.assertContains(response, 'name="planned_q4"')
         self.assertContains(response, 'name="actual_q1"')
         self.assertContains(response, 'name="actual_q4"')
-        self.assertNotContains(response, 'name="planned_q1"')
-        self.assertNotContains(response, 'name="planned_q4"')
+        self.assertNotContains(response, 'name="target"')
 
-    def test_inline_target_create_saves_one_target_and_four_actuals(self):
+    def test_inline_target_create_saves_planned_and_actual_quarters(self):
         from details.models import Target
 
         response = self.client_admin.post(
@@ -600,7 +604,10 @@ class HomeInlineSectionEditorTests(TestCase):
                 "year": "2026",
                 "campus": "Main Campus",
                 "metric": "programs",
-                "target": "40",
+                "planned_q1": "10",
+                "planned_q2": "10",
+                "planned_q3": "10",
+                "planned_q4": "10",
                 "actual_q1": "4",
                 "actual_q2": "5",
                 "actual_q3": "6",
@@ -610,7 +617,7 @@ class HomeInlineSectionEditorTests(TestCase):
 
         self.assertRedirects(response, reverse("page_content_edit", args=["home"]))
         target = Target.objects.get(year=2026, campus="Main Campus", metric="programs")
-        self.assertEqual(target.target, 40)
+        self.assertEqual(target.planned_total, 40)
         self.assertEqual(target.actual_total, 22)
 
     def test_an_external_next_url_is_ignored_for_personnel(self):
@@ -656,7 +663,7 @@ class OtherPageInlineEditorTests(TestCase):
 
         target = Target.objects.create(
             year=2026, campus="Main Campus", metric="programs",
-            target=8, actual_q1=3,
+            planned_q4=8, actual_q1=3,
         )
         response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
         self.assertContains(response, "home-targets-inline")
@@ -703,13 +710,16 @@ class OtherPageInlineEditorTests(TestCase):
 
         target = Target.objects.create(
             year=2026, campus="Sta. Maria", metric="partners",
-            target=2, actual_q1=1,
+            planned_q1=2, actual_q1=1,
         )
         next_url = reverse("page_content_edit", args=["reports"])
         response = self.client_admin.post(
             reverse("home_inline_target_update", args=[target.id]),
             {
-                "target": "3",
+                "planned_q1": "3",
+                "planned_q2": "0",
+                "planned_q3": "0",
+                "planned_q4": "0",
                 "actual_q1": "1",
                 "actual_q2": "0",
                 "actual_q3": "0",
@@ -719,7 +729,7 @@ class OtherPageInlineEditorTests(TestCase):
         )
         self.assertRedirects(response, next_url)
         target.refresh_from_db()
-        self.assertEqual(target.target, 3)
+        self.assertEqual(target.planned_q1, 3)
 
 
 class WorkflowPhaseTests(TestCase):
@@ -936,45 +946,45 @@ class PageBlockTests(TestCase):
 
         Target.objects.create(
             year=2025, campus="Main Campus", metric="programs",
-            target=10, actual_q1=9,
+            planned_q4=10, actual_q1=9,
         )
         Target.objects.create(
             year=2026, campus="Main Campus", metric="programs",
-            target=20, actual_q1=11,
+            planned_q4=20, actual_q1=11,
         )
 
         self._add_block("reports", "TARGETS")
 
         response = self.client.get(reverse("reports_page"))
-        self.assertContains(response, "2026 performance overview")
-        self.assertContains(response, "actual of 20 target")
-        self.assertNotContains(response, "actual of 10 target")
+        self.assertContains(response, "2026 targets")
+        self.assertContains(response, "Planned: 20")
+        self.assertNotContains(response, "Planned: 10")
 
     def test_targets_block_respects_target_year(self):
         from details.models import Target
 
         Target.objects.create(
             year=2025, campus="Main Campus", metric="programs",
-            target=10, actual_q1=9,
+            planned_q4=10, actual_q1=9,
         )
         Target.objects.create(
             year=2026, campus="Main Campus", metric="programs",
-            target=20, actual_q1=11,
+            planned_q4=20, actual_q1=11,
         )
 
         self._add_block("reports", "TARGETS", target_year="2025")
 
         response = self.client.get(reverse("reports_page"))
-        self.assertContains(response, "2025 performance overview")
-        self.assertContains(response, "actual of 10 target")
-        self.assertNotContains(response, "actual of 20 target")
+        self.assertContains(response, "2025 targets")
+        self.assertContains(response, "Planned: 10")
+        self.assertNotContains(response, "Planned: 20")
 
     def test_targets_block_shows_progress_percentages(self):
         from details.models import Target
 
         Target.objects.create(
             year=2026, campus="Main Campus", metric="participants",
-            target=200, actual_q1=50,
+            planned_q4=200, actual_q1=50,
         )
 
         self._add_block("reports", "TARGETS")
