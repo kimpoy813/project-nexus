@@ -126,56 +126,33 @@ def _resolve_targets(section):
     )
     rows = Target.objects.filter(year=year).order_by("campus", "metric")
 
-    def _progress_data(target_value, actual_value):
-        if not target_value:
-            return {
-                "progress": None,
-                "progress_width": 0,
-                "remaining": 0,
-                "status": "No target set",
-            }
-        progress = round(100 * actual_value / target_value)
-        if progress > 100:
-            status = "Target exceeded"
-        elif progress == 100:
-            status = "Target achieved"
-        else:
-            status = "In progress"
-        return {
-            "progress": progress,
-            "progress_width": min(progress, 100),
-            "remaining": max(target_value - actual_value, 0),
-            "status": status,
-        }
+    def _progress(target):
+        if not target.planned_total:
+            return None
+        return round(100 * target.actual_total / target.planned_total)
 
     by_campus = OrderedDict()
     for row in rows:
-        item = {
+        by_campus.setdefault(row.campus, []).append({
             "label": row.get_metric_display(),
-            "target": row.target,
+            "planned": row.planned_total,
             "actual": row.actual_total,
-            "quarters": [
-                {"label": f"Q{quarter}", "actual": getattr(row, f"actual_q{quarter}")}
-                for quarter in range(1, 5)
-            ],
-        }
-        item.update(_progress_data(row.target, row.actual_total))
-        by_campus.setdefault(row.campus, []).append(item)
+            "progress": _progress(row),
+        })
 
     overall = {}
     for key, label in Target.METRIC_CHOICES:
         sums = rows.filter(metric=key).aggregate(
-            target=Sum("target"), actual=Sum("actual_total")
+            planned=Sum("planned_total"), actual=Sum("actual_total")
         )
-        target_value = sums["target"] or 0
-        actual_value = sums["actual"] or 0
-        item = {
+        planned = sums["planned"] or 0
+        actual = sums["actual"] or 0
+        overall[key] = {
             "label": label,
-            "target": target_value,
-            "actual": actual_value,
+            "planned": planned,
+            "actual": actual,
+            "progress": round(100 * actual / planned) if planned else None,
         }
-        item.update(_progress_data(target_value, actual_value))
-        overall[key] = item
 
     return {"year": year, "by_campus": by_campus, "overall": overall}
 
@@ -239,7 +216,7 @@ _SOURCES = (
     ContentSource(
         key="TARGETS",
         label="Extension Targets",
-        description="Annual targets and quarterly actual accomplishments, by campus.",
+        description="Planned vs. actual figures for a year, by campus.",
         block_template="details/blocks/targets.html",
         resolve=_resolve_targets,
         manager_url_name="targets_list",
