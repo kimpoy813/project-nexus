@@ -16,14 +16,28 @@
         </a>
     </div>
 
-    <form method="GET" class="mb-4 flex gap-2 items-center">
-        <label for="target-year" class="text-sm font-semibold text-slate-600">Year</label>
-        <select id="target-year" name="year" onchange="this.form.submit()" class="border border-gray-300 rounded-xl px-3 py-2 bg-white text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition">
-        {% for y in years %}
-            <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
-        {% endfor %}
-        </select>
-        <noscript><button class="px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition bg-white text-sm font-semibold text-slate-600 shadow-sm" type="submit">View</button></noscript>
+    <form method="GET" class="mb-5 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                    <path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"></path>
+                </svg>
+            </span>
+            <div>
+                <label for="target-year" class="block text-sm font-bold text-slate-800">Reporting year</label>
+                <p id="target-year-help" class="mt-0.5 text-xs text-slate-500">Choose a year to review campus targets and accomplishments.</p>
+            </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">{{ targets|length }} target{{ targets|length|pluralize }} in {{ current_year }}</span>
+            <select id="target-year" name="year" aria-describedby="target-year-help" class="min-w-[8rem] flex-1 border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-sm font-bold text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition">
+            {% for y in years %}
+                <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+            </select>
+            <button class="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition" type="submit">View targets</button>
+        </div>
     </form>
 
     <div class="bg-white border border-slate-200 rounded-2xl overflow-x-auto shadow-sm">
