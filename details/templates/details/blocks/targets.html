@@ -1,110 +1,138 @@
 {% comment %}
 Block: Extension Targets (source key TARGETS).
 
-Renders the year's target vs. actual figures per metric and campus:
+Renders target vs. actual figures per metric and campus:
+  • a year filter (pills) listing every year that has data, styled like the
+    campus filter — Alpine-driven, degrades to the default year without JS,
   • a campus filter (pills) that scopes both the summary cards and the
-    per-campus tables — Alpine-driven, degrades to the full list without JS,
+    per-campus tables,
   • metric summary cards with colour-coded progress bars,
   • per-campus tables with an inline progress bar per metric.
 
-Context: section, data.year, data.overall, data.by_campus
+Context: section, data.year, data.available_years, data.years,
+         data.by_campus, data.overall
 {% endcomment %}
 {% load humanize %}
 {% include "details/blocks/_heading.html" %}
 
-<div class="mt-10" x-data="{ campus: 'all' }">
-    {% if data.by_campus %}
-        <p class="mb-5 text-center text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-            {{ data.year }} targets
-        </p>
+<div class="mt-10" x-data="{ year: {{ data.year|default:0 }}, campus: 'all' }">
+    {% if data.years %}
 
-        {# ---------- Campus filter ---------- #}
-        <div class="mb-8 flex flex-wrap justify-center gap-2" role="group" aria-label="Filter targets by campus">
-            <button type="button"
-                    @click="campus = 'all'"
-                    :aria-pressed="campus === 'all' ? 'true' : 'false'"
-                    :class="campus === 'all' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50 hover:text-primary'"
-                    class="rounded-full border px-4 py-1.5 text-sm font-semibold transition">
-                All campuses
-            </button>
-            {% for campus in data.by_campus %}
+        {# ---------- Year filter (shown when more than one year has data) ---------- #}
+        {% if data.available_years|length > 1 %}
+        <div class="mb-6 flex flex-wrap justify-center gap-2" role="group" aria-label="Filter targets by year">
+            {% for y in data.available_years %}
                 <button type="button"
-                        @click="campus = '{{ campus|escapejs }}'"
-                        :aria-pressed="campus === '{{ campus|escapejs }}' ? 'true' : 'false'"
-                        :class="campus === '{{ campus|escapejs }}' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50 hover:text-primary'"
-                        class="rounded-full border px-4 py-1.5 text-sm font-semibold transition">
-                    {{ campus }}
+                        @click="year = {{ y }}"
+                        :aria-pressed="year === {{ y }} ? 'true' : 'false'"
+                        :class="year === {{ y }} ? 'bg-primary border-primary text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50 hover:text-primary'"
+                        class="rounded-full border px-4 py-1.5 text-sm font-semibold tabular-nums transition">
+                    {{ y }}
                 </button>
             {% endfor %}
         </div>
+        {% endif %}
 
-        {# ---------- Metric summary cards (follow the campus filter) ---------- #}
-        <div class="mb-8">
-            <div x-show="campus === 'all'">
-                <p class="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">All campuses combined</p>
-                <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    {% for key, metric in data.overall.items %}
-                        {% include "details/blocks/_target_metric_card.html" %}
-                    {% endfor %}
-                </div>
+        {% for y, yd in data.years.items %}
+        <div x-show="year === {{ y }}" {% if y != data.year %}x-cloak{% endif %}>
+            <p class="mb-5 text-center text-sm font-semibold uppercase tracking-[0.2em] text-primary">
+                {{ y }} targets
+            </p>
+
+            {# ---------- Campus filter ---------- #}
+            <div class="mb-8 flex flex-wrap justify-center gap-2" role="group" aria-label="Filter targets by campus">
+                <button type="button"
+                        @click="campus = 'all'"
+                        :aria-pressed="campus === 'all' ? 'true' : 'false'"
+                        :class="campus === 'all' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50 hover:text-primary'"
+                        class="rounded-full border px-4 py-1.5 text-sm font-semibold transition">
+                    All campuses
+                </button>
+                {% for campus in yd.by_campus %}
+                    <button type="button"
+                            @click="campus = '{{ campus|escapejs }}'"
+                            :aria-pressed="campus === '{{ campus|escapejs }}' ? 'true' : 'false'"
+                            :class="campus === '{{ campus|escapejs }}' ? 'bg-primary border-primary text-white shadow-sm' : 'bg-white border-gray-200 text-gray-600 hover:border-primary/50 hover:text-primary'"
+                            class="rounded-full border px-4 py-1.5 text-sm font-semibold transition">
+                        {{ campus }}
+                    </button>
+                {% endfor %}
             </div>
-            {% for campus, campus_targets in data.by_campus.items %}
-                <div x-show="campus === '{{ campus|escapejs }}'" x-cloak>
-                    <p class="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">{{ campus }}</p>
+
+            {# ---------- Metric summary cards (follow the campus filter) ---------- #}
+            <div class="mb-8">
+                <div x-show="campus === 'all'">
+                    <p class="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">All campuses combined</p>
                     <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-                        {% for metric in campus_targets %}
+                        {% for key, metric in yd.overall.items %}
                             {% include "details/blocks/_target_metric_card.html" %}
                         {% endfor %}
                     </div>
                 </div>
-            {% endfor %}
-        </div>
+                {% for campus, campus_targets in yd.by_campus.items %}
+                    <div x-show="campus === '{{ campus|escapejs }}'" x-cloak>
+                        <p class="mb-3 text-center text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">{{ campus }}</p>
+                        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            {% for metric in campus_targets %}
+                                {% include "details/blocks/_target_metric_card.html" %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
 
-        {# ---------- Per-campus tables (follow the campus filter) ---------- #}
-        {% for campus, campus_targets in data.by_campus.items %}
-        <div class="mb-8" x-show="campus === 'all' || campus === '{{ campus|escapejs }}'">
-            <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h3 class="text-xl font-semibold text-primary">{{ campus }}</h3>
-                <span class="text-xs font-semibold text-gray-400">{{ campus_targets|length }} metric{{ campus_targets|length|pluralize }}</span>
+                {# Selected campus has no targets recorded for this year. #}
+                <div x-show="campus !== 'all' && ![{% for campus in yd.by_campus %}'{{ campus|escapejs }}'{% if not forloop.last %}, {% endif %}{% endfor %}].includes(campus)" x-cloak>
+                    <p class="py-10 text-center text-sm text-gray-400">No targets recorded for that campus in {{ y }} yet.</p>
+                </div>
             </div>
-            <div class="overflow-x-auto bg-white rounded-xl border border-gray-100 shadow-sm">
-                <table class="min-w-full text-sm text-left">
-                    <thead class="bg-gray-100 text-gray-700">
-                        <tr>
-                            <th class="px-4 py-2">Metric</th>
-                            <th class="px-4 py-2 text-center">Target</th>
-                            <th class="px-4 py-2 text-center">Actual</th>
-                            <th class="px-4 py-2 w-2/5">Progress</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in campus_targets %}
-                        <tr class="border-b last:border-0 hover:bg-gray-50">
-                            <td class="px-4 py-3 font-medium text-gray-800">{{ t.label }}</td>
-                            <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.target|intcomma }}</td>
-                            <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.actual|intcomma }}</td>
-                            <td class="px-4 py-3">
-                                {% if t.progress is not None %}
-                                    <div class="flex items-center gap-3"
-                                         role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ t.progress }}"
-                                         aria-label="{{ t.label }}: {{ t.progress }}% of target">
-                                        <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                                            <div class="h-full rounded-full {% if t.progress >= 100 %}bg-emerald-500{% elif t.progress >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}"
-                                                 style="width: {% if t.progress > 100 %}100{% else %}{{ t.progress }}{% endif %}%"></div>
+
+            {# ---------- Per-campus tables (follow the campus filter) ---------- #}
+            {% for campus, campus_targets in yd.by_campus.items %}
+            <div class="mb-8" x-show="campus === 'all' || campus === '{{ campus|escapejs }}'">
+                <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                    <h3 class="text-xl font-semibold text-primary">{{ campus }}</h3>
+                    <span class="text-xs font-semibold text-gray-400">{{ campus_targets|length }} metric{{ campus_targets|length|pluralize }}</span>
+                </div>
+                <div class="overflow-x-auto bg-white rounded-xl border border-gray-100 shadow-sm">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-gray-100 text-gray-700">
+                            <tr>
+                                <th class="px-4 py-2">Metric</th>
+                                <th class="px-4 py-2 text-center">Target</th>
+                                <th class="px-4 py-2 text-center">Actual</th>
+                                <th class="px-4 py-2 w-2/5">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in campus_targets %}
+                            <tr class="border-b last:border-0 hover:bg-gray-50">
+                                <td class="px-4 py-3 font-medium text-gray-800">{{ t.label }}</td>
+                                <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.target|intcomma }}</td>
+                                <td class="px-4 py-3 text-center tabular-nums text-gray-700">{{ t.actual|intcomma }}</td>
+                                <td class="px-4 py-3">
+                                    {% if t.progress is not None %}
+                                        <div class="flex items-center gap-3"
+                                             role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ t.progress }}"
+                                             aria-label="{{ t.label }}: {{ t.progress }}% of target">
+                                            <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                                                <div class="h-full rounded-full {% if t.progress >= 100 %}bg-emerald-500{% elif t.progress >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}"
+                                                     style="width: {% if t.progress > 100 %}100{% else %}{{ t.progress }}{% endif %}%"></div>
+                                            </div>
+                                            <span class="w-12 shrink-0 text-right text-xs font-bold tabular-nums {% if t.progress >= 100 %}text-emerald-600{% elif t.progress >= 50 %}text-primary{% else %}text-amber-600{% endif %}">
+                                                {{ t.progress }}%
+                                            </span>
                                         </div>
-                                        <span class="w-12 shrink-0 text-right text-xs font-bold tabular-nums {% if t.progress >= 100 %}text-emerald-600{% elif t.progress >= 50 %}text-primary{% else %}text-amber-600{% endif %}">
-                                            {{ t.progress }}%
-                                        </span>
-                                    </div>
-                                {% else %}
-                                    <span class="text-xs text-gray-400">No target set</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">No target set</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
+            {% endfor %}
         </div>
         {% endfor %}
     {% else %}

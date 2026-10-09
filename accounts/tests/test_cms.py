@@ -946,7 +946,9 @@ class PageBlockTests(TestCase):
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "2026 targets")
         self.assertContains(response, "55% of target")
-        self.assertNotContains(response, "90% of target")
+        # Every year with data is rendered for the client-side year filter,
+        # but the block opens on the newest one.
+        self.assertContains(response, "year: 2026")
 
     def test_targets_block_respects_target_year(self):
         from details.models import Target
@@ -965,7 +967,44 @@ class PageBlockTests(TestCase):
         response = self.client.get(reverse("reports_page"))
         self.assertContains(response, "2025 targets")
         self.assertContains(response, "90% of target")
-        self.assertNotContains(response, "55% of target")
+        # The configured year is the one the block opens on.
+        self.assertContains(response, "year: 2025")
+
+    def test_targets_block_renders_a_year_filter(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2025, campus="Main Campus", metric="programs",
+            target=10, actual_q1=9,
+        )
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            target=20, actual_q1=11,
+        )
+
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"))
+
+        # The filter group offers every year that has data, styled as pills
+        # like the campus filter.
+        self.assertContains(response, 'aria-label="Filter targets by year"')
+        self.assertContains(response, "@click=\"year = 2025\"")
+        self.assertContains(response, "@click=\"year = 2026\"")
+
+    def test_targets_block_hides_the_year_filter_for_a_single_year(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            target=10, actual_q1=9,
+        )
+
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"))
+        self.assertNotContains(response, 'aria-label="Filter targets by year"')
+        self.assertContains(response, "2026 targets")
 
     def test_targets_block_shows_progress_percentages(self):
         from details.models import Target
