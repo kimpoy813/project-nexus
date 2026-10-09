@@ -27,16 +27,16 @@
             <div>
                 <label for="target-year" class="block text-sm font-bold text-slate-800">Reporting year</label>
                 <p id="target-year-help" class="mt-0.5 text-xs text-slate-500">Choose a year to review campus targets and accomplishments.</p>
+                <p class="mt-1.5 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ targets|length }} target{{ targets|length|pluralize }} in {{ current_year }}</p>
             </div>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
-            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">{{ targets|length }} target{{ targets|length|pluralize }} in {{ current_year }}</span>
-            <select id="target-year" name="year" aria-describedby="target-year-help" class="min-w-[8rem] flex-1 border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-sm font-bold text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition">
+        <div class="flex flex-nowrap items-center gap-2">
+            <select id="target-year" name="year" aria-describedby="target-year-help" class="h-10 w-28 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-primary outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20">
             {% for y in years %}
                 <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
             </select>
-            <button class="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary transition" type="submit">View targets</button>
+            <button class="h-10 whitespace-nowrap rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" type="submit">View targets</button>
         </div>
     </form>
 
