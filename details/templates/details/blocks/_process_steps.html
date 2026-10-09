@@ -1,0 +1,43 @@
+{% comment %}
+One level of an Extension Process's step tree.
+
+Included recursively, so a step can sit at any depth. Depth 0 is the numbered
+timeline row; deeper rows are indented bullets. Context: nodes (from
+ExtensionProcess.step_tree).
+{% endcomment %}
+{% for node in nodes %}
+    {% if node.depth == 0 %}
+        <div class="flex items-start gap-4 relative">
+            {% if not forloop.last %}
+                <div class="absolute left-3.5 top-8 bottom-0 w-0.5 bg-gray-200"></div>
+            {% endif %}
+            <div class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
+                {{ forloop.counter }}
+            </div>
+            <div class="pt-0.5 min-w-0 flex-1">
+                <p class="text-sm text-gray-700 leading-relaxed">{{ node.step.description }}</p>
+                {% if node.children %}
+                    <ul class="mt-2 space-y-1.5">
+                        {% include "details/blocks/_process_steps.html" with nodes=node.children %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <li class="flex items-start gap-2">
+            {% if node.depth > 1 %}
+                <span class="mt-1.5 flex-shrink-0 h-1.5 w-1.5 rounded-full border border-gray-300 bg-white"></span>
+            {% else %}
+                <span class="mt-1.5 flex-shrink-0 h-1.5 w-1.5 rounded-full bg-primary/50"></span>
+            {% endif %}
+            <div class="min-w-0 flex-1">
+                <p class="text-sm text-gray-600 leading-relaxed">{{ node.step.description }}</p>
+                {% if node.children %}
+                    <ul class="mt-1.5 space-y-1.5 pl-4 border-l border-gray-100">
+                        {% include "details/blocks/_process_steps.html" with nodes=node.children %}
+                    </ul>
+                {% endif %}
+            </div>
+        </li>
+    {% endif %}
+{% endfor %}

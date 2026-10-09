@@ -1,6 +1,9 @@
 {% comment %}
 Block: Extension Processes (source key PROCESSES).
 Context: section, data.processes
+
+Steps nest to any depth. Top-level steps keep the numbered timeline circles;
+everything nested under them renders as indented bullets.
 {% endcomment %}
 {% include "details/blocks/_heading.html" %}
 
@@ -9,17 +12,7 @@ Context: section, data.processes
         <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
             <h3 class="text-lg font-semibold text-primary">{{ process.title }}</h3>
             <div class="mt-4 space-y-4">
-                {% for step in process.steps.all %}
-                <div class="flex items-start gap-4 relative">
-                    {% if not forloop.last %}
-                        <div class="absolute left-3.5 top-8 h-full w-0.5 bg-gray-200"></div>
-                    {% endif %}
-                    <div class="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-xs font-semibold">
-                        {{ forloop.counter }}
-                    </div>
-                    <p class="pt-0.5 text-sm text-gray-700 leading-relaxed">{{ step.description }}</p>
-                </div>
-                {% endfor %}
+                {% include "details/blocks/_process_steps.html" with nodes=process.step_tree %}
             </div>
         </div>
     {% empty %}

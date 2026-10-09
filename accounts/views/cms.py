@@ -34,7 +34,6 @@ from details.models import HomeThrust
 from details.models import PageContentLog
 from details.models import PageSection
 from details.models import Personnel
-from details.models import ProcessStep
 from details.models import SitePage
 from details.models import SustainableDevelopmentGoal
 from details.models import Target
@@ -45,6 +44,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.text import slugify
 from ..decorators import admin_required
 from ..forms import PageSectionForm
+from .process_steps import _sync_process_steps
 from .target_helpers import _parse_target_numbers
 
 PAGE_PUBLIC_URL_NAMES = {
@@ -948,14 +948,16 @@ def home_inline_process_create(request):
         messages.error(request, "Process title is required.")
         return _home_inline_redirect(request)
     process = ExtensionProcess.objects.create(title=title)
-    for desc in request.POST.getlist("step_description[]"):
-        desc = (desc or "").strip()
-        if desc:
-            ProcessStep.objects.create(process=process, description=desc)
-    # Support single step fallback
-    single = (request.POST.get("step_description") or "").strip()
-    if single and not request.POST.getlist("step_description[]"):
-        ProcessStep.objects.create(process=process, description=single)
+    # A plain `step_description` (no `[]`) is accepted from callers that post a
+    # single step; nested-aware editors post the bracketed fields.
+    if (request.POST.get("step_description") or "").strip() and not request.POST.getlist(
+        "step_description[]"
+    ):
+        request.POST = request.POST.copy()
+        request.POST.setlist(
+            "step_description[]", [request.POST.get("step_description")]
+        )
+    _sync_process_steps(process, request.POST)
     messages.success(request, f'Process \"{title}\" added.')
     return _home_inline_redirect(request)
 
@@ -978,42 +980,11 @@ def home_inline_process_update(request, pk):
         except ValueError:
             pass
     process.save()
-    # Steps update - same logic as standalone process_edit
-    step_ids = request.POST.getlist("step_id[]")
-    step_descriptions = request.POST.getlist("step_description[]")
-    step_orders = request.POST.getlist("step_order[]")
-    if step_ids or step_descriptions:
-        max_len = max(len(step_ids), len(step_descriptions), len(step_orders), 0)
-
-        def pad(lst, size, fill=""):
-            return lst + [fill] * (size - len(lst))
-
-        step_ids = pad(step_ids, max_len)
-        step_descriptions = pad(step_descriptions, max_len)
-        step_orders = pad(step_orders, max_len, "0")
-        valid_ids = [sid for sid in step_ids if sid]
-        process.steps.exclude(id__in=valid_ids).delete()
-        for i in range(max_len):
-            step_id = step_ids[i].strip()
-            desc = step_descriptions[i].strip()
-            step_order = step_orders[i].strip() or "0"
-            if not desc:
-                continue
-            if step_id:
-                step = ProcessStep.objects.filter(id=step_id, process=process).first()
-                if step:
-                    step.description = desc
-                    try:
-                        step.order = int(step_order)
-                    except ValueError:
-                        pass
-                    step.save()
-            else:
-                try:
-                    order_val = int(step_order)
-                except ValueError:
-                    order_val = 0
-                ProcessStep.objects.create(process=process, description=desc, order=order_val)
+    # Steps update - same nested outline logic as the standalone editor. The
+    # marker covers the case where every step was deleted: an empty editor
+    # posts no step fields at all, but it still means "no steps".
+    if request.POST.get("step_editor") or request.POST.getlist("step_description[]"):
+        _sync_process_steps(process, request.POST)
     messages.success(request, f'Process \"{process.title}\" updated.')
     return _home_inline_redirect(request)
 

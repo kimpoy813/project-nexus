@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 from .models import (
     PageContentLog,
@@ -9,10 +10,34 @@ from .models import (
 admin.site.register(Personnel)
 admin.site.register(Activity)
 
+class ProcessStepForm(forms.ModelForm):
+    """Limits the parent dropdown to steps of the same process."""
+
+    class Meta:
+        model = ProcessStep
+        fields = ("parent", "order", "description")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        parent_field = self.fields.get("parent")
+        if parent_field is None:
+            return
+        queryset = ProcessStep.objects.none()
+        instance = self.instance
+        if instance and instance.pk and instance.process_id:
+            # Siblings only, and never the step itself or anything under it.
+            queryset = ProcessStep.objects.filter(process_id=instance.process_id).exclude(
+                pk__in=[instance.pk] + instance.descendant_ids()
+            )
+        parent_field.queryset = queryset
+
+
 class ProcessStepInline(admin.TabularInline):
     model = ProcessStep
+    form = ProcessStepForm
     extra = 1
     ordering = ['order']
+    fields = ('parent', 'order', 'description')
 
 @admin.register(ExtensionProcess)
 class ExtensionProcessAdmin(admin.ModelAdmin):

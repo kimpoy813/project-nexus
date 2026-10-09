@@ -240,7 +240,7 @@ _SOURCES = (
     ContentSource(
         key="PROCESSES",
         label="Extension Processes",
-        description="Every process and its numbered steps, from the Process Builder.",
+        description="Every process and its steps, which can be nested to any depth, from the Process Builder.",
         block_template="details/blocks/processes.html",
         resolve=_resolve_processes,
         manager_url_name="processes_list",

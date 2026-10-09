@@ -1,0 +1,40 @@
+{% comment %}
+One row of the nested step editor. Included recursively for sub-steps; keep
+this markup in step with ROW_TEMPLATE in static/js/process-steps-editor.js.
+{% endcomment %}
+<li class="nx-step-row"
+    data-step-row
+    data-step-ref="s{{ node.step.id }}"
+    data-step-id="{{ node.step.id }}"
+    data-step-parent="{% if node.step.parent_id %}s{{ node.step.parent_id }}{% endif %}">
+    <div class="nx-step-row__body">
+        <button type="button" class="js-step-handle nx-step-handle" title="Drag to move. Drag sideways to nest." aria-label="Drag to reorder this step">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M7 5a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 11a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2zM7 17a1 1 0 110-2 1 1 0 010 2zm6-1a1 1 0 100 2 1 1 0 000-2z"/>
+            </svg>
+        </button>
+
+        <input type="hidden" data-step-ref-input name="step_ref[]" value="s{{ node.step.id }}">
+        <input type="hidden" data-step-id-input name="step_id[]" value="{{ node.step.id }}">
+        <input type="hidden" data-step-parent-input name="step_parent[]" value="{% if node.step.parent_id %}s{{ node.step.parent_id }}{% endif %}">
+        <input type="text"
+               data-step-description
+               name="step_description[]"
+               value="{{ node.step.description }}"
+               class="{{ input_class|default:'nx-step-input' }}"
+               placeholder="Describe this step">
+
+        <span class="nx-step-actions">
+            <button type="button" class="nx-step-btn" data-step-action="add-sub" title="Add a sub-step under this one">+ Sub</button>
+            <button type="button" class="nx-step-btn" data-step-action="outdent" title="Move out one level (Shift+Tab)">⇤</button>
+            <button type="button" class="nx-step-btn" data-step-action="indent" title="Nest under the step above (Tab)">⇥</button>
+            <button type="button" class="nx-step-btn nx-step-btn--danger" data-step-action="remove" title="Delete this step and its sub-steps">×</button>
+        </span>
+    </div>
+
+    <ul class="nx-step-list nx-step-list--children" data-step-list>
+        {% for child in node.children %}
+            {% include "dashboard/admin/_process_step_row.html" with node=child input_class=input_class %}
+        {% endfor %}
+    </ul>
+</li>
