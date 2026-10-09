@@ -967,26 +967,6 @@ class PageBlockTests(TestCase):
         self.assertContains(response, "90% of target")
         self.assertNotContains(response, "55% of target")
 
-    def test_targets_block_filters_by_year(self):
-        from details.models import Target
-
-        Target.objects.create(
-            year=2025, campus="Main Campus", metric="programs",
-            target=10, actual_q1=9,
-        )
-        Target.objects.create(
-            year=2026, campus="Main Campus", metric="programs",
-            target=20, actual_q1=11,
-        )
-
-        self._add_block("reports", "TARGETS")
-
-        response = self.client.get(reverse("reports_page"), {"targets_year": "2025"})
-        self.assertContains(response, 'aria-label="Filter targets by year"')
-        self.assertContains(response, "2025 targets")
-        self.assertContains(response, "90% of target")
-        self.assertNotContains(response, "55% of target")
-
     def test_targets_block_shows_progress_percentages(self):
         from details.models import Target
 
