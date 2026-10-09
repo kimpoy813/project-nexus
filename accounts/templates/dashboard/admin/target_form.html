@@ -167,8 +167,8 @@
         }
     }
 
-    actualInputs.unshift(targetInput);
-    actualInputs.forEach(function (el) {
+    // Listen to every numeric field without adding the target to actual totals.
+    [targetInput].concat(actualInputs).forEach(function (el) {
         el.addEventListener('input', refreshSummary);
     });
     refreshSummary();
