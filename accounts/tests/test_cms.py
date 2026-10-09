@@ -987,6 +987,45 @@ class PageBlockTests(TestCase):
         self.assertContains(response, "90% of target")
         self.assertNotContains(response, "55% of target")
 
+    def test_targets_year_filter_offers_the_configured_year_even_without_data(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2025, campus="Main Campus", metric="programs",
+            target=10, actual_q1=9,
+        )
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            target=20, actual_q1=11,
+        )
+        self._add_block("reports", "TARGETS", target_year="2027")
+
+        response = self.client.get(reverse("reports_page"))
+        # The dropdown must select the year the table is showing, not silently
+        # display a different year while the data belongs to 2027.
+        self.assertContains(response, '<option value="2027" selected>')
+        self.assertContains(response, '<option value="2026" >')
+        self.assertContains(response, '<option value="2025" >')
+        self.assertContains(response, "No targets recorded for 2027 yet.")
+        self.assertNotContains(response, "55% of target")
+
+    def test_targets_year_filter_ignores_years_outside_the_options(self):
+        from details.models import Target
+
+        Target.objects.create(
+            year=2025, campus="Main Campus", metric="programs",
+            target=10, actual_q1=9,
+        )
+        Target.objects.create(
+            year=2026, campus="Main Campus", metric="programs",
+            target=20, actual_q1=11,
+        )
+        self._add_block("reports", "TARGETS")
+
+        response = self.client.get(reverse("reports_page"), {"targets_year": "1999"})
+        self.assertContains(response, "2026 targets")
+        self.assertContains(response, '<option value="2026" selected>')
+
     def test_targets_block_shows_progress_percentages(self):
         from details.models import Target
 

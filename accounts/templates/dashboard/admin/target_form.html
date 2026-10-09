@@ -167,7 +167,9 @@
         }
     }
 
-    actualInputs.unshift(targetInput);
+    // The yearly target is the denominator, never part of the actual total.
+    // Keep it out of actualInputs or every edit would count it as achieved.
+    targetInput.addEventListener('input', refreshSummary);
     actualInputs.forEach(function (el) {
         el.addEventListener('input', refreshSummary);
     });

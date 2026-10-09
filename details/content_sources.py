@@ -120,16 +120,20 @@ def _resolve_targets(section, request=None):
 
     from .models import Target
 
-    available_years = list(
-        Target.objects.values_list("year", flat=True).distinct().order_by("-year")
-    )
+    years_with_data = set(Target.objects.values_list("year", flat=True).distinct())
+    # The year the administrator configured for this block is always a valid
+    # choice, even before any figures are entered for it. Otherwise the
+    # dropdown would show a different year from the one the table displays.
+    year_options = years_with_data | ({section.target_year} if section.target_year else set())
+    available_years = sorted(year_options, reverse=True)
+
     default_year = section.target_year or (
-        available_years[0] if available_years else timezone.now().year
+        max(years_with_data) if years_with_data else timezone.localdate().year
     )
 
     # The section setting remains the default chosen by an administrator, but
     # the public block can be narrowed to another year through its accessible
-    # GET filter. Invalid/unavailable values fall back to that default.
+    # GET filter. Invalid or unlisted values fall back to that default.
     year = default_year
     requested_year = request.GET.get("targets_year") if request is not None else None
     try:
