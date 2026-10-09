@@ -115,53 +115,81 @@ def _resolve_activities(section):
 
 
 def _resolve_targets(section):
-    from django.db.models import Sum
     from django.utils import timezone
 
     from .models import Target
 
-    year = section.target_year or (
-        Target.objects.order_by("-year").values_list("year", flat=True).first()
-        or timezone.now().year
-    )
-    rows = Target.objects.filter(year=year).order_by("campus", "metric")
-
-    def _progress(target):
-        if not target.target:
-            return None
-        return round(100 * target.actual_total / target.target)
-
-    by_campus = OrderedDict()
-    for row in rows:
-        by_campus.setdefault(row.campus, []).append({
-            "key": row.metric,
-            "label": row.get_metric_display(),
-            "target": row.target,
-            "actual": row.actual_total,
-            "progress": _progress(row),
-        })
-
     # Show each campus's metrics in the canonical METRIC_CHOICES order so the
     # per-campus cards and tables line up with the "all campuses" summary.
     metric_rank = {value: i for i, (value, _label) in enumerate(Target.METRIC_CHOICES)}
-    for campus_targets in by_campus.values():
-        campus_targets.sort(key=lambda t: metric_rank.get(t["key"], len(metric_rank)))
 
-    overall = {}
-    for key, label in Target.METRIC_CHOICES:
-        sums = rows.filter(metric=key).aggregate(
-            target=Sum("target"), actual=Sum("actual_total")
+    def _progress(row):
+        if not row.target:
+            return None
+        return round(100 * row.actual_total / row.target)
+
+    def _pack(rows):
+        """The ``by_campus`` / ``overall`` pair for one year's targets."""
+        by_campus = OrderedDict()
+        for row in rows:
+            by_campus.setdefault(row.campus, []).append({
+                "key": row.metric,
+                "label": row.get_metric_display(),
+                "target": row.target,
+                "actual": row.actual_total,
+                "progress": _progress(row),
+            })
+        for campus_targets in by_campus.values():
+            campus_targets.sort(key=lambda t: metric_rank.get(t["key"], len(metric_rank)))
+
+        overall = {}
+        for key, label in Target.METRIC_CHOICES:
+            target = sum(row.target for row in rows if row.metric == key)
+            actual = sum(row.actual_total for row in rows if row.metric == key)
+            overall[key] = {
+                "label": label,
+                "target": target,
+                "actual": actual,
+                "progress": round(100 * actual / target) if target else None,
+            }
+        return by_campus, overall
+
+    # Load every year in one query: the block offers a year filter with every
+    # year that has data, and switching years is Alpine-driven on the client.
+    rows_by_year = OrderedDict()
+    for row in Target.objects.all().order_by("-year", "campus", "metric"):
+        rows_by_year.setdefault(row.year, []).append(row)
+
+    available_years = sorted(rows_by_year, reverse=True)
+    year = section.target_year or (
+        available_years[0] if available_years else timezone.now().year
+    )
+
+    years = OrderedDict()
+    for y in available_years:
+        by_campus, overall = _pack(rows_by_year[y])
+        years[y] = {"by_campus": by_campus, "overall": overall}
+
+    # The year the page opens on: the configured one when it has data,
+    # otherwise the newest year that does.
+    if year in years:
+        selected = years[year]
+        year, by_campus, overall = year, selected["by_campus"], selected["overall"]
+    else:
+        year = available_years[0] if available_years else year
+        by_campus, overall = (
+            (years[year]["by_campus"], years[year]["overall"])
+            if available_years
+            else _pack([])
         )
-        target = sums["target"] or 0
-        actual = sums["actual"] or 0
-        overall[key] = {
-            "label": label,
-            "target": target,
-            "actual": actual,
-            "progress": round(100 * actual / target) if target else None,
-        }
 
-    return {"year": year, "by_campus": by_campus, "overall": overall}
+    return {
+        "year": year,
+        "available_years": available_years,
+        "years": years,
+        "by_campus": by_campus,
+        "overall": overall,
+    }
 
 
 def _resolve_processes(section):
