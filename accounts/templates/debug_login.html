@@ -17,6 +17,7 @@
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
+    <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
     <div class="min-h-screen flex items-center justify-center px-4">
@@ -102,5 +103,12 @@
             }
         });
     </script>
+
+    {% comment %}
+        The debug sign-in posts to the real login view, whose messages land on
+        whichever page comes back; the toaster is mounted here so this page can
+        report a failure of its own (a missing form token, for example).
+    {% endcomment %}
+    {% include "partials/_toaster.html" %}
 </body>
 </html>

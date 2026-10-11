@@ -387,7 +387,7 @@ async function deleteDraft(proposalId, url) {
         const data = await response.json();
 
         if (!data.ok) {
-            alert(data.message || "Failed to delete draft.");
+            window.nexusToast(data.message || "Failed to delete draft.", "error");
             return;
         }
 
@@ -404,7 +404,7 @@ async function deleteDraft(proposalId, url) {
         closeDeleteModal();
         window.location.reload();
     } catch (error) {
-        alert("Something went wrong while deleting the draft.");
+        window.nexusToast("Something went wrong while deleting the draft.", "error");
         console.error(error);
     }
 }

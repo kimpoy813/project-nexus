@@ -14,8 +14,10 @@ step_description[] and step_parent[]. step_parent[] holds the parent row's
 sub-step can hang off a new parent. See accounts/views/process_steps.py.
 {% endcomment %}
 <div class="nx-step-editor" data-step-editor="steps-{{ eid }}">
-    {# Marks the post as coming from the nested editor, so an editor emptied
-       of every step still saves (an empty form posts no step fields at all). #}
+    {% comment %}
+        Marks the post as coming from the nested editor, so an editor emptied
+        of every step still saves (an empty form posts no step fields at all).
+    {% endcomment %}
     <input type="hidden" name="step_editor" value="1">
     {% if not status_id %}
         <p id="nx-step-status-{{ eid }}" class="nx-step-status">

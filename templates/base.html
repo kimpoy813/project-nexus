@@ -567,9 +567,6 @@
 
     <a href="#main-content" class="skip-link">Skip to content</a>
 
-    <!-- Toast Container -->
-    <div id="toast-container" class="fixed top-24 right-6 z-50 space-y-3"></div>
-
     <!-- NAVBAR -->
     <nav x-data="{ mobileMenu: false }"
          @keydown.escape.window="mobileMenu = false"
@@ -756,9 +753,11 @@
     </div>
     {% endif %}
 
-    {# `.nexus-shell` owns the fixed-navbar offset (see static/css/nexus-ui.css),
-       so every page starts *below* the header instead of sliding under it.
-       Pages keep their own py-* rhythm on top of that. #}
+    {% comment %}
+        `.nexus-shell` owns the fixed-navbar offset (see static/css/nexus-ui.css),
+        so every page starts *below* the header instead of sliding under it.
+        Pages keep their own py-* rhythm on top of that.
+    {% endcomment %}
     <main id="main-content" class="nexus-shell">
         {% block content %}{% endblock %}
     </main>
@@ -806,79 +805,10 @@
         </div>
     </footer>
 
-    {% if messages %}
-        <div id="messages-data" style="display:none;">
-            {% for message in messages %}
-                <div data-message="{{ message }}" data-tags="{{ message.tags }}"></div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
     <!-- AOS Script -->
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const messagesData = document.getElementById('messages-data');
-            const toastContainer = document.getElementById('toast-container');
-
-            if (messagesData && toastContainer) {
-                const messageElements = messagesData.querySelectorAll('[data-message]');
-
-                messageElements.forEach(function(msgElement, index) {
-                    const message = msgElement.getAttribute('data-message');
-                    const tags = msgElement.getAttribute('data-tags') || 'info';
-                    const toastType = tags.includes('success') ? 'success'
-                        : tags.includes('error') ? 'error'
-                        : tags.includes('warning') ? 'warning'
-                        : 'info';
-                    const goeyToast = window.goeyToast;
-                    if (goeyToast && typeof goeyToast[toastType] === 'function') {
-                        goeyToast[toastType](message);
-                        return;
-                    }
-
-                    let bgColor = 'bg-gray-900';
-                    if (tags.includes('success')) bgColor = 'bg-green-700';
-                    else if (tags.includes('error')) bgColor = 'bg-red-700';
-                    else if (tags.includes('warning')) bgColor = 'bg-yellow-600';
-                    else if (tags.includes('info')) bgColor = 'bg-blue-700';
-
-                    const toast = document.createElement('div');
-                    toast.className = `${bgColor} text-white px-5 py-4 rounded-2xl shadow-xl max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5`;
-                    toast.setAttribute('role', 'alert');
-
-                    const row = document.createElement('div');
-                    row.className = 'flex items-start justify-between gap-3';
-
-                    const text = document.createElement('span');
-                    text.className = 'flex-1 text-sm font-medium leading-5';
-                    text.textContent = message;
-
-                    const close = document.createElement('button');
-                    close.type = 'button';
-                    close.className = 'text-xl leading-none opacity-80 hover:opacity-100';
-                    close.setAttribute('aria-label', 'Dismiss notification');
-                    close.textContent = '×';
-                    close.addEventListener('click', () => toast.remove());
-
-                    row.appendChild(text);
-                    row.appendChild(close);
-                    toast.appendChild(row);
-                    toastContainer.appendChild(toast);
-
-                    setTimeout(() => toast.classList.remove('opacity-0', 'translate-x-5'), 100 * index);
-                    setTimeout(() => {
-                        if (toast.parentNode) {
-                            toast.classList.add('opacity-0', 'translate-x-5');
-                            setTimeout(() => toast.remove(), 500);
-                        }
-                    }, 4500);
-                });
-
-                messagesData.remove();
-            }
-        });
-
         AOS.init({ duration: 700, once: true });
 
         (function () {
@@ -928,6 +858,16 @@
                 const countdown = document.getElementById('idle-countdown');
                 if (!warning) return;
                 warning.classList.remove('hidden');
+
+                // Same words as the banner, as a toast: the banner is only seen
+                // by someone already looking at that corner of the page.
+                if (window.nexusToast) {
+                    window.nexusToast(
+                        "You'll be logged out in about " + Math.round(WARN_BEFORE_MS / 60000) +
+                        " minutes due to inactivity. Use \u201cStay logged in\u201d to keep working.",
+                        'warning'
+                    );
+                }
 
                 if (countdown) {
                     let timeLeft = WARN_BEFORE_MS / 1000;
@@ -1170,7 +1110,12 @@
     });
     </script>
     {% block extra_scripts %}{% endblock %}
-    <div id="goey-toast-root"></div>
-    <script type="module" src="{% static 'goey/toaster.js' %}"></script>
+
+    {% comment %}
+        Toasts: the mount point, the fallback container, and window.nexusToast.
+        Kept in one partial so the maintenance page, the debug sign-in and the
+        Django admin mount the exact same toaster (see partials/_toaster.html).
+    {% endcomment %}
+    {% include "partials/_toaster.html" %}
 </body>
 </html>

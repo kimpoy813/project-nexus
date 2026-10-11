@@ -88,6 +88,8 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `accounts/tests/test_file_storage_configuration.py` | Supabase bucket/endpoint/region/key validation, the `check_file_storage` command, and the provider error shown after a failed upload |
 | `accounts/tests/test_process_reordering.py` | Extension Process steps: nesting to any depth, parent-first saves, the drag reorder endpoint, public rendering |
 | `tests/process-steps.test.cjs` | Outline maths for the nested step editor (`node --test tests/*.test.cjs`) |
+| `accounts/tests/test_toasts.py` | Toasts: every page mounts the toaster, messages reach it, no native alerts, no leaked `{# #}` comment |
+| `tests/nexus-toast.test.cjs` | The toast helper: waiting for the module, the plain fallback, message tags → toast types |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
 than calling `create_user` directly — a signal creates a `FACULTY` profile on
@@ -293,6 +295,55 @@ Services page → Workflow Phases), which is also what `Proposal.overall_progres
 weights by — one source of truth, so the published rings and the dashboard
 percentages cannot drift apart. A proposal that needs no MOA has that phase's
 share redistributed across Proposal and Implementation.
+
+## Feedback and toasts
+
+Every piece of feedback in NExUS goes through one function:
+
+```js
+window.nexusToast(message, type);   // success | error | warning | info
+```
+
+`templates/partials/_toaster.html` is its only home. A full page includes it as
+the last thing it renders (`templates/base.html`, the maintenance page, the
+debug sign-in, Django's admin) and links `static/goey/toaster.css` from its
+head. The partial mounts the Gooey toaster (`static/goey/toaster.js`, built from
+`frontend/`), turns Django's `messages` into `#messages-data`, and hands both to
+the helper.
+
+| What raises a toast | How |
+|---|---|
+| `messages.success/error/warning/info(request, ...)` | Rendered as `#messages-data`, read at `DOMContentLoaded` and shown with the matching type |
+| A page script — `dashboard_base.html`, the role dashboards, `process-steps-editor.js`, `_source_reorder_script.html`, `wizard_steps_manager.html` | `window.nexusToast(message, type)` |
+| The proposal wizard's in-page AJAX swap (`static/js/nexus-wizard.js`) | The swapped-in page's messages, through the same helper |
+| Django's own admin | The same partial, mounted from `templates/admin/base_site.html`; its `.messagelist` is removed once the toasts are up, and kept if the module never loads |
+| An expiring session | `base.html` raises a warning toast beside the "Stay logged in" banner |
+
+Two order rules the helper handles for you:
+
+* `toaster.js` is a **module**, so it runs only after the document is parsed. A
+  toast raised before that — from an inline script, or from the admin's message
+  list — waits for it rather than appearing in the plain style a moment before
+  the good one.
+* If the module never arrives, the message is shown with the same colours in
+  `#toast-container`, the older dependency-free toast, so nothing is lost.
+
+Nothing reports through `alert()` any more. `accounts/tests/test_toasts.py`
+fails on a native alert in any template or `static/js` file, on a full page that
+does not mount the toaster, on a page that mounts it twice, and on a Django
+message that never reaches `#messages-data`. `tests/nexus-toast.test.cjs`
+covers the waiting and fallback rules without a browser.
+
+### `{# ... #}` is a one-line comment
+
+Django strips `{# ... #}` only when it opens and closes on the **same line**. A
+comment spread over two lines is not stripped — it is printed verbatim on the
+page. That is how a note about `.nexus-shell` ended up above the content of
+every page in the system, and how the nested step editor explained itself to
+every admin who opened it. Multi-line notes belong in
+`{% comment %} ... {% endcomment %}`; `test_toasts.py` fails on any `{#` that
+closes on another line under `templates/`, `accounts/templates/`,
+`details/templates/` or `proposals/templates/`.
 
 ## Logging
 

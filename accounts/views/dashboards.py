@@ -1077,6 +1077,10 @@ def faculty_delete_draft(request, proposal_id):
     ).distinct().count()
 
     if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        # Dashboards that reload after the delete show this message as a
+        # toast on the page that comes back; one queued here is the same
+        # toast the non-AJAX branch shows, without a second wording.
+        messages.success(request, f'"{title}" draft deleted successfully.')
         return JsonResponse({
             "ok": True,
             "message": f'"{title}" draft deleted successfully.',

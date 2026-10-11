@@ -357,6 +357,12 @@
     }
 
     function toast(type, message) {
+        // The shared helper owns the Gooey/fallback choice; the module is
+        // the fallback for a page that loads the editor on its own.
+        if (typeof global.nexusToast === 'function') {
+            global.nexusToast(message, type);
+            return;
+        }
         var toaster = global.goeyToast;
         if (toaster && typeof toaster[type] === 'function') toaster[type](message);
     }

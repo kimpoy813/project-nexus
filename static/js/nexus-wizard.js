@@ -83,61 +83,21 @@
         });
     }
 
+    // Every swapped-in step is a full page render, so its messages come with
+    // it. They go through the shared helper (templates/partials/_toaster.html)
+    // so a step saved here reports exactly like a normal page load.
     function showToastsFrom(doc) {
         var data = doc.getElementById("messages-data");
-        var container = document.getElementById("toast-container");
-        var toaster = window.goeyToast;
-        if (!data || (!container && !toaster)) return;
+        if (!data || typeof window.nexusToast !== "function") return;
 
-        Array.prototype.slice.call(data.querySelectorAll("[data-message]")).forEach(function (msgElement, index) {
+        Array.prototype.slice.call(data.querySelectorAll("[data-message]")).forEach(function (msgElement) {
             var message = msgElement.getAttribute("data-message") || "";
             var tags = msgElement.getAttribute("data-tags") || "info";
             var toastType = tags.indexOf("success") !== -1 ? "success"
                 : tags.indexOf("error") !== -1 ? "error"
                 : tags.indexOf("warning") !== -1 ? "warning"
                 : "info";
-            if (toaster && typeof toaster[toastType] === "function") {
-                toaster[toastType](message);
-                return;
-            }
-            if (!container) return;
-            var bgColor = "bg-gray-900";
-            if (tags.indexOf("success") !== -1) bgColor = "bg-green-700";
-            else if (tags.indexOf("error") !== -1) bgColor = "bg-red-700";
-            else if (tags.indexOf("warning") !== -1) bgColor = "bg-yellow-600";
-            else if (tags.indexOf("info") !== -1) bgColor = "bg-blue-700";
-
-            var toast = document.createElement("div");
-            toast.className = bgColor + " text-white px-5 py-4 rounded-2xl shadow-xl max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5";
-            toast.setAttribute("role", "alert");
-
-            var row = document.createElement("div");
-            row.className = "flex items-start justify-between gap-3";
-
-            var text = document.createElement("span");
-            text.className = "flex-1 text-sm font-medium leading-5";
-            text.textContent = message;
-
-            var close = document.createElement("button");
-            close.type = "button";
-            close.className = "text-xl leading-none opacity-80 hover:opacity-100";
-            close.setAttribute("aria-label", "Dismiss notification");
-            close.textContent = "×";
-            close.addEventListener("click", function () { toast.remove(); });
-
-            row.appendChild(text);
-            row.appendChild(close);
-            toast.appendChild(row);
-            container.appendChild(toast);
-
-            window.setTimeout(function () {
-                toast.classList.remove("opacity-0", "translate-x-5");
-            }, 100 * index);
-            window.setTimeout(function () {
-                if (!toast.parentNode) return;
-                toast.classList.add("opacity-0", "translate-x-5");
-                window.setTimeout(function () { toast.remove(); }, 500);
-            }, 4500);
+            window.nexusToast(message, toastType);
         });
     }
 

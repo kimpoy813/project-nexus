@@ -1,0 +1,173 @@
+{% comment %}
+The single mount point for every piece of feedback NExUS gives.
+
+Django's messages, the dashboards' AJAX handlers, the wizard's in-page swaps
+and the Django admin all end up in one function:
+
+    window.nexusToast(message, type)    // type: success | error | warning | info
+
+It uses the Gooey toaster when it has loaded and falls back to the plain toast
+below when it has not, so feedback never depends on the 386 KB module arriving.
+
+Include this as the last thing a full page renders (templates/base.html,
+maintenance, debug-login, the Django admin) and link static/goey/toaster.css
+from the head.
+
+Why messages are queued: toaster.js is a module, so it runs *after* the whole
+document is parsed, while an inline script — or the admin's own message list —
+may raise a toast while the page is still parsing. Those calls are queued and
+handed over at DOMContentLoaded, by which point a deferred module has run.
+{% endcomment %}
+{% load static %}
+
+{% if messages %}
+    <div id="messages-data" style="display:none;">
+        {% for message in messages %}
+            <div data-message="{{ message }}" data-tags="{{ message.tags }}"></div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- Last-resort host: the plain toast, used when the Gooey toaster is not there. -->
+<div id="toast-container" class="fixed top-24 right-6 z-50 space-y-3"></div>
+
+<!-- Gooey toaster mount point (see frontend/src/main.jsx). -->
+<div id="goey-toast-root"></div>
+
+<script>
+(function (window, document) {
+    "use strict";
+
+    var TYPES = { success: 1, error: 1, warning: 1, info: 1 };
+    var queue = [];
+
+    function normalize(type) {
+        type = String(type || "").toLowerCase();
+        return TYPES[type] ? type : "info";
+    }
+
+    // Django message tags ("success", "error", "warning", "info", "debug")
+    // collapsed onto the four toast types.
+    function typeFromTags(tags) {
+        tags = String(tags || "");
+        if (tags.indexOf("success") !== -1) return "success";
+        if (tags.indexOf("error") !== -1) return "error";
+        if (tags.indexOf("warning") !== -1) return "warning";
+        return "info";
+    }
+
+    function goeyToaster() {
+        var toaster = window.goeyToast;
+        return toaster && typeof toaster === "object" ? toaster : null;
+    }
+
+    function deliver(message, type) {
+        var toaster = goeyToaster();
+        if (toaster && typeof toaster[type] === "function") {
+            toaster[type](message);
+            return true;
+        }
+        return false;
+    }
+
+    // The pre-Gooey toast: same palette and auto-dismiss, no dependency.
+    function fallbackToast(message, type) {
+        var container = document.getElementById("toast-container");
+        if (!container) return false;
+
+        var colours = {
+            success: "bg-green-700",
+            error: "bg-red-700",
+            warning: "bg-yellow-600",
+            info: "bg-blue-700"
+        };
+
+        var toast = document.createElement("div");
+        toast.className = (colours[type] || "bg-gray-900") +
+            " text-white px-5 py-4 rounded-2xl shadow-xl max-w-sm w-full transform transition-all duration-500 opacity-0 translate-x-5";
+        toast.setAttribute("role", "alert");
+
+        var row = document.createElement("div");
+        row.className = "flex items-start justify-between gap-3";
+
+        var text = document.createElement("span");
+        text.className = "flex-1 text-sm font-medium leading-5";
+        text.textContent = message;
+
+        var close = document.createElement("button");
+        close.type = "button";
+        close.className = "text-xl leading-none opacity-80 hover:opacity-100";
+        close.setAttribute("aria-label", "Dismiss notification");
+        close.textContent = "\u00d7";
+        close.addEventListener("click", function () { toast.remove(); });
+
+        row.appendChild(text);
+        row.appendChild(close);
+        toast.appendChild(row);
+        container.appendChild(toast);
+
+        window.setTimeout(function () {
+            toast.classList.remove("opacity-0", "translate-x-5");
+        }, 100);
+        window.setTimeout(function () {
+            if (!toast.parentNode) return;
+            toast.classList.add("opacity-0", "translate-x-5");
+            window.setTimeout(function () { toast.remove(); }, 500);
+        }, 4500);
+
+        return true;
+    }
+
+    // True while toaster.js is on the page but has not executed yet. Anything
+    // raised in that window waits for the module instead of decaying to the
+    // plain toast a moment before the good one arrives.
+    function toasterIsPending() {
+        return !window.goeyToast && !!document.querySelector('script[src*="goey/toaster.js"]');
+    }
+
+    function nexusToast(message, type) {
+        if (message === undefined || message === null || message === "") return;
+        message = String(message);
+        type = normalize(type);
+
+        if (deliver(message, type)) return;
+        if (toasterIsPending()) {
+            queue.push([message, type]);
+            return;
+        }
+        fallbackToast(message, type);
+    }
+
+    function flushQueue() {
+        if (!queue.length) return;
+        var pending = queue.slice();
+        queue.length = 0;
+        pending.forEach(function (item) {
+            if (!deliver(item[0], item[1])) fallbackToast(item[0], item[1]);
+        });
+    }
+
+    window.nexusToast = nexusToast;
+    //: Same function under the shorter name page scripts already use.
+    window.nxToast = nexusToast;
+
+    function flushMessages() {
+        var data = document.getElementById("messages-data");
+        if (data) {
+            Array.prototype.slice.call(data.querySelectorAll("[data-message]")).forEach(function (el) {
+                nexusToast(el.getAttribute("data-message") || "", typeFromTags(el.getAttribute("data-tags")));
+            });
+            data.remove();
+        }
+        flushQueue();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", flushMessages, { once: true });
+    } else {
+        flushMessages();
+    }
+})(window, document);
+</script>
+
+<script type="module" src="{% static 'goey/toaster.js' %}"></script>

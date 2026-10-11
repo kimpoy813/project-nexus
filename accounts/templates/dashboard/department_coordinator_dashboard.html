@@ -461,7 +461,7 @@ async function deleteDraft(proposalId, url) {
         const data = await response.json();
 
         if (!data.ok) {
-            alert(data.message || "Failed to delete draft.");
+            window.nexusToast(data.message || "Failed to delete draft.", "error");
             return;
         }
 
@@ -497,9 +497,12 @@ async function deleteDraft(proposalId, url) {
             }
         }
 
+        // The row is gone from this page without a reload, so the toast is
+        // the only confirmation the user gets.
+        window.nexusToast(data.message || "Draft deleted.", "success");
         closeDeleteModal();
     } catch (error) {
-        alert("Something went wrong while deleting the draft.");
+        window.nexusToast("Something went wrong while deleting the draft.", "error");
         console.error(error);
     }
 }
