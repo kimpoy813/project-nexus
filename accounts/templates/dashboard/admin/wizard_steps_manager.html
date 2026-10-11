@@ -97,12 +97,43 @@
   }
 
   function showToast(type, message) {
+    // 1. Shared helper: queues through Gooey toaster with plain-toast fallback.
     if (typeof window.nexusToast === "function") {
       window.nexusToast(message, type);
       return;
     }
+    // 2. Direct goey access.
     var toaster = window.goeyToast;
-    if (toaster && typeof toaster[type] === "function") toaster[type](message);
+    if (toaster && typeof toaster[type] === "function") {
+      toaster[type](message);
+      return;
+    }
+    // 3. Inline DOM fallback so feedback is never lost.
+    var container = document.getElementById("toast-container") || document.body;
+    var colours = {
+      success: "background:#15803d",
+      error:   "background:#b91c1c",
+      warning: "background:#a16207",
+      info:    "background:#1d4ed8"
+    };
+    var toast = document.createElement("div");
+    toast.setAttribute("role", "alert");
+    toast.style.cssText = (colours[type] || colours.info) +
+      ";color:#fff;padding:14px 20px;border-radius:16px;box-shadow:0 10px 28px rgba(15,23,42,.22);" +
+      "max-width:380px;width:100%;margin-top:12px;transform:translateX(20px);opacity:0;" +
+      "transition:all .5s ease;font-size:14px;font-weight:500;";
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(function () {
+      toast.style.opacity = "1";
+      toast.style.transform = "translateX(0)";
+    }, 50);
+    setTimeout(function () {
+      if (!toast.parentNode) return;
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(20px)";
+      setTimeout(function () { toast.remove(); }, 500);
+    }, 4500);
   }
 
   var previousOrder = [];
