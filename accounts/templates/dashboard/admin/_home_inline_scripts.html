@@ -9,7 +9,9 @@ function addActivityDate(containerId){
     c.appendChild(w);
 }
 </script>
-{# Nested step editor (drag to move, drag sideways to nest). Self-initialises
-   on every page that renders a process editor, once, no matter how many
-   sections include one. #}
+{% comment %}
+    Nested step editor (drag to move, drag sideways to nest). Self-initialises
+    on every page that renders a process editor, once, no matter how many
+    sections include one.
+{% endcomment %}
 <script src="{% static 'js/process-steps-editor.js' %}"></script>

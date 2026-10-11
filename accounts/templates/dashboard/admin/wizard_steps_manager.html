@@ -97,6 +97,10 @@
   }
 
   function showToast(type, message) {
+    if (typeof window.nexusToast === "function") {
+      window.nexusToast(message, type);
+      return;
+    }
     var toaster = window.goeyToast;
     if (toaster && typeof toaster[type] === "function") toaster[type](message);
   }

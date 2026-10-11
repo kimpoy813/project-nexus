@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% comment %}
+The NExUS toaster, on Django's own admin pages.
+
+The admin renders its messages as the plain `.messagelist` Django ships with.
+templates/partials/_toaster.html renders the same messages as toasts (it reads
+the `messages` context the admin already passes), so once the toaster is up the
+list has done its job and is removed. If toaster.js never loads, neither the
+mount nor the removal happens and the admin keeps showing its list — the
+messages are never only in a toast.
+
+This file otherwise mirrors Django's own admin/base_site.html; it exists so the
+admin gets the toast CSS without copying the whole admin base template.
+{% endcomment %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a></div>
+{% if user.is_anonymous %}
+  {% include "admin/color_theme_toggle.html" %}
+{% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block extrabody %}
+    {{ block.super }}
+    {% include "partials/_toaster.html" %}
+    <script>
+    // The toaster has already turned this page's messages into toasts by the
+    // time DOMContentLoaded arrives (see partials/_toaster.html); drop the list
+    // it read from so the same message is not shown twice.
+    document.addEventListener("DOMContentLoaded", function () {
+        if (!window.goeyToast) return;
+        var list = document.querySelector(".messagelist");
+        if (list) list.remove();
+    });
+    </script>
+{% endblock %}
