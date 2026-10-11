@@ -357,14 +357,44 @@
     }
 
     function toast(type, message) {
-        // The shared helper owns the Gooey/fallback choice; the module is
-        // the fallback for a page that loads the editor on its own.
+        // 1. Shared helper: queues through the Gooey toaster with a plain-toast fallback.
         if (typeof global.nexusToast === 'function') {
             global.nexusToast(message, type);
             return;
         }
+        // 2. Direct goey access.
         var toaster = global.goeyToast;
-        if (toaster && typeof toaster[type] === 'function') toaster[type](message);
+        if (toaster && typeof toaster[type] === 'function') {
+            toaster[type](message);
+            return;
+        }
+        // 3. Inline DOM fallback so feedback is never lost if neither module loaded.
+        var doc = global.document;
+        var container = doc.getElementById('toast-container') || doc.body;
+        var colours = {
+            success: 'background:#15803d',
+            error:   'background:#b91c1c',
+            warning: 'background:#a16207',
+            info:    'background:#1d4ed8'
+        };
+        var t = doc.createElement('div');
+        t.setAttribute('role', 'alert');
+        t.style.cssText = (colours[type] || colours.info) +
+            ';color:#fff;padding:14px 20px;border-radius:16px;box-shadow:0 10px 28px rgba(15,23,42,.22);' +
+            'max-width:380px;width:100%;margin-top:12px;transform:translateX(20px);opacity:0;' +
+            'transition:all .5s ease;font-size:14px;font-weight:500;';
+        t.textContent = message;
+        container.appendChild(t);
+        global.setTimeout(function () {
+            t.style.opacity = '1';
+            t.style.transform = 'translateX(0)';
+        }, 50);
+        global.setTimeout(function () {
+            if (!t.parentNode) return;
+            t.style.opacity = '0';
+            t.style.transform = 'translateX(20px)';
+            global.setTimeout(function () { t.remove(); }, 500);
+        }, 4500);
     }
 
     function persist(root) {

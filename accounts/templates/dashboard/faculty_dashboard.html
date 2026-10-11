@@ -391,6 +391,8 @@ async function deleteDraft(proposalId, url) {
             return;
         }
 
+        window.nexusToast(data.message || "Draft deleted.", "success");
+
         const draftCountEl = document.getElementById("draft-count");
         if (draftCountEl) {
             if (typeof data.draft_count !== "undefined") {
