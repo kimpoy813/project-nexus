@@ -65,10 +65,70 @@ class ExtensionProcess(models.Model):
             self.order = max_order + 1
         super().save(*args, **kwargs)
 
+    def step_tree(self):
+        """This process's steps as a nested tree, ready for template recursion.
+
+        Returns a list of ``{"step": step, "children": [...], "depth": int}``
+        nodes. Steps are ordered by the stored document order, so the nesting
+        follows the same order an editor shows. A step whose parent is missing
+        or belongs to another process is treated as top level rather than
+        silently dropped, so a hand-edited row can never make a step vanish.
+        """
+        # `.all()` (not `.filter()`/`.select_related()`) so callers that
+        # prefetch "steps" keep that cache instead of querying per process.
+        # Only parent_id is needed, which is already on the row.
+        steps = list(self.steps.all())
+        buckets = {step.id: [] for step in steps}
+        roots = []
+        for step in steps:
+            # A parent outside `buckets` belongs to another process or was
+            # deleted; treat the step as top level rather than hiding it.
+            if step.parent_id is not None and step.parent_id in buckets:
+                buckets[step.parent_id].append(step)
+            else:
+                roots.append(step)
+
+        def build(items, depth):
+            return [
+                {
+                    "step": step,
+                    "children": build(buckets.get(step.id, []), depth + 1),
+                    "depth": depth,
+                }
+                for step in items
+            ]
+
+        return build(roots, 0)
+
+    def steps_as_rows(self):
+        """Flat, document-order rows of ``(depth, step)`` for nested editors."""
+        rows = []
+
+        def walk(nodes):
+            for node in nodes:
+                rows.append((node["depth"], node["step"]))
+                walk(node["children"])
+
+        walk(self.step_tree())
+        return rows
+
 
 class ProcessStep(models.Model):
     process = models.ForeignKey(ExtensionProcess, related_name="steps", on_delete=models.CASCADE)
+    # Empty means "top-level step". Pointing at another step of the same process
+    # nests this one beneath it, which is how sub-steps (and sub-sub-steps) are
+    # stored. Nesting depth is intentionally unlimited.
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        related_name="children",
+        on_delete=models.CASCADE,
+        help_text="Leave empty for a top-level step, or pick the step this one sits under.",
+    )
     description = models.TextField()
+    # Document order: the position of the step in a depth-first walk of the
+    # tree, so ordering a flat list renders the whole hierarchy correctly.
     order = models.PositiveIntegerField(blank=True, null=True)  # IMPORTANT: no default=1
 
     class Meta:
@@ -80,6 +140,34 @@ class ProcessStep(models.Model):
             max_order = ProcessStep.objects.filter(process=self.process).aggregate(m=Max("order"))["m"] or 0
             self.order = max_order + 1
         super().save(*args, **kwargs)
+
+    @property
+    def depth(self):
+        """How many levels deep this step sits (0 = top level)."""
+        depth = 0
+        parent = self.parent
+        # The guard is a cycle-safety net: a bad self-reference must not hang
+        # a page render.
+        seen = {self.pk}
+        while parent is not None and parent.pk not in seen:
+            depth += 1
+            seen.add(parent.pk)
+            parent = parent.parent
+        return depth
+
+    def descendant_ids(self):
+        """PKs of every step nested anywhere beneath this one."""
+        collected = []
+        pending = list(self.children.all())
+        seen = {self.pk}
+        while pending:
+            step = pending.pop()
+            if step.pk in seen:
+                continue
+            seen.add(step.pk)
+            collected.append(step.pk)
+            pending.extend(step.children.all())
+        return collected
 
 class Target(models.Model):
     METRIC_CHOICES = [

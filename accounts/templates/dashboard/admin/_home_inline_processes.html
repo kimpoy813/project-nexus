@@ -4,9 +4,10 @@ Inline CRUD for ExtensionProcess rows. Nested under PROCESSES Content Sections.
 Processes are dragged into order by their handle; the order applies to every
 page that publishes the Processes block, because there is one list.
 
-Context: home_processes, editor_id, next_url
+Steps inside a process nest to any depth: drag one sideways, or use Tab /
+Shift+Tab. Context: home_processes, editor_id, next_url
 {% endcomment %}
-{% with eid=editor_id|default:"main" %}
+{% with eid=editor_id|default:"main"|stringformat:"s" %}
 <div class="home-processes-inline" id="home-inline-processes-{{ eid }}">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-slate-200 bg-white/70">
         <div class="min-w-0">
@@ -25,12 +26,8 @@ Context: home_processes, editor_id, next_url
                 <input type="text" name="title" class="pc-input" required placeholder="e.g. Needs Assessment">
             </div>
             <div>
-                <label class="pc-label">Steps <span class="text-slate-400">(you can add more later)</span></label>
-                <div id="add-process-steps-{{ eid }}" class="space-y-2">
-                    <input type="text" name="step_description[]" class="pc-input" placeholder="Step 1 description">
-                    <input type="text" name="step_description[]" class="pc-input" placeholder="Step 2 description">
-                </div>
-                <button type="button" onclick="addProcessStep('add-process-steps-{{ eid }}')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add step</button>
+                <label class="pc-label">Steps <span class="text-slate-400">(add sub-steps to any step)</span></label>
+                {% include "dashboard/admin/_process_steps_editor.html" with eid="add-"|add:eid input_class="nx-step-input pc-input" %}
             </div>
             <div class="flex justify-end gap-2">
                 <button type="button" onclick="document.getElementById('add-process-form-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>
@@ -54,13 +51,16 @@ Context: home_processes, editor_id, next_url
                     </button>
                     <div class="min-w-0">
                         <p class="text-sm font-semibold text-slate-900">{{ proc.title }} <span class="pc-pill pc-pill--muted ml-2">Order <span class="js-position">{{ proc.order }}</span></span> <span class="pc-pill pc-pill--muted">{{ proc.steps.count }} step{{ proc.steps.count|pluralize }}</span></p>
-                    <ol class="mt-2 space-y-1 list-decimal list-inside text-xs text-slate-500">
-                        {% for step in proc.steps.all %}
-                            <li>{{ step.description|truncatewords:12 }}</li>
-                        {% empty %}
-                            <li class="list-none text-slate-400">No steps yet — edit to add them.</li>
-                        {% endfor %}
-                    </ol>
+                        <ul class="mt-2 space-y-1 text-xs text-slate-500">
+                            {% for depth, step in proc.steps_as_rows %}
+                                <li style="padding-left: {{ depth }}rem;">
+                                    {% if depth %}<span class="text-slate-400">&bull;</span>{% endif %}
+                                    {{ step.description|truncatewords:12 }}
+                                </li>
+                            {% empty %}
+                                <li class="text-slate-400">No steps yet — edit to add them.</li>
+                            {% endfor %}
+                        </ul>
                     </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
@@ -81,24 +81,10 @@ Context: home_processes, editor_id, next_url
                         <input type="text" name="title" value="{{ proc.title }}" class="pc-input" required>
                     </div>
                     <div>
-                        <label class="pc-label">Steps <span class="text-slate-400">(order follows the list)</span></label>
-                        <div id="edit-process-steps-{{ proc.id }}-{{ eid }}" class="space-y-2">
-                            {% for step in proc.steps.all %}
-                                <div class="flex gap-2 items-center">
-                                    <input type="hidden" name="step_id[]" value="{{ step.id }}">
-                                    <input type="text" name="step_description[]" value="{{ step.description }}" class="pc-input flex-1" required>
-                                    <input type="number" name="step_order[]" value="{{ step.order }}" class="pc-input w-20" placeholder="Order">
-                                    <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>
-                                </div>
-                            {% endfor %}
-                            <div class="flex gap-2 items-center">
-                                <input type="hidden" name="step_id[]" value="">
-                                <input type="text" name="step_description[]" placeholder="New step…" class="pc-input flex-1">
-                                <input type="number" name="step_order[]" placeholder="Order" class="pc-input w-20">
-                                <button type="button" onclick="this.parentElement.remove()" class="text-xs text-red-600 hover:underline">Remove</button>
-                            </div>
-                        </div>
-                        <button type="button" onclick="addProcessStep('edit-process-steps-{{ proc.id }}-{{ eid }}')" class="mt-2 text-xs font-medium text-primary hover:underline">+ Add step</button>
+                        <label class="pc-label">Steps <span class="text-slate-400">(drag sideways to nest, or Tab / Shift+Tab)</span></label>
+                        {% with proc_id=proc.id|stringformat:"s" %}
+                            {% include "dashboard/admin/_process_steps_editor.html" with eid="edit-"|add:proc_id|add:"-"|add:eid steps=proc.step_tree input_class="nx-step-input pc-input" %}
+                        {% endwith %}
                     </div>
                     <div class="flex justify-end gap-2">
                         <button type="button" onclick="document.getElementById('edit-process-{{ proc.id }}-{{ eid }}').classList.add('hidden')" class="pc-btn">Cancel</button>

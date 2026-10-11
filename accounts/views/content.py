@@ -27,6 +27,7 @@ from ..campus_data import get_college_choices
 from ..campus_data import get_department_choices
 from ..decorators import admin_required
 from ..models import Profile
+from .process_steps import _sync_process_steps
 from .target_helpers import _parse_target_numbers
 from ..models import Signatory
 from ..models import Campus
@@ -377,16 +378,16 @@ def process_create(request):
             return redirect("processes_list")
 
         process = ExtensionProcess.objects.create(title=title)
-
-        for desc in request.POST.getlist("step_description[]"):
-            desc = (desc or "").strip()
-            if desc:
-                ProcessStep.objects.create(process=process, description=desc)
+        _sync_process_steps(process, request.POST)
 
         messages.success(request, f'Process "{title}" created successfully!')
         return redirect("processes_list")
 
-    return render(request, "dashboard/admin/process_form.html")
+    return render(
+        request,
+        "dashboard/admin/process_form.html",
+        {"editor_id": "new"},
+    )
 
 
 @login_required
@@ -399,47 +400,21 @@ def process_edit(request, pk):
         process.order = request.POST.get("order") or 0
         process.save()
 
-        step_ids = request.POST.getlist("step_id[]")
-        step_descriptions = request.POST.getlist("step_description[]")
-        step_orders = request.POST.getlist("step_order[]")
-
-        max_len = max(len(step_ids), len(step_descriptions), len(step_orders), 0)
-
-        def pad(lst, size, fill=""):
-            return lst + [fill] * (size - len(lst))
-
-        step_ids = pad(step_ids, max_len)
-        step_descriptions = pad(step_descriptions, max_len)
-        step_orders = pad(step_orders, max_len, "0")
-
-        valid_step_ids = [sid for sid in step_ids if sid]
-        process.steps.exclude(id__in=valid_step_ids).delete()
-
-        for i in range(max_len):
-            step_id = step_ids[i].strip()
-            desc = step_descriptions[i].strip()
-            step_order = step_orders[i].strip() or "0"
-
-            if not desc:
-                continue
-
-            if step_id:
-                step = ProcessStep.objects.filter(id=step_id, process=process).first()
-                if step:
-                    step.description = desc
-                    step.order = int(step_order)
-                    step.save()
-            else:
-                ProcessStep.objects.create(
-                    process=process,
-                    description=desc,
-                    order=int(step_order),
-                )
+        _sync_process_steps(process, request.POST)
 
         messages.success(request, f'Process "{process.title}" updated successfully!')
         return redirect("processes_list")
 
-    return render(request, "dashboard/admin/process_form.html", {"process": process})
+    return render(
+        request,
+        "dashboard/admin/process_form.html",
+        {
+            "process": process,
+            "editor_id": f"process-{process.pk}",
+            # Drag results are saved straight away; new rows wait for the form.
+            "persist_url": reverse("reorder_process_steps", args=[process.pk]),
+        },
+    )
 
 
 @login_required
@@ -456,10 +431,38 @@ def process_delete(request, pk):
 @admin_required
 @require_POST
 def reorder_process_steps(request, pk):
+    """Persist a drag result: step order plus which step each one sits under.
+
+    Accepts either ``{"step_ids": [...]}`` (flat reorder, kept for backwards
+    compatibility) or ``{"steps": [{"id": 1, "parent": 2}, ...]}`` where an
+    empty parent means top level. A step whose parent has not been saved yet
+    is left alone -- the full form submit is what stores new rows.
+    """
     process = get_object_or_404(ExtensionProcess, pk=pk)
 
     try:
         data = json.loads(request.body.decode("utf-8"))
+
+        if isinstance(data.get("steps"), list):
+            known = {str(step.id): step for step in process.steps.all()}
+            resolved = []
+            for entry in data.get("steps") or []:
+                step = known.get(str(entry.get("id", "")).strip())
+                if step is None:
+                    continue
+                parent_ref = str(entry.get("parent", "")).strip()
+                if parent_ref and parent_ref not in known:
+                    # The parent is a row the editor has not saved yet.
+                    continue
+                resolved.append((step, known.get(parent_ref) if parent_ref else None))
+
+            for index, (step, parent) in enumerate(resolved, start=1):
+                step.parent = parent
+                step.order = index
+                step.save(update_fields=["parent", "order"])
+
+            return JsonResponse({"ok": True, "saved": len(resolved)})
+
         step_ids = data.get("step_ids", [])
 
         for index, step_id in enumerate(step_ids, start=1):
@@ -467,7 +470,7 @@ def reorder_process_steps(request, pk):
 
         return JsonResponse({"ok": True})
 
-    except (ValueError, TypeError, KeyError):
+    except (ValueError, TypeError, KeyError, AttributeError):
         logger.warning("Malformed reorder_process_steps payload.", exc_info=True)
         return JsonResponse({"ok": False, "error": "Invalid request."}, status=400)
     except Exception:

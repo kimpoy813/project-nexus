@@ -1,0 +1,77 @@
+{% comment %}
+Nested step editor shared by both process screens.
+
+Context:
+  eid          unique suffix so several editors can live on one page
+  steps        the process's step tree (process.step_tree), may be empty
+  persist_url  optional: saves the order/nesting by AJAX after every drag
+  input_class  optional: classes for the description input
+  status_id    optional: id of an element elsewhere that should carry status
+
+Every row posts four parallel fields -- step_ref[], step_id[],
+step_description[] and step_parent[]. step_parent[] holds the parent row's
+*reference* (s<pk> for a saved step, n<counter> for an unsaved one) so a new
+sub-step can hang off a new parent. See accounts/views/process_steps.py.
+{% endcomment %}
+<div class="nx-step-editor" data-step-editor="steps-{{ eid }}">
+    {# Marks the post as coming from the nested editor, so an editor emptied
+       of every step still saves (an empty form posts no step fields at all). #}
+    <input type="hidden" name="step_editor" value="1">
+    {% if not status_id %}
+        <p id="nx-step-status-{{ eid }}" class="nx-step-status">
+            Drag a step by its handle to move it, drag it sideways to make it a sub-step.
+            Tab nests a step, Shift+Tab promotes it.
+        </p>
+    {% endif %}
+
+    <ul class="nx-step-list"
+        data-step-list
+        data-step-root
+        data-status-id="{% if status_id %}{{ status_id }}{% else %}nx-step-status-{{ eid }}{% endif %}"
+        data-input-class="{{ input_class|default:'nx-step-input' }}"
+        {% if persist_url %}data-persist-url="{{ persist_url }}"{% endif %}>
+        {% for node in steps %}
+            {% include "dashboard/admin/_process_step_row.html" with node=node eid=eid input_class=input_class %}
+        {% endfor %}
+    </ul>
+
+    <button type="button" data-step-action="add" class="nx-step-add">
+        + Add step
+    </button>
+
+    {% if not steps %}
+        <p class="nx-step-empty">No steps yet. Add the first one, then use “+ Sub” for anything nested under it.</p>
+    {% endif %}
+</div>
+
+<style>
+.nx-step-status { margin: 0 0 .5rem; font-size: .75rem; color: #64748b; }
+.nx-step-status--ok { color: #15803d; }
+.nx-step-status--err { color: #b91c1c; }
+.nx-step-list { list-style: none; margin: 0; padding: 0; }
+/* margin + border + padding must add up to INDENT_PX (28) in
+   static/js/process-steps-editor.js: the script turns the pointer's distance
+   from the left edge into a nesting level, so the two have to agree. */
+.nx-step-list--children { margin-left: 19px; padding-left: 8px; border-left: 1px dashed #cbd5e1; }
+.nx-step-row { margin: 0; }
+.nx-step-row__body { display: flex; align-items: center; gap: .375rem; padding: .25rem 0; }
+.nx-step-handle {
+    flex: 0 0 auto; width: 1.5rem; height: 1.5rem; display: inline-flex;
+    align-items: center; justify-content: center; border: 1px solid #e2e8f0;
+    border-radius: .375rem; background: #fff; color: #94a3b8; cursor: grab;
+}
+.nx-step-handle:hover { color: #475569; border-color: #cbd5e1; }
+.nx-step-handle:active { cursor: grabbing; }
+.nx-step-handle svg { width: .875rem; height: .875rem; }
+.nx-step-input { flex: 1 1 auto; min-width: 0; }
+.nx-step-actions { display: inline-flex; gap: .25rem; flex: 0 0 auto; }
+.nx-step-btn {
+    padding: .125rem .375rem; font-size: .75rem; line-height: 1.25rem;
+    border: 1px solid #e2e8f0; border-radius: .375rem; background: #fff; color: #475569;
+}
+.nx-step-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.nx-step-btn--danger { color: #b91c1c; }
+.nx-step-add { margin-top: .5rem; font-size: .75rem; font-weight: 600; color: #103b07; }
+.nx-step-add:hover { text-decoration: underline; }
+.nx-step-empty { margin-top: .5rem; font-size: .75rem; color: #94a3b8; }
+</style>

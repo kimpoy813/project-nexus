@@ -86,6 +86,8 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `accounts/tests/test_layout.py` | Full-bleed layout: no capped page shells, stylesheet linked, auth/wizard/dashboard shells intact |
 | `accounts/tests/test_loading_skeleton.py` | Overlay, eight layouts, route → variant, and dest matching (login/logout plus JS vs Python for every named URL) |
 | `accounts/tests/test_file_storage_configuration.py` | Supabase bucket/endpoint/region/key validation, the `check_file_storage` command, and the provider error shown after a failed upload |
+| `accounts/tests/test_process_reordering.py` | Extension Process steps: nesting to any depth, parent-first saves, the drag reorder endpoint, public rendering |
+| `tests/process-steps.test.cjs` | Outline maths for the nested step editor (`node --test tests/*.test.cjs`) |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
 than calling `create_user` directly — a signal creates a `FACULTY` profile on
@@ -136,6 +138,26 @@ SDGs, the Template Library, the Form Builder. Every source is declared once in
 | `details/blocks/<source>.html` | the public markup |
 | the nested editor | in-place CRUD inside the section |
 | `content_source_reorder` | drag-to-order the items in a source |
+
+### Extension Process steps nest to any depth
+
+A step can sit under another step, to any depth. Both editors — the standalone
+one under **Admin → Processes** and the inline **Processes** builder inside the
+Page Content editor — share one component:
+
+| Piece | File |
+| --- | --- |
+| Row markup (rendered and cloned in the browser) | `accounts/templates/dashboard/admin/_process_step_row.html` |
+| Drag to move, drag sideways to nest, Tab / Shift+Tab | `static/js/process-steps-editor.js` |
+| Turning the posted outline into rows | `accounts/views/process_steps.py` |
+| Public numbering and bullets | `details/templates/details/blocks/_process_steps.html` |
+
+Each row posts `step_ref[]`, `step_id[]`, `step_description[]` and
+`step_parent[]`. The parent is a *reference* (`s<pk>` for a saved step,
+`n<counter>` for one that is not saved yet), so a new sub-step can hang off a
+new parent. `_sync_process_steps` creates parents before children, then writes
+`ProcessStep.parent` plus a depth-first `order` that both the public block and
+the editors read back.
 
 **A page holds bindings, not copies.** Dropping the Template Library onto two
 pages publishes one list twice; editing a template in its builder updates both.
