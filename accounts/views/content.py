@@ -364,7 +364,9 @@ def activity_delete(request, pk):
 @login_required
 @admin_required
 def processes_list(request):
-    processes = ExtensionProcess.objects.all().prefetch_related("steps")
+    # Match the public Processes block so the position shown here is the order
+    # visitors will see. The list itself can be reordered from this screen.
+    processes = ExtensionProcess.objects.order_by("order", "id").prefetch_related("steps")
     return render(request, "dashboard/admin/processes_list.html", {"processes": processes})
 
 
@@ -397,7 +399,8 @@ def process_edit(request, pk):
 
     if request.method == "POST":
         process.title = (request.POST.get("title") or "").strip()
-        process.order = request.POST.get("order") or 0
+        # Position is managed from the process list's reorder handle; editing
+        # the title or steps must not reset the published order.
         process.save()
 
         _sync_process_steps(process, request.POST)

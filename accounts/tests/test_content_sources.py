@@ -539,6 +539,38 @@ class SourceItemDragOrderTests(TestCase):
         self.assertEqual(reordered[0], titles[1])
         self.assertEqual(reordered[1], titles[0])
 
+    def test_extension_processes_can_be_dragged_into_a_new_order(self):
+        first = ExtensionProcess.objects.create(title="First process")
+        second = ExtensionProcess.objects.create(title="Second process")
+
+        response = self._reorder("PROCESSES", [second.pk, first.pk])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(ExtensionProcess.objects.order_by("order", "id").values_list("id", flat=True)),
+            [second.pk, first.pk],
+        )
+
+    def test_the_process_table_exposes_its_reorder_controls(self):
+        later = ExtensionProcess.objects.create(title="Later sortable process")
+        earlier = ExtensionProcess.objects.create(title="Earlier sortable process")
+        ExtensionProcess.objects.filter(pk=later.pk).update(order=2)
+        ExtensionProcess.objects.filter(pk=earlier.pk).update(order=1)
+
+        html = self.client_admin.get(reverse("processes_list")).content.decode()
+
+        self.assertIn('data-sortable="source"', html)
+        self.assertIn(
+            f'data-reorder-url="{reverse("content_source_reorder", args=["PROCESSES"])}"',
+            html,
+        )
+        self.assertIn(f'data-item-id="{later.pk}"', html)
+        self.assertIn(f'data-item-id="{earlier.pk}"', html)
+        self.assertLess(html.index(earlier.title), html.index(later.title))
+        self.assertIn("js-item-handle", html)
+        self.assertIn("js-position", html)
+        self.assertIn("Drag a process by its handle", html)
+
     def test_the_thrusts_screen_offers_a_handle_and_no_arrow_buttons(self):
         """Dragging is the reorder control, so no ↑/↓ buttons sit beside it."""
         html = self.client_admin.get(reverse("home_sections_manager")).content.decode()

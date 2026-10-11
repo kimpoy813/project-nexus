@@ -161,6 +161,11 @@ new parent. `_sync_process_steps` creates parents before children, then writes
 `ProcessStep.parent` plus a depth-first `order` that both the public block and
 the editors read back.
 
+The process list itself is also draggable from **Admin → Processes** (or the
+inline Processes builder). Its position column is the public display sequence;
+reordering saves immediately and applies everywhere a Processes block appears.
+Editing a process's title or steps leaves that sequence unchanged.
+
 **A page holds bindings, not copies.** Dropping the Template Library onto two
 pages publishes one list twice; editing a template in its builder updates both.
 That is the rule that keeps the system from becoming repetitive: data lives in
@@ -309,7 +314,8 @@ the last thing it renders (`templates/base.html`, the maintenance page, the
 debug sign-in, Django's admin) and links `static/goey/toaster.css` from its
 head. The partial mounts the Gooey toaster (`static/goey/toaster.js`, built from
 `frontend/`), turns Django's `messages` into `#messages-data`, and hands both to
-the helper.
+the helper. Feature templates do not render a second inline copy of those
+messages; Django flash feedback uses the toast across the whole system.
 
 | What raises a toast | How |
 |---|---|

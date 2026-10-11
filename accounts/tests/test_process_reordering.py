@@ -43,6 +43,22 @@ class ProcessStepReorderTests(TestCase):
         self.assertContains(response, 'name="step_parent[]"')
         self.assertContains(response, 'data-step-ref="s%d"' % self.first.pk)
 
+    def test_editing_process_content_does_not_reset_its_display_order(self):
+        self.process.order = 7
+        self.process.save(update_fields=["order"])
+
+        response = self._post_steps(
+            [
+                (f"s{self.first.pk}", self.first.pk, "First", ""),
+                (f"s{self.second.pk}", self.second.pk, "Second", ""),
+            ],
+            extra={"title": "Renamed Process"},
+        )
+
+        self.assertRedirects(response, reverse("processes_list"))
+        self.process.refresh_from_db()
+        self.assertEqual(self.process.order, 7)
+
     def test_ajax_reorder_endpoint_still_accepts_a_flat_id_list(self):
         response = self.client_admin.post(
             reverse("reorder_process_steps", args=[self.process.pk]),
