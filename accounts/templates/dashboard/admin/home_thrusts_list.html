@@ -21,17 +21,6 @@
         </div>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="mb-4 rounded-lg border px-4 py-3 text-sm
-                {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800
-                {% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800
-                {% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-
     <div class="hs-card mb-6">
         <p id="thrust-order-status" class="pc-status border-b border-slate-100 px-4 py-2.5 text-xs text-slate-500">
             Drag a card by its handle to reorder. The order applies to every page that publishes the Thrust block.

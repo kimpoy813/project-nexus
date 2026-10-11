@@ -15,17 +15,6 @@
         <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Back to Admin</a>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="mb-4 rounded-lg border px-4 py-3 text-sm
-                {% if message.tags == 'success' %}border-green-200 bg-green-50 text-green-800
-                {% elif message.tags == 'error' %}border-red-200 bg-red-50 text-red-800
-                {% else %}border-slate-200 bg-slate-50 text-slate-700{% endif %}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-
     {% csrf_token %}
     <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
         {% include "dashboard/admin/_inline_sdgs.html" with inline_sdgs=goals editor_id="standalone" next_url=request.path %}

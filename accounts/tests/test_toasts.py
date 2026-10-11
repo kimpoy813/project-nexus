@@ -112,6 +112,22 @@ class TemplateSourceTests(SimpleTestCase):
         ]
         self.assertEqual(offenders, [], "mount the toaster through the partial: " + ", ".join(offenders))
 
+    def test_django_messages_are_rendered_only_by_the_shared_toaster(self):
+        """Feature templates must not add their own inline copy of a flash message."""
+        message_loop = re.compile(r"{%\s*for\s+message\s+in\s+messages\s*%}")
+        shared_partial = REPO_ROOT / "templates" / "partials" / "_toaster.html"
+        offenders = [
+            str(path.relative_to(REPO_ROOT))
+            for path in _repo_templates()
+            if path != shared_partial
+            and message_loop.search(path.read_text(encoding="utf-8"))
+        ]
+        self.assertEqual(
+            offenders,
+            [],
+            "render Django messages through partials/_toaster.html: " + ", ".join(offenders),
+        )
+
 
 class ToastMountTests(TestCase):
     """Every full page hands the browser the toaster and the helper."""
