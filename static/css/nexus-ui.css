@@ -1,10 +1,13 @@
 /* NExUS global UX/UI refresh
    Centralized visual language for menus, dashboards, wizards, trackers, forms,
-   tables, cards, and admin pages. Uses plain CSS so it works with Tailwind CDN. */
+   tables, cards, and admin pages. Uses shared CSS tokens alongside the locally built utility stylesheet. */
 
 :root {
   /* Brand palette sampled from the ISPSC-RDEI Extension Office logo.
-     Keep in sync with static/js/nexus-theme.js (Tailwind tokens). */
+     Runtime overrides come from partials/_theme.html; utilities use the RGB tokens. */
+  --nexus-primary-rgb: 16 59 7;
+  --nexus-secondary-rgb: 90 17 19;
+  --nexus-accent-rgb: 245 229 135;
   --nexus-primary: #103b07;   /* forest green  */
   --nexus-primary-2: #1f5b12;
   --nexus-secondary: #5a1113; /* maroon        */
@@ -40,7 +43,7 @@ html {
 }
 
 /* ONE typeface for the entire system (paired with the Inter webfont loaded
-   in the page heads and the fontFamily tokens in nexus-theme.js). Applied
+   in the page heads and the fontFamily tokens in frontend/tailwind.config.cjs). Applied
    broadly so headings, buttons, inputs, tables, and badges never drift. */
 html,
 body,
@@ -57,13 +60,13 @@ h1, h2, h3, h4, h5, h6,
 body {
   color: var(--nexus-ink);
   background:
-    radial-gradient(circle at top left, rgba(245, 229, 135, 0.24), transparent 32rem),
-    radial-gradient(circle at top right, rgba(16, 59, 7, 0.10), transparent 30rem),
+    radial-gradient(circle at top left, rgb(var(--nexus-accent-rgb) / 0.24), transparent 32rem),
+    radial-gradient(circle at top right, rgb(var(--nexus-primary-rgb) / 0.10), transparent 30rem),
     linear-gradient(180deg, #f9fbf6 0%, var(--nexus-bg) 44%, #f8fafc 100%) !important;
 }
 
 ::selection {
-  background: rgba(16, 59, 7, 0.18);
+  background: rgb(var(--nexus-primary-rgb) / 0.18);
   color: var(--nexus-primary);
 }
 
@@ -83,7 +86,7 @@ body {
   box-shadow: var(--nexus-shadow-lg);
   transition: transform .18s ease;
 }
-.skip-link:focus { transform: translateY(0); outline: 3px solid rgba(245, 229, 135, .9); }
+.skip-link:focus { transform: translateY(0); outline: 3px solid rgb(var(--nexus-accent-rgb) / .9); }
 
 /* Layout shells */
 /* The navbar is `fixed top-0`, so the page shell carries its height as top
@@ -136,12 +139,12 @@ body {
 .nexus-menu-link:hover,
 .nexus-menu-link:focus-visible {
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.07);
+  background: rgb(var(--nexus-primary-rgb) / 0.07);
   outline: none;
 }
 .nexus-menu-link.is-strong {
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.08);
+  background: rgb(var(--nexus-primary-rgb) / 0.08);
 }
 
 .nexus-icon-button {
@@ -153,14 +156,14 @@ body {
   border-radius: 999px;
   border: 1px solid transparent;
   color: var(--nexus-primary);
-  background: rgba(16, 59, 7, 0.06);
+  background: rgb(var(--nexus-primary-rgb) / 0.06);
   transition: transform .16s ease, background .16s ease, border-color .16s ease;
 }
 .nexus-icon-button:hover,
 .nexus-icon-button:focus-visible {
   transform: translateY(-1px);
-  background: rgba(16, 59, 7, 0.10);
-  border-color: rgba(16, 59, 7, 0.14);
+  background: rgb(var(--nexus-primary-rgb) / 0.10);
+  border-color: rgb(var(--nexus-primary-rgb) / 0.14);
   outline: none;
 }
 
@@ -176,12 +179,7 @@ body {
 /* Cards, panels, dashboards */
 .nexus-card,
 .dir-card,
-.section-block,
-.rounded-2xl.border.bg-white,
-.rounded-2xl.border.border-gray-200.bg-white,
-.rounded-2xl.border.border-gray-100.bg-white,
-.bg-white.border.border-gray-100.rounded-2xl,
-.bg-white.border.border-gray-200.rounded-2xl {
+.section-block {
   border-color: var(--nexus-line) !important;
   background: var(--nexus-surface) !important;
   box-shadow: var(--nexus-shadow-sm) !important;
@@ -221,7 +219,7 @@ body {
 .ext-card:hover,
 .mine-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(16, 59, 7, .22);
+  border-color: rgb(var(--nexus-primary-rgb) / .22);
 }
 
 .dir-card-accent {
@@ -233,7 +231,6 @@ body {
 .dir-btn,
 .dir-btn-primary,
 button[type="submit"],
-.bg-primary,
 .nexus-btn-primary {
   transition: transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
 }
@@ -249,28 +246,26 @@ button[type="submit"],
 .dir-btn:hover,
 .nexus-btn-secondary:hover {
   color: var(--nexus-primary) !important;
-  border-color: rgba(16, 59, 7, .22) !important;
+  border-color: rgb(var(--nexus-primary-rgb) / .22) !important;
   box-shadow: var(--nexus-shadow-sm);
   transform: translateY(-1px);
 }
 
 .dir-btn-primary,
 .nexus-btn-primary,
-.bg-primary,
 button.bg-primary,
 a.bg-primary {
   background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-primary-2)) !important;
   color: #fff !important;
   border-color: transparent !important;
-  box-shadow: 0 10px 24px rgba(16, 59, 7, .18);
+  box-shadow: 0 10px 24px rgb(var(--nexus-primary-rgb) / .18);
 }
 .dir-btn-primary:hover,
 .nexus-btn-primary:hover,
-.bg-primary:hover,
 button.bg-primary:hover,
 a.bg-primary:hover {
-  background: linear-gradient(135deg, #123f08, #2a7218) !important;
-  box-shadow: 0 14px 30px rgba(16, 59, 7, .24);
+  background: linear-gradient(135deg, var(--nexus-primary), color-mix(in srgb, var(--nexus-primary) 88%, #000)) !important;
+  box-shadow: 0 14px 30px rgb(var(--nexus-primary-rgb) / .24);
   transform: translateY(-1px);
 }
 
@@ -310,8 +305,8 @@ input[type="url"]:focus,
 select:focus,
 textarea:focus,
 .dir-input:focus {
-  border-color: rgba(16, 59, 7, .52) !important;
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .10) !important;
+  border-color: rgb(var(--nexus-primary-rgb) / .52) !important;
+  box-shadow: 0 0 0 4px rgb(var(--nexus-primary-rgb) / .10) !important;
   outline: none !important;
 }
 label {
@@ -344,7 +339,7 @@ tbody tr {
   transition: background .14s ease;
 }
 tbody tr:hover {
-  background: rgba(16, 59, 7, 0.035) !important;
+  background: rgb(var(--nexus-primary-rgb) / 0.035) !important;
 }
 
 /* Badges */
@@ -365,11 +360,11 @@ tbody tr:hover {
   transition: background .16s ease, color .16s ease, transform .16s ease;
 }
 .dashboard-nav-btn:hover {
-  background: rgba(16, 59, 7, .07) !important;
+  background: rgb(var(--nexus-primary-rgb) / .07) !important;
   color: var(--nexus-primary) !important;
 }
 .dashboard-nav-btn.active {
-  background: linear-gradient(135deg, rgba(16, 59, 7, .12), rgba(245, 229, 135, .22)) !important;
+  background: linear-gradient(135deg, rgb(var(--nexus-primary-rgb) / .12), rgb(var(--nexus-accent-rgb) / .22)) !important;
   color: var(--nexus-primary) !important;
 }
 
@@ -378,7 +373,7 @@ tbody tr:hover {
 .max-h-\[75vh\].overflow-y-auto,
 .max-h-\[65vh\].overflow-y-auto {
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 59, 7, .32) rgba(15, 23, 42, .05);
+  scrollbar-color: rgb(var(--nexus-primary-rgb) / .32) rgba(15, 23, 42, .05);
 }
 #wizard-stepper-scroll::-webkit-scrollbar,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar,
@@ -388,12 +383,12 @@ tbody tr:hover {
 #wizard-stepper-scroll::-webkit-scrollbar-thumb,
 .max-h-\[75vh\].overflow-y-auto::-webkit-scrollbar-thumb,
 .max-h-\[65vh\].overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(16, 59, 7, .28);
+  background: rgb(var(--nexus-primary-rgb) / .28);
   border-radius: 999px;
 }
 
 .wizard-step-circle {
-  box-shadow: 0 0 0 4px rgba(16, 59, 7, .05);
+  box-shadow: 0 0 0 4px rgb(var(--nexus-primary-rgb) / .05);
 }
 
 [data-current-step="true"] {
@@ -408,7 +403,7 @@ tbody tr:hover {
 /* Footer */
 .nexus-footer {
   background:
-    radial-gradient(circle at 20% 20%, rgba(245, 229, 135, .18), transparent 28rem),
+    radial-gradient(circle at 20% 20%, rgb(var(--nexus-accent-rgb) / .18), transparent 28rem),
     linear-gradient(135deg, #0b2b04, var(--nexus-primary)) !important;
 }
 
@@ -514,4 +509,31 @@ tbody tr:hover {
     scroll-behavior: auto !important;
     transition-duration: .001ms !important;
   }
+}
+
+/* Keep native controls: platform pickers support keyboard, touch and validation. */
+select:not([multiple]) { min-height: 2.5rem; padding-right: 2rem; }
+select:disabled, button:disabled { cursor: not-allowed; opacity: .6; }
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--nexus-primary);
+  outline-offset: 3px;
+}
+[aria-invalid="true"] { border-color: #b91c1c !important; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  [data-aos] { opacity: 1 !important; transform: none !important; }
+}
+
+[hidden] { display: none !important; }
+
+/* Grid children must be allowed to shrink around native selects and uploads. */
+main .grid > * { min-width: 0; }
+select, input, textarea { max-width: 100%; }
+@media (min-width: 1024px) {
+  .nexus-icon-button.lg\:hidden { display: none; }
 }

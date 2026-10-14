@@ -2,7 +2,7 @@
 {% block content %}
 <div class="nx-page py-8">
 
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between nx-page-header">
         <div class="flex items-start gap-3">
             <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -10,8 +10,8 @@
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-bold tracking-tight text-gray-900">Proposal Storage</h1>
-                <p class="mt-1 text-sm text-gray-600">Access all files related to this proposal in one place.</p>
+                <h1 class="text-2xl font-bold tracking-tight text-gray-900 nx-page-title">Proposal Storage</h1>
+                <p class="mt-1 text-sm text-gray-600 nx-page-description">Access all files related to this proposal in one place.</p>
             </div>
         </div>
 
@@ -39,7 +39,7 @@
                             Upload a scanned PDF of the signed proposal. Staff will verify and release your approval documents.
                         </p>
                         <a href="{% url 'proposal_upload_signed_proposal' proposal.id %}"
-                            class="mt-2 inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800">
+                            class="mt-2 inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 nx-btn nx-btn--context">
                             Upload Signed Proposal
                         </a>
                         </div>
@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm nx-panel">
         <div class="border-b border-gray-100 px-6 py-5">
             <div class="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
                 <div class="min-w-0">
@@ -84,7 +84,7 @@
                         <div class="flex flex-wrap items-center gap-2">
                             <a href="{% url 'proposal_download_approved_docx' proposal.id %}"
                                data-nx-no-skeleton
-                               class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                               class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                 Download
                             </a>
                         </div>
@@ -101,15 +101,15 @@
                         <div class="flex flex-wrap items-center gap-2">
                             {% if signed_doc and signed_doc.file %}
                                 <a href="{{ signed_doc.file.url }}" target="_blank" rel="noopener"
-                                   class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                   class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 nx-btn nx-btn--secondary">
                                     View
                                 </a>
                                 <a href="{{ signed_doc.file.url }}" download
-                                   class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                   class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                     Download
                                 </a>
                             {% else %}
-                                <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">Not available</span>
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500 nx-badge">Not available</span>
                             {% endif %}
                         </div>
                     </div>
@@ -139,15 +139,15 @@
                             <div class="flex flex-wrap items-center gap-2">
                                 {% if row.file_url %}
                                     <a href="{{ row.file_url }}" target="_blank" rel="noopener"
-                                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 nx-btn nx-btn--secondary">
                                         View
                                     </a>
                                     <a href="{{ row.file_url }}" download
-                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                         Download
                                     </a>
                                 {% else %}
-                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">—</span>
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500 nx-badge">—</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -184,22 +184,22 @@
                             <div class="flex flex-wrap items-center gap-2">
                                 {% if row.file_url %}
                                     <a href="{{ row.file_url }}" target="_blank" rel="noopener"
-                                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 nx-btn nx-btn--secondary">
                                         View
                                     </a>
                                     {% if row.download_url %}
                                         <a href="{{ row.download_url }}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                             Download
                                         </a>
                                     {% else %}
                                         <a href="{{ row.file_url }}" download
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                             Download
                                         </a>
                                     {% endif %}
                                 {% else %}
-                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">—</span>
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500 nx-badge">—</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -228,7 +228,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <p class="text-sm font-semibold text-gray-900">Memorandum of Agreement</p>
                             <a href="{% url 'proposal_moa_tracker' proposal.id %}"
-                               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 nx-btn nx-btn--secondary">
                                 Open MOA Tracker
                             </a>
                         </div>
@@ -262,7 +262,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <p class="text-sm font-semibold text-gray-900">Implementation Reports</p>
                             <a href="{% url 'proposal_implementation_tracker' proposal.id %}"
-                               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50">
+                               class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 nx-btn nx-btn--secondary">
                                 Open Implementation Tracker
                             </a>
                         </div>
@@ -336,7 +336,7 @@
                             <div class="flex flex-wrap items-center gap-2">
                                 {% if item.view_url %}
                                     <a href="{{ item.view_url }}" target="_blank" rel="noopener"
-                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                       class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                         View Version
                                     </a>
                                 {% endif %}

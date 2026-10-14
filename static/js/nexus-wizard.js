@@ -101,7 +101,15 @@
         });
     }
 
+    function configureStepNavigation() {
+        var navigation = document.getElementById("wizard-step-navigation");
+        if (!navigation || !window.matchMedia) return;
+        navigation.open = window.matchMedia("(min-width: 1024px)").matches;
+    }
+
     function scrollCurrentStep() {
+        var navigation = document.getElementById("wizard-step-navigation");
+        if (navigation && !navigation.open) return;
         var scrollBox = document.getElementById("wizard-stepper-scroll");
         var target = document.querySelector("[data-current-step='true']");
         if (!scrollBox || !target) return;
@@ -155,6 +163,7 @@
             window.NexusRepeaters.init();
         }
         startPing();
+        configureStepNavigation();
         scrollCurrentStep();
         if (!options.keepScroll) scrollFormIntoView();
     }
@@ -304,6 +313,9 @@
         document.addEventListener("click", onClick);
         document.addEventListener("submit", onSubmit);
         window.addEventListener("popstate", onPopState);
+        if (window.matchMedia) {
+            window.matchMedia("(min-width: 1024px)").addEventListener("change", configureStepNavigation);
+        }
         try {
             history.replaceState({ nxWizard: true }, "", window.location.href);
         } catch (e) {}

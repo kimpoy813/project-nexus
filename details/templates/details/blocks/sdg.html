@@ -14,7 +14,7 @@ Context: section, data.goals
     {% if data.goals %}
         <div class="home-sdg-grid grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {% for goal in data.goals %}
-            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm">
+            <div class="home-sdg-card bg-white p-6 rounded-xl border border-gray-100 hover:border-primary transition duration-300 text-center shadow-sm nx-panel">
                 {% if goal.image %}
                     <img src="{{ goal.image.url }}" alt="{{ goal.title }}" class="w-28 mx-auto mb-4">
                 {% else %}

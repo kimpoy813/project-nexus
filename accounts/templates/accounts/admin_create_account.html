@@ -2,10 +2,10 @@
 
 {% block content %}
 <div class="nx-page py-8">
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden nx-panel">
         <div class="border-b border-gray-100 px-6 py-4">
-            <h1 class="text-xl font-bold text-gray-900">Create Account</h1>
-            <p class="mt-1 text-sm text-gray-600">
+            <h1 class="text-xl font-bold text-gray-900 nx-page-title">Create Account</h1>
+            <p class="mt-1 text-sm text-gray-600 nx-page-description">
                 Admin can create user accounts and assign roles.
             </p>
         </div>
@@ -142,14 +142,14 @@
             <div class="flex gap-3 pt-2">
                 <button
                     type="submit"
-                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary"
+                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary"
                 >
                     Create Account
                 </button>
 
                 <a
                     href="{% url 'admin_dashboard' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary"
                     data-nx-skeleton="dashboard"
                 >
                     Cancel
@@ -159,93 +159,6 @@
     </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const campusSelect = document.getElementById("id_campus");
-    const collegeSelect = document.getElementById("id_college");
-    const departmentSelect = document.getElementById("id_department");
+{% include "accounts/_organization_fields.html" %}
 
-    async function loadColleges(selectedCollege = "") {
-        if (!campusSelect || !collegeSelect) return;
-
-        const campus = campusSelect.value;
-        collegeSelect.innerHTML = '<option value="">Select College (Optional)</option>';
-
-        if (departmentSelect) {
-            departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
-        }
-
-        if (!campus) return;
-
-        try {
-            const response = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}`);
-            const data = await response.json();
-
-            data.colleges.forEach(item => {
-                const option = document.createElement("option");
-                option.value = item.value;
-                option.textContent = item.label;
-
-                if (item.value === selectedCollege) {
-                    option.selected = true;
-                }
-
-                collegeSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Failed to load colleges:", error);
-        }
-    }
-
-    async function loadDepartments(selectedDepartment = "") {
-        if (!campusSelect || !departmentSelect) return;
-
-        const campus = campusSelect.value;
-        const college = collegeSelect ? collegeSelect.value : "";
-
-        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
-
-        if (!campus) return;
-
-        try {
-            const response = await fetch(
-                `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}`
-            );
-            const data = await response.json();
-
-            data.departments.forEach(item => {
-                const option = document.createElement("option");
-                option.value = item.value;
-                option.textContent = item.label;
-
-                if (item.value === selectedDepartment) {
-                    option.selected = true;
-                }
-
-                departmentSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Failed to load departments:", error);
-        }
-    }
-
-    if (campusSelect) {
-        const initialCollege = collegeSelect ? collegeSelect.value : "";
-        const initialDepartment = departmentSelect ? departmentSelect.value : "";
-
-        loadColleges(initialCollege).then(() => loadDepartments(initialDepartment));
-
-        campusSelect.addEventListener("change", async function () {
-            await loadColleges();
-            await loadDepartments();
-        });
-
-        if (collegeSelect) {
-            collegeSelect.addEventListener("change", async function () {
-                await loadDepartments();
-            });
-        }
-    }
-});
-</script>
 {% endblock %}

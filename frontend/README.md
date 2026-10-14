@@ -1,16 +1,34 @@
-# React + Vite
+# NExUS UI assets
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Django renders the application. This directory is **not a second application**:
+Vite builds the shared React toaster; Tailwind builds utilities used by Django
+pages; the vendor script copies pinned browser libraries and fonts for local serving.
 
-Currently, two official plugins are available:
+## Build
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```sh
+npm ci
+npm run build
+npm run lint
+```
 
-## React Compiler
+Commit the generated `static/goey/`, `static/css/nexus-utilities.css`, and
+`static/vendor/` with source changes. The Python-only deployment can then run
+`collectstatic` without Node or runtime CDNs. For template/class-only changes,
+`npm run build:ui` is sufficient.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- `tailwind.config.cjs`: scanned Django templates, form widgets and static JS;
+  brand utilities consume runtime CSS variables, including opacity modifiers.
+- `src/main.jsx`: shared toaster, mounted by `templates/partials/_toaster.html`.
+- `scripts/vendor.mjs`: Alpine, AOS, Chart.js, Sortable and Inter, with licenses.
+- `../accounts/ui.py` and `../templates/partials/_theme.html`: validated
+  admin-selected brand colors shared by utility and component styles.
 
-## Expanding the ESLint configuration
+Use complete class names rather than building `bg-${color}-500` strings: static
+compilation cannot discover arbitrary runtime class fragments. Add an explicit
+safelist if a genuine runtime palette requires one. User-authored rich content
+should use `nexus-richtext`, not rely on injecting arbitrary utility classes.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+`npm run dev` serves only the toaster entry. Use Django's development server to
+review real screens. Browser interactions must use Django's named URLs, not
+hard-coded API hosts.

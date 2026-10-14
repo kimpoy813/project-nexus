@@ -1,4 +1,5 @@
 {% extends "services/wizard/_wizard_shell.html" %}
+{% load proposal_extras %}
 {% block wizard_form %}
 <div class="p-6 border-b border-gray-100">
   <h2 class="text-xl font-semibold text-gray-900">{{ wizard_step_config.title }}</h2>
@@ -10,13 +11,13 @@
     <div class="mt-6 flex flex-wrap items-center gap-2">
       <span class="text-xs text-gray-500">Editing now</span>
 
-      <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+      <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary nx-badge">
         <span class="h-2 w-2 rounded-full bg-primary"></span>
         You · Step {{ step }}
       </span>
 
       {% for editor in active_editors %}
-        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 nx-badge">
           <span class="h-2 w-2 rounded-full bg-primary"></span>
           {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
         </span>
@@ -65,9 +66,15 @@
   {% endif %}
 </div>
 
-<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden nx-panel">
   <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-1 space-y-8">
     {% csrf_token %}
+    {% if step1_errors %}
+    <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <p class="font-semibold">Please correct these fields. This step has not been saved.</p>
+      <ul class="mt-2 list-disc pl-5">{% for error in step1_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
 
     <div>
       <label class="block text-sm font-semibold text-gray-900 mb-3">
@@ -77,8 +84,8 @@
       <input type="hidden" name="extension_type" id="extensionTypeValue" value="{{ proposal.extension_type }}">
 
       <div class="flex flex-wrap gap-3">
-        {% for item in step_fields.extension_type.parsed_choices|default:proposal.ExtensionType.choices %}
-          <div
+        {% for item in step_fields.extension_type.parsed_choices|default:proposal.ExtensionType.choices|choice_options %}
+          <button type="button" {% if not is_edit_mode %}disabled{% endif %}
             class="ext-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
               {% if proposal.extension_type == item.value or proposal.extension_type == item %}
                 bg-primary text-white border-primary
@@ -86,10 +93,11 @@
                 bg-white text-gray-700 border-gray-300
               {% endif %}
               {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item }}{% endif %}"
-            data-label="{% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}">
-            {% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}
-          </div>
+            aria-pressed="{% if proposal.extension_type == item.value or proposal.scope_type == item.value %}true{% else %}false{% endif %}"
+            data-value="{{ item.value }}"
+            data-label="{{ item.label }}">
+            {{ item.label }}
+          </button>
         {% endfor %}
       </div>
 
@@ -112,7 +120,7 @@
         {# Reversed so Training Design — the format a blank request-based pick #}
         {# is saved as — leads, exactly like the dropdown this replaced. #}
         {% for value, label in proposal.ProposalFormat.choices reversed %}
-          <div
+          <button type="button" {% if not is_edit_mode %}disabled{% endif %}
             class="format-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
               {% if proposal.proposal_format == value or not proposal.proposal_format and value == 'TRAINING_DESIGN' %}
                 bg-primary text-white border-primary
@@ -120,10 +128,11 @@
                 bg-white text-gray-700 border-gray-300
               {% endif %}
               {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
+            aria-pressed="{% if proposal.proposal_format == value or not proposal.proposal_format and value == 'TRAINING_DESIGN' %}true{% else %}false{% endif %}"
             data-value="{{ value }}"
             data-label="{{ label }}">
             {{ label }}
-          </div>
+          </button>
         {% endfor %}
       </div>
 
@@ -156,8 +165,8 @@
       <input type="hidden" name="scope_type" id="scopeTypeValue" value="{{ proposal.scope_type }}">
 
       <div class="flex flex-wrap gap-3">
-        {% for item in step_fields.scope_type.parsed_choices|default:proposal.ScopeType.choices %}
-          <div
+        {% for item in step_fields.scope_type.parsed_choices|default:proposal.ScopeType.choices|choice_options %}
+          <button type="button" {% if not is_edit_mode %}disabled{% endif %}
             class="scope-chip px-4 py-2 rounded-full border transition-all duration-200 font-medium select-none
               {% if proposal.scope_type == item.value or proposal.scope_type == item %}
                 bg-primary text-white border-primary
@@ -165,9 +174,10 @@
                 bg-white text-gray-700 border-gray-300
               {% endif %}
               {% if is_edit_mode %}cursor-pointer{% else %}cursor-default opacity-90{% endif %}"
-            data-value="{% if item.value %}{{ item.value }}{% else %}{{ item }}{% endif %}">
-            {% if item.label %}{{ item.label }}{% else %}{{ item }}{% endif %}
-          </div>
+            aria-pressed="{% if proposal.extension_type == item.value or proposal.scope_type == item.value %}true{% else %}false{% endif %}"
+            data-value="{{ item.value }}">
+            {{ item.label }}
+          </button>
         {% endfor %}
       </div>
 
@@ -193,13 +203,13 @@
 {% if is_edit_mode %}
       <div class="flex flex-col sm:flex-row gap-2 pt-2">
         <button name="action" value="skip"
-                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition nx-btn nx-btn--secondary"
                 type="submit">
           Skip
         </button>
 
         <button name="action" value="next"
-                class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto nx-btn nx-btn--primary"
                 type="submit">
           Save & Next
         </button>
@@ -210,7 +220,7 @@
     {% else %}
       <div class="flex justify-end pt-2">
         <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-           class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+           class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition nx-btn nx-btn--secondary">
           {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
         </a>
       </div>
@@ -232,6 +242,7 @@
   function setActiveChip(chips, activeChip) {
     chips.forEach(chip => {
       const isActive = chip === activeChip;
+      chip.setAttribute("aria-pressed", String(isActive));
       chip.classList.toggle("bg-primary", isActive);
       chip.classList.toggle("text-white", isActive);
       chip.classList.toggle("border-primary", isActive);

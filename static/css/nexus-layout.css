@@ -35,7 +35,7 @@
 
 /* ── Containers ─────────────────────────────────────────────────────────── */
 /* `.nx-page` is the page body container, `.nx-bar` the navbar/footer one.
-   They own horizontal padding, so templates must not add px-*/p-* to them
+   They own horizontal padding, so templates must not add horizontal or all-axis padding utilities to them
    (use py-* for vertical spacing). */
 .nx-page,
 .nx-bar {

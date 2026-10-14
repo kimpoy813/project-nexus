@@ -1,7 +1,7 @@
 {% extends "dashboard/dashboard_base.html" %}
 {% block content %}
 <div class="nx-page py-6">
-    <h1 class="text-2xl font-bold mb-6">{% if person %}Edit{% else %}Add{% endif %} Personnel</h1>
+    <h1 class="text-2xl font-bold mb-6 nx-page-title">{% if person %}Edit{% else %}Add{% endif %} Personnel</h1>
 
     <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 nx-form-grid">
         {% csrf_token %}
@@ -30,8 +30,8 @@
         </div>
 
         <div class="nx-full flex gap-3">
-        <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
-        <a class="px-4 py-2 rounded-lg border" href="{% url 'personnel_list' %}">Cancel</a>
+        <button class="bg-primary text-white px-4 py-2 rounded-lg nx-btn nx-btn--primary" type="submit">Save</button>
+        <a class="px-4 py-2 rounded-lg border nx-btn nx-btn--secondary" href="{% url 'personnel_list' %}">Cancel</a>
         </div>
     </form>
 </div>

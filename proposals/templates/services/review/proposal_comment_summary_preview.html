@@ -3,10 +3,10 @@
 {% block content %}
 <div class="nx-page py-8 space-y-6">
 
-  <div class="flex flex-wrap items-center justify-between gap-2">
+  <div class="flex flex-wrap items-center justify-between gap-2 nx-page-header">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Clear Summary Preview</h1>
-      <p class="mt-1 text-sm text-gray-600">
+      <h1 class="text-2xl font-bold text-gray-900 nx-page-title">Clear Summary Preview</h1>
+      <p class="mt-1 text-sm text-gray-600 nx-page-description">
         Preview of the formatted comment summary (ISPSC-QAD-F032a style).
       </p>
     </div>
@@ -14,11 +14,11 @@
     <div class="flex gap-2">
       <a href="{% url 'staff_comment_summary_docx' proposal.id %}"
          data-nx-no-skeleton
-         class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary">
+         class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary nx-btn nx-btn--primary">
         Download DOCX
       </a>
       <a href="{% url 'proposal_comment_summary' proposal.id %}"
-         class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400">
+         class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 nx-btn nx-btn--secondary">
         Back to Summary Editor
       </a>
     </div>

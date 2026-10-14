@@ -26,6 +26,10 @@ def site_configuration(request):
         logger.exception("Unexpected error loading SiteConfiguration.")
         config = None
 
+    from .ui import brand_tokens, idle_timeout_seconds
+    from django.urls import reverse
+
+    timeout = idle_timeout_seconds()
     capabilities = _resolve_capabilities(request)
 
     # Resolved through accounts.permissions so templates and views can never
@@ -45,6 +49,15 @@ def site_configuration(request):
 
     return {
         "site_control": config,
+        "brand_tokens": brand_tokens(config),
+        "session_config": {
+            "timeoutMs": timeout * 1000,
+            "activityKey": f"nexus-activity-{getattr(getattr(request, 'user', None), 'pk', 'anonymous')}",
+            "warningMs": min(60, timeout / 5) * 1000,
+            "heartbeatUrl": reverse("session_activity"),
+            "logoutUrl": reverse("logout_idle"),
+            "loginUrl": reverse("login"),
+        },
         "role_capabilities": capabilities,
         "can_submit_accomplishment": can_submit_accomplishment,
         "can_view_accomplishment": can_view_accomplishment,

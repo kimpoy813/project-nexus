@@ -1,7 +1,7 @@
 {% extends "dashboard/dashboard_base.html" %}
 {% block content %}
 <div class="nx-page py-6">
-    <h1 class="text-2xl font-bold mb-6">{% if activity %}Edit{% else %}Add{% endif %} Activity</h1>
+    <h1 class="text-2xl font-bold mb-6 nx-page-title">{% if activity %}Edit{% else %}Add{% endif %} Activity</h1>
 
     <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 nx-form-grid">
         {% csrf_token %}
@@ -24,7 +24,7 @@
                 {% for d in activity.dates.all %}
                     <div class="flex gap-2">
                     <input type="date" name="dates[]" value="{{ d.date|date:'Y-m-d' }}" class="flex-1 border rounded p-2" required>
-                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                    <button type="button" class="px-3 py-2 border rounded nx-btn nx-btn--secondary" onclick="this.parentElement.remove()">Remove</button>
                     </div>
                 {% endfor %}
                 {% endif %}
@@ -32,12 +32,12 @@
                 {% if not activity or activity.dates.count == 0 %}
                 <div class="flex gap-2">
                     <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
-                    <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                    <button type="button" class="px-3 py-2 border rounded nx-btn nx-btn--secondary" onclick="this.parentElement.remove()">Remove</button>
                 </div>
                 {% endif %}
             </div>
 
-            <button type="button" class="mt-2 px-3 py-2 border rounded" onclick="addDate()">+ Add another date</button>
+            <button type="button" class="mt-2 px-3 py-2 border rounded nx-btn nx-btn--secondary" onclick="addDate()">+ Add another date</button>
         </div>
 
         <script>
@@ -47,7 +47,7 @@
             row.className = 'flex gap-2';
             row.innerHTML = `
                 <input type="date" name="dates[]" class="flex-1 border rounded p-2" required>
-                <button type="button" class="px-3 py-2 border rounded" onclick="this.parentElement.remove()">Remove</button>
+                <button type="button" class="px-3 py-2 border rounded nx-btn nx-btn--secondary" onclick="this.parentElement.remove()">Remove</button>
             `;
             wrap.appendChild(row);
             }
@@ -67,8 +67,8 @@
         </div>
 
         <div class="nx-full flex gap-3">
-        <button class="bg-primary text-white px-4 py-2 rounded-lg" type="submit">Save</button>
-        <a class="px-4 py-2 rounded-lg border" href="{% url 'activities_list' %}">Cancel</a>
+        <button class="bg-primary text-white px-4 py-2 rounded-lg nx-btn nx-btn--primary" type="submit">Save</button>
+        <a class="px-4 py-2 rounded-lg border nx-btn nx-btn--secondary" href="{% url 'activities_list' %}">Cancel</a>
         </div>
     </form>
 </div>

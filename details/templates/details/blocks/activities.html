@@ -8,7 +8,7 @@ Context: section, data.activities
     {% if data.activities %}
         <div class="grid md:grid-cols-3 gap-8">
             {% for activity in data.activities %}
-            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300 shadow-sm">
+            <div class="bg-white border border-gray-100 rounded-xl overflow-hidden hover:border-primary transition duration-300 shadow-sm nx-panel">
                 {% if activity.image %}
                     <img src="{{ activity.image.url }}" alt="{{ activity.title }}" class="w-full h-44 object-cover">
                 {% endif %}

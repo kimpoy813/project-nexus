@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="nx-page py-6">
-    <h1 class="text-2xl font-bold mb-4">{% if process %}Edit{% else %}Add{% endif %} Process</h1>
+    <h1 class="text-2xl font-bold mb-4 nx-page-title">{% if process %}Edit{% else %}Add{% endif %} Process</h1>
 
     <form method="POST" class="bg-white border rounded-lg p-4 space-y-3">
         {% csrf_token %}
@@ -18,8 +18,8 @@
         </div>
 
         <div class="flex gap-2 pt-2">
-        <button class="px-4 py-2 bg-primary text-white rounded" type="submit">Save</button>
-        <a class="px-4 py-2 border rounded" href="{% url 'processes_list' %}">Back</a>
+        <button class="px-4 py-2 bg-primary text-white rounded nx-btn nx-btn--primary" type="submit">Save</button>
+        <a class="px-4 py-2 border rounded nx-btn nx-btn--secondary" href="{% url 'processes_list' %}">Back</a>
         </div>
     </form>
     </div>

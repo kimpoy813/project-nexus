@@ -10,7 +10,7 @@ Context:
   form          the DynamicFormTemplate (a repeater)
   is_edit_mode  False when the proposal is locked / read-only
 {% endcomment %}
-<div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4"
+<div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 nx-panel"
      data-repeater
      data-form-id="{{ form.id }}"
      data-row-label="{{ form.row_label }}"
@@ -30,7 +30,7 @@ Context:
 
     {% if is_edit_mode %}
     <button type="button" data-repeater-add
-            class="shrink-0 rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white transition">
+            class="shrink-0 rounded-xl border border-primary px-4 py-2 text-sm font-black text-primary hover:bg-primary hover:text-white transition nx-btn nx-btn--secondary">
       + Add {{ form.row_label }}
     </button>
     {% endif %}
@@ -49,7 +49,7 @@ Context:
 
         <div class="flex items-center gap-2" data-repeater-row-actions>
           {% if row.locked %}
-            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">Creator</span>
+            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 nx-badge">Creator</span>
           {% elif is_edit_mode %}
             {# Pending removal is tracked entirely in the browser and flushed to a real `repeater_<id>_remove` input on submit. #}
             <button type="button" data-repeater-remove="{{ row.row_id }}"
@@ -61,7 +61,7 @@ Context:
               Undo
             </button>
             <span data-repeater-removed-badge
-                  class="repeater-removed-badge hidden rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
+                  class="repeater-removed-badge hidden rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-600 nx-badge">
               Removed on save
             </span>
           {% endif %}
@@ -106,7 +106,7 @@ Context:
         </p>
         <div class="flex items-center gap-2">
           <button type="button" data-repeater-drop
-                  class="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition">
+                  class="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-600 hover:bg-red-50 transition nx-btn nx-btn--danger">
             Remove
           </button>
         </div>

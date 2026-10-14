@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_head %}{% endblock %}
 
@@ -7,12 +8,12 @@
     <div class="nx-page py-8">
 
         <!-- TOP BAR -->
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8 nx-page-header">
             <div>
-                <h1 class="text-xl font-semibold" style="color:#103b07;letter-spacing:-.02em;">Director Dashboard</h1>
-                <p class="mt-0.5 text-sm text-slate-400">Monitor proposals, reviews, campus activity, and completion.</p>
+                <h1 class="text-xl font-semibold nx-page-title" style="color:var(--nexus-primary);letter-spacing:-.02em;">Director Dashboard</h1>
+                <p class="mt-0.5 text-sm text-slate-400 nx-page-description">Monitor proposals, reviews, campus activity, and completion.</p>
             </div>
-            <a href="{% url 'proposal_create' %}" class="dir-btn-primary" data-nx-skeleton="wizard">Create Proposal</a>
+            <a href="{% url 'proposal_create' %}" class="dir-btn-primary nx-btn nx-btn--primary" data-nx-skeleton="wizard">Create Proposal</a>
         </div>
 
         <!-- GRID: SIDEBAR + MAIN -->
@@ -20,7 +21,7 @@
 
             <!-- LEFT SIDEBAR -->
             <aside class="xl:sticky xl:top-6 h-fit">
-                <div class="dir-card overflow-hidden">
+                <div class="dir-card overflow-hidden nx-panel">
                     <div class="px-4 py-4 border-b border-slate-100">
                         <p class="text-[11px] font-bold uppercase tracking-widest text-slate-400">Navigation</p>
                     </div>
@@ -116,9 +117,9 @@
 ================================================================ -->
 <style>
 :root {
-    --green:  #103b07;
+    --green:  var(--nexus-primary);
     --green-l:#eaf3de;
-    --red:    #5a1113;
+    --red:    var(--nexus-secondary);
     --red-l:  #fcebeb;
     --amber:  #854F0B;
     --amber-l:#faeeda;
@@ -155,7 +156,7 @@
 .dir-btn {
     display:inline-flex;align-items:center;justify-content:center;
     padding:.45rem .9rem;border-radius:8px;font-size:.75rem;font-weight:500;
-    border:1px solid rgba(16,59,7,.14);color:var(--green);background:#fff;
+    border:1px solid rgb(var(--nexus-primary-rgb) / .14);color:var(--green);background:#fff;
     transition:all .15s;white-space:nowrap;
 }
 .dir-btn:hover { background:var(--green);color:#fff; }
@@ -176,7 +177,7 @@
 .quick-tab-btn {
     display:inline-flex;align-items:center;justify-content:center;
     padding:.4rem .85rem;border-radius:8px;font-size:.75rem;font-weight:500;
-    border:1px solid rgba(16,59,7,.14);color:var(--green);background:transparent;
+    border:1px solid rgb(var(--nexus-primary-rgb) / .14);color:var(--green);background:transparent;
     transition:all .15s;
 }
 .quick-tab-btn:hover { background:var(--green);color:#fff; }
@@ -260,7 +261,7 @@ select.dir-input {
 /* Chip colors */
 .ev-chip {
     display:inline-flex;align-items:center;gap:6px;
-    border-radius:6px;background:var(--green-l);border:1px solid rgba(16,59,7,.12);
+    border-radius:6px;background:var(--green-l);border:1px solid rgb(var(--nexus-primary-rgb) / .12);
     padding:3px 8px;font-size:11px;font-weight:500;color:var(--green);
 }
 
@@ -280,27 +281,27 @@ select.dir-input {
 
     <!-- KPI strip -->
     <div class="grid grid-cols-2 xl:grid-cols-5 gap-3 anim">
-        <div class="kpi-card" style="border-top-color:var(--green);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--green);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--green);opacity:.7;">Total Extensions</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--green);">{{ institution_total|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Full portfolio</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--red);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--red);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--red);opacity:.7;">Pending Review</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--red);">{{ institution_pending|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Awaiting action</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--amber);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--amber);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--amber);opacity:.7;">Active Pipeline</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--amber);">{{ proposal_process_total|default:0|add:moa_process_total|default:0|add:implementation_process_total|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Proposal · MOA · Impl.</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--blue);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--blue);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--blue);opacity:.7;">In Review</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--blue);">{{ under_review_total|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Active evaluations</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--purple);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--purple);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--purple);opacity:.7;">Completed</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--purple);">{{ completed_process_total|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Fully closed out</p>
@@ -308,7 +309,7 @@ select.dir-input {
     </div>
 
     <!-- Pipeline stages -->
-    <div class="dir-card p-5 anim a1">
+    <div class="dir-card p-5 anim a1 nx-panel">
         <div class="flex items-center justify-between mb-4">
             <span class="section-label" style="margin:0;">Pipeline Stages</span>
             <button type="button" class="quick-tab-btn" data-target-tab="extensions">Browse All →</button>
@@ -353,7 +354,7 @@ select.dir-input {
     <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.4fr)_300px] gap-5 anim a2">
 
         <!-- Queue -->
-        <div class="dir-card overflow-hidden">
+        <div class="dir-card overflow-hidden nx-panel">
             <div class="section-block-head">
                 <div>
                     <span class="section-label" style="margin-bottom:4px;">Review Queue</span>
@@ -416,11 +417,11 @@ select.dir-input {
 
         <!-- Charts stacked -->
         <div class="flex flex-col gap-4">
-            <div class="dir-card p-4 flex-1">
+            <div class="dir-card p-4 flex-1 nx-panel">
                 <span class="section-label">Review Distribution</span>
                 <div style="height:160px;"><canvas id="proposalStatusChart"></canvas></div>
             </div>
-            <div class="dir-card p-4 flex-1">
+            <div class="dir-card p-4 flex-1 nx-panel">
                 <span class="section-label">Stage Distribution</span>
                 <div style="height:160px;"><canvas id="processOverviewChart"></canvas></div>
             </div>
@@ -428,7 +429,7 @@ select.dir-input {
     </div>
 
     <!-- Campus breakdown -->
-    <div class="dir-card overflow-hidden anim a3">
+    <div class="dir-card overflow-hidden anim a3 nx-panel">
         <div class="section-block-head">
             <div>
                 <span class="section-label" style="margin-bottom:4px;">Campus</span>
@@ -509,22 +510,22 @@ select.dir-input {
 
     <!-- KPI strip -->
     <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <div class="kpi-card" style="border-top-color:var(--green);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--green);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--green);opacity:.7;">Submitted</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--green);">{{ submitted_total|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Awaiting first review</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--blue);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--blue);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--blue);opacity:.7;">In Review</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--blue);">{{ under_review_total|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Active evaluations</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--red);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--red);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--red);opacity:.7;">Under Revision</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--red);">{{ institution_revision|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Returned to proponent</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--purple);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--purple);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--purple);opacity:.7;">Approved</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--purple);">{{ institution_approved|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Cleared by director</p>
@@ -532,7 +533,7 @@ select.dir-input {
     </div>
 
     <!-- SUBMITTED / ACTIVE -->
-    <div class="section-block rq-section-container" data-section-container="SUBMITTED_ACTIVE">
+    <div class="section-block rq-section-container nx-panel" data-section-container="SUBMITTED_ACTIVE">
         <div class="dir-card-accent" style="background:var(--green);"></div>
         <div class="section-block-head">
             <div>
@@ -544,7 +545,7 @@ select.dir-input {
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 rq-grid" data-grid-section="SUBMITTED_ACTIVE">
                 {% for proposal in review_queue %}
                 {% if proposal.proposal_status == 'SUBMITTED_FOR_REVIEW' or proposal.proposal_status == 'IN_REVIEW' or proposal.proposal_status == 'REVIEW_SUMMARY_ISSUED' %}
-                <div class="rq-card"
+                <div class="rq-card nx-panel"
                      data-section="SUBMITTED_ACTIVE"
                      data-title="{{ proposal.title|default:proposal.research_title|default:'Untitled Proposal'|lower }}"
                      data-author="{{ proposal.created_by.profile.full_name|default:proposal.created_by.username|lower }}"
@@ -591,11 +592,11 @@ select.dir-input {
                     </div>
 
                     <div class="mt-auto pt-3">
-                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn block w-full text-center">View Proposal</a>
+                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn block w-full text-center nx-btn nx-btn--secondary">View Proposal</a>
                     </div>
                     <div class="mt-2 grid grid-cols-2 gap-2">
-                        <form method="post" action="{% url 'proposal_mark_ready_for_summary' proposal.id %}">{% csrf_token %}<button type="submit" class="dir-btn w-full">Ready for Summary</button></form>
-                        <form method="post" action="{% url 'proposal_approve' proposal.id %}">{% csrf_token %}<button type="submit" class="dir-btn filled w-full">Approve</button></form>
+                        <form method="post" action="{% url 'proposal_mark_ready_for_summary' proposal.id %}">{% csrf_token %}<button type="submit" class="dir-btn w-full nx-btn nx-btn--secondary">Ready for Summary</button></form>
+                        <form method="post" action="{% url 'proposal_approve' proposal.id %}">{% csrf_token %}<button type="submit" class="dir-btn filled w-full nx-btn nx-btn--primary">Approve</button></form>
                     </div>
                 </div>
                 {% endif %}
@@ -609,7 +610,7 @@ select.dir-input {
     </div>
 
     <!-- REVISION -->
-    <div class="section-block rq-section-container" data-section-container="REVISION">
+    <div class="section-block rq-section-container nx-panel" data-section-container="REVISION">
         <div class="dir-card-accent" style="background:var(--red);"></div>
         <div class="section-block-head">
             <div>
@@ -621,7 +622,7 @@ select.dir-input {
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 rq-grid" data-grid-section="REVISION">
                 {% for proposal in review_queue %}
                 {% if proposal.proposal_status == 'FOR_REVISION' %}
-                <div class="rq-card"
+                <div class="rq-card nx-panel"
                      data-section="REVISION"
                      data-title="{{ proposal.title|default:proposal.research_title|default:'Untitled Proposal'|lower }}"
                      data-author="{{ proposal.created_by.profile.full_name|default:proposal.created_by.username|lower }}"
@@ -635,8 +636,8 @@ select.dir-input {
                         <span class="badge badge-red">For Revision</span>
                     </div>
                     <div class="mt-auto pt-3 grid grid-cols-2 gap-2">
-                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center">View Proposal</a>
-                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center">View Summary</a>
+                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center nx-btn nx-btn--secondary">View Proposal</a>
+                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center nx-btn nx-btn--secondary">View Summary</a>
                     </div>
                 </div>
                 {% endif %}
@@ -650,7 +651,7 @@ select.dir-input {
     </div>
 
     <!-- APPROVED -->
-    <div class="section-block rq-section-container" data-section-container="APPROVED">
+    <div class="section-block rq-section-container nx-panel" data-section-container="APPROVED">
         <div class="dir-card-accent" style="background:var(--purple);"></div>
         <div class="section-block-head">
             <div>
@@ -662,7 +663,7 @@ select.dir-input {
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 rq-grid" data-grid-section="APPROVED">
                 {% for proposal in review_queue %}
                 {% if proposal.proposal_status == 'APPROVED' or proposal.proposal_status == 'COMPLETED' %}
-                <div class="rq-card"
+                <div class="rq-card nx-panel"
                      data-section="APPROVED"
                      data-title="{{ proposal.title|default:proposal.research_title|default:'Untitled Proposal'|lower }}"
                      data-author="{{ proposal.created_by.profile.full_name|default:proposal.created_by.username|lower }}"
@@ -680,8 +681,8 @@ select.dir-input {
                         <div><p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Updated</p><p class="mt-0.5 text-xs text-slate-600">{% if proposal.last_saved_at %}{{ proposal.last_saved_at|date:"M d, Y" }}{% else %}—{% endif %}</p></div>
                     </div>
                     <div class="mt-auto pt-3 grid grid-cols-2 gap-2">
-                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center">View Proposal</a>
-                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center">View Summary</a>
+                        <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1" class="dir-btn text-center nx-btn nx-btn--secondary">View Proposal</a>
+                        <a href="{% url 'proposal_review_comments' proposal.id 1 %}" class="dir-btn text-center nx-btn nx-btn--secondary">View Summary</a>
                     </div>
                 </div>
                 {% endif %}
@@ -704,7 +705,7 @@ select.dir-input {
 <section class="dashboard-tab-panel hidden" data-tab-panel="campuses">
 <div class="flex flex-col gap-5">
 
-    <div class="section-block">
+    <div class="section-block nx-panel">
         <div class="dir-card-accent" style="background:linear-gradient(90deg,var(--green),var(--red),var(--blue),var(--purple));"></div>
         <div class="section-block-head">
             <div>
@@ -715,7 +716,7 @@ select.dir-input {
         <div class="p-5"><div style="height:360px;"><canvas id="campusStageChart"></canvas></div></div>
     </div>
 
-    <div class="section-block">
+    <div class="section-block nx-panel">
         <div class="section-block-head">
             <div>
                 <span class="section-label" style="margin-bottom:4px;">Campus Statistics</span>
@@ -724,7 +725,7 @@ select.dir-input {
         </div>
         <div class="overflow-x-auto">
             {% if campus_stats %}
-            <table class="min-w-full divide-y divide-black/5">
+            <table class="min-w-full divide-y divide-black/5 nx-table">
                 <thead class="bg-slate-50">
                     <tr>
                         <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-wide text-slate-400">Campus</th>
@@ -765,7 +766,7 @@ select.dir-input {
      ALL EXTENSIONS TAB
 ================================================================ -->
 <section class="dashboard-tab-panel hidden" data-tab-panel="extensions">
-<div class="section-block">
+<div class="section-block nx-panel">
     <div class="dir-card-accent" style="background:linear-gradient(90deg,var(--green),var(--red),var(--blue),var(--purple));"></div>
     <div class="section-block-head">
         <div>
@@ -779,7 +780,7 @@ select.dir-input {
         {% if monitored_page %}
         <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3" id="ext-card-grid">
             {% for item in monitored_page %}
-            <div class="ext-card"
+            <div class="ext-card nx-panel"
                 data-title="{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|lower }}"
                 data-campus="{{ item.proposal.campus|default:''|lower }}"
                 data-process="{{ item.status_stage|default:'PROPOSAL' }}"
@@ -838,17 +839,17 @@ select.dir-input {
                         <p class="text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{% url 'proposal_storage' item.proposal.id %}" class="dir-btn inline-flex items-center gap-1.5" title="Proposal storage" aria-label="Proposal storage">
+                        <a href="{% url 'proposal_storage' item.proposal.id %}" class="dir-btn inline-flex items-center gap-1.5 nx-btn nx-btn--secondary" title="Proposal storage" aria-label="Proposal storage">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                 <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
                             </svg>
                         </a>
                         {% if item.process_label == "MOA" %}
-                            <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="dir-btn filled">View MOA</a>
+                            <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="dir-btn filled nx-btn nx-btn--primary">View MOA</a>
                         {% elif item.process_label == "Implementation" %}
-                            <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="dir-btn filled">View Implementation</a>
+                            <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="dir-btn filled nx-btn nx-btn--primary">View Implementation</a>
                         {% else %}
-                            <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled">View</a>
+                            <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled nx-btn nx-btn--primary">View</a>
                         {% endif %}
                     </div>
                 </div>
@@ -877,34 +878,34 @@ select.dir-input {
 <div class="flex flex-col gap-5">
 
     <div class="grid grid-cols-2 xl:grid-cols-5 gap-3">
-        <div class="kpi-card" style="border-top-color:#94a3b8;">
+        <div class="kpi-card nx-panel" style="border-top-color:#94a3b8;">
             <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Drafts</p>
             <p id="draft-count" class="text-4xl font-bold tracking-tight text-slate-500">{{ draft_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">In progress</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--green);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--green);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--green);opacity:.7;">Proposal</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--green);">{{ proposal_phase_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Proposal stage</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--red);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--red);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--red);opacity:.7;">MOA</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--red);">{{ moa_phase_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Agreement stage</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--blue);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--blue);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--blue);opacity:.7;">Implementation</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--blue);">{{ implementation_phase_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Active field work</p>
         </div>
-        <div class="kpi-card" style="border-top-color:var(--purple);">
+        <div class="kpi-card nx-panel" style="border-top-color:var(--purple);">
             <p class="text-[10px] font-bold uppercase tracking-widest mb-2" style="color:var(--purple);opacity:.7;">Completed</p>
             <p class="text-4xl font-bold tracking-tight" style="color:var(--purple);">{{ completed_phase_count|default:0 }}</p>
             <p class="mt-1 text-[11px] text-slate-400">Closed out</p>
         </div>
     </div>
 
-    <div class="section-block">
+    <div class="section-block nx-panel">
         <div class="dir-card-accent" style="background:linear-gradient(90deg,var(--green),var(--red),var(--blue),var(--purple));"></div>
         <div class="section-block-head">
             <div>
@@ -916,7 +917,7 @@ select.dir-input {
             {% if all_proposals %}
             <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
                 {% for item in all_proposals %}
-                <div id="proposal-card-{{ item.proposal.id }}" class="mine-card">
+                <div id="proposal-card-{{ item.proposal.id }}" class="mine-card nx-panel">
                     <div class="flex items-start justify-between gap-3 mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="text-sm font-semibold line-clamp-2" style="color:var(--text);">{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Proposal" }}</h3>
@@ -970,16 +971,16 @@ select.dir-input {
                         </div>
                         <div class="flex items-center gap-1.5">
                             {% if item.is_draft %}
-                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">Continue</a>
-                                {% if item.proposal.created_by == request.user %}<button type="button" onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Draft"|escapejs }}')" class="dir-btn">Delete</button>{% endif %}
+                                <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled nx-btn nx-btn--primary">Continue</a>
+                                {% if item.proposal.created_by == request.user %}<button type="button" onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:"Untitled Draft"|escapejs }}')" class="dir-btn nx-btn nx-btn--secondary">Delete</button>{% endif %}
                             {% else %}
-                                {% if item.is_for_revision %}<a href="{% url 'proposal_wizard' item.proposal.id item.current_step %}" class="dir-btn">Revise</a>{% endif %}
+                                {% if item.is_for_revision %}<a href="{% url 'proposal_wizard' item.proposal.id item.current_step %}" class="dir-btn nx-btn nx-btn--secondary">Revise</a>{% endif %}
                                 {% if item.process_label == "MOA" %}
-                                    <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="dir-btn filled">View MOA</a>
+                                    <a href="{% url 'proposal_moa_tracker' item.proposal.id %}" class="dir-btn filled nx-btn nx-btn--primary">View MOA</a>
                                 {% elif item.process_label == "Implementation" %}
-                                    <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="dir-btn filled">View Implementation</a>
+                                    <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}" class="dir-btn filled nx-btn nx-btn--primary">View Implementation</a>
                                 {% else %}
-                                    <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled">View</a>
+                                    <a href="{% url 'proposal_wizard' item.proposal.id 1 %}" class="dir-btn filled nx-btn nx-btn--primary">View</a>
                                 {% endif %}
                             {% endif %}
                         </div>
@@ -1007,7 +1008,7 @@ select.dir-input {
 <div id="deleteDraftModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]" onclick="closeDeleteModal()"></div>
     <div class="relative flex min-h-full items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
+        <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden nx-panel">
             <div class="px-6 py-5 border-b border-slate-100">
                 <div class="flex items-start gap-3">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
@@ -1023,14 +1024,14 @@ select.dir-input {
                 <p class="text-sm text-slate-500">You are about to delete <span id="deleteDraftTitle" class="font-semibold" style="color:var(--text);"></span>. This action cannot be undone.</p>
             </div>
             <div class="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-6 py-4">
-                <button type="button" onclick="closeDeleteModal()" class="dir-btn">Cancel</button>
-                <button type="button" id="confirmDeleteDraftBtn" class="dir-btn filled">Delete Draft</button>
+                <button type="button" onclick="closeDeleteModal()" class="dir-btn nx-btn nx-btn--secondary">Cancel</button>
+                <button type="button" id="confirmDeleteDraftBtn" class="dir-btn filled nx-btn nx-btn--primary">Delete Draft</button>
             </div>
         </div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'vendor/chart.umd.js' %}"></script>
 
 <script>
 /* ── helpers ── */
@@ -1173,7 +1174,7 @@ document.addEventListener('DOMContentLoaded',function(){
     function bindRemoveButtons(scope=document){scope.querySelectorAll('.remove-evaluator-btn').forEach(btn=>{if(btn.dataset.bound==='1')return;btn.dataset.bound='1';btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,removeUrl=this.dataset.removeUrl;localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));renderChips(proposalId);const chip=this.closest('.evaluator-chip');const name=chip?chip.querySelector('span').textContent:'';if(name){const pool=evaluatorPools[proposalId]||[];if(!pool.some(p=>String(p.id)===String(evaluatorId))){pool.push({id:evaluatorId,name});evaluatorPools[proposalId]=pool;}}try{const data=await postAjax(removeUrl);if(Array.isArray(data.assigned_evaluators)){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;if(data&&data.message)window.nexusToast(data.message,'success');}catch(e){window.nexusToast(e.message||'Failed to remove evaluator.','error');}});});}
     bindRemoveButtons();
     document.querySelectorAll('.faculty-search-input').forEach(input=>{
-        input.addEventListener('input',function(){const pId=this.dataset.proposalId,q=this.value.trim().toLowerCase();const res=document.getElementById(`faculty-results-${pId}`),pool=evaluatorPools[pId]||[];if(!q){res.innerHTML='';res.classList.add('hidden');return;}const available=pool.filter(p=>!isAssigned(pId,p.id));const matches=available.filter(p=>p.name.toLowerCase().includes(q));if(!matches.length){const alreadyAssigned=pool.some(p=>p.name.toLowerCase().includes(q)&&isAssigned(pId,p.id));res.innerHTML=`<div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-400 shadow-sm">${escapeHtml(alreadyAssigned?'Already assigned.':'No matching faculty found.')}</div>`;res.classList.remove('hidden');return;}res.innerHTML=matches.map(p=>`<button type="button" class="faculty-result-item w-full text-left rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-green-50 hover:border-green-200 transition" data-proposal-id="${pId}" data-evaluator-id="${p.id}" data-evaluator-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`).join('');res.classList.remove('hidden');res.querySelectorAll('.faculty-result-item').forEach(btn=>{btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,evaluatorName=this.dataset.evaluatorName;const inp=getSearchInput(proposalId);const url=inp.dataset.assignUrlTemplate.replace(/\/0\/?$/,`/${evaluatorId}/`);if(isAssigned(proposalId,evaluatorId)){clearSearchUI(proposalId);return;}localAssigned[proposalId]=localAssigned[proposalId]||[];localAssigned[proposalId].push({id:String(evaluatorId),name:evaluatorName});evaluatorPools[proposalId]=(evaluatorPools[proposalId]||[]).filter(p=>String(p.id)!==String(evaluatorId));renderChips(proposalId);clearSearchUI(proposalId);try{const data=await postAjax(url);if(Array.isArray(data.assigned_evaluators)&&data.assigned_evaluators.length){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;if(data&&data.message)window.nexusToast(data.message,'success');}catch(e){localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));evaluatorPools[proposalId]=evaluatorPools[proposalId]||[];evaluatorPools[proposalId].push({id:evaluatorId,name:evaluatorName});renderChips(proposalId);window.nexusToast(e.message||'Failed to add evaluator.','error');}});});});
+        input.addEventListener('input',function(){const pId=this.dataset.proposalId,q=this.value.trim().toLowerCase();const res=document.getElementById(`faculty-results-${pId}`),pool=evaluatorPools[pId]||[];if(!q){res.innerHTML='';res.classList.add('hidden');return;}const available=pool.filter(p=>!isAssigned(pId,p.id));const matches=available.filter(p=>p.name.toLowerCase().includes(q));if(!matches.length){const alreadyAssigned=pool.some(p=>p.name.toLowerCase().includes(q)&&isAssigned(pId,p.id));res.innerHTML=`<div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-400 shadow-sm">${escapeHtml(alreadyAssigned?'Already assigned.':'No matching faculty found.')}</div>`;res.classList.remove('hidden');return;}res.innerHTML=matches.map(p=>`<button type="button" class="faculty-result-item w-full text-left rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-green-50 hover:border-green-200 transition nx-btn nx-btn--secondary" data-proposal-id="${pId}" data-evaluator-id="${p.id}" data-evaluator-name="${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`).join('');res.classList.remove('hidden');res.querySelectorAll('.faculty-result-item').forEach(btn=>{btn.addEventListener('click',async function(){const proposalId=this.dataset.proposalId,evaluatorId=this.dataset.evaluatorId,evaluatorName=this.dataset.evaluatorName;const inp=getSearchInput(proposalId);const url=inp.dataset.assignUrlTemplate.replace(/\/0\/?$/,`/${evaluatorId}/`);if(isAssigned(proposalId,evaluatorId)){clearSearchUI(proposalId);return;}localAssigned[proposalId]=localAssigned[proposalId]||[];localAssigned[proposalId].push({id:String(evaluatorId),name:evaluatorName});evaluatorPools[proposalId]=(evaluatorPools[proposalId]||[]).filter(p=>String(p.id)!==String(evaluatorId));renderChips(proposalId);clearSearchUI(proposalId);try{const data=await postAjax(url);if(Array.isArray(data.assigned_evaluators)&&data.assigned_evaluators.length){localAssigned[proposalId]=data.assigned_evaluators.map(ev=>({id:String(ev.id),name:ev.name||ev.profile?.full_name||ev.username||''}));renderChips(proposalId);}if(Array.isArray(data.available_evaluators))evaluatorPools[proposalId]=data.available_evaluators;if(data&&data.message)window.nexusToast(data.message,'success');}catch(e){localAssigned[proposalId]=(localAssigned[proposalId]||[]).filter(ev=>String(ev.id)!==String(evaluatorId));evaluatorPools[proposalId]=evaluatorPools[proposalId]||[];evaluatorPools[proposalId].push({id:evaluatorId,name:evaluatorName});renderChips(proposalId);window.nexusToast(e.message||'Failed to add evaluator.','error');}});});});
         input.addEventListener('blur',function(){const res=document.getElementById(`faculty-results-${this.dataset.proposalId}`);setTimeout(()=>{if(res)res.classList.add('hidden');},200);});
         input.addEventListener('focus',function(){if(this.value.trim())this.dispatchEvent(new Event('input'));});
     });

@@ -9,13 +9,13 @@
     <div class="nx-page">
         
         <!-- Header -->
-        <div class="mb-8 flex justify-between items-center">
+        <div class="mb-8 flex justify-between items-center nx-page-header">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Extension Processes</h1>
-                <p class="text-gray-600 mt-2">Manage the processes displayed on the home page</p>
+                <h1 class="text-3xl font-bold text-gray-900 nx-page-title">Extension Processes</h1>
+                <p class="text-gray-600 mt-2 nx-page-description">Manage the processes displayed on the home page</p>
             </div>
             <a href="{% url 'details:admin_process_create' %}" 
-               class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition flex items-center">
+               class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary transition flex items-center nx-btn nx-btn--primary">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -24,8 +24,8 @@
         </div>
 
         <!-- Processes List -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden nx-panel">
+            <table class="min-w-full divide-y divide-gray-200 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>

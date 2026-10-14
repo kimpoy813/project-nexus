@@ -6,20 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ site_control.site_name|default:"NExUS" }} Maintenance</title>
 
-    <!-- Tailwind CDN + single institutional theme (logo palette + one font) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Locally built utilities and shared institutional theme -->
+    <link rel="stylesheet" href="{% static 'css/nexus-utilities.css' %}">
     <script src="{% static 'js/nexus-theme.js' %}"></script>
 
     <!-- One typeface everywhere: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/fonts.css' %}">
 
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
     <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
+    {% include "partials/_theme.html" %}
 </head>
 <body class="min-h-screen bg-gray-50 text-gray-900 font-sans">
     <main class="min-h-screen flex items-center justify-center px-4 py-12">

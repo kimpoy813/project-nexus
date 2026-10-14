@@ -10,6 +10,14 @@ for a prioritised review of known technical debt.
 
 ---
 
+## Latest system / UI audit
+
+See [`docs/UI_UX_AUDIT_2026-10-14.md`](docs/UI_UX_AUDIT_2026-10-14.md) for
+fixes, flow mapping, browser/test coverage, compatibility notes and remaining
+production checks. UI libraries/fonts are now served locally; rebuild assets
+with `npm ci --prefix frontend && npm run build --prefix frontend` after changing
+utility classes. See [`frontend/README.md`](frontend/README.md).
+
 ## Local development
 
 ```bash

@@ -196,7 +196,7 @@ def login_view(request):
         get_token(request)
 
     if request.method == "GET" and request.GET.get("reason") == "idle":
-        messages.warning(request, "You were logged out due to 10 minutes of inactivity.")
+        messages.warning(request, "Your session expired due to inactivity. Please sign in again.")
 
     if request.method == "POST":
         identifier = request.POST.get("username", "").strip()
@@ -219,6 +219,10 @@ def login_view(request):
                 username_to_auth = user_obj.username
             except User.DoesNotExist:
                 pass
+            except User.MultipleObjectsReturned:
+                # Legacy accounts can share an email. Never choose one arbitrarily.
+                messages.error(request, "More than one account uses this email. Please sign in with your username.")
+                return render(request, "accounts/login.html")
 
         user = authenticate(request, username=username_to_auth, password=password)
 
@@ -253,6 +257,7 @@ def login_view(request):
     return render(request, "accounts/login.html")
 
 
+@require_POST
 @login_required
 def logout_view(request):
     auth_logout(request)
@@ -264,6 +269,14 @@ def logout_view(request):
 @login_required
 def logout_idle_view(request):
     auth_logout(request)
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def session_activity(request):
+    """Renew a live session after user interaction, never resurrect an expired one."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Session expired."}, status=401)
     return JsonResponse({"ok": True})
 
 
@@ -301,6 +314,7 @@ def profile_edit_view(request):
 
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def change_password_email_view(request):
     user_email = request.user.email
 
@@ -308,16 +322,24 @@ def change_password_email_view(request):
         messages.error(request, "No email address is linked to your account.")
         return redirect("profile_view")
 
+    if request.method == "GET":
+        return render(request, "accounts/change_password.html", {"email": user_email})
+
     form = PasswordResetForm({"email": user_email})
     if form.is_valid():
-        form.save(
-            request=request,
-            use_https=request.is_secure(),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            email_template_name="accounts/password_reset_email.html",
-            html_email_template_name="accounts/email/password_reset_email.html",
-            subject_template_name="accounts/password_reset_subject.txt",
-        )
+        try:
+            form.save(
+                request=request,
+                use_https=request.is_secure(),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                email_template_name="accounts/password_reset_email.html",
+                html_email_template_name="accounts/email/password_reset_email.html",
+                subject_template_name="accounts/password_reset_subject.txt",
+            )
+        except Exception:
+            logger.exception("Password reset email could not be sent.")
+            messages.error(request, "We could not send the email. Please try again later.")
+            return render(request, "accounts/change_password.html", {"email": user_email})
         return render(
             request,
             "accounts/change_password_email_sent.html",

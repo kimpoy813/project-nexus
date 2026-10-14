@@ -279,10 +279,13 @@ def can_review_proposal(user, proposal):
 
 
 def can_view_proposal(user, proposal):
+    if not getattr(user, "is_authenticated", False):
+        return False
     return (
         can_edit_proposal(user, proposal)
         or can_review_proposal(user, proposal)
         or is_staff_role(user)
+        or proposal.collaborators.filter(user=user).exists()
     )
 
 

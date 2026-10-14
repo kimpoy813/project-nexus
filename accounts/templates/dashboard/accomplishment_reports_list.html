@@ -2,11 +2,11 @@
 {% block title %}Quarterly Accomplishment Reports - NExUS{% endblock %}
 {% block content %}
 <div class="nx-page py-8">
-  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between nx-page-header">
     <div>
       <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Role-enabled function</p>
-      <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Quarterly Accomplishment Reports</h1>
-      <p class="mt-2 text-sm text-gray-600">
+      <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900 nx-page-title">Quarterly Accomplishment Reports</h1>
+      <p class="mt-2 text-sm text-gray-600 nx-page-description">
         {% if can_submit_accomplishment %}
           Submit and track quarterly accomplishment reports for your area.
         {% else %}
@@ -15,15 +15,15 @@
       </p>
     </div>
     <div class="flex gap-2">
-      <a href="{% url 'dashboard_redirect' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50" data-nx-skeleton="dashboard">Dashboard</a>
+      <a href="{% url 'dashboard_redirect' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary" data-nx-skeleton="dashboard">Dashboard</a>
       {% if can_submit_accomplishment %}
-        <a href="{% url 'accomplishment_report_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary" data-nx-skeleton="form">Submit Report</a>
+        <a href="{% url 'accomplishment_report_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary nx-btn nx-btn--primary" data-nx-skeleton="form">Submit Report</a>
       {% endif %}
     </div>
   </div>
-  <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+  <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden nx-panel">
     <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-100">
+      <table class="min-w-full divide-y divide-gray-100 nx-table">
         <thead><tr>
           <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Report</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Period</th>
@@ -38,7 +38,7 @@
             <td class="px-6 py-4 text-sm text-gray-700">{{ report.year }} {{ report.get_quarter_display }}</td>
             <td class="px-6 py-4 text-sm text-gray-700">{{ report.campus|default:"—" }}{% if report.department %} · {{ report.department }}{% endif %}</td>
             <td class="px-6 py-4 text-xs text-gray-600">Activities: {{ report.activities_count }}<br>Beneficiaries: {{ report.beneficiaries_count }}<br>Partners: {{ report.partners_count }}</td>
-            <td class="px-6 py-4">{% if report.attachment %}<a href="{{ report.attachment.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">View</a>{% else %}<span class="text-xs text-gray-400">None</span>{% endif %}</td>
+            <td class="px-6 py-4">{% if report.attachment %}<a href="{{ report.attachment.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">View</a>{% else %}<span class="text-xs text-gray-400">None</span>{% endif %}</td>
           </tr>
           {% empty %}<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No accomplishment reports yet.</td></tr>{% endfor %}
         </tbody>

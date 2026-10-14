@@ -7,7 +7,7 @@
 
         {% include "accounts/_auth_panel.html" with auth_panel_title="Create your NExUS account" auth_panel_text="Register once, then follow every proposal you submit from draft to accomplishment report." %}
 
-        <div class="nx-auth__form nx-auth__form--wide bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="nx-auth__form nx-auth__form--wide bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden nx-panel">
         <div class="bg-primary text-white px-8 py-6 text-center">
             <img src="{% static 'images/nexus-logo-128.png' %}"
                  alt="NExUS logo"
@@ -125,7 +125,7 @@
 
                 <button
                     type="submit"
-                    class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:opacity-90 transition"
+                    class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:opacity-90 transition nx-btn nx-btn--primary"
                 >
                     Register
                 </button>
@@ -141,95 +141,10 @@
     </div>
 </section>
 
+{% include "accounts/_organization_fields.html" %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const campusSelect = document.getElementById("id_campus");
-    const collegeSelect = document.getElementById("id_college");
-    const departmentSelect = document.getElementById("id_department");
     const passwordInput = document.getElementById("id_password");
-
-    async function loadColleges(selectedCollege = "") {
-        if (!campusSelect || !collegeSelect) return;
-
-        const campus = campusSelect.value;
-        collegeSelect.innerHTML = '<option value="">Select College (Optional)</option>';
-
-        if (departmentSelect) {
-            departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
-        }
-
-        if (!campus) return;
-
-        try {
-            const response = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}`);
-            const data = await response.json();
-
-            data.colleges.forEach(item => {
-                const option = document.createElement("option");
-                option.value = item.value;
-                option.textContent = item.label;
-
-                if (item.value === selectedCollege) {
-                    option.selected = true;
-                }
-
-                collegeSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Failed to load colleges:", error);
-        }
-    }
-
-    async function loadDepartments(selectedDepartment = "") {
-        if (!campusSelect || !departmentSelect) return;
-
-        const campus = campusSelect.value;
-        const college = collegeSelect ? collegeSelect.value : "";
-
-        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
-
-        if (!campus) return;
-
-        try {
-            const response = await fetch(
-                `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}`
-            );
-            const data = await response.json();
-
-            data.departments.forEach(item => {
-                const option = document.createElement("option");
-                option.value = item.value;
-                option.textContent = item.label;
-
-                if (item.value === selectedDepartment) {
-                    option.selected = true;
-                }
-
-                departmentSelect.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Failed to load departments:", error);
-        }
-    }
-
-    if (campusSelect) {
-        const initialCollege = collegeSelect ? collegeSelect.value : "";
-        const initialDepartment = departmentSelect ? departmentSelect.value : "";
-
-        loadColleges(initialCollege).then(() => loadDepartments(initialDepartment));
-
-        campusSelect.addEventListener("change", async function () {
-            await loadColleges("");
-            await loadDepartments("");
-        });
-
-        if (collegeSelect) {
-            collegeSelect.addEventListener("change", async function () {
-                await loadDepartments("");
-            });
-        }
-    }
-
     if (passwordInput) {
         passwordInput.addEventListener("input", function () {
             const value = passwordInput.value;

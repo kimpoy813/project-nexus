@@ -52,7 +52,7 @@ class LoginLogoutTests(TestCase):
         client = factories.make_client(self.user)
         self.assertIn("_auth_user_id", client.session)
 
-        client.get(reverse("logout"))
+        client.post(reverse("logout"))
         self.assertNotIn("_auth_user_id", client.session)
 
 

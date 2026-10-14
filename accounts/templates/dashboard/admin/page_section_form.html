@@ -13,10 +13,10 @@
         <a href="{% url 'page_content_edit' page.slug %}" class="text-xs font-medium text-slate-500 hover:text-primary">
             ← Back to {{ page.title }} page
         </a>
-        <h1 class="mt-1 text-xl font-semibold text-primary">
+        <h1 class="mt-1 text-xl font-semibold text-primary nx-page-title">
             {% if is_create %}Add Section{% else %}Edit Section{% endif %}
         </h1>
-        <p class="mt-0.5 text-sm text-slate-500">
+        <p class="mt-0.5 text-sm text-slate-500 nx-page-description">
             Content blocks appear on the public page in the order listed.
         </p>
     </div>
@@ -152,8 +152,8 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
-            <a href="{% url 'page_content_edit' page.slug %}" class="ps-btn">Cancel</a>
-            <button type="submit" class="ps-btn ps-btn--primary">
+            <a href="{% url 'page_content_edit' page.slug %}" class="ps-btn nx-btn nx-btn--secondary">Cancel</a>
+            <button type="submit" class="ps-btn ps-btn--primary nx-btn nx-btn--primary">
                 {% if is_create %}Add Section{% else %}Save Changes{% endif %}
             </button>
         </div>
@@ -164,7 +164,7 @@
         One include, resolved from the registry — not one card per layout.
     {% endcomment %}
     {% if preview_section.content_source.editor_template %}
-    <div class="ps-card mt-6">
+    <div class="ps-card mt-6 nx-panel">
         <div class="border-b border-slate-100 px-5 py-4">
             <h2 class="text-sm font-semibold text-slate-900">{{ preview_section.content_source.label }}</h2>
             <p class="mt-0.5 text-xs text-slate-400">
@@ -177,7 +177,7 @@
     {% endif %}
 
     {# ---------- LIVE PREVIEW (server-rendered with the same block partial) ---------- #}
-    <div class="ps-card mt-6">
+    <div class="ps-card mt-6 nx-panel">
         <div class="border-b border-slate-100 px-5 py-4">
             <h2 class="text-sm font-semibold text-slate-900">Preview</h2>
             <p class="mt-0.5 text-xs text-slate-400">
@@ -231,7 +231,7 @@
     font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
     outline:none; transition:border-color .15s;
 }
-.ps-input:focus { border-color:#103b07; }
+.ps-input:focus { border-color:var(--nexus-primary); }
 .ps-error { margin-top:.3rem; font-size:.75rem; color:#b91c1c; }
 .ps-btn {
     display:inline-flex; align-items:center; justify-content:center;
@@ -239,8 +239,8 @@
     border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
 }
 .ps-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.ps-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.ps-btn--primary:hover { opacity:.85; background:#103b07; }
+.ps-btn--primary { background:var(--nexus-primary); border-color:var(--nexus-primary); color:#fff; font-weight:600; }
+.ps-btn--primary:hover { opacity:.85; background:var(--nexus-primary); }
 
 /* Shared with the Home page content editor so the thrust-card partial
    can reuse the same controls when it is nested on this form. */
@@ -250,15 +250,15 @@
     font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
     outline:none; transition:border-color .15s;
 }
-.pc-input:focus { border-color:#103b07; }
+.pc-input:focus { border-color:var(--nexus-primary); }
 .pc-btn {
     display:inline-flex; align-items:center; justify-content:center;
     padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;
     border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
 }
 .pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.pc-btn--primary:hover { opacity:.85; background:#103b07; }
+.pc-btn--primary { background:var(--nexus-primary); border-color:var(--nexus-primary); color:#fff; font-weight:600; }
+.pc-btn--primary:hover { opacity:.85; background:var(--nexus-primary); }
 .pc-btn--danger { color:#b91c1c; border-color:#fecaca; }
 .pc-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
 .pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }

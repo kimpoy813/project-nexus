@@ -17,25 +17,14 @@ from accounts.models import Campus, College, Department, Profile, Signatory
 from accounts.tests import factories
 
 
-class CustomDropdownSyncTests(TestCase):
-    """The site hides native ``<select>`` elements and replaces them with
-    custom dropdowns (``templates/base.html``).
+class NativeDropdownTests(TestCase):
+    """Cascades update the actual, accessible control; no hidden duplicate UI."""
 
-    Those custom dropdowns used to keep a stale snapshot of the options that
-    existed at page-load time, so the cascading college/department selects
-    LOOKED empty after picking a campus even though the AJAX cascade had
-    populated the hidden native selects. The enhancement script must keep
-    the visible dropdown in sync with the native select.
-    """
-
-    def test_register_page_ships_dropdown_sync_wiring(self):
+    def test_register_keeps_native_selects(self):
         response = self.client.get(reverse("register"))
-        self.assertEqual(response.status_code, 200)
-        # Mutation-driven resync of already-enhanced dropdowns...
-        self.assertContains(response, "syncEnhancedDropdowns")
-        # ...and a rebuild from the live select whenever one is opened.
-        self.assertContains(response, "optionSignature")
-        self.assertContains(response, "buildDropdownItems")
+        self.assertContains(response, '<select')
+        self.assertNotContains(response, 'custom-dropdown-container')
+        self.assertNotContains(response, 'enhanceDropdowns')
 
 
 class CampusCascadeAjaxTests(TestCase):

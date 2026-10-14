@@ -11,13 +11,13 @@
     <div class="mt-6 flex flex-wrap items-center gap-2">
         <span class="text-xs text-gray-500">Editing now</span>
 
-        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary">
+        <span class="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary nx-badge">
             <span class="h-2 w-2 rounded-full bg-primary"></span>
             You · Step {{ step }}
         </span>
 
         {% for editor in active_editors %}
-        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700">
+        <span class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 nx-badge">
             <span class="h-2 w-2 rounded-full bg-primary"></span>
             {{ editor.user.profile.full_name|default:editor.user.username }} · Step {{ editor.step }}
         </span>
@@ -66,7 +66,7 @@
     {% endif %}
 </div>
 
-<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+<div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden nx-panel">
     <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-4 space-y-6">
         {% csrf_token %}
 
@@ -88,7 +88,7 @@
 
                         {% if is_edit_mode %}
                         <button type="button"
-                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 nx-btn nx-btn--secondary"
                                 onclick="removeMethodologyRow(this)">
                             Remove
                         </button>
@@ -106,7 +106,7 @@
 
                         {% if is_edit_mode %}
                         <button type="button"
-                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                                class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 nx-btn nx-btn--secondary"
                                 onclick="removeMethodologyRow(this)">
                             Remove
                         </button>
@@ -117,7 +117,7 @@
 
             {% if is_edit_mode %}
             <button type="button"
-                    class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="mt-4 px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition nx-btn nx-btn--secondary"
                     onclick="addMethodologyRow()">
                 Add Methodology
             </button>
@@ -130,19 +130,19 @@
 {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
             <button name="action" value="back"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition nx-btn nx-btn--secondary"
                     type="submit">
                 Back
             </button>
 
             <button name="action" value="skip"
-                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition"
+                    class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition nx-btn nx-btn--secondary"
                     type="submit">
                 Skip
             </button>
 
             <button name="action" value="next"
-                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto"
+                    class="px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-secondary transition sm:ml-auto nx-btn nx-btn--primary"
                     type="submit">
                 Save & Next
             </button>
@@ -153,7 +153,7 @@
         {% else %}
         <div class="flex justify-end pt-2">
             <a href="{% if step < total_steps %}{% url 'proposal_wizard' proposal.id step|add:1 %}{% if request.GET.readonly %}?readonly=1{% endif %}{% else %}{% url 'dashboard_redirect' %}{% endif %}"
-               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition">
+               class="px-4 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition nx-btn nx-btn--secondary">
                 {% if step < total_steps %}Next Step{% else %}Back to Dashboard{% endif %}
             </a>
         </div>
@@ -200,7 +200,7 @@
                 class="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none overflow-hidden auto-resize-methodology"
                 placeholder="Enter a methodology item..."></textarea>
             <button type="button"
-                    class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50"
+                    class="shrink-0 px-3 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 nx-btn nx-btn--secondary"
                     onclick="removeMethodologyRow(this)">
                 Remove
             </button>

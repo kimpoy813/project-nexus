@@ -3,11 +3,11 @@
 {% block content %}
 <div class="nx-page py-8 space-y-6">
 
-  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm p-6 nx-panel">
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between nx-page-header">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Comment Summary</h1>
-        <p class="mt-1 text-sm text-gray-600">
+        <h1 class="text-2xl font-bold text-gray-900 nx-page-title">Comment Summary</h1>
+        <p class="mt-1 text-sm text-gray-600 nx-page-description">
           Prepare the official summary of review comments for
           <span class="font-semibold">{{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}</span>
         </p>
@@ -22,7 +22,7 @@
                 form="summaryForm"
                 name="action"
                 value="download_docx"
-                class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                class="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
           Download DOCX
         </button>
       </div>
@@ -31,7 +31,7 @@
 
   <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm nx-panel">
       <div class="border-b border-gray-100 px-6 py-4">
         <h2 class="text-lg font-semibold text-gray-900">Collected Step Comments</h2>
         <p class="text-sm text-gray-600 mt-1">Reviewer comments gathered for the current round.</p>
@@ -65,7 +65,7 @@
       </div>
     </div>
 
-    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="rounded-2xl border border-gray-200 bg-white shadow-sm nx-panel">
       <div class="border-b border-gray-100 px-6 py-4">
         <h2 class="text-lg font-semibold text-gray-900">Official Summary</h2>
         <p class="text-sm text-gray-600 mt-1">Write the summary that will be sent to the proponent.</p>
@@ -89,17 +89,17 @@
 
         <div class="flex flex-wrap gap-3 justify-end">
           <a href="{% url 'dashboard_redirect' %}"
-             class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
+             class="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary nx-btn nx-btn--secondary">
             Back
           </a>
 
           <button type="submit" name="action" value="save_draft"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
             Save Summary
           </button>
 
           <button type="submit" name="action" value="send_to_proponent"
-                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary">
+                  class="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
             Send to Proponent
           </button>
         </div>

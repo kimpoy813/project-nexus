@@ -368,7 +368,8 @@ AXES_FAILURE_LIMIT = int(os.environ.get("AXES_FAILURE_LIMIT", "5"))
 AXES_COOLOFF_TIME = int(os.environ.get("AXES_COOLOFF_TIME", "1"))  # hours
 
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_AGE = int(os.environ.get("SESSION_COOKIE_AGE", "600"))
+IDLE_TIMEOUT_SECONDS = max(60, int(os.environ.get("IDLE_TIMEOUT_SECONDS", "600")))
+SESSION_COOKIE_AGE = int(os.environ.get("SESSION_COOKIE_AGE", str(IDLE_TIMEOUT_SECONDS)))
 SESSION_SAVE_EVERY_REQUEST = True
 
 
@@ -438,3 +439,6 @@ LOGGING = {
         "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
     },
 }
+
+# Preserve the existing schema explicitly instead of Django inferring PK types.
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"

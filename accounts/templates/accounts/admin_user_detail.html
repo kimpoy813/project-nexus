@@ -2,15 +2,15 @@
 
 {% block content %}
 <div class="nx-page py-8">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6 nx-panel">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between nx-page-header">
             <div>
-                <h1 class="text-xl font-semibold text-gray-900">User Details</h1>
-                <p class="mt-1 text-sm text-gray-600">Account, profile, and related proposal information.</p>
+                <h1 class="text-xl font-semibold text-gray-900 nx-page-title">User Details</h1>
+                <p class="mt-1 text-sm text-gray-600 nx-page-description">Account, profile, and related proposal information.</p>
             </div>
 
             <a href="{% url 'admin_edit_user' view_user.id %}"
-               class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary">
+               class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary nx-btn nx-btn--primary">
                 Edit User
             </a>
         </div>
@@ -41,13 +41,13 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden nx-panel">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
             <h2 class="text-lg font-semibold text-gray-900">Related Proposals</h2>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</th>

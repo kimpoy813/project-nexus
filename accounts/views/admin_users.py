@@ -5,6 +5,7 @@ import logging
 
 import re
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
@@ -16,7 +17,8 @@ from django.views.decorators.http import require_http_methods
 from proposals.models import Proposal
 from ..decorators import admin_required
 from ..campus_data import get_campus_choices
-from ..forms import AdminCreateUserForm
+from ..forms import AdminCreateUserForm, AdminEditUserForm
+from django.contrib.auth import update_session_auth_hash
 from ..models import Profile
 from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
@@ -86,60 +88,32 @@ def admin_edit_user(request, user_id):
     user_obj = get_object_or_404(User, id=user_id)
     profile, _ = _get_or_create_profile(user_obj)
 
-    if request.method == "POST":
+    form = AdminEditUserForm(request.POST if request.method == "POST" else None, user=user_obj, profile=profile)
+    if request.method == "POST" and form.is_valid():
         try:
             with transaction.atomic():
-                user_obj.username = (request.POST.get("username") or user_obj.username).strip()
-                user_obj.email = (request.POST.get("email") or "").strip()
-                user_obj.is_active = request.POST.get("is_active") == "on"
-
-                new_password = (request.POST.get("password") or "").strip()
+                for key in ("username", "email", "is_active"):
+                    setattr(user_obj, key, form.cleaned_data[key])
+                new_password = form.cleaned_data["password"]
                 if new_password:
                     user_obj.set_password(new_password)
-
                 user_obj.save()
-
-                requested_role = (request.POST.get("role") or profile.role or Profile.ROLE_FACULTY).strip().upper()
-                allowed_roles = {choice[0] for choice in Profile.ROLE_CHOICES}
-                if requested_role not in allowed_roles:
-                    requested_role = Profile.ROLE_FACULTY
-
-                full_name = (request.POST.get("full_name") or "").strip() or user_obj.username
-
-                profile.full_name = full_name
-                profile.campus = (request.POST.get("campus") or "").strip()
-                profile.college = (request.POST.get("college") or "").strip()
-                profile.department = (request.POST.get("department") or "").strip()
-                profile.role = requested_role
-                profile.email_verified = request.POST.get("email_verified") == "on"
+                for key in ("campus", "college", "department", "role", "email_verified"):
+                    setattr(profile, key, form.cleaned_data[key])
+                profile.full_name = form.cleaned_data["full_name"] or user_obj.username
                 profile.save()
-
-            messages.success(request, f'User "{user_obj.username}" updated successfully.')
-            return redirect("admin_dashboard")
         except Exception:
             logger.exception("Admin failed to update user %s.", user_obj.pk)
-            messages.error(
-                request,
-                "Could not update this user. The error has been logged.",
-            )
+            form.add_error(None, "Could not update this user. Your changes have not been saved. Please try again.")
+        else:
+            if new_password and user_obj.pk == request.user.pk:
+                update_session_auth_hash(request, user_obj)
+            messages.success(request, f'User "{user_obj.username}" updated successfully.')
+            return redirect("dashboard_redirect" if user_obj.pk == request.user.pk else "admin_dashboard")
 
-    return render(
-        request,
-        "accounts/admin_edit_user.html",
-        {
-            "edit_user": user_obj,
-            "edit_profile": profile,
-            "role_choices": Profile.ROLE_CHOICES,
-            # Live campus list from the admin-managed Campus table so newly
-            # created or renamed campuses appear here immediately. The user's
-            # saved campus is kept in the list even when it is no longer a
-            # managed campus, so a plain re-save never silently changes it.
-            "campus_choices": _campus_choices_with_saved(
-                [value for value, _label in get_campus_choices()],
-                profile.campus or "",
-            ),
-        },
-    )
+    return render(request, "accounts/admin_edit_user.html", {
+        "form": form, "edit_user": user_obj, "edit_profile": profile,
+    })
 
 
 @login_required
@@ -193,7 +167,7 @@ def admin_site_control(request):
     before = _site_configuration_snapshot(config)
 
     def clean_text(name, default=""):
-        return (request.POST.get(name) or default).strip()
+        return request.POST.get(name, default).strip()
 
     def clean_hex(name, fallback):
         value = clean_text(name, fallback)
@@ -221,6 +195,11 @@ def admin_site_control(request):
     config.maintenance_mode = request.POST.get("maintenance_mode") == "on"
     config.maintenance_message = clean_text("maintenance_message", config.maintenance_message)
     config.updated_by = request.user
+    try:
+        config.full_clean()
+    except ValidationError as exc:
+        messages.error(request, "Please correct the site settings: " + " ".join(exc.messages))
+        return redirect("admin_dashboard")
     config.save()
 
     after = _site_configuration_snapshot(config)

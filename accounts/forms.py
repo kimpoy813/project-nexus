@@ -702,3 +702,71 @@ class PageSectionForm(forms.ModelForm):
         if not heading and not body:
             raise forms.ValidationError("Add a heading or some content before saving.")
         return cleaned
+
+
+class AdminEditUserForm(AdminCreateUserForm):
+    """Validate edits as carefully as creation, while preserving legacy scopes."""
+
+    password = forms.CharField(
+        required=False, strip=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        validators=[validate_nexus_password_rules],
+        help_text="Leave blank to keep the current password.",
+    )
+    campus = forms.ChoiceField(required=False)
+    full_name = forms.CharField(max_length=150, required=False)
+    is_active = forms.BooleanField(required=False, label="Active account")
+    email_verified = forms.BooleanField(required=False, label="Email verified")
+
+    def __init__(self, *args, user, profile, **kwargs):
+        self.user = user
+        self.instance = profile
+        kwargs.setdefault("initial", {
+            "username": user.username, "email": user.email, "is_active": user.is_active,
+            **{key: getattr(profile, key) for key in ("full_name", "role", "campus", "college", "department", "email_verified")},
+        })
+        super().__init__(*args, **kwargs)
+        # An unchanged legacy scope remains editable without data loss. It may
+        # not be carried across a newly selected parent campus or college.
+        campus = self.data.get("campus", "") if self.is_bound else profile.campus
+        college = self.data.get("college", "") if self.is_bound else profile.college
+        for key, preserve in (("campus", True), ("college", campus == profile.campus),
+                              ("department", (campus, college) == (profile.campus, profile.college))):
+            saved = getattr(profile, key)
+            if preserve and saved and saved not in dict(self.fields[key].choices):
+                self.fields[key].choices = [*self.fields[key].choices, (saved, saved)]
+        self.fields["password"].widget.attrs["placeholder"] = "Leave blank to keep current password"
+
+    def clean_username(self):
+        from django.contrib.auth.validators import UnicodeUsernameValidator
+        username = self.cleaned_data["username"].strip()
+        UnicodeUsernameValidator()(username)
+        if User.objects.exclude(pk=self.user.pk).filter(username__iexact=username).exists():
+            raise ValidationError("This username is already taken.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email", "").strip().lower()
+        if email and User.objects.exclude(pk=self.user.pk).filter(email__iexact=email).exists():
+            raise ValidationError("This email is already registered.")
+        return email
+
+    def clean_password(self):
+        from django.contrib.auth.password_validation import validate_password
+        password = self.cleaned_data.get("password", "")
+        if password:
+            validate_password(password, user=self.user)
+        return password
+
+    def clean(self):
+        cleaned = forms.Form.clean(self)
+        keys = ("campus", "college", "department")
+        scope = tuple(cleaned.get(key, "") for key in keys)
+        saved = tuple(getattr(self.instance, key) for key in keys)
+        if scope != saved and any(scope):
+            try:
+                self.clean_campus_college_department()
+            except ValidationError as error:
+                for key, errors in error.message_dict.items():
+                    for message in errors:
+                        self.add_error(key, message)
+        return cleaned

@@ -5,11 +5,11 @@
 {% block content %}
 <div class="nx-page py-6">
 
-    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-page-header">
         <div>
             <a href="{% url 'page_content_list' %}" class="text-xs font-medium text-slate-500 hover:text-primary">← Page Content</a>
-            <h1 class="mt-1 text-xl font-semibold text-primary">Content Change Log</h1>
-            <p class="mt-0.5 text-sm text-slate-500">
+            <h1 class="mt-1 text-xl font-semibold text-primary nx-page-title">Content Change Log</h1>
+            <p class="mt-0.5 text-sm text-slate-500 nx-page-description">
                 Every hero and section edit, newest first. Each entry keeps the before and after values.
             </p>
         </div>
@@ -25,11 +25,11 @@
             {% endfor %}
         </select>
         {% if filter_slug %}
-            <a href="{% url 'page_content_logs' %}" class="pc-btn">Clear</a>
+            <a href="{% url 'page_content_logs' %}" class="pc-btn nx-btn nx-btn--secondary">Clear</a>
         {% endif %}
     </form>
 
-    <div class="pc-card">
+    <div class="pc-card nx-panel">
         <ul class="divide-y divide-slate-100">
             {% for row in logs %}
             <li class="px-5 py-4">
@@ -42,8 +42,8 @@
                         </p>
                     </div>
                     <div class="flex shrink-0 items-center gap-2">
-                        <span class="pc-pill pc-pill--muted">{{ row.log.page_slug }}</span>
-                        <span class="pc-pill pc-pill--ok">{{ row.log.get_action_display }}</span>
+                        <span class="pc-pill pc-pill--muted nx-badge">{{ row.log.page_slug }}</span>
+                        <span class="pc-pill pc-pill--ok nx-badge">{{ row.log.get_action_display }}</span>
                     </div>
                 </div>
 
@@ -80,7 +80,7 @@
     font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
     outline:none; transition:border-color .15s;
 }
-.pc-input:focus { border-color:#103b07; }
+.pc-input:focus { border-color:var(--nexus-primary); }
 .pc-btn {
     display:inline-flex; align-items:center; justify-content:center;
     padding:.45rem .9rem; border-radius:8px; font-size:.8rem; font-weight:500;

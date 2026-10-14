@@ -9,10 +9,10 @@
         <a href="{% url 'home_sections_manager' %}" class="text-xs font-medium text-slate-500 hover:text-primary">
             ← Back to Extension Thrusts
         </a>
-        <h1 class="mt-1 text-xl font-semibold text-primary">
+        <h1 class="mt-1 text-xl font-semibold text-primary nx-page-title">
             {% if is_create %}Add Extension Thrust{% else %}Edit Extension Thrust{% endif %}
         </h1>
-        <p class="mt-0.5 text-sm text-slate-500">A card in the Extension Thrust grid on the Home page.</p>
+        <p class="mt-0.5 text-sm text-slate-500 nx-page-description">A card in the Extension Thrust grid on the Home page.</p>
     </div>
 
     <form method="POST" class="ht-card">
@@ -54,8 +54,8 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
-            <a href="{% url 'home_sections_manager' %}" class="ht-btn">Cancel</a>
-            <button type="submit" class="ht-btn ht-btn--primary">
+            <a href="{% url 'home_sections_manager' %}" class="ht-btn nx-btn nx-btn--secondary">Cancel</a>
+            <button type="submit" class="ht-btn ht-btn--primary nx-btn nx-btn--primary">
                 {% if is_create %}Add Thrust{% else %}Save Changes{% endif %}
             </button>
         </div>
@@ -71,14 +71,14 @@
     font-size:.85rem; color:#0f172a; background:#fff; border:1px solid #e2e8f0;
     outline:none; transition:border-color .15s;
 }
-.ht-input:focus { border-color:#103b07; }
+.ht-input:focus { border-color:var(--nexus-primary); }
 .ht-btn {
     display:inline-flex; align-items:center; justify-content:center;
     padding:.5rem 1rem; border-radius:8px; font-size:.8rem; font-weight:500;
     border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
 }
 .ht-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.ht-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.ht-btn--primary:hover { opacity:.85; background:#103b07; }
+.ht-btn--primary { background:var(--nexus-primary); border-color:var(--nexus-primary); color:#fff; font-weight:600; }
+.ht-btn--primary:hover { opacity:.85; background:var(--nexus-primary); }
 </style>
 {% endblock %}

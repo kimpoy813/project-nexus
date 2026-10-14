@@ -251,7 +251,7 @@ class HeaderOffsetTests(SimpleTestCase):
 
     def test_base_template_offsets_main_below_the_navbar(self):
         html = self.BASE_TEMPLATE.read_text(encoding="utf-8")
-        self.assertIn('<main id="main-content" class="nexus-shell">', html)
+        self.assertIn('<main id="main-content" class="nexus-shell" tabindex="-1">', html)
         # The stray attribute this replaced (`<main id="main-content" ">`)
         # dropped the offset silently; make sure it cannot come back.
         self.assertNotIn('<main id="main-content" ">', html)
@@ -287,7 +287,7 @@ class RenderedHeaderOffsetTests(TestCase):
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, 200)
                 html = response.content.decode()
-                self.assertIn('<main id="main-content" class="nexus-shell">', html)
+                self.assertIn('<main id="main-content" class="nexus-shell" tabindex="-1">', html)
                 self.assertIn("css/nexus-ui.css", html, "the shell stylesheet is not linked")
 
     def test_the_wizard_step_clears_the_header(self):
@@ -300,7 +300,7 @@ class RenderedHeaderOffsetTests(TestCase):
                 response = client.get(reverse("proposal_wizard", args=[proposal.id, step]))
                 self.assertEqual(response.status_code, 200)
                 html = response.content.decode()
-                self.assertIn('<main id="main-content" class="nexus-shell">', html)
+                self.assertIn('<main id="main-content" class="nexus-shell" tabindex="-1">', html)
                 self.assertIn("nexus-wizard-layout", html)
 
 
@@ -395,7 +395,7 @@ class SiteWideHeaderOffsetTests(TestCase):
     verified the fix (205 distinct pages).
     """
 
-    SHELL = '<main id="main-content" class="nexus-shell">'
+    SHELL = '<main id="main-content" class="nexus-shell" tabindex="-1">'
 
     def assertClearsTheHeader(self, client, url, *, where=None):
         # `follow` because a few lifecycle screens redirect when the proposal is

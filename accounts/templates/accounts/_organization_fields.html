@@ -1,0 +1,5 @@
+{% load static %}
+<div hidden id="organization-fields-config"
+     data-colleges-url="{% url 'get_colleges_ajax' %}"
+     data-departments-url="{% url 'get_departments_ajax' %}"></div>
+<script src="{% static 'js/organization-fields.js' %}" defer></script>
