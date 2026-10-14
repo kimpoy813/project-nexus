@@ -5,23 +5,23 @@
 {% block content %}
 <div class="nx-page py-6">
 
-    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-page-header">
         <div>
             <a href="{% url 'page_content_edit' 'home' %}" class="text-xs font-medium text-slate-500 hover:text-primary">
                 ← Back to Home page editor
             </a>
-            <h1 class="mt-1 text-xl font-semibold text-primary">Extension Thrust Cards</h1>
-            <p class="mt-0.5 text-sm text-slate-500">
+            <h1 class="mt-1 text-xl font-semibold text-primary nx-page-title">Extension Thrust Cards</h1>
+            <p class="mt-0.5 text-sm text-slate-500 nx-page-description">
                 Cards displayed in the Extension Thrust section on the Home page.
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'details_page' %}#thrust" target="_blank" rel="noopener" class="hs-btn">View on page ↗</a>
-            <a href="{% url 'home_thrust_create' %}" class="hs-btn hs-btn--primary">Add Thrust</a>
+            <a href="{% url 'details_page' %}#thrust" target="_blank" rel="noopener" class="hs-btn nx-btn nx-btn--secondary">View on page ↗</a>
+            <a href="{% url 'home_thrust_create' %}" class="hs-btn hs-btn--primary nx-btn nx-btn--primary">Add Thrust</a>
         </div>
     </div>
 
-    <div class="hs-card mb-6">
+    <div class="hs-card mb-6 nx-panel">
         <p id="thrust-order-status" class="pc-status border-b border-slate-100 px-4 py-2.5 text-xs text-slate-500">
             Drag a card by its handle to reorder. The order applies to every page that publishes the Thrust block.
         </p>
@@ -44,24 +44,24 @@
                     <div class="min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-sm font-semibold {{ thrust.color_class }}">{{ thrust.title }}</span>
-                            {% if not thrust.is_visible %}<span class="hs-pill hs-pill--warn">Hidden</span>{% endif %}
+                            {% if not thrust.is_visible %}<span class="hs-pill hs-pill--warn nx-badge">Hidden</span>{% endif %}
                         </div>
                         <p class="mt-1 text-xs text-slate-500">{{ thrust.description|default:"No description." }}</p>
                     </div>
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
-                    <a href="{% url 'home_thrust_edit' thrust.id %}" class="hs-btn">Edit</a>
+                    <a href="{% url 'home_thrust_edit' thrust.id %}" class="hs-btn nx-btn nx-btn--secondary">Edit</a>
                     <form method="POST" action="{% url 'home_thrust_delete' thrust.id %}"
                           onsubmit="return confirm('Delete this thrust? This cannot be undone.');">
                         {% csrf_token %}
-                        <button type="submit" class="hs-btn hs-btn--danger">Delete</button>
+                        <button type="submit" class="hs-btn hs-btn--danger nx-btn nx-btn--danger">Delete</button>
                     </form>
                 </div>
             </li>
             {% empty %}
             <li class="p-10 text-center">
                 <p class="text-sm text-slate-500">No thrust cards yet.</p>
-                <a href="{% url 'home_thrust_create' %}" class="mt-4 inline-flex hs-btn hs-btn--primary">Add the first thrust</a>
+                <a href="{% url 'home_thrust_create' %}" class="mt-4 inline-flex hs-btn hs-btn--primary nx-btn nx-btn--primary">Add the first thrust</a>
             </li>
             {% endfor %}
         </ul>
@@ -79,8 +79,8 @@
     border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s; cursor:pointer;
 }
 .hs-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.hs-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.hs-btn--primary:hover { opacity:.85; background:#103b07; }
+.hs-btn--primary { background:var(--nexus-primary); border-color:var(--nexus-primary); color:#fff; font-weight:600; }
+.hs-btn--primary:hover { opacity:.85; background:var(--nexus-primary); }
 .hs-btn--danger { color:#b91c1c; border-color:#fecaca; }
 .hs-btn--danger:hover { background:#fef2f2; border-color:#fca5a5; }
 

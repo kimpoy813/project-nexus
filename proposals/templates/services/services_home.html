@@ -18,7 +18,7 @@
                 </p>
             {% endif %}
 
-            <h1 class="services-hero__heading text-4xl font-semibold leading-tight tracking-wide md:text-5xl">
+            <h1 class="services-hero__heading text-4xl font-semibold leading-tight tracking-wide md:text-5xl nx-page-title">
                 {{ page.hero_heading|default:"Extension Services" }}
             </h1>
 
@@ -30,7 +30,7 @@
 
             <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                 <a href="{% url 'proposal_create' %}"
-                   class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90"
+                   class="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-primary shadow-sm transition hover:bg-white/90 nx-btn nx-btn--secondary"
                    data-nx-skeleton="wizard">
                     <span>Start a proposal</span>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -39,7 +39,7 @@
                 </a>
                 {% if user.is_authenticated %}
                     <a href="{% url 'dashboard_redirect' %}"
-                       class="inline-flex items-center rounded-lg border border-white/40 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                       class="inline-flex items-center rounded-lg border border-white/40 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10 nx-btn nx-btn--secondary"
                        data-nx-skeleton="dashboard">
                         View dashboard
                     </a>
@@ -95,15 +95,15 @@
             <nav aria-label="Services sections" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                 {% for section, data in visible_blocks %}
                     {% if section.anchor and section.heading %}
-                    <a href="#{{ section.anchor }}" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                    <a href="#{{ section.anchor }}" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition nx-btn nx-btn--secondary">
                         <span class="text-xs font-bold text-primary">{{ forloop.counter|stringformat:"02d" }}</span> {{ section.heading }}
                     </a>
                     {% endif %}
                 {% endfor %}
-                <a href="#proposal-wizard" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                <a href="#proposal-wizard" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition nx-btn nx-btn--secondary">
                     <span class="text-xs font-bold text-primary">→</span> Proposal checklist
                 </a>
-                <a href="#status-lifecycle" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition">
+                <a href="#status-lifecycle" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition nx-btn nx-btn--secondary">
                     <span class="text-xs font-bold text-primary">→</span> Status tracking
                 </a>
             </nav>
@@ -161,7 +161,7 @@
 
             <div class="mt-7 nx-auto-grid nx-auto-grid--lg">
                 {% for phase in workflow_phases %}
-                    <article class="services-status-card rounded-xl border bg-white p-5">
+                    <article class="services-status-card rounded-xl border bg-white p-5 nx-panel">
                         <div class="flex items-start gap-5">
                             {% include "services/_progress_ring.html" with ring_percent=phase.weight_percent ring_tone=phase.key ring_size="md" ring_label=phase.ring_label %}
                             <div class="min-w-0">

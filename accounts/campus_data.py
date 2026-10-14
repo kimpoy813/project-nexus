@@ -111,100 +111,48 @@ CAMPUS_STRUCTURE = {
 }
 
 
+# Historical seed data above is retained for migrations. Runtime choices come
+# exclusively from the managed tables: deleting a row must not resurrect it.
+import logging
 from django.apps import apps
+from django.db import DatabaseError
 from django.db.models import Q
+
+logger = logging.getLogger(__name__)
+
+
+def _choices(query):
+    try:
+        return [(value, value) for value in query.values_list("name", flat=True).order_by("name") if value]
+    except DatabaseError:
+        logger.warning("Organizational choices are unavailable.", exc_info=True)
+        return []
 
 
 def get_campus_choices():
-    try:
-        Campus = apps.get_model("accounts", "Campus")
-        campuses = list(Campus.objects.values_list("name", flat=True).order_by("name"))
-        if campuses:
-            return [(campus, campus) for campus in campuses]
-    except Exception:
-        pass
-    return [(campus, campus) for campus in CAMPUS_STRUCTURE.keys()]
+    return _choices(apps.get_model("accounts", "Campus").objects.all())
 
 
 def get_college_choices(campus=None):
     if not campus:
         return []
-    try:
-        College = apps.get_model("accounts", "College")
-        colleges = list(College.objects.filter(campus__name=campus).values_list("name", flat=True).order_by("name"))
-        if colleges:
-            return [(college, college) for college in colleges if college]
-    except Exception:
-        pass
-
-    if campus not in CAMPUS_STRUCTURE:
-        return []
-
-    choices = []
-    for college in CAMPUS_STRUCTURE[campus].keys():
-        if college:
-            choices.append((college, college))
-    return choices
+    return _choices(apps.get_model("accounts", "College").objects.filter(campus__name=campus))
 
 
 def get_department_choices(campus=None, college=None):
     if not campus:
         return []
-    try:
-        Department = apps.get_model("accounts", "Department")
-        q = Department.objects.filter(campus__name=campus)
-        if college:
-            q = q.filter(college__name=college)
-        else:
-            q = q.filter(Q(college__isnull=True) | Q(college__name=""))
-        departments = list(q.values_list("name", flat=True).order_by("name"))
-        if departments:
-            return [(dept, dept) for dept in departments if dept]
-    except Exception:
-        pass
-
-    if campus not in CAMPUS_STRUCTURE:
-        return []
-
-    departments = []
-
-    if college is None:
-        college = ""
-
-    if college in CAMPUS_STRUCTURE[campus]:
-        departments.extend(CAMPUS_STRUCTURE[campus][college])
-
-    return [(dept, dept) for dept in departments if dept]
+    query = apps.get_model("accounts", "Department").objects.filter(campus__name=campus)
+    if college:
+        query = query.filter(college__name=college)
+    else:
+        query = query.filter(Q(college__isnull=True) | Q(college__name=""))
+    return _choices(query)
 
 
 def is_valid_college_for_campus(campus, college):
-    if not college:
-        return True
-    try:
-        College = apps.get_model("accounts", "College")
-        return College.objects.filter(campus__name=campus, name=college).exists()
-    except Exception:
-        pass
-    return campus in CAMPUS_STRUCTURE and college in CAMPUS_STRUCTURE[campus]
+    return not college or (college, college) in get_college_choices(campus)
 
 
 def is_valid_department_for_selection(campus, college, department):
-    if not department:
-        return True
-    try:
-        Department = apps.get_model("accounts", "Department")
-        q = Department.objects.filter(campus__name=campus, name=department)
-        if college:
-            q = q.filter(college__name=college)
-        else:
-            q = q.filter(Q(college__isnull=True) | Q(college__name=""))
-        return q.exists()
-    except Exception:
-        pass
-
-    if campus not in CAMPUS_STRUCTURE:
-        return False
-
-    college = college or ""
-    allowed = CAMPUS_STRUCTURE[campus].get(college, [])
-    return department in allowed
+    return not department or (department, department) in get_department_choices(campus, college)

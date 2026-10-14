@@ -43,7 +43,7 @@ body.services-page-body .nexus-footer {
 .home-page .home-person-card:hover,
 .home-page .home-sdg-card:hover,
 .home-page .home-activity-card:hover {
-  border-color: rgba(16, 59, 7, .24) !important;
+  border-color: rgb(var(--nexus-primary-rgb) / .24) !important;
 }
 
 /* Thrust names and SDG labels use the same brand ink. The SDG artwork stays
@@ -105,7 +105,7 @@ body.services-page-body .nexus-footer {
 
 .services-page .services-jump-link:hover,
 .services-page .services-jump-link:focus-visible {
-  border-color: rgba(16, 59, 7, .26) !important;
+  border-color: rgb(var(--nexus-primary-rgb) / .26) !important;
   color: var(--nexus-primary);
 }
 

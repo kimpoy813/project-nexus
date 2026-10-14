@@ -11,6 +11,8 @@ from django.contrib.auth import logout
 from django.core.exceptions import SuspiciousFileOperation
 from django.db import DatabaseError
 from django.shortcuts import redirect
+from django.http import JsonResponse
+from .ui import idle_timeout_seconds
 from django.utils import timezone
 
 from .storage_diagnostics import describe_storage_exception
@@ -107,8 +109,6 @@ class InactiveLogoutMiddleware:
     Inactivity = no requests made within the timeout window.
     """
 
-    TIMEOUT_SECONDS = 600  # 10 minutes
-
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -131,10 +131,11 @@ class InactiveLogoutMiddleware:
                 last_activity = None
 
             # If idle too long -> logout
-            if last_activity and (now - last_activity) > timedelta(seconds=self.TIMEOUT_SECONDS):
+            if last_activity and (now - last_activity) > timedelta(seconds=idle_timeout_seconds()):
                 logout(request)
-                request.session.flush()
-                messages.warning(request, "You were logged out due to 10 minutes of inactivity.")
+                if request.path == "/session/activity/":
+                    return JsonResponse({"detail": "Session expired."}, status=401)
+                messages.warning(request, "Your session expired due to inactivity. Please sign in again.")
                 return redirect("login")
 
             # Update activity timestamp on every request

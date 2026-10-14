@@ -9,8 +9,8 @@
 
     <div class="mb-6">
         <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary/70">Extension targets</p>
-        <h1 class="mt-1 text-2xl font-bold text-slate-900">{% if target %}Edit target{% else %}Add target{% endif %}</h1>
-        <p class="mt-1 text-sm text-slate-500">Set one target for the whole year, then record the actual accomplishment for each quarter as it is completed.</p>
+        <h1 class="mt-1 text-2xl font-bold text-slate-900 nx-page-title">{% if target %}Edit target{% else %}Add target{% endif %}</h1>
+        <p class="mt-1 text-sm text-slate-500 nx-page-description">Set one target for the whole year, then record the actual accomplishment for each quarter as it is completed.</p>
     </div>
 
     <form method="POST" id="target-form" class="bg-white border border-slate-200 rounded-2xl shadow-sm divide-y divide-slate-100" novalidate>
@@ -65,7 +65,7 @@
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Editing target</p>
                     <p class="mt-1 font-semibold text-slate-800">{{ target.campus }} · {{ target.get_metric_display }} · {{ target.year }}</p>
                 </div>
-                <span class="hidden sm:inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{{ target.year }}</span>
+                <span class="hidden sm:inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary nx-badge">{{ target.year }}</span>
             </div>
             <p class="mt-2 text-xs text-slate-500">Year, campus, and metric identify this target and can’t be changed. To move it, delete this target and add a new one.</p>
         </section>
@@ -81,7 +81,7 @@
             </div>
 
             <div class="grid gap-6 xl:grid-cols-2">
-                <div class="rounded-xl border border-primary/15 bg-white p-4">
+                <div class="rounded-xl border border-primary/15 bg-white p-4 nx-panel">
                     <p class="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-primary">Yearly target</p>
                     <label class="block text-xs font-semibold text-slate-600 mb-1" for="field-target">Target for the whole year <span class="text-red-500">*</span></label>
                     <input id="field-target" type="number" name="target" min="0" inputmode="numeric" placeholder="0" required value="{% if target %}{{ target.target }}{% else %}{{ request.POST.target }}{% endif %}" class="target-input w-full border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-bold focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition">
@@ -89,7 +89,7 @@
                 </div>
 
                 <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                    <p class="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Actual by quarter <span class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500 align-middle">optional</span></p>
+                    <p class="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">Actual by quarter <span class="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[0.65rem] font-semibold text-slate-500 align-middle nx-badge">optional</span></p>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-q1">Q1 actual</label><input id="field-q1" type="number" name="actual_q1" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ target.actual_q1 }}{% else %}{{ request.POST.actual_q1 }}{% endif %}" class="actual-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
                         <div><label class="block text-xs font-semibold text-slate-600 mb-1" for="field-q2">Q2 actual</label><input id="field-q2" type="number" name="actual_q2" min="0" inputmode="numeric" placeholder="0" value="{% if target %}{{ target.actual_q2 }}{% else %}{{ request.POST.actual_q2 }}{% endif %}" class="actual-input w-full border border-slate-300 rounded-xl px-3 py-2.5 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition"></div>
@@ -114,12 +114,12 @@
         </section>
 
         <div class="flex flex-col-reverse sm:flex-row sm:items-center gap-2 p-5 md:px-6">
-            <a class="px-5 py-2.5 text-center border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition" href="{% url 'targets_list' %}{% if target %}?year={{ target.year }}{% endif %}">Cancel</a>
+            <a class="px-5 py-2.5 text-center border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition nx-btn nx-btn--secondary" href="{% url 'targets_list' %}{% if target %}?year={{ target.year }}{% endif %}">Cancel</a>
             <div class="flex-1"></div>
             {% if not target %}
-            <button class="px-5 py-2.5 border border-primary text-primary font-semibold rounded-xl hover:bg-primary/5 transition" type="submit" name="save_and_add" value="1">Save &amp; add another</button>
+            <button class="px-5 py-2.5 border border-primary text-primary font-semibold rounded-xl hover:bg-primary/5 transition nx-btn nx-btn--secondary" type="submit" name="save_and_add" value="1">Save &amp; add another</button>
             {% endif %}
-            <button class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-secondary transition shadow-sm" type="submit">{% if target %}Save changes{% else %}Save target{% endif %}</button>
+            <button class="px-6 py-2.5 bg-primary text-white font-semibold rounded-xl hover:bg-secondary transition shadow-sm nx-btn nx-btn--primary" type="submit">{% if target %}Save changes{% else %}Save target{% endif %}</button>
         </div>
     </form>
 </div>

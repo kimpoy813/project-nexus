@@ -6,20 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ site_control.site_name|default:"NExUS" }} - {{ site_control.tagline|default:"Networked Extension Unified System" }}{% endblock %}</title>
 
-    <!-- Tailwind CDN + single institutional theme (logo palette + one font) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Locally built utilities and shared institutional theme -->
+    <link rel="stylesheet" href="{% static 'css/nexus-utilities.css' %}">
     <script src="{% static 'js/nexus-theme.js' %}"></script>
 
     <!-- One typeface everywhere: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/fonts.css' %}">
 
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
     <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
+    <link href="{% static 'vendor/aos.css' %}" rel="stylesheet">
 
     <!-- NExUS UI Refresh -->
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
@@ -29,16 +27,7 @@
     <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
     <!-- Loading skeletons (plain CSS so they paint without the CDN bundle) -->
     <link href="{% static 'css/nexus-skeleton.css' %}" rel="stylesheet">
-    {% if site_control %}
-    <style>
-        :root {
-            --nexus-primary: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-primary-2: {{ site_control.primary_color|default:'#103b07' }};
-            --nexus-secondary: {{ site_control.secondary_color|default:'#5a1113' }};
-            --nexus-accent: {{ site_control.accent_color|default:'#f5e587' }};
-        }
-    </style>
-    {% endif %}
+    {% include "partials/_theme.html" %}
 
     {% comment %}
         Phase weights (Proposal / MOA / Implementation) as fractions of overall
@@ -49,15 +38,16 @@
     {% endcomment %}
     {{ workflow_phase_shares|json_script:"nexus-phase-shares" }}
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{% static 'vendor/alpine.min.js' %}"></script>
 
     <style>
         [x-cloak] { display: none !important; }
     </style>
     {% block extra_head %}{% endblock %}
+    <link href="{% static 'css/nexus-components.css' %}" rel="stylesheet">
 </head>
 
-<body class="bg-gray-50 text-gray-800 font-sans {% block body_class %}{% endblock %}">
+<body data-nx-page-kind="{{ nx_skeleton_variant }}" class="bg-gray-50 text-gray-800 font-sans {% block body_class %}{% endblock %}">
     {% comment %}
         Page skeleton. It is the first thing in the body and is visible by
         default, so a page that is still being fetched/parsed shows a skeleton
@@ -596,7 +586,7 @@
          class="nexus-navbar fixed top-0 w-full z-50">
         <div class="nx-bar h-full flex justify-between items-center">
             <!-- Logo + NEXUS Name -->
-            <a href="/" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home" data-nx-skeleton="marketing">
+            <a href="{% url 'details_page' %}" class="nexus-brand flex items-center gap-3 group" aria-label="NExUS Home" data-nx-skeleton="marketing">
                 <img src="{% static 'images/nexus-logo-128.png' %}"
                      alt="NExUS logo"
                      class="h-11 w-11 object-contain drop-shadow-sm">
@@ -607,13 +597,13 @@
 
             <!-- Main Menu -->
             <div class="hidden lg:flex items-center gap-1 text-sm">
-                <a href="/" class="nexus-menu-link" data-nx-skeleton="marketing">Home</a>
-                <a href="/proposals/" class="nexus-menu-link" data-nx-skeleton="marketing">Services</a>
+                <a href="{% url 'details_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Home</a>
+                <a href="{% url 'services_home' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Services</a>
                 <a href="{% url 'reports_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Reports</a>
                 <a href="{% url 'achievements_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Achievements</a>
 
                 {% if user.is_authenticated %}
-                    <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
+                    <a href="{% url 'dashboard_redirect' %}"
                        class="nexus-menu-link is-strong" data-nx-skeleton="dashboard">
                         Dashboard
                     </a>
@@ -625,7 +615,8 @@
                                     @click="openNotif = !openNotif"
                                     @keydown.escape.window="openNotif = false"
                                     class="nexus-icon-button relative"
-                                    aria-label="Notifications">
+                                    :aria-expanded="openNotif.toString()"
+                                    aria-controls="notification-panel" aria-label="Notifications">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path d="M10 2a6 6 0 00-6 6v2.586l-.707.707A1 1 0 004 13h12a1 1 0 00.707-1.707L16 10.586V8a6 6 0 00-6-6z"/>
                                     <path d="M10 18a3 3 0 01-2.995-2.824L7 15h6a3 3 0 01-3 3z"/>
@@ -638,7 +629,7 @@
                                 {% endif %}
                             </button>
 
-                            <div x-show="openNotif"
+                            <div id="notification-panel" x-show="openNotif"
                                  x-cloak
                                  @click.away="openNotif = false"
                                  x-transition.origin.top.right
@@ -680,7 +671,9 @@
 
                         <!-- Profile menu -->
                         <div x-data="{ open: false }" class="relative">
-                            <button @click="open = !open"
+                            <button type="button" @click="open = !open"
+                                    @keydown.escape.window="open = false"
+                                    :aria-expanded="open.toString()" aria-controls="profile-menu"
                                     class="flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 py-1.5 pl-1.5 pr-3 text-sm font-bold text-primary transition hover:bg-primary/10 focus:outline-none focus:ring-4 focus:ring-primary/10"
                                     aria-label="Open profile menu">
                                 <span class="grid h-9 w-9 place-items-center rounded-full bg-primary text-white text-sm font-black shadow-sm">
@@ -690,7 +683,7 @@
                                 <svg class="h-4 w-4 text-primary/70" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" /></svg>
                             </button>
 
-                            <div x-show="open"
+                            <div id="profile-menu" x-show="open"
                                  x-cloak
                                  @click.away="open = false"
                                  x-transition.origin.top.right
@@ -705,7 +698,7 @@
                                 {% if can_view_accomplishment %}
                                 <a href="{% url 'accomplishment_reports_list' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="list">Accomplishment Reports</a>
                                 {% endif %}
-                                <a href="{% url 'logout' %}" class="block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 border-t border-gray-100" data-nx-skeleton="auth">Logout</a>
+                                <form method="post" action="{% url 'logout' %}" data-nx-skeleton="auth">{% csrf_token %}<button type="submit" class="w-full text-left block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 border-t border-gray-100">Logout</button></form>
                             </div>
                         </div>
                     </div>
@@ -719,6 +712,7 @@
             <!-- Mobile menu button -->
             <button type="button"
                     @click="mobileMenu = !mobileMenu"
+                    @keydown.escape.window="mobileMenu = false"
                     class="nexus-icon-button lg:hidden"
                     :aria-expanded="mobileMenu.toString()"
                     aria-controls="mobile-navigation"
@@ -736,17 +730,17 @@
              x-transition.origin.top
              class="nexus-mobile-panel lg:hidden mx-4 mt-2 rounded-3xl overflow-hidden">
             <div class="p-3 space-y-1">
-                <a href="/" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Home</a>
-                <a href="/proposals/" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Services</a>
+                <a href="{% url 'details_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Home</a>
+                <a href="{% url 'services_home' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Services</a>
                 <a href="{% url 'reports_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Reports</a>
                 <a href="{% url 'achievements_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Achievements</a>
                 {% if user.is_authenticated %}
-                    <a href="{% if user.profile.role == 'ADMIN' %}{% url 'admin_dashboard' %}{% elif user.profile.role == 'DIRECTOR' %}{% url 'director_dashboard' %}{% elif user.profile.role == 'DEPARTMENT_COORDINATOR' %}{% url 'department_coordinator_dashboard' %}{% elif user.profile.role == 'CAMPUS_COORDINATOR' %}{% url 'campus_coordinator_dashboard' %}{% elif user.profile.role == 'EVALUATOR' %}{% url 'evaluator_dashboard' %}{% elif user.profile.role == 'STAFF' %}{% url 'staff_dashboard' %}{% else %}{% url 'faculty_dashboard' %}{% endif %}"
+                    <a href="{% url 'dashboard_redirect' %}"
                        class="nexus-menu-link is-strong w-full" data-nx-skeleton="dashboard">Dashboard</a>
                     <div class="my-2 border-t border-gray-100"></div>
                     <a href="{% url 'profile_view' %}" class="nexus-menu-link w-full" data-nx-skeleton="record">Profile</a>
                     {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Accomplishment Reports</a>{% endif %}
-                    <a href="{% url 'logout' %}" class="nexus-menu-link w-full text-red-600" data-nx-skeleton="auth">Logout</a>
+                    <form method="post" action="{% url 'logout' %}" data-nx-skeleton="auth">{% csrf_token %}<button type="submit" class="w-full text-left nexus-menu-link w-full text-red-600">Logout</button></form>
                 {% else %}
                     <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-2xl px-4 py-3 text-sm font-black" data-nx-skeleton="auth">Login</a>
                 {% endif %}
@@ -781,7 +775,7 @@
         so every page starts *below* the header instead of sliding under it.
         Pages keep their own py-* rhythm on top of that.
     {% endcomment %}
-    <main id="main-content" class="nexus-shell">
+    <main id="main-content" class="nexus-shell" tabindex="-1">
         {% block content %}{% endblock %}
     </main>
 
@@ -802,8 +796,8 @@
             <div>
                 <h4 class="text-white font-bold mb-4">Important Links</h4>
                 <ul class="space-y-2 text-sm">
-                    <li><a href="/" class="hover:text-white transition" data-nx-skeleton="marketing">Home</a></li>
-                    <li><a href="/proposals/" class="hover:text-white transition" data-nx-skeleton="marketing">Services</a></li>
+                    <li><a href="{% url 'details_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Home</a></li>
+                    <li><a href="{% url 'services_home' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Services</a></li>
                     <li><a href="{% url 'reports_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Reports</a></li>
                     <li><a href="{% url 'achievements_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Achievements</a></li>
                     {% if user.is_authenticated %}
@@ -817,322 +811,38 @@
             <div>
                 <h4 class="text-white font-bold mb-4">Contact</h4>
                 <ul class="space-y-2 text-sm text-white/90">
-                    <li><a href="mailto:{{ site_control.contact_email|default:'ispsc.nexus@gmail.com' }}" class="hover:text-white transition">{{ site_control.contact_email|default:"ispsc.nexus@gmail.com" }}</a></li>
-                    <li><a href="{{ site_control.facebook_url|default:'https://facebook.com' }}" target="_blank" class="hover:text-white transition">Facebook Page</a></li>
+                    {% if site_control.contact_email %}<li><a href="mailto:{{ site_control.contact_email }}" class="hover:text-white transition">{{ site_control.contact_email }}</a></li>{% endif %}
+                    {% if site_control.facebook_url %}<li><a href="{{ site_control.facebook_url }}" target="_blank" rel="noopener noreferrer" class="hover:text-white transition">Facebook Page</a></li>{% endif %}
+                    {% if not site_control.contact_email and not site_control.facebook_url %}<li>Contact information has not been published.</li>{% endif %}
                 </ul>
             </div>
         </div>
 
         <div class="border-t border-white/20 mt-12 pt-6 text-center text-sm text-white/80">
-            © {{ now|date:"Y" }} {{ site_control.short_name|default:"NExUS" }}. All rights reserved.
+            © {% now "Y" %} {{ site_control.short_name|default:"NExUS" }}. All rights reserved.
         </div>
     </footer>
 
     <!-- AOS Script -->
-    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script src="{% static 'vendor/aos.js' %}"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-        if (window.AOS) AOS.init({ duration: 700, once: true });
-
-        (function () {
-            const IDLE_LIMIT_MS = 30 * 60 * 1000;
-            const WARN_BEFORE_MS = 5 * 60 * 1000;
-            let idleTimer = null;
-            let warnTimer = null;
-            let countdownInterval = null;
-
-            function getCookie(name) {
-                let cookieValue = null;
-                if (document.cookie && document.cookie !== '') {
-                    const cookies = document.cookie.split(';');
-                    for (let i = 0; i < cookies.length; i++) {
-                        const cookie = cookies[i].trim();
-                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            }
-
-            async function logoutIdle() {
-                if (window.NexusSkeleton) {
-                    window.NexusSkeleton.show("auth");
-                }
-                try {
-                    const csrftoken = getCookie('csrftoken');
-                    await fetch('{% url 'logout_idle' %}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken
-                        },
-                        body: JSON.stringify({ reason: 'idle' })
-                    });
-                    window.location.href = '{% url 'login' %}?reason=idle';
-                } catch (e) {
-                    window.location.href = '{% url 'login' %}?reason=idle';
-                }
-            }
-
-            function showIdleWarning() {
-                const warning = document.getElementById('idle-warning');
-                const countdown = document.getElementById('idle-countdown');
-                if (!warning) return;
-                warning.classList.remove('hidden');
-
-                // Same words as the banner, as a toast: the banner is only seen
-                // by someone already looking at that corner of the page.
-                if (window.nexusToast) {
-                    window.nexusToast(
-                        "You'll be logged out in about " + Math.round(WARN_BEFORE_MS / 60000) +
-                        " minutes due to inactivity. Use \u201cStay logged in\u201d to keep working.",
-                        'warning'
-                    );
-                }
-
-                if (countdown) {
-                    let timeLeft = WARN_BEFORE_MS / 1000;
-                    countdown.textContent = Math.ceil(timeLeft / 60);
-                    if (countdownInterval) clearInterval(countdownInterval);
-                    countdownInterval = setInterval(() => {
-                        timeLeft--;
-                        countdown.textContent = Math.max(0, Math.ceil(timeLeft / 60));
-                        if (timeLeft <= 0) clearInterval(countdownInterval);
-                    }, 1000);
-                }
-            }
-
-            window.resetIdleTimer = function resetIdleTimer() {
-                if (idleTimer) clearTimeout(idleTimer);
-                if (warnTimer) clearTimeout(warnTimer);
-                if (countdownInterval) clearInterval(countdownInterval);
-                document.getElementById('idle-warning')?.classList.add('hidden');
-                warnTimer = setTimeout(showIdleWarning, IDLE_LIMIT_MS - WARN_BEFORE_MS);
-                idleTimer = setTimeout(logoutIdle, IDLE_LIMIT_MS);
-            };
-
-            {% if user.is_authenticated %}
-                const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
-                events.forEach(evt => window.addEventListener(evt, window.resetIdleTimer, { passive: true }));
-                window.resetIdleTimer();
-                document.addEventListener('visibilitychange', () => {
-                    if (!document.hidden) window.resetIdleTimer();
-                });
-            {% endif %}
-        })();
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.AOS) AOS.init({ duration: 700, once: true, disable: window.matchMedia('(prefers-reduced-motion: reduce)').matches });
         });
     </script>
-
-    <div id="idle-warning"
-         class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-amber-700 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-4 max-w-sm w-[calc(100%-2rem)]">
-        <p class="text-sm flex-1">You'll be logged out in about <span id="idle-countdown">5</span> minutes due to inactivity.</p>
-        <button type="button" onclick="window.resetIdleTimer && window.resetIdleTimer()"
-                class="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg">
-            Stay logged in
-        </button>
+    {% if user.is_authenticated %}
+    {{ session_config|json_script:"nexus-session-config" }}
+    <div id="nexus-session-csrf" hidden>{% csrf_token %}</div>
+    <div id="idle-warning" hidden role="status" aria-live="polite"
+         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-amber-700 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-4 max-w-sm w-[calc(100%-2rem)]">
+        <p class="text-sm flex-1">Your session expires in <span id="idle-countdown"></span> seconds. Unsaved changes may be lost.</p>
+        <button type="button" id="idle-stay" class="text-xs font-bold bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg">Stay logged in</button>
     </div>
+    <script src="{% static 'js/nexus-session.js' %}" defer></script>
+    {% endif %}
 
     <script src="{% static 'js/dashboard-views.js' %}"></script>
-    <script>
-    document.addEventListener("DOMContentLoaded", () => {
-        const DROPDOWN_ITEM_CLS = "px-4 py-2 cursor-pointer hover:bg-primary hover:text-white transition";
-        const DROPDOWN_ITEM_CLS_SM = "px-3 py-1.5 cursor-pointer hover:bg-primary hover:text-white transition";
-
-        // Signature of a select's current options + selection. Used to detect
-        // when a cascade script (campus -> college -> department, admin-built
-        // dynamic fields, ...) has repopulated the native select AFTER the
-        // custom dropdown was built, so the visible dropdown can be rebuilt.
-        function optionSignature(select) {
-            let sig = "";
-            for (let i = 0; i < select.options.length; i++) {
-                const opt = select.options[i];
-                sig += `${opt.value}\u0000${opt.text}\u0001`;
-            }
-            return `${sig}\u0002${select.selectedIndex}`;
-        }
-
-        function updateSelectedLabel(select, selectedText) {
-            const activeOption = select.options[select.selectedIndex];
-            selectedText.textContent = activeOption ? activeOption.text : "Select...";
-        }
-
-        function buildDropdownItems(select, dropdown, selectedText) {
-            dropdown.innerHTML = "";
-            Array.from(select.options).forEach(opt => {
-                const item = document.createElement("div");
-                item.className = select.classList.contains("adm-input--sm") ? DROPDOWN_ITEM_CLS_SM : DROPDOWN_ITEM_CLS;
-                item.textContent = opt.text;
-                item.dataset.value = opt.value;
-
-                item.addEventListener("click", (e) => {
-                    e.stopPropagation();
-                    select.value = opt.value;
-                    updateSelectedLabel(select, selectedText);
-                    dropdown.classList.add("hidden");
-
-                    const changeEvent = new Event("change", { bubbles: true });
-                    select.dispatchEvent(changeEvent);
-
-                    const form = select.closest("form");
-                    if (form && select.getAttribute("onchange") && select.getAttribute("onchange").includes("submit")) {
-                        form.submit();
-                    }
-                });
-
-                dropdown.appendChild(item);
-            });
-
-            updateSelectedLabel(select, selectedText);
-            dropdown.dataset.optionSignature = optionSignature(select);
-        }
-
-        // Keep already-enhanced custom dropdowns in step with their native
-        // select. Without this, the dropdown kept showing the option list
-        // captured at page load, so the college/department choices stayed
-        // empty after picking a campus even though the AJAX cascade had
-        // populated the (hidden) native select.
-        function syncEnhancedDropdowns() {
-            document.querySelectorAll("select.enhanced-done").forEach(select => {
-                const refs = select._nexusDropdownRefs;
-                if (!refs || !document.body.contains(refs.dropdown)) return;
-                if (refs.dropdown.dataset.optionSignature === optionSignature(select)) return;
-                buildDropdownItems(select, refs.dropdown, refs.selectedText);
-            });
-        }
-
-        function enhanceDropdowns() {
-            document.querySelectorAll("select").forEach(select => {
-                try {
-                    // If it was marked as enhanced-done but the custom container is missing (e.g. due to cloning), re-enhance it!
-                    const prevSibling = select.previousElementSibling;
-                    const hasContainer = prevSibling && prevSibling.classList.contains("custom-dropdown-container");
-                    if (select.classList.contains("enhanced-done") && !hasContainer) {
-                        select.classList.remove("enhanced-done");
-                        // Drop the orphaned body-appended dropdown from the
-                        // previous enhancement so it cannot linger.
-                        const oldRefs = select._nexusDropdownRefs;
-                        if (oldRefs && oldRefs.dropdown && oldRefs.dropdown.parentNode) {
-                            oldRefs.dropdown.remove();
-                        }
-                    }
-
-                    // Skip if it's already enhanced, or is hidden/ignored
-                    if (select.classList.contains("enhanced-done")) return;
-                    if (!select.parentNode || !document.body.contains(select)) return;
-                    // Ignore rich editor or simple selects we want to keep
-                    if (select.closest(".ck-editor, [data-native-select]") || select.classList.contains("flatpickr-monthDropdown-months")) return;
-
-                    select.classList.add("enhanced-done");
-
-                    // Create container
-                    const container = document.createElement("div");
-                    container.className = "relative inline-block w-full custom-dropdown-container";
-
-                    // Copy classes and build button
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-xl border border-gray-300 px-3 h-[38px] text-sm bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
-
-                    // Adjust if it is a small select input
-                    if (select.classList.contains("adm-input--sm")) {
-                        btn.className = "w-full text-left flex items-center justify-between gap-2 rounded-lg border border-gray-300 px-3 h-[32px] text-xs bg-white shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition duration-150 ease-in-out font-normal text-slate-800";
-                    }
-
-                    const selectedText = document.createElement("span");
-                    selectedText.className = "selected-text truncate";
-
-                    const arrowSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                    arrowSvg.setAttribute("class", "h-4 w-4 text-gray-500 shrink-0");
-                    if (select.classList.contains("adm-input--sm")) {
-                        arrowSvg.setAttribute("class", "h-3 w-3 text-gray-500 shrink-0");
-                    }
-                    arrowSvg.setAttribute("viewBox", "0 0 20 20");
-                    arrowSvg.setAttribute("fill", "currentColor");
-                    arrowSvg.innerHTML = `<path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />`;
-
-                    btn.appendChild(selectedText);
-                    btn.appendChild(arrowSvg);
-
-                    // Create options list
-                    const dropdown = document.createElement("div");
-                    dropdown.className = "hidden absolute bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-sm text-gray-700 font-medium max-h-[500px] overflow-y-auto";
-                    if (select.classList.contains("adm-input--sm")) {
-                        dropdown.className = "hidden absolute bg-white rounded-lg shadow-lg border border-gray-100 z-[9999] divide-y divide-gray-50 py-1 text-xs text-gray-700 font-medium max-h-[500px] overflow-y-auto";
-                    }
-
-                    // Link the body-appended dropdown back to its select
-                    // (debugging/testing aid).
-                    if (select.id) dropdown.dataset.enhancedFor = select.id;
-
-                    container.appendChild(btn);
-
-                    // Append directly to body to prevent clipping/cut-off!
-                    document.body.appendChild(dropdown);
-
-                    select.style.setProperty("display", "none", "important");
-                    select.style.visibility = "hidden";
-                    select.style.opacity = "0";
-                    select.style.position = "absolute";
-                    select.style.width = "0";
-                    select.style.height = "0";
-
-                    select.parentNode.insertBefore(container, select);
-
-                    // Remember the parts so syncEnhancedDropdowns() can
-                    // rebuild them when the select's options change.
-                    select._nexusDropdownRefs = { dropdown: dropdown, selectedText: selectedText };
-                    buildDropdownItems(select, dropdown, selectedText);
-
-                    btn.addEventListener("click", (e) => {
-                        e.stopPropagation();
-
-                        // Always rebuild from the live select so options
-                        // loaded after page load (AJAX cascades) are shown.
-                        buildDropdownItems(select, dropdown, selectedText);
-
-                        // Close all other dropdowns
-                        document.querySelectorAll("body > .z-\\[9999\\]").forEach(d => {
-                            if (d !== dropdown) d.classList.add("hidden");
-                        });
-
-                        const isHidden = dropdown.classList.contains("hidden");
-                        if (isHidden) {
-                            // Position dynamically relative to button
-                            const rect = btn.getBoundingClientRect();
-                            dropdown.style.top = `${rect.bottom + window.scrollY}px`;
-                            dropdown.style.left = `${rect.left + window.scrollX}px`;
-                            dropdown.style.width = `${rect.width}px`;
-                            dropdown.classList.remove("hidden");
-                        } else {
-                            dropdown.classList.add("hidden");
-                        }
-                    });
-
-                    document.addEventListener("click", () => {
-                        dropdown.classList.add("hidden");
-                    });
-
-                    // Keep body-appended dropdown synchronized if scroll/resize occurs
-                    window.addEventListener("scroll", () => { dropdown.classList.add("hidden"); }, { passive: true });
-                    window.addEventListener("resize", () => { dropdown.classList.add("hidden"); }, { passive: true });
-                } catch (err) {
-                    console.error("Failed to enhance dropdown:", err);
-                }
-            });
-        }
-
-        function refreshDropdowns() {
-            enhanceDropdowns();
-            syncEnhancedDropdowns();
-        }
-
-        setTimeout(refreshDropdowns, 100);
-        const observer = new MutationObserver(refreshDropdowns);
-        observer.observe(document.body, { childList: true, subtree: true });
-    });
-    </script>
+    {# Native selects retain keyboard, mobile, disabled and required-field behavior. #}
     {% block extra_scripts %}{% endblock %}
 
     {% comment %}

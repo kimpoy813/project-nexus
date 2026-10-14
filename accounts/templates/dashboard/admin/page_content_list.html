@@ -5,29 +5,29 @@
 {% block content %}
 <div class="nx-page py-6">
 
-    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-page-header">
         <div>
-            <h1 class="text-xl font-semibold text-primary">Page Content</h1>
-            <p class="mt-0.5 text-sm text-slate-500">
+            <h1 class="text-xl font-semibold text-primary nx-page-title">Page Content</h1>
+            <p class="mt-0.5 text-sm text-slate-500 nx-page-description">
                 Edit the text and sections shown on each public page.
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{% url 'page_content_logs' %}" class="pc-btn">Change Log</a>
-            <a href="{% url 'admin_dashboard' %}?tab=content" class="pc-btn">← Back to dashboard</a>
+            <a href="{% url 'page_content_logs' %}" class="pc-btn nx-btn nx-btn--secondary">Change Log</a>
+            <a href="{% url 'admin_dashboard' %}?tab=content" class="pc-btn nx-btn nx-btn--secondary">← Back to dashboard</a>
         </div>
     </div>
 
     <div class="space-y-3">
         {% for item in pages %}
-        <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between nx-panel">
             <div class="min-w-0">
                 <div class="flex items-center gap-2">
                     <h2 class="text-base font-semibold text-slate-900">{{ item.page.title }}</h2>
                     {% if item.page.is_published %}
-                        <span class="pc-pill pc-pill--ok">Published</span>
+                        <span class="pc-pill pc-pill--ok nx-badge">Published</span>
                     {% else %}
-                        <span class="pc-pill pc-pill--warn">Draft</span>
+                        <span class="pc-pill pc-pill--warn nx-badge">Draft</span>
                     {% endif %}
                 </div>
                 <p class="mt-1 truncate text-sm text-slate-500">
@@ -43,22 +43,22 @@
             </div>
             <div class="flex shrink-0 items-center gap-2">
                 {% if item.public_url_name %}
-                    <a href="{% url item.public_url_name %}" target="_blank" rel="noopener" class="pc-btn">View</a>
+                    <a href="{% url item.public_url_name %}" target="_blank" rel="noopener" class="pc-btn nx-btn nx-btn--secondary">View</a>
                 {% endif %}
-                <a href="{% url 'page_content_edit' item.page.slug %}" class="pc-btn pc-btn--primary">Edit</a>
+                <a href="{% url 'page_content_edit' item.page.slug %}" class="pc-btn pc-btn--primary nx-btn nx-btn--primary">Edit</a>
             </div>
         </div>
         {% endfor %}
     </div>
 
     <!-- Recent changes across all pages -->
-    <div class="pc-card mt-6">
+    <div class="pc-card mt-6 nx-panel">
         <div class="pc-card__head flex items-center justify-between gap-3">
             <div>
                 <h2 class="pc-card__title">Recent Changes</h2>
                 <p class="pc-card__sub">Latest edits across all public pages.</p>
             </div>
-            <a href="{% url 'page_content_logs' %}" class="pc-btn shrink-0">All changes →</a>
+            <a href="{% url 'page_content_logs' %}" class="pc-btn shrink-0 nx-btn nx-btn--secondary">All changes →</a>
         </div>
         <ul class="divide-y divide-slate-100">
             {% for log in recent_logs %}
@@ -70,7 +70,7 @@
                         {% if log.changed_by %}· by {{ log.changed_by.username }}{% endif %}
                     </p>
                 </div>
-                <span class="pc-pill pc-pill--muted shrink-0">{{ log.page_slug }}</span>
+                <span class="pc-pill pc-pill--muted shrink-0 nx-badge">{{ log.page_slug }}</span>
             </li>
             {% empty %}
             <li class="px-5 py-6 text-center text-sm text-slate-500">No changes recorded yet.</li>
@@ -91,8 +91,8 @@
     border:1px solid #e2e8f0; color:#334155; background:#fff; transition:all .15s;
 }
 .pc-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
-.pc-btn--primary { background:#103b07; border-color:#103b07; color:#fff; font-weight:600; }
-.pc-btn--primary:hover { opacity:.85; background:#103b07; }
+.pc-btn--primary { background:var(--nexus-primary); border-color:var(--nexus-primary); color:#fff; font-weight:600; }
+.pc-btn--primary:hover { opacity:.85; background:var(--nexus-primary); }
 .pc-pill { display:inline-flex; padding:.1rem .5rem; border-radius:999px; font-size:.68rem; font-weight:600; }
 .pc-pill--ok { background:#dcfce7; color:#166534; }
 .pc-pill--warn { background:#fef3c7; color:#92400e; }

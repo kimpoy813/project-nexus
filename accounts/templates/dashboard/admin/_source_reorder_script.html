@@ -1,3 +1,4 @@
+{% load static %}
 {% comment %}
 Shared drag-and-drop wiring for the page content editor.
 
@@ -25,7 +26,7 @@ Everything degrades safely. If Sortable fails to load, the palette tiles are
 still buttons that append a block, and a section can still be moved one place
 at a time with the Arrow keys on its drag handle.
 {% endcomment %}
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="{% static 'vendor/sortable.min.js' %}"></script>
 <script>
 (function () {
     var csrfInput = document.querySelector("[name=csrfmiddlewaretoken]");
@@ -301,7 +302,7 @@ at a time with the Arrow keys on its drag handle.
 /* The chip that follows the pointer out of the palette. */
 .pc-drag-clone {
     opacity: .95; pointer-events: none; border-radius: 12px;
-    border-color: #103b07 !important; background: #fff !important;
+    border-color: var(--nexus-primary) !important; background: #fff !important;
     box-shadow: 0 10px 28px rgba(15, 23, 42, .22); transform: rotate(-.5deg);
 }
 /* A lifted section row following the pointer. Same idea as the tile chip,
@@ -310,7 +311,7 @@ at a time with the Arrow keys on its drag handle.
 .pc-drag-row {
     opacity: .95; pointer-events: none; border-radius: 12px;
     background: #fff !important;
-    outline: 2px solid #103b07; outline-offset: -2px;
+    outline: 2px solid var(--nexus-primary); outline-offset: -2px;
     box-shadow: 0 14px 34px rgba(15, 23, 42, .25);
 }
 .pc-handle {

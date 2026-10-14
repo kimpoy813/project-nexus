@@ -1,17 +1,17 @@
                                 {% if item.is_draft %}
                                     <button type="button"
                                             onclick="openDeleteModal('{{ item.proposal.id }}', '{% url 'faculty_delete_draft' item.proposal.id %}', '{{ item.proposal.title|default:item.proposal.research_title|default:'Untitled Proposal'|escapejs }}')"
-                                            class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
+                                            class="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 nx-btn nx-btn--secondary">
                                         Delete Draft
                                     </button>
 
                                     <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                       class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary">
+                                       class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
                                         Continue
                                     </a>
                                 {% else %}
                                     <a href="{% url 'proposal_storage' item.proposal.id %}"
-                                       class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-primary hover:bg-gray-50 hover:text-primary"
+                                       class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition hover:border-primary hover:bg-gray-50 hover:text-primary nx-btn nx-btn--secondary"
                                        title="Proposal storage"
                                        aria-label="Proposal storage">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -21,17 +21,17 @@
 
                                     {% if item.process_label == "MOA" %}
                                         <a href="{% url 'proposal_moa_tracker' item.proposal.id %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                             View MOA
                                         </a>
                                     {% elif item.process_label == "Implementation" %}
                                         <a href="{% url 'proposal_implementation_tracker' item.proposal.id %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                             View Implementation
                                         </a>
                                     {% else %}
                                         <a href="{% url 'proposal_wizard' item.proposal.id 1 %}"
-                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary">
+                                           class="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">
                                             View
                                         </a>
                                     {% endif %}

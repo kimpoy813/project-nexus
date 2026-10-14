@@ -4,24 +4,23 @@
 <head>
     <title>Debug Login - NExUS</title>
 
-    <!-- Tailwind CDN + single institutional theme (logo palette + one font) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Locally built utilities and shared institutional theme -->
+    <link rel="stylesheet" href="{% static 'css/nexus-utilities.css' %}">
     <script src="{% static 'js/nexus-theme.js' %}"></script>
 
     <!-- One typeface everywhere: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/fonts.css' %}">
 
     <!-- Institutional logo -->
     <link rel="icon" type="image/png" href="{% static 'images/nexus-logo-128.png' %}">
 
     <link href="{% static 'css/nexus-ui.css' %}" rel="stylesheet">
     <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
+    {% include "partials/_theme.html" %}
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans">
     <div class="min-h-screen flex items-center justify-center px-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 w-full max-w-md">
+        <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 w-full max-w-md nx-panel">
             <div class="flex flex-col items-center text-center mb-6">
                 <img src="{% static 'images/nexus-logo-128.png' %}"
                      alt="NExUS logo"
@@ -52,7 +51,7 @@
                 </div>
 
                 <button type="submit"
-                        class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-secondary transition">
+                        class="w-full bg-primary text-white py-2.5 rounded-lg font-bold hover:bg-secondary transition nx-btn nx-btn--primary">
                     Login
                 </button>
             </form>

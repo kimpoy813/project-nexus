@@ -8,18 +8,18 @@
     <div class="nx-page">
 
         <!-- ============ HEADER ============ -->
-        <header class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <header class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between nx-page-header">
             <div>
-                <h1 class="nx-dash__title">Admin Dashboard</h1>
-                <p class="nx-dash__subtitle">Manage accounts, site content, and global settings.</p>
+                <h1 class="nx-dash__title nx-page-title">Admin Dashboard</h1>
+                <p class="nx-dash__subtitle nx-page-description">Manage accounts, site content, and global settings.</p>
             </div>
             <div class="flex items-center gap-2">
                 {% if site_control.maintenance_mode %}
-                    <span class="adm-pill adm-pill--danger">Maintenance on</span>
+                    <span class="adm-pill adm-pill--danger nx-badge">Maintenance on</span>
                 {% else %}
-                    <span class="adm-pill adm-pill--ok">Site online</span>
+                    <span class="adm-pill adm-pill--ok nx-badge">Site online</span>
                 {% endif %}
-                <a href="{% url 'admin_create_account' %}" class="adm-btn-primary" data-nx-skeleton="form">Create Account</a>
+                <a href="{% url 'admin_create_account' %}" class="adm-btn-primary nx-btn nx-btn--primary" data-nx-skeleton="form">Create Account</a>
             </div>
         </header>
 
@@ -73,7 +73,7 @@
         ================================================================ -->
         <section class="adm-panel" data-tab-panel="overview">
 
-            <div class="adm-card mb-5">
+            <div class="adm-card mb-5 nx-panel">
                 <div class="adm-card__head">
                     <h2 class="adm-card__title">Role Distribution</h2>
                     <p class="adm-card__sub">User access levels across the system.</p>
@@ -90,7 +90,7 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <div class="adm-card">
+                <div class="adm-card nx-panel">
                     <div class="adm-card__head flex items-center justify-between">
                         <div>
                             <h2 class="adm-card__title">Recent Sign-ups</h2>
@@ -116,7 +116,7 @@
                     </ul>
                 </div>
 
-                <div class="adm-card">
+                <div class="adm-card nx-panel">
                     <div class="adm-card__head">
                         <h2 class="adm-card__title">Recent Global Changes</h2>
                         <p class="adm-card__sub">Latest site-wide setting updates.</p>
@@ -141,7 +141,7 @@
              USERS
         ================================================================ -->
         <section class="adm-panel hidden" data-tab-panel="users">
-            <div class="adm-card">
+            <div class="adm-card nx-panel">
                 <div class="adm-card__head flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 class="adm-card__title">Account Management</h2>
@@ -163,7 +163,7 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="min-w-full" id="userTable">
+                    <table class="min-w-full nx-table" id="userTable">
                         <thead>
                             <tr class="border-b border-slate-100 bg-slate-50/70">
                                 <th class="adm-th">User</th>
@@ -233,7 +233,7 @@
             <!-- One umbrella for everything visitors see. The two sub-groups make
                  the relationship explicit: pages are composed from the reusable
                  libraries below them, instead of two near-identical "content" cards. -->
-            <div class="adm-card mb-5">
+            <div class="adm-card mb-5 nx-panel">
                 <div class="adm-card__head">
                     <h2 class="adm-card__title">Website Content</h2>
                     <p class="adm-card__sub">Everything visitors see on the public site — composed from pages and reusable libraries.</p>
@@ -324,7 +324,7 @@
             <!-- The old "No-Code Builders" card mixed 10 unrelated tools. They are
                  now grouped by what they actually are: configurable builders, the
                  organization reference data they depend on, and one-off imports. -->
-            <div class="adm-card">
+            <div class="adm-card nx-panel">
                 <div class="adm-card__head">
                     <h2 class="adm-card__title">Builders &amp; Tools</h2>
                     <p class="adm-card__sub">Configure processes, forms, templates, and reference data without touching code.</p>
@@ -482,15 +482,15 @@
             <form method="POST" action="{% url 'admin_site_control' %}" data-nx-skeleton="dashboard">
                 {% csrf_token %}
 
-                <div class="adm-card mb-5">
+                <div class="adm-card mb-5 nx-panel">
                     <div class="adm-card__head flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h2 class="adm-card__title">Website Controls</h2>
                             <p class="adm-card__sub">Changes here affect the whole website immediately.</p>
                         </div>
                         <div class="flex flex-wrap gap-1.5">
-                            {% if site_control.announcement_enabled %}<span class="adm-pill adm-pill--info">Announcement live</span>{% endif %}
-                            {% if not site_control.registration_enabled %}<span class="adm-pill adm-pill--warn">Registration closed</span>{% endif %}
+                            {% if site_control.announcement_enabled %}<span class="adm-pill adm-pill--info nx-badge">Announcement live</span>{% endif %}
+                            {% if not site_control.registration_enabled %}<span class="adm-pill adm-pill--warn nx-badge">Registration closed</span>{% endif %}
                         </div>
                     </div>
 
@@ -600,7 +600,7 @@
                     </div>
 
                     <div class="flex items-center justify-end border-t border-slate-100 px-5 py-4">
-                        <button type="submit" class="adm-btn-primary">Save Settings</button>
+                        <button type="submit" class="adm-btn-primary nx-btn nx-btn--primary">Save Settings</button>
                     </div>
                 </div>
             </form>
@@ -611,7 +611,7 @@
 
 <style>
 /* Aliases onto the shared tokens in css/dashboard-views.css. */
-:root { --adm-green:var(--nx-green, #103b07); --adm-green-l:var(--nx-green-soft, #eaf3de); }
+:root { --adm-green:var(--nx-green, var(--nexus-primary)); --adm-green-l:var(--nx-green-soft, #eaf3de); }
 
 /* Cards */
 .adm-card { background:var(--nx-surface, #fff); border:1px solid var(--nx-border, #e2e8f0); border-radius:var(--nx-radius, 14px); overflow:hidden; }
@@ -690,9 +690,9 @@
     outline:none; transition: all .15s ease-in-out;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
-.adm-input:focus { 
-    border-color: var(--nexus-primary, #103b07); 
-    box-shadow: 0 0 0 3px rgba(16, 59, 7, 0.15); 
+.adm-input:focus {
+    border-color: var(--nexus-primary, #103b07);
+    box-shadow: 0 0 0 3px rgb(var(--nexus-primary-rgb) / 0.15);
 }
 .adm-input--sm { padding:.4rem .6rem; font-size:.8rem; border-radius:10px; }
 .adm-color { height:2.35rem; width:100%; border-radius:8px; border:1px solid #e2e8f0; padding:.15rem; background:#fff; cursor:pointer; }

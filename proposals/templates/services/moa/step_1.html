@@ -3,8 +3,8 @@
 <div class="nx-page py-8">
   <div class="flex flex-col gap-2 mb-6">
     <p class="text-sm text-slate-500">MOA Wizard</p>
-    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900">{{ proposal.title|default:"MOA Draft" }}</h1>
-    <p class="text-sm text-slate-600">Step {{ step }} of {{ total_steps }} — Agreement Basics</p>
+    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 nx-page-title">{{ proposal.title|default:"MOA Draft" }}</h1>
+    <p class="text-sm text-slate-600 nx-page-description">Step {{ step }} of {{ total_steps }} — Agreement Basics</p>
   </div>
 
   <div class="mb-6">
@@ -29,7 +29,7 @@
 
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
     <aside class="lg:col-span-1 space-y-4">
-      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm nx-panel">
         <h2 class="text-base font-semibold text-slate-900">What to place here</h2>
         <div class="mt-3 space-y-3 text-sm text-slate-600">
           {% for item in step_help %}
@@ -46,7 +46,7 @@
       </div>
     </aside>
 
-    <section class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm nx-panel">
       <form method="post" class="space-y-6">
         {% csrf_token %}
 
@@ -99,10 +99,10 @@
         </div>
 
         <div class="flex items-center justify-between pt-4 border-t border-slate-200">
-          <a href="{% url 'services_home' %}" class="inline-flex items-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <a href="{% url 'services_home' %}" class="inline-flex items-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 nx-btn nx-btn--secondary">
             Cancel
           </a>
-          <button type="submit" class="inline-flex items-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+          <button type="submit" class="inline-flex items-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 nx-btn nx-btn--context">
             Save and continue
           </button>
         </div>

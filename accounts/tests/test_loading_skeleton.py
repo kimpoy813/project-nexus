@@ -516,15 +516,17 @@ class SkeletonDestinationTests(TestCase):
     def test_logout_links_declare_the_auth_screen_they_redirect_to(self):
         user = factories.make_user("skel_logout", Profile.ROLE_FACULTY)
         html = factories.make_client(user).get("/").content.decode()
-        tags = re.findall(r"<a\b[^>]*href=\"[^\"]*logout[^\"]*\"[^>]*>", html, flags=re.I)
-        self.assertGreaterEqual(len(tags), 2, "desktop and mobile logout links")
+        tags = re.findall(r"<form\b[^>]*action=\"[^\"]*logout[^\"]*\"[^>]*>", html, flags=re.I)
+        self.assertGreaterEqual(len(tags), 2, "desktop and mobile logout forms")
         for tag in tags:
             self.assertIn('data-nx-skeleton="auth"', tag, tag)
 
     def test_idle_logout_paints_the_auth_skeleton_before_redirecting(self):
         user = factories.make_user("skel_idle", Profile.ROLE_FACULTY)
         html = factories.make_client(user).get("/").content.decode()
-        self.assertIn('NexusSkeleton.show("auth")', html)
+        self.assertIn('js/nexus-session.js', html)
+        script = (settings.BASE_DIR / "static/js/nexus-session.js").read_text()
+        self.assertIn('NexusSkeleton.show("auth")', script)
 
     def test_brand_home_link_declares_the_marketing_landing(self):
         html = self.client.get("/").content.decode()

@@ -20,23 +20,17 @@ class DynamicChoicesTestCase(TestCase):
         College.objects.all().delete()
         Campus.objects.all().delete()
 
-    def test_fallback_choices(self):
-        """When database is empty, it should fall back to CAMPUS_STRUCTURE keys."""
-        campuses = get_campus_choices()
-        self.assertIn(("Candon", "Candon"), campuses)
-        self.assertIn(("Main", "Main"), campuses)
+    def test_empty_tables_do_not_resurrect_hardcoded_choices(self):
+        self.assertEqual(get_campus_choices(), [])
+        self.assertEqual(get_college_choices("Candon"), [])
+        self.assertEqual(get_department_choices("Candon", "College of Hospitality and Tourism"), [])
 
-        colleges = get_college_choices("Candon")
-        self.assertIn(
-            ("College of Hospitality and Tourism", "College of Hospitality and Tourism"),
-            colleges
-        )
-
-        departments = get_department_choices("Candon", "College of Hospitality and Tourism")
-        self.assertIn(
-            ("Bachelor of Science in Hospitality Management", "Bachelor of Science in Hospitality Management"),
-            departments
-        )
+    def test_deleting_managed_children_does_not_restore_seed_data(self):
+        campus = Campus.objects.create(name="Candon")
+        college = College.objects.create(campus=campus, name="College of Hospitality and Tourism")
+        self.assertEqual(get_department_choices(campus.name, college.name), [])
+        college.delete()
+        self.assertEqual(get_college_choices(campus.name), [])
 
     def test_database_backed_choices(self):
         """When database is populated, choices must be fetched from the database."""

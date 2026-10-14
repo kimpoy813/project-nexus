@@ -1,0 +1,189 @@
+/* Shared application component contract. Keep page-specific CSS for layout,
+   not for another palette, control height, radius or typography scale.
+   Scoped to the app shell: email, document previews and CKEditor stay intact. */
+:root {
+  --nx-control-height: 2.75rem;
+  --nx-control-compact: 2.25rem;
+  --nx-control-radius: .75rem;
+  --nx-panel-radius: 1rem;
+  --nx-panel-padding: 1.5rem;
+  --nx-component-border: #dce3e8;
+  --nx-component-muted: #64748b;
+  --nx-component-shadow: 0 1px 3px rgb(15 23 42 / .05);
+  --nx-component-text: .875rem;
+  --nx-component-weight: 600;
+  --nx-title-size: clamp(1.375rem, 1.2rem + .45vw, 1.75rem);
+  /* Bridge existing dashboard tokens to the same institutional palette. */
+  --nx-green: var(--nexus-primary);
+  --nx-green-soft: rgb(var(--nexus-primary-rgb) / .07);
+  --nx-radius: var(--nx-panel-radius);
+  --nexus-radius: var(--nx-panel-radius);
+}
+
+/* Shared heading rhythm; public heroes and auth brand panels intentionally
+   retain their display typography instead of looking like an admin screen. */
+body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus-shell .nx-page-title {
+  margin: 0;
+  font-size: var(--nx-title-size);
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  color: var(--nexus-primary);
+  overflow-wrap: anywhere;
+}
+.nexus-shell .nx-page-description {
+  margin-top: .375rem;
+  font-size: var(--nx-component-text);
+  line-height: 1.6;
+  color: var(--nx-component-muted);
+}
+.nx-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.nx-page-header__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media (min-width: 768px) {
+  .nx-page-header { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* Static surfaces should not jump or acquire a large shadow on hover. */
+.nexus-shell .nx-panel,
+.nexus-shell .nx-panel:hover {
+  background: var(--nexus-surface-solid) !important;
+  border: 1px solid var(--nx-component-border) !important;
+  border-radius: var(--nx-panel-radius) !important;
+  box-shadow: var(--nx-component-shadow) !important;
+}
+.nx-panel__body { padding: var(--nx-panel-padding); }
+.nx-panel__header { padding: 1.125rem var(--nx-panel-padding); border-bottom: 1px solid var(--nx-component-border); }
+.nexus-shell :is(.pc-card__head, .adm-card__head) {
+  padding: 1.125rem var(--nx-panel-padding);
+  border-bottom-color: var(--nx-component-border);
+}
+.nexus-shell :is(.pc-card__title, .adm-card__title) { font-size: 1rem; line-height: 1.4; font-weight: 600; color: var(--nexus-ink); }
+.nexus-shell :is(.pc-card__sub, .adm-card__sub) { margin-top: .25rem; font-size: .8125rem; color: var(--nx-component-muted); }
+
+/* Actions: exactly one base and one semantic variant. The limited !important
+   bridge overrides old local .dir-btn/.pc-btn rules until those are removed. */
+.nexus-shell .nx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  box-sizing: border-box;
+  min-height: var(--nx-control-height);
+  max-width: 100%;
+  padding: .625rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--nx-control-radius) !important;
+  font-size: var(--nx-component-text);
+  font-weight: var(--nx-component-weight);
+  line-height: 1.4;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  cursor: pointer;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.nexus-shell .nx-btn svg { flex-shrink: 0; }
+.nexus-shell .nx-btn--primary {
+  background: var(--nexus-primary) !important;
+  border-color: var(--nexus-primary) !important;
+  color: #fff !important;
+}
+.nexus-shell .nx-btn--primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nexus-primary) 88%, #000) !important;
+  border-color: color-mix(in srgb, var(--nexus-primary) 88%, #000) !important;
+}
+.nexus-shell .nx-btn--secondary {
+  background: #fff !important;
+  border-color: var(--nx-component-border) !important;
+  color: #334155 !important;
+}
+.nexus-shell .nx-btn--secondary:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: var(--nexus-primary) !important;
+}
+.nexus-shell .nx-btn--danger {
+  background: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+  color: #9f1239 !important;
+}
+.nexus-shell .nx-btn--danger:hover:not(:disabled) { background: #ffe4e6 !important; border-color: #fda4af !important; }
+.nexus-shell .nx-btn--compact { min-height: var(--nx-control-compact); padding: .375rem .75rem; font-size: .8125rem; }
+.nexus-shell .nx-btn--icon { width: var(--nx-control-height); padding: .625rem; flex-shrink: 0; }
+.nexus-shell .nx-btn:disabled { cursor: not-allowed; opacity: .55; }
+.nexus-shell .nx-btn:focus-visible { outline: 2px solid var(--nexus-primary); outline-offset: 3px; }
+
+/* Fields: default-type text inputs must match explicit type="text" inputs.
+   Exclude editors and native toggle/file internals rather than re-skin them. */
+.nexus-shell :is(input:not([type]), input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], input[type="search"], input[type="tel"], input[type="url"], select, textarea):not(.ck-input) {
+  min-height: var(--nx-control-height);
+  padding: .625rem .75rem;
+  border: 1px solid var(--nx-component-border);
+  border-color: var(--nx-component-border) !important;
+  background-color: #fff !important;
+  color: var(--nexus-ink) !important;
+  box-shadow: none;
+  border-radius: var(--nx-control-radius) !important;
+  font-size: var(--nx-component-text);
+  line-height: 1.5;
+}
+.nexus-shell input[type="file"] { font-size: var(--nx-component-text); line-height: 1.5; }
+.nexus-shell :is(input, select, textarea):disabled {
+  color: var(--nx-component-muted) !important;
+  background-color: #f1f5f9 !important;
+  cursor: not-allowed;
+}
+.nexus-shell :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--nexus-primary); }
+.nexus-shell :is(.pc-input, .ht-input, .ps-input, .adm-input--sm) { min-height: var(--nx-control-compact); }
+
+/* Shared tables preserve right-aligned numeric columns and card-view behavior. */
+.nexus-shell .nx-table { width: 100%; font-size: var(--nx-component-text); line-height: 1.5; }
+.nexus-shell .nx-table th { padding: .875rem 1rem; font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
+.nexus-shell .nx-table td { padding: 1rem; vertical-align: top; }
+.nexus-shell .nx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .25rem .625rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600 !important;
+  line-height: 1.4;
+}
+@media (max-width: 640px) {
+  :root { --nx-panel-padding: 1rem; }
+}
+
+/* Toggle and dense outline-editor controls share geometry, not action meaning. */
+.nexus-shell :is(.dashboard-view-toggle, .quick-tab-btn, .nx-step-btn) {
+  min-height: var(--nx-control-compact);
+  border-radius: var(--nx-control-radius);
+  font-size: .8125rem;
+  font-weight: 600;
+}
+.nexus-shell .dashboard-view-toggle[aria-pressed="true"] {
+  background: var(--nexus-primary);
+  border-color: var(--nexus-primary);
+  color: #fff;
+}
+.nexus-shell .nx-btn:focus-visible { outline: 2px solid var(--nexus-primary) !important; }
+
+/* Native disclosure avoids a full-screen stepper ahead of the mobile form. */
+.nx-step-navigation__summary {
+  min-height: var(--nx-control-height);
+  cursor: pointer;
+  padding: .875rem 1.25rem;
+  color: var(--nexus-primary);
+  font-size: .875rem;
+  font-weight: 600;
+}
+.nx-step-navigation__current { display: block; margin-top: .25rem; color: var(--nx-component-muted); font-size: .8125rem; font-weight: 400; }
+@media (min-width: 1024px) { .nx-step-navigation__summary { display: none; } }
+@media (max-width: 1023px) { .nx-step-navigation #wizard-stepper-scroll { max-height: 50vh; } }

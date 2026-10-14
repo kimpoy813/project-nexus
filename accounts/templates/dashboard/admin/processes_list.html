@@ -3,12 +3,12 @@
 
 {% block content %}
 <div class="nx-page py-6">
-    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-page-header">
         <div>
-            <h1 class="text-2xl font-bold">Processes</h1>
-            <p class="mt-1 text-sm text-gray-600">Manage the process workflows shown on the public pages.</p>
+            <h1 class="text-2xl font-bold nx-page-title">Processes</h1>
+            <p class="mt-1 text-sm text-gray-600 nx-page-description">Manage the process workflows shown on the public pages.</p>
         </div>
-        <a href="{% url 'process_create' %}" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary">Add Process</a>
+        <a href="{% url 'process_create' %}" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-secondary nx-btn nx-btn--primary">Add Process</a>
     </div>
 
     <p id="process-order-status" class="pc-status mb-3 text-xs text-slate-500" aria-live="polite">
@@ -16,9 +16,9 @@
     </p>
     {% csrf_token %}
 
-    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm nx-panel">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[36rem]">
+            <table class="w-full min-w-[36rem] nx-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="w-12 p-3 text-left"><span class="sr-only">Reorder</span></th>

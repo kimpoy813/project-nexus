@@ -5,36 +5,36 @@
             <p class="text-sm text-gray-500">Manage your drafts and submitted extension proposals.</p>
         </div>
         <a href="{% url 'proposal_create' %}"
-           class="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800"
+           class="inline-flex items-center rounded-lg bg-green-700 px-4 py-2 text-white font-medium hover:bg-green-800 nx-btn nx-btn--context"
            data-nx-skeleton="wizard">
             + New Proposal
         </a>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div class="rounded-xl bg-white shadow p-5 border">
+        <div class="rounded-xl bg-white shadow p-5 border nx-panel">
             <p class="text-sm text-gray-500">Drafts</p>
             <h3 class="text-3xl font-bold text-gray-900">{{ draft_count }}</h3>
         </div>
 
-        <div class="rounded-xl bg-white shadow p-5 border">
+        <div class="rounded-xl bg-white shadow p-5 border nx-panel">
             <p class="text-sm text-gray-500">Submitted</p>
             <h3 class="text-3xl font-bold text-gray-900">{{ submitted_count }}</h3>
         </div>
 
-        <div class="rounded-xl bg-white shadow p-5 border">
+        <div class="rounded-xl bg-white shadow p-5 border nx-panel">
             <p class="text-sm text-gray-500">Under Review</p>
             <h3 class="text-3xl font-bold text-yellow-600">{{ under_review_count }}</h3>
         </div>
 
-        <div class="rounded-xl bg-white shadow p-5 border">
+        <div class="rounded-xl bg-white shadow p-5 border nx-panel">
             <p class="text-sm text-gray-500">Approved</p>
             <h3 class="text-3xl font-bold text-green-600">{{ approved_count }}</h3>
         </div>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="rounded-xl bg-white shadow border">
+        <div class="rounded-xl bg-white shadow border nx-panel">
             <div class="px-5 py-4 border-b">
                 <h3 class="text-lg font-semibold text-gray-900">Draft Proposals</h3>
             </div>
@@ -65,7 +65,7 @@
             </div>
         </div>
 
-        <div class="rounded-xl bg-white shadow border">
+        <div class="rounded-xl bg-white shadow border nx-panel">
             <div class="px-5 py-4 border-b">
                 <h3 class="text-lg font-semibold text-gray-900">Submitted Proposals</h3>
             </div>

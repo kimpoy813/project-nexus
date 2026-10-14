@@ -673,7 +673,7 @@ def proposal_wizard(request, proposal_id, step):
                 messages.warning(request, "This proposal is currently locked for editing.")
                 return redirect("proposal_wizard", proposal_id=proposal.id, step=step)
 
-    ctx["is_edit_mode"] = proposal.proposal_status in [
+    ctx["is_edit_mode"] = can_edit and proposal.proposal_status in [
         Proposal.ProposalStatus.DRAFTING,
         Proposal.ProposalStatus.FOR_REVISION,
     ]
@@ -729,8 +729,27 @@ def proposal_wizard(request, proposal_id, step):
     step_missing = []
 
     if step == 1:
-        proposal.extension_type = request.POST.get("extension_type", "")
-        proposal.scope_type = request.POST.get("scope_type", "")
+        proposal.extension_type = request.POST.get("extension_type", "").strip()
+        proposal.scope_type = request.POST.get("scope_type", "").strip()
+        proposal.research_title = request.POST.get("research_title", "").strip()
+        # Validate against the same configured choices the UI renders. A
+        # forged value (or an old tuple-string chip value) must not become a
+        # persisted lifecycle code. Nothing is saved on an invalid submission.
+        errors = []
+        for key, defaults in (("extension_type", Proposal.ExtensionType.choices),
+                              ("scope_type", Proposal.ScopeType.choices)):
+            field = ctx["step_fields"].get(key)
+            choices = field.parsed_choices if field else []
+            allowed = {item["value"] for item in choices} if choices else {value for value, _ in defaults}
+            value = getattr(proposal, key)
+            label = field.label if field else key.replace("_", " ").title()
+            if (value and value not in allowed) or (not value and action == "next"):
+                errors.append(f"Choose a valid {label.lower()}.")
+        if proposal.extension_type in {"RESEARCH_FACULTY", "RESEARCH_STUDENT"} and not proposal.research_title and action == "next":
+            errors.append("Research Title is required for research-based extension type.")
+        if errors:
+            ctx["step1_errors"] = errors
+            return render(request, template, ctx)
 
         # The office's format rule is type-driven: community-based proposals
         # are always Training Design, while request-based proponents may still

@@ -9,7 +9,7 @@ everything nested under them renders as indented bullets.
 
 <div class="mt-10 space-y-4">
     {% for process in data.processes %}
-        <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+        <div class="bg-white rounded-xl border border-gray-100 p-6 shadow-sm nx-panel">
             <h3 class="text-lg font-semibold text-primary">{{ process.title }}</h3>
             <div class="mt-4 space-y-4">
                 {% include "details/blocks/_process_steps.html" with nodes=process.step_tree %}

@@ -136,15 +136,15 @@ test('returning with browser back restores an enabled submit button', () => {
     assert.equal(submit(), false);
 });
 
-test('shared idle and animation script parses and tolerates an unavailable animation CDN', () => {
+test('shared animation initialization tolerates an unavailable animation library', () => {
     const template = readFileSync('templates/base.html', 'utf8');
     const inline = [...template.matchAll(/<script>([\s\S]*?)<\/script>/g)]
-        .map(match => match[1]).find(code => code.includes('IDLE_LIMIT_MS'));
+        .map(match => match[1]).find(code => code.includes('AOS.init'));
     const code = inline.replace(/{%[\s\S]*?%}/g, '');
     assert.doesNotThrow(() => runInNewContext(code, {
         document: { addEventListener(type, fn) { if (type === 'DOMContentLoaded') fn(); }, getElementById: () => null },
         window: { addEventListener() {} },
         setTimeout() {}, clearTimeout() {}, clearInterval() {},
     }));
-    assert.ok(template.includes('select.closest(".ck-editor, [data-native-select]")'));
+    assert.ok(!template.includes('enhanceDropdowns'));
 });

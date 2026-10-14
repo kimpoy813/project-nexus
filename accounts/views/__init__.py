@@ -53,6 +53,7 @@ from .auth import (  # noqa: F401
     get_departments_ajax,
     login_view,
     logout_idle_view,
+    session_activity,
     logout_view,
     profile_edit_view,
     profile_view,

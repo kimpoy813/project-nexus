@@ -8,7 +8,7 @@ Context: section, data.personnel
     {% if data.personnel %}
         <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
             {% for person in data.personnel %}
-            <div class="bg-white border border-gray-100 rounded-2xl p-6 text-center hover:border-primary transition duration-300 shadow-sm">
+            <div class="bg-white border border-gray-100 rounded-2xl p-6 text-center hover:border-primary transition duration-300 shadow-sm nx-panel">
                 {% if person.photo %}
                     <img src="{{ person.photo.url }}" alt="{{ person.name }}"
                          class="w-24 h-24 mx-auto rounded-full object-cover mb-4 border-4 border-primary">

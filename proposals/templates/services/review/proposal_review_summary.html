@@ -2,10 +2,10 @@
 
 {% block content %}
 <div class="nx-page py-8">
-  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+  <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6 nx-page-header">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Review Summary</h1>
-      <p class="mt-1 text-sm text-gray-600">
+      <h1 class="text-2xl font-bold text-gray-900 nx-page-title">Review Summary</h1>
+      <p class="mt-1 text-sm text-gray-600 nx-page-description">
         Consolidated evaluator and director comments grouped by proposal step.
       </p>
     </div>
@@ -13,7 +13,7 @@
     <div class="flex items-center gap-2">
       <!-- Always open readonly for reviewers/director -->
       <a href="{% url 'proposal_wizard' proposal.id 1 %}?readonly=1"
-         class="inline-flex items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary">
+         class="inline-flex items-center rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-primary hover:text-primary nx-btn nx-btn--secondary">
         View Proposal (Readonly)
       </a>
 
@@ -21,14 +21,14 @@
       {% if proposal.proposal_status == "FOR_REVISION" %}
         {% if request.user.id == proposal.created_by_id %}
           <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-             class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary">
+             class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary nx-btn nx-btn--primary">
             Revise Proposal
           </a>
         {% else %}
           {% for pp in proposal.proponents.all %}
             {% if pp.user_id == request.user.id %}
               <a href="{% url 'proposal_wizard' proposal.id proposal.current_step %}"
-                 class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary">
+                 class="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-secondary nx-btn nx-btn--primary">
                 Revise Proposal
               </a>
             {% endif %}
@@ -38,7 +38,7 @@
     </div>
   </div>
 
-  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-6">
+  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden mb-6 nx-panel">
     <div class="px-6 py-5 border-b border-gray-100">
       <h2 class="text-lg font-semibold text-gray-900">
         {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
@@ -61,7 +61,7 @@
   {% if grouped_comments %}
     <div class="space-y-6">
       {% for step, block in grouped_comments.items %}
-        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <section class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden nx-panel">
           <div class="border-b border-gray-100 bg-gray-50 px-6 py-4">
             <div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
               <div>
@@ -72,7 +72,7 @@
                   <p class="mt-1 text-sm text-gray-500">{{ block.step_desc }}</p>
                 {% endif %}
               </div>
-              <span class="inline-flex items-center self-start rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+              <span class="inline-flex items-center self-start rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700 nx-badge">
                 {{ block.comments|length }} comment{{ block.comments|length|pluralize }}
               </span>
             </div>
@@ -80,7 +80,7 @@
 
           <div class="p-6 space-y-4">
             {% for item in block.comments %}
-              <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm nx-panel">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
@@ -118,7 +118,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center">
+    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center nx-panel">
       <h3 class="text-lg font-semibold text-gray-900">No review comments yet</h3>
       <p class="mt-1 text-sm text-gray-500">
         Evaluator and director comments will appear here once they are submitted.

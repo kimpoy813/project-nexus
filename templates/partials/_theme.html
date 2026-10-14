@@ -1,0 +1,10 @@
+{# Values are validated server-side; utilities and custom CSS share these tokens. #}
+<style>
+:root {
+{% for name, token in brand_tokens.items %}
+  --nexus-{{ name }}: {{ token.hex }};
+  --nexus-{{ name }}-rgb: {{ token.rgb }};
+{% endfor %}
+  --nexus-primary-2: var(--nexus-primary);
+}
+</style>

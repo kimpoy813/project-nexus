@@ -1,258 +1,31 @@
 {% extends "dashboard/dashboard_base.html" %}
-
+{% block title %}Edit user · {{ site_control.site_name|default:"NExUS" }}{% endblock %}
 {% block content %}
 <div class="nx-page py-8">
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h1 class="text-xl font-semibold text-gray-900">Edit User Account</h1>
-            <p class="mt-1 text-sm text-gray-600">
-                Update account and profile information.
-            </p>
-        </div>
-
-        <form method="post" class="p-6 space-y-6" data-nx-skeleton="dashboard">
-            {% csrf_token %}
-
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
-                        Username
-                    </label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        value="{{ edit_user.username }}"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                </div>
-
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                        Email
-                    </label>
-                    <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value="{{ edit_user.email }}"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                </div>
-
-                <div>
-                    <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name
-                    </label>
-                    <input
-                        type="text"
-                        id="full_name"
-                        name="full_name"
-                        value="{{ edit_profile.full_name }}"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                </div>
-
-                <div>
-                    <label for="role" class="block text-sm font-medium text-gray-700 mb-1">
-                        Role
-                    </label>
-                    <select
-                        id="role"
-                        name="role"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                        {% for value, label in role_choices %}
-                            <option value="{{ value }}" {% if edit_profile.role == value %}selected{% endif %}>
-                                {{ label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label for="id_campus" class="block text-sm font-medium text-gray-700 mb-1">
-                        Campus
-                    </label>
-                    <select
-                        id="id_campus"
-                        name="campus"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                        <option value="">Select Campus</option>
-                        {% for c in campus_choices %}
-                        <option value="{{ c }}" {% if edit_profile.campus == c %}selected{% endif %}>{{ c }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label for="id_college" class="block text-sm font-medium text-gray-700 mb-1">
-                        College
-                    </label>
-                    <select
-                        id="id_college"
-                        name="college"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                        <option value="{{ edit_profile.college|default:'' }}" selected>
-                            {% if edit_profile.college %}{{ edit_profile.college }}{% else %}Select College (Optional){% endif %}
-                        </option>
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500">Optional</p>
-                </div>
-
-                <div>
-                    <label for="id_department" class="block text-sm font-medium text-gray-700 mb-1">
-                        Department
-                    </label>
-                    <select
-                        id="id_department"
-                        name="department"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                        <option value="{{ edit_profile.department|default:'' }}" selected>
-                            {% if edit_profile.department %}{{ edit_profile.department }}{% else %}Select Department (Optional){% endif %}
-                        </option>
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500">Optional</p>
-                </div>
-
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-                        New Password
-                    </label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Leave blank to keep current password"
-                        class="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    >
-                </div>
-            </div>
-
-            <div class="flex flex-wrap gap-6">
-                <label class="inline-flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        name="is_active"
-                        {% if edit_user.is_active %}checked{% endif %}
-                        class="rounded border-gray-300 text-primary focus:ring-primary"
-                    >
-                    <span class="text-sm text-gray-700">Active account</span>
-                </label>
-
-                <label class="inline-flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        name="email_verified"
-                        {% if edit_profile.email_verified %}checked{% endif %}
-                        class="rounded border-gray-300 text-primary focus:ring-primary"
-                    >
-                    <span class="text-sm text-gray-700">Email verified</span>
-                </label>
-            </div>
-
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <a
-                    href="{% url 'admin_dashboard' %}"
-                    class="inline-flex items-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400 hover:bg-gray-50"
-                    data-nx-skeleton="dashboard"
-                >
-                    Cancel
-                </a>
-                <button
-                    type="submit"
-                    class="inline-flex items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-secondary"
-                >
-                    Save Changes
-                </button>
-            </div>
-        </form>
+  <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden nx-panel">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+      <h1 class="text-xl font-semibold text-gray-900 nx-page-title">Edit User Account</h1>
+      <p class="mt-1 text-sm text-gray-600 nx-page-description">Update account and profile information.</p>
     </div>
+    <form method="post" class="p-6 space-y-6" data-nx-skeleton="dashboard">
+      {% csrf_token %}
+      {% if form.errors %}
+      <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        Please correct the errors below. No account changes have been saved.
+        {{ form.non_field_errors }}
+      </div>
+      {% endif %}
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {% for field in form %}
+          {% include "accounts/_form_field.html" %}
+        {% endfor %}
+      </div>
+      <div class="flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-4">
+        <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-300 px-4 py-2.5 text-sm nx-btn nx-btn--secondary" data-nx-skeleton="dashboard">Cancel</a>
+        <button type="submit" class="nexus-btn-primary rounded-xl px-4 py-2.5 text-sm nx-btn nx-btn--primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const campusSelect = document.getElementById("id_campus");
-    const collegeSelect = document.getElementById("id_college");
-    const departmentSelect = document.getElementById("id_department");
-
-    // Values already saved in the database — injected once at render time.
-    const savedCollege = "{{ edit_profile.college|default:''|escapejs }}";
-    const savedDepartment = "{{ edit_profile.department|default:''|escapejs }}";
-
-    function populateSelect(selectEl, items, savedValue, placeholder) {
-        selectEl.innerHTML = `<option value="">${placeholder}</option>`;
-        let found = false;
-        items.forEach(item => {
-            const opt = document.createElement("option");
-            opt.value = item.value;
-            opt.textContent = item.label;
-            if (item.value === savedValue) { opt.selected = true; found = true; }
-            selectEl.appendChild(opt);
-        });
-        // Keep an already-saved (possibly legacy) value selectable so a plain
-        // re-save never silently wipes the user's college/department.
-        if (savedValue && !found) {
-            const opt = document.createElement("option");
-            opt.value = savedValue;
-            opt.textContent = savedValue;
-            opt.selected = true;
-            selectEl.appendChild(opt);
-        }
-    }
-
-    async function loadColleges(selectSavedCollege = "") {
-        const campus = campusSelect.value;
-
-        // Reset both dependent selects whenever campus changes.
-        collegeSelect.innerHTML = '<option value="">Select College (Optional)</option>';
-        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
-
-        if (!campus) return;
-
-        try {
-            const res = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}`);
-            const data = await res.json();
-            populateSelect(collegeSelect, data.colleges, selectSavedCollege, "Select College (Optional)");
-        } catch (e) {
-            console.error("Failed to load colleges:", e);
-        }
-    }
-
-    async function loadDepartments(selectSavedDepartment = "") {
-        const campus = campusSelect.value;
-        const college = collegeSelect.value;
-
-        departmentSelect.innerHTML = '<option value="">Select Department (Optional)</option>';
-
-        if (!campus) return;
-
-        try {
-            const res = await fetch(
-                `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}`
-            );
-            const data = await res.json();
-            populateSelect(departmentSelect, data.departments, selectSavedDepartment, "Select Department (Optional)");
-        } catch (e) {
-            console.error("Failed to load departments:", e);
-        }
-    }
-
-    // On initial page load: populate colleges then departments,
-    // pre-selecting whatever is already saved in the profile.
-    loadColleges(savedCollege).then(() => loadDepartments(savedDepartment));
-
-    // When the user changes campus, reload both (no pre-selection).
-    campusSelect.addEventListener("change", async () => {
-        await loadColleges();
-        await loadDepartments();
-    });
-
-    // When the user changes college, reload departments only (no pre-selection).
-    collegeSelect.addEventListener("change", () => loadDepartments());
-});
-</script>
+{% include "accounts/_organization_fields.html" %}
 {% endblock %}
