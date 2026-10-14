@@ -62,16 +62,7 @@ def _get_process_label(proposal):
     if proposal.status == Proposal.OverallStatus.COMPLETED:
         return "Completed"
 
-    if proposal.implementation_status != Proposal.ImplementationStatus.NOT_STARTED:
-        return "Implementation"
-
-    if proposal.requires_moa and proposal.moa_status not in {
-        Proposal.MOAStatus.NOT_STARTED,
-        Proposal.MOAStatus.NOT_REQUIRED,
-    }:
-        return "MOA"
-
-    return "Proposal"
+    return proposal.current_phase_label
 
 
 def _get_lifecycle_milestone(proposal):
@@ -145,6 +136,8 @@ def _get_lifecycle_description(proposal):
         return "The proposal is currently active in the proposal phase."
 
     if process_label == "MOA":
+        if proposal.moa_status == Proposal.MOAStatus.NOT_STARTED:
+            return "The proposal phase is completed. MOA processing has not started yet."
         return "The extension is currently in the MOA processing phase."
 
     if process_label == "Implementation":
