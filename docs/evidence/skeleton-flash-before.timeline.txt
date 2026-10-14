@@ -1,0 +1,14 @@
+=== frames_watchdog  (scenario: login) ===
+837 frames; mark = click on the page being left
+
+  frames    0-   1  ( 0.01s)  -16.25s -> -16.24s   dashboard page
+  frames    2-  16  ( 0.27s)   -1.01s ->  -0.74s   login skeleton
+  frames   17-  34  ( 0.86s)   -0.71s ->  +0.15s   login page
+  frames   35- 755  (12.01s)   +0.17s -> +12.18s   dashboard skeleton
+  frames  756- 759  ( 0.06s)  +12.19s -> +12.25s   login skeleton
+  frames  760- 766  (18.13s)  +12.26s -> +30.39s   login page
+  frames  767- 776  ( 0.20s)  +30.55s -> +30.75s   dashboard skeleton
+  frames  777- 836  ( 4.88s)  +30.77s -> +35.65s   dashboard page
+
+  tightest calls (top-2 distance within 15%):
+    2 of 837 frames

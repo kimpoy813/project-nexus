@@ -150,6 +150,7 @@
                                     <div class="flex flex-wrap gap-2">
                                         {% if row.downloadable %}
                                         <a href="{% url 'proposal_template_download' row.key %}"
+                                           data-nx-no-skeleton
                                            class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>
                                         {% endif %}
                                         <a href="{% url 'proposal_template_edit' row.key %}"
@@ -220,6 +221,7 @@
                                     <div class="flex flex-wrap gap-2">
                                         {% if item.file %}
                                         <a href="{% url 'proposal_custom_template_download' item.pk %}"
+                                           data-nx-no-skeleton
                                            class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50">Download</a>
                                         {% endif %}
                                         <a href="{% url 'proposal_custom_template_edit' item.pk %}"

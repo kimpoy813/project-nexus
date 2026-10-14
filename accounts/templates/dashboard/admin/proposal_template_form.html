@@ -14,6 +14,7 @@
         <div class="flex flex-wrap gap-2">
             {% if row.downloadable %}
             <a href="{% url 'proposal_template_download' slot_key %}"
+               data-nx-no-skeleton
                class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Download current file</a>
             {% endif %}
             <a href="{% url 'proposal_templates_list' %}"
