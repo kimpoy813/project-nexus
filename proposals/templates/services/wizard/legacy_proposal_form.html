@@ -1,233 +1,161 @@
 {% extends "base.html" %}
-{% block title %}Create Pre-website Legacy Proposal - NExUS{% endblock %}
+{% load static %}
+{% block title %}Import Legacy Extension Activity - NExUS{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/legacy-import.css' %}">
+<script defer src="{% static 'js/legacy-import.js' %}"></script>
+{% endblock %}
 {% block content %}
-<div class="nx-page py-8">
-  <div class="mb-6">
-    <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Legacy Records Upload</p>
-    <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900">Create Pre-website Legacy Proposal</h1>
-    <p class="mt-2 text-sm text-gray-600">Upload historical proposals and documents created before the implementation of this system. These records bypass the 20-step validation wizard.</p>
-  </div>
+<div class="nx-page legacy-import">
+  <a class="legacy-back" href="{% url 'admin_dashboard' %}"><span aria-hidden="true">←</span> Admin dashboard</a>
+  <header class="legacy-header">
+    <p class="legacy-eyebrow">Legacy records · Admin import</p>
+    <h1>Bring an activity into NExUS</h1>
+    <p>Add an existing extension activity at its current stage. Your team can pick up where they left off.</p>
+  </header>
 
-  <form method="post" enctype="multipart/form-data" class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6">
+  <form method="post" enctype="multipart/form-data" id="legacy-import-form" data-native-select
+        data-colleges-url="{% url 'get_colleges_ajax' %}" data-departments-url="{% url 'get_departments_ajax' %}">
     {% csrf_token %}
-
-    <!-- Basic Information -->
-    <div>
-      <h2 class="text-lg font-black text-gray-900 border-b border-gray-100 pb-2 mb-4">Basic Information</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="md:col-span-2">
-          <label class="block text-sm font-bold text-gray-700 mb-1">Proposal Title *</label>
-          <input type="text" name="title" required placeholder="Enter historical proposal title" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Extension Type</label>
-          <select name="extension_type" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-            {% for val, label in extension_type_choices %}
-              <option value="{{ val }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Scope</label>
-          <select name="scope_type" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-            {% for val, label in scope_type_choices %}
-              <option value="{{ val }}">{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
+    {% if form.errors %}
+    <div id="legacy-errors" class="legacy-errors" role="alert" tabindex="-1">
+      <h2>A few details need your attention</h2>
+      {{ form.non_field_errors }}
+      <ul>{% for field in form %}{% for error in field.errors %}<li><a href="#{{ field.auto_id }}">{{ field.label }}: {{ error }}</a></li>{% endfor %}{% endfor %}</ul>
+      <p>Your entries are still shown below. Please reselect any files before trying again.</p>
     </div>
+    {% endif %}
+    <div class="legacy-layout">
+      <div class="legacy-main">
+        <section class="legacy-card" aria-labelledby="stage-heading">
+          <div class="legacy-section-head"><span class="legacy-number" aria-hidden="true">01</span><div><h2 id="stage-heading">Where is the activity now?</h2><p>Choose what is already complete, not what is planned.</p></div></div>
+          <fieldset id="id_activity_state" class="legacy-stages"{% if form.activity_state.errors %} aria-describedby="id_activity_state_error"{% endif %}>
+            <legend class="legacy-sr-only">Activity state</legend>
+            {% for choice in form.activity_state %}
+            <label class="legacy-stage">
+              {{ choice.tag }}
+              <span><strong>{{ choice.choice_label }}</strong><small>{% if choice.data.value == 'HISTORICAL' %}Keep an earlier proposal with its original status.{% elif choice.data.value == 'MOA_PENDING' %}Proposal is done. MOA has not started or is still ongoing.{% elif choice.data.value == 'ONGOING' %}Proposal and MOA are done. Implementation is ongoing.{% else %}Proposal, MOA, and Implementation are all finished.{% endif %}</small></span>
+            </label>
+            {% endfor %}
+          </fieldset>
+          {{ form.activity_state.errors }}
+          <div class="legacy-stage-detail" id="historical-status-field">
+            {% include "services/wizard/_legacy_field.html" with field=form.proposal_status label="Original proposal status" help="Use the status recorded before NExUS." %}
+          </div>
+          <div class="legacy-stage-detail" id="moa-stage-field">
+            {% include "services/wizard/_legacy_field.html" with field=form.moa_stage label="Current MOA stage" help="Choose Not Started if MOA processing has not begun. Implementation will remain Not Started." %}
+          </div>
+          <div class="legacy-stage-detail" id="implementation-stage-field">
+            {% include "services/wizard/_legacy_field.html" with field=form.implementation_stage label="Current implementation stage" help="Proposal and MOA will be marked complete. Choose where implementation should resume." %}
+          </div>
+        </section>
 
-    <!-- Campus & College Info -->
-    <div>
-      <h2 class="text-lg font-black text-gray-900 border-b border-gray-100 pb-2 mb-4">Campus & Unit Associations</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Campus</label>
-          <select name="campus" id="id_campus" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-            <option value="">Choose Campus</option>
-            {% for c in campuses %}
-              <option value="{{ c.name }}" {% if selected_campus == c.name %}selected{% endif %}>{{ c.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">College</label>
-          <select name="college" id="id_college" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-            <option value="">Choose College</option>
-            {% for c in colleges %}
-              <option value="{{ c.name }}" {% if selected_college == c.name %}selected{% endif %}>{{ c.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Department</label>
-          <select name="department" id="id_department" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-            <option value="">Choose Department</option>
-            {% for d in departments %}
-              <option value="{{ d.name }}" {% if selected_department == d.name %}selected{% endif %}>{{ d.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="md:col-span-3">
-          <label class="block text-sm font-bold text-gray-700 mb-1">Implementing Agency / Unit</label>
-          <input type="text" name="implementing_agency" placeholder="e.g. ISPSC - College of Computing" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-        </div>
+        <section class="legacy-card" aria-labelledby="details-heading">
+          <div class="legacy-section-head"><span class="legacy-number" aria-hidden="true">02</span><div><h2 id="details-heading">Activity details</h2><p>Identify the activity and the unit it belongs to. <span class="legacy-required">*</span> Required</p></div></div>
+          <div class="legacy-grid">
+            {% include "services/wizard/_legacy_field.html" with field=form.title label="Activity title" wide=True %}
+            {% include "services/wizard/_legacy_field.html" with field=form.extension_type label="Extension type" %}
+            {% include "services/wizard/_legacy_field.html" with field=form.scope_type label="Scope" %}
+          </div>
+          <div class="legacy-divider"></div>
+          <p class="legacy-help legacy-unit-help">Campus and unit determine where this activity appears in the Director’s reporting.</p>
+          <div class="legacy-grid legacy-grid-three">
+            <div class="legacy-field">
+              <label for="id_campus">Campus</label>
+              <select name="campus" id="id_campus" class="legacy-input">
+                <option value="">Choose campus</option>
+                {% for c in campuses %}<option value="{{ c.name }}" {% if selected_campus == c.name %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+              </select>{{ form.campus.errors }}
+            </div>
+            <div class="legacy-field">
+              <label for="id_college">College</label>
+              <select name="college" id="id_college" class="legacy-input">
+                <option value="">Choose college</option>
+                {% for c in colleges %}<option value="{{ c.name }}" {% if selected_college == c.name %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+              </select>{{ form.college.errors }}
+            </div>
+            <div class="legacy-field">
+              <label for="id_department">Department</label>
+              <select name="department" id="id_department" class="legacy-input">
+                <option value="">Choose department</option>
+                {% for d in departments %}<option value="{{ d.name }}" {% if selected_department == d.name %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
+              </select>{{ form.department.errors }}
+            </div>
+          </div>
+          <p class="legacy-help" id="unit-feedback" role="status"></p>
+          <button type="button" id="unit-retry" class="legacy-filter" hidden>Retry loading units</button>
+          {% include "services/wizard/_legacy_field.html" with field=form.implementing_agency label="Implementing agency / unit" %}
+          <details class="legacy-optional" {% if form.beneficiaries_count.errors or form.beneficiaries_who.errors or form.extension_venue.errors or form.estimated_month.errors or form.estimated_year.errors %}open{% endif %}>
+            <summary>Schedule, venue &amp; beneficiaries <span>Optional</span></summary>
+            <div class="legacy-grid">
+              {% include "services/wizard/_legacy_field.html" with field=form.extension_venue label="Venue / site" %}
+              {% include "services/wizard/_legacy_field.html" with field=form.beneficiaries_count label="Estimated beneficiary count" %}
+              {% include "services/wizard/_legacy_field.html" with field=form.beneficiaries_who label="Who are the beneficiaries?" wide=True %}
+              <div class="legacy-field">
+                <label for="id_estimated_month">Estimated month</label>
+                <select id="id_estimated_month" name="estimated_month" class="legacy-input">
+                  <option value="">Choose month</option>
+                  {% for m in month_choices %}<option value="{{ m }}" {% if form.estimated_month.value == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+                </select>{{ form.estimated_month.errors }}
+              </div>
+              {% include "services/wizard/_legacy_field.html" with field=form.estimated_year label="Estimated year" %}
+            </div>
+          </details>
+        </section>
+
+        <section class="legacy-card" aria-labelledby="accounts-heading">
+          <div class="legacy-section-head"><span class="legacy-number" aria-hidden="true">03</span><div><h2 id="accounts-heading">Who will continue this activity?</h2><p>Selected accounts will see the activity on their dashboards.</p></div></div>
+          <div class="legacy-account-tools" hidden>
+            <div class="legacy-field"><label for="account-search">Find an account</label><input type="search" id="account-search" class="legacy-input" placeholder="Search name, username, or campus" autocomplete="off" aria-controls="id_assigned_proponents"></div>
+            <button type="button" id="show-selected" class="legacy-filter" aria-pressed="false">Selected only</button>
+          </div>
+          <div class="legacy-account-meta"><p id="assignment-help" class="legacy-help">Select one or more accounts. Required for MOA or Implementation in progress.</p><span id="selected-count" class="legacy-badge" aria-live="polite"></span></div>
+          <fieldset id="id_assigned_proponents" class="legacy-accounts" aria-describedby="assignment-help assignment-error{% if form.assigned_proponents.errors %} id_assigned_proponents_error{% endif %}" tabindex="-1">
+            <legend class="legacy-sr-only">Assigned proponent accounts</legend>
+            {% for choice in form.assigned_proponents %}
+            <label class="legacy-account">{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>
+            {% empty %}<p class="legacy-empty">No active accounts are available. Create or activate an account before assigning this activity.</p>{% endfor %}
+          </fieldset>
+          <p id="account-empty" class="legacy-empty" hidden>No matching accounts. Try a different name or turn off “Selected only”.</p>
+          <p id="assignment-error" class="legacy-inline-error" role="alert" hidden>Select at least one account to continue with this activity.</p>
+          {{ form.assigned_proponents.errors }}
+          <p class="legacy-help legacy-note">Assignments do not change account roles or approval permissions.</p>
+        </section>
+
+        <section class="legacy-card" aria-labelledby="documents-heading">
+          <div class="legacy-section-head"><span class="legacy-number" aria-hidden="true">04</span><div><h2 id="documents-heading">Supporting documents <span class="legacy-optional-label">Optional</span></h2><p>Add existing files now, or continue the workflow after import.</p></div></div>
+          <p class="legacy-notice" id="document-guidance">For historical proposals, an MOA file marks MOA complete, and a completion certificate marks Implementation complete. Choose the original proposal status carefully.</p>
+          <div class="legacy-grid legacy-files">
+            {% include "services/wizard/_legacy_field.html" with field=form.legacy_proposal_file label="Original proposal" help="Original PDF or Word document." %}
+            {% include "services/wizard/_legacy_field.html" with field=form.moa_draft_file label="MOA / agreement" wrapper_id="moa-file-field" help="Draft or signed document, matching the stage selected above." %}
+            {% include "services/wizard/_legacy_field.html" with field=form.certificate_of_completion_file label="Completion certificate" wrapper_id="completion-certificate-field" %}
+            <div class="legacy-field legacy-wide"><label for="id_attachments">Other supporting files</label><input type="file" id="id_attachments" name="attachments[]" multiple class="legacy-input"><p class="legacy-help">You can select multiple files, including interim reports and annexes.</p></div>
+          </div>
+        </section>
       </div>
-    </div>
 
-    <!-- Beneficiaries & Venue -->
-    <div>
-      <h2 class="text-lg font-black text-gray-900 border-b border-gray-100 pb-2 mb-4">Implementation details</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Beneficiaries Count</label>
-          <input type="number" name="beneficiaries_count" min="0" placeholder="e.g. 150" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Extension Venue / Site</label>
-          <input type="text" name="extension_venue" placeholder="e.g. Barangay Hall, San Juan" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-bold text-gray-700 mb-1">Who are the beneficiaries?</label>
-          <textarea name="beneficiaries_who" rows="2" placeholder="Describe the target audience..." class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Month</label>
-          <select name="estimated_month" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-            <option value="">Choose Month</option>
-            {% for m in month_choices %}
-              <option value="{{ m }}">{{ m }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Estimated Year</label>
-          <input type="number" name="estimated_year" min="1990" max="2100" placeholder="e.g. 2023" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-        </div>
-      </div>
-    </div>
-
-    <!-- Documents & Files Upload -->
-    <div>
-      <h2 class="text-lg font-black text-gray-900 border-b border-gray-100 pb-2 mb-4">Legacy Files Upload</h2>
-      <div class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Proposal Status</label>
-            <select name="proposal_status" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
-              {% for val, label in proposal_status_choices %}
-                <option value="{{ val }}" {% if val == "APPROVED" %}selected{% endif %}>{{ label }}</option>
-              {% endfor %}
-            </select>
+      <aside class="legacy-review" aria-labelledby="review-heading">
+        <div class="legacy-card">
+          <p class="legacy-eyebrow">Before you import</p>
+          <h2 id="review-heading">Review your activity</h2>
+          <div id="live-review" hidden>
+            <p id="review-title" class="legacy-review-title">Activity title not entered</p>
+            <p id="review-campus" class="legacy-help">No campus selected</p>
+            <ol class="legacy-phases" aria-label="Phase status preview">
+              <li><span class="legacy-phase-dot" aria-hidden="true"></span><div><strong>Proposal</strong><span id="review-proposal"></span></div></li>
+              <li><span class="legacy-phase-dot" aria-hidden="true"></span><div><strong>MOA</strong><span id="review-moa"></span></div></li>
+              <li><span class="legacy-phase-dot" aria-hidden="true"></span><div><strong>Implementation</strong><span id="review-implementation"></span></div></li>
+            </ol>
+            <p id="review-reporting" class="legacy-notice" aria-live="polite"></p>
+            <dl class="legacy-review-meta"><div><dt>Assigned accounts</dt><dd id="review-accounts">0</dd></div><div><dt>Attached files</dt><dd id="review-files">0</dd></div></dl>
           </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Original Proposal Document (.pdf / .docx)</label>
-            <input type="file" name="legacy_proposal_file" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Signed MOA / Agreement Document</label>
-            <input type="file" name="moa_draft_file" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
-          </div>
-          <div>
-            <label class="block text-sm font-bold text-gray-700 mb-1">Certificate of Completion / Reports</label>
-            <input type="file" name="certificate_of_completion_file" class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
-          </div>
+          <noscript><p class="legacy-help">Review your stage, assignments, and files before importing. All fields are validated when you submit.</p></noscript>
+          <button type="submit" class="legacy-submit" id="import-submit">Import activity <span aria-hidden="true">→</span></button>
+          <p class="legacy-help legacy-submit-note">Creates a record without repeating the proposal wizard.</p>
+          <a class="legacy-cancel" href="{% url 'admin_dashboard' %}">Cancel and return</a>
         </div>
-        <div>
-          <label class="block text-sm font-bold text-gray-700 mb-1">Additional Attachments / Supporting Documents (multiple)</label>
-          <input type="file" name="attachments[]" multiple class="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm bg-gray-50">
-          <p class="mt-1 text-xs text-gray-500">Hold Ctrl or Shift to select multiple files.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Buttons -->
-    <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
-      <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">Cancel</a>
-      <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary">Upload Legacy Proposal</button>
+      </aside>
     </div>
   </form>
 </div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const campusSelect = document.getElementById("id_campus");
-  const collegeSelect = document.getElementById("id_college");
-  const departmentSelect = document.getElementById("id_department");
-
-  async function loadColleges(selectedCollege = "") {
-    if (!campusSelect || !collegeSelect) return;
-
-    const campus = campusSelect.value;
-    collegeSelect.innerHTML = '<option value="">Choose College</option>';
-
-    if (departmentSelect) {
-      departmentSelect.innerHTML = '<option value="">Choose Department</option>';
-    }
-
-    if (!campus) return;
-
-    try {
-      const response = await fetch(`{% url 'get_colleges_ajax' %}?campus=${encodeURIComponent(campus)}`);
-      const data = await response.json();
-
-      (data.colleges || []).forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.value;
-        option.textContent = item.label;
-        if (item.value === selectedCollege) {
-          option.selected = true;
-        }
-        collegeSelect.appendChild(option);
-      });
-    } catch (error) {
-      console.error("Failed to load colleges:", error);
-    }
-  }
-
-  async function loadDepartments(selectedDepartment = "") {
-    if (!campusSelect || !departmentSelect) return;
-
-    const campus = campusSelect.value;
-    const college = collegeSelect ? collegeSelect.value : "";
-
-    departmentSelect.innerHTML = '<option value="">Choose Department</option>';
-
-    if (!campus) return;
-
-    try {
-      const response = await fetch(
-        `{% url 'get_departments_ajax' %}?campus=${encodeURIComponent(campus)}&college=${encodeURIComponent(college)}`
-      );
-      const data = await response.json();
-
-      (data.departments || []).forEach(item => {
-        const option = document.createElement("option");
-        option.value = item.value;
-        option.textContent = item.label;
-        if (item.value === selectedDepartment) {
-          option.selected = true;
-        }
-        departmentSelect.appendChild(option);
-      });
-    } catch (error) {
-      console.error("Failed to load departments:", error);
-    }
-  }
-
-  if (campusSelect) {
-    campusSelect.addEventListener("change", async function () {
-      await loadColleges("");
-      await loadDepartments("");
-    });
-
-    if (collegeSelect) {
-      collegeSelect.addEventListener("change", async function () {
-        await loadDepartments("");
-      });
-    }
-  }
-});
-</script>
 {% endblock %}

@@ -809,7 +809,7 @@
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-        AOS.init({ duration: 700, once: true });
+        if (window.AOS) AOS.init({ duration: 700, once: true });
 
         (function () {
             const IDLE_LIMIT_MS = 30 * 60 * 1000;
@@ -899,6 +899,7 @@
                 });
             {% endif %}
         })();
+        });
     </script>
 
     <div id="idle-warning"
@@ -998,7 +999,7 @@
                     if (select.classList.contains("enhanced-done")) return;
                     if (!select.parentNode || !document.body.contains(select)) return;
                     // Ignore rich editor or simple selects we want to keep
-                    if (select.closest(".ck-editor") || select.classList.contains("flatpickr-monthDropdown-months")) return;
+                    if (select.closest(".ck-editor, [data-native-select]") || select.classList.contains("flatpickr-monthDropdown-months")) return;
 
                     select.classList.add("enhanced-done");
 

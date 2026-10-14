@@ -592,10 +592,15 @@ class Proposal(models.Model):
             return "Extension Finished"
         if self.implementation_status != self.ImplementationStatus.NOT_STARTED:
             return "Implementation"
-        if self.requires_moa and self.moa_status not in {
-            self.MOAStatus.NOT_STARTED,
-            self.MOAStatus.NOT_REQUIRED,
-        }:
+        # A completed proposal awaiting its MOA belongs in the MOA queue,
+        # even before drafting starts. Keep its actual MOA progress at zero.
+        if self.requires_moa and (
+            self.moa_status not in {self.MOAStatus.NOT_STARTED, self.MOAStatus.NOT_REQUIRED}
+            or (
+                self.proposal_status == self.ProposalStatus.COMPLETED
+                and self.moa_status == self.MOAStatus.NOT_STARTED
+            )
+        ):
             return "MOA"
         return "Proposal"
 
