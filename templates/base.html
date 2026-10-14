@@ -61,9 +61,10 @@
     {% comment %}
         Page skeleton. It is the first thing in the body and is visible by
         default, so a page that is still being fetched/parsed shows a skeleton
-        of the layout instead of a blank screen. js/nexus-loader.js hides it on
-        load (and paints it again on the next navigation). Without JavaScript it
-        is hidden immediately by the <noscript> rule below.
+        of the layout instead of a blank screen. js/nexus-loader.js takes it
+        away once this page is up, and paints it again on the next navigation.
+        Without JavaScript it is hidden immediately by the <noscript> rule
+        below.
 
         The navbar shape is shared by every screen; below it, one layout per
         page family is rendered and `data-nx-variant` (set by the
@@ -71,10 +72,32 @@
         which one is visible. Shipping all of them is what lets the controller
         switch to the shape of the page being navigated *to* — see the
         `data-nx-skeleton` hints on the navbar links below.
+
+        An overlay painted for a navigation covers the page until the next
+        document arrives: the page being left does not get to take it back
+        down (taking it down was what flashed the old page over the new one
+        when a slow response outlived the old watchdog). If the next page
+        never arrives - a cancelled navigation, a download, a server that
+        stopped answering - js/nexus-loader.js reveals the escape control at
+        the bottom of the overlay, which gives the page back on a click or
+        Escape.
     {% endcomment %}
     <div id="nx-page-skeleton" class="nx-skel-overlay" role="status" aria-live="polite" aria-label="Loading page"
          data-nx-variant="{{ nx_skeleton_variant }}" data-nx-variant-default="{{ nx_skeleton_variant }}">
         <span class="nx-skel-overlay__label">Loading…</span>
+
+        {% comment %}
+            The way out of a wait that has gone on too long. Hidden - and so
+            unfocusable - until js/nexus-loader.js decides the wait is long
+            enough to offer it, so a page that loads normally never grows a
+            button. It sits outside the aria-hidden frame because it is the one
+            part of the overlay a user is meant to reach.
+        {% endcomment %}
+        <button type="button" id="nx-skel-escape" class="nx-skel-overlay__escape" hidden>
+            <span class="nx-skel-overlay__escape-dot" aria-hidden="true"></span>
+            Taking longer than usual — show the page
+        </button>
+
         <div class="nx-skel-overlay__frame" aria-hidden="true">
             <div class="nx-skel-overlay__bar">
                 <div class="nx-skel-overlay__brand">

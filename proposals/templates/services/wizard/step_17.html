@@ -79,11 +79,13 @@
 
             <div class="mt-4 flex flex-col sm:flex-row gap-3">
                 <a href="{% url 'download_work_plan_template' proposal.id %}"
+                   data-nx-no-skeleton
                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
                     {{ wizard_step_config.work_plan_download_label|default:"Download Work Plan Template" }}
                 </a>
 
                 <a href="{% url 'download_gantt_chart_template' proposal.id %}"
+                   data-nx-no-skeleton
                    class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition text-sm font-medium text-gray-700">
                     {{ wizard_step_config.gantt_chart_download_label|default:"Download Gantt Chart Template" }}
                 </a>

@@ -3,7 +3,7 @@
 **Date:** 2026-07-28
 **Scope:** Whole repository — ~16,500 lines of Python, ~17,900 lines of templates, 4 Django apps
 **Status:** Items marked ✅ have been actioned. Everything else is a finding awaiting a decision.
-**Last updated:** 2026-07-28, after the safety fixes and test-suite work.
+**Last updated:** 2026-10-14, after the loading-skeleton fix (4.1).
 
 ---
 
@@ -338,6 +338,50 @@ the new CMS models. "Details" describes none of this.
 Splitting it into `content/` (CMS, pages, personnel, activities) and `config/` (templates, forms,
 wizard, capabilities) would be clearer — but renaming Django apps means migration surgery and
 carries real risk for modest gain. **Recommendation: leave it.** Noted for awareness, not action.
+
+---
+
+## Post-audit finding — 2026-10-14
+
+### 4.1 ✅ The loading skeleton flashed the page being left over the next one — **fixed**
+
+**Symptom (as reported):** going from one page to another showed the next page's skeleton, then
+the *current* page, then finally the next page — most visibly on the login form, and reproduced
+here with a server slow enough (a cold start) to make the window obvious:
+
+```
+login page → dashboard skeleton (12.0s) → login page again (18.1s) → dashboard skeleton → dashboard page
+```
+
+**Root cause:** `static/js/nexus-loader.js` painted the overlay for the navigation, then armed a
+12-second "stuck" watchdog that simply *hid* it again. A response slower than 12 seconds is
+indistinguishable, from the page being left, from a navigation that was cancelled — so the
+watchdog revealed the page being left, on top of the skeleton, until the response landed.
+The page's own `DOMContentLoaded` / `load` / `pageshow` handlers did the same thing whenever they
+fired after a navigation had started.
+
+**Fix:** the overlay painted for a navigation now belongs to the page being left, whose "the page
+is up" signals are ignored (`pageIsUp()` is gated on a `departing` flag); only the next document,
+an explicit `NexusSkeleton.hide()`, or the user takes it down. Because "slow" and "never" cannot
+be told apart, the wait is **held rather than guessed at**: after 12s the overlay reveals an
+escape control (`#nx-skel-escape`, "Taking longer than usual — show the page") that gives the page
+back on a click or Escape, with a 90s backstop for a page nobody is watching. The same offer
+covers a page whose own load hangs.
+
+Two smaller fixes found in the same pass:
+
+* `.nx-skel-overlay.is-leaving` now sets `pointer-events: none`, so the first ~200 ms of every
+  page are no longer dead to clicks while the overlay fades (this could swallow a fast click on
+  the page that had just appeared).
+* Download links that answer with a file (proposal template / DOCX exports) carry
+  `data-nx-no-skeleton`; they used to raise a skeleton for a navigation that never happens.
+
+**Evidence:** `tests/nexus-loader.test.cjs` (11 cases; 8 fail against the previous controller) and
+`accounts/tests/test_loading_skeleton.py` (4 new assertions fail against the previous controller).
+In a real browser, screencast frames of every page load were classified against reference shots
+of both real pages and pinned skeletons: on a 15-second server the sequence is now
+`login skeleton → login page → dashboard skeleton (30.7s) → dashboard page`, with the old page
+never returning; before the fix, the same run showed the login page reappearing for 18 seconds.
 
 ---
 

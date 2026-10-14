@@ -167,7 +167,59 @@
 }
 /* `hidden` wins over the display below, so the controller can take it away. */
 .nx-skel-overlay[hidden] { display: none; }
-.nx-skel-overlay.is-leaving { opacity: 0; }
+/* Fading out, the overlay is already on its way: it must not keep swallowing
+   clicks during the fade, or the first ~200ms of every page are dead. */
+.nx-skel-overlay.is-leaving { opacity: 0; pointer-events: none; }
+
+/* The way out of a wait that has gone on too long (a cancelled navigation, a
+   download, a server that stopped answering). It stays hidden — and therefore
+   unfocusable — until js/nexus-loader.js decides the wait is long enough, so a
+   page that loads normally never grows a button. Only the overlay's own
+   "show me the page" control is clickable; the rest of the skeleton stays a
+   wall, because an accidental click must not dismiss it mid-navigation. */
+.nx-skel-overlay__escape {
+  position: absolute;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  border: 1px solid var(--nexus-line, var(--nx-skel-line));
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 40px -28px rgba(15, 23, 42, 0.6);
+  color: var(--nx-skel-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nx-skel-overlay__escape[hidden] { display: none; }
+/* A narrow screen cannot fit the sentence on one line: centre it and drop the
+   dot rather than leaving it stranded beside a wrapped line. */
+@media (max-width: 30rem) {
+  .nx-skel-overlay__escape {
+    max-width: min(92vw, 26rem);
+    justify-content: center;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .nx-skel-overlay__escape-dot { display: none; }
+}
+.nx-skel-overlay__escape:hover { background: #fff; }
+.nx-skel-overlay__escape:focus-visible {
+  outline: 2px solid var(--nx-skel-primary);
+  outline-offset: 2px;
+}
+.nx-skel-overlay__escape-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--nx-skel-primary);
+}
 
 /* The "Loading…" label is for screen readers only. It is hidden here rather
    than with Tailwind's `.sr-only` so the overlay renders correctly even if the

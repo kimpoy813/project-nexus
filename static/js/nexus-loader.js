@@ -5,8 +5,9 @@
    This script paints a skeleton instead.
 
    It is deliberately tiny and dependency-free, and it never blocks a
-   navigation: the overlay is decoration that is taken away again on load,
-   after a timeout, and whenever the page is restored from the bfcache.
+   navigation: the overlay is decoration that is taken away as soon as the
+   page it stands in for is up (on DOMContentLoaded, with `load` and the
+   bfcache's pageshow as backstops), or by the user, see below.
 
    Window API (also used by templates that fill a region later):
 
@@ -27,6 +28,21 @@
    any other link or form is resolved from its href/action. A control can
    still override that with `data-nx-skeleton="dashboard"`.
 
+   Once the overlay has been painted *for a navigation*, it belongs to the
+   page being left, and the page being left no longer gets to take it away:
+   its DOMContentLoaded / load / pageshow say "the page is up", but that page
+   is on its way out, and honouring them flashes it back over the skeleton
+   (skeleton → old page → new page) whenever the next response is slow. Only
+   the next document, an explicit NexusSkeleton.hide(), or the way out below
+   takes the overlay down.
+
+   A navigation that never arrives (a cancelled one, a download, a hung
+   server) cannot be told apart from a slow one — the browser has no "a
+   navigation is in flight" signal — so the wait is held rather than guessed
+   at: after ESCAPE_MS the overlay offers a way out ("Taking longer than
+   usual — show the page"), which a click or Escape takes. HARD_MS is the
+   backstop that gives the page back even if nobody asks.
+
    Opt outs: add `data-nx-no-skeleton` to a link or form that should not paint
    the page skeleton (downloads, print views, anything that stays on the page).
    ──────────────────────────────────────────────────────────────────────────── */
@@ -36,11 +52,19 @@
 
     var OVERLAY_ID = "nx-page-skeleton";
     var LEAVING_CLASS = "is-leaving";
+    var ESCAPABLE_CLASS = "is-wait-exit";
+    var ESCAPE_ID = "nx-skel-escape";
     var FADE_MS = 180;
 
-    // A navigation that never completes (server hang, cancelled download)
-    // must not leave the overlay stuck over the page.
-    var STUCK_MS = 12000;
+    // A navigation that never arrives must not leave the overlay stuck over the
+    // page — and it must not flash the page being left back either, because a
+    // slow response looks exactly the same from here. So the wait is held, and
+    // once it is clearly longer than usual the overlay offers a way out
+    // instead: this is when that offer appears...
+    var ESCAPE_MS = 12000;
+
+    // ...and this is the backstop, for a page nobody is watching any more.
+    var HARD_MS = 90000;
 
     // Clicks wait this long before painting: a local page that answers in a
     // few milliseconds should not flash a skeleton at the user.
@@ -59,9 +83,18 @@
 
     var overlay = null;
     var hideTimer = null;
-    var stuckTimer = null;
+    var escapeTimer = null;
+    var hardTimer = null;
     var showTimer = null;
     var pinned = false;
+
+    // True while the overlay covers the page for a navigation still in flight.
+    // The "the page is up" signals of the page being left must not take it
+    // down; see the header comment.
+    var departing = false;
+
+    // The wait got long enough to offer a way out (see ESCAPE_MS).
+    var escapable = false;
 
     function prefersReducedMotion() {
         return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -259,9 +292,71 @@
             el.hidden = false;
             el.classList.remove(LEAVING_CLASS);
             document.documentElement.setAttribute("data-nx-loading", "true");
-            if (stuckTimer) window.clearTimeout(stuckTimer);
-            stuckTimer = window.setTimeout(hide, STUCK_MS);
+            departing = true;
+            // The review pin (?nx-skeleton) is held open on purpose, so it gets
+            // no timing of its own.
+            if (!pinned) armWait();
         }, CLICK_DELAY_MS);
+    }
+
+    /* ── The way out of a wait that never ends ─────────────────────────────── */
+
+    function escapeControl() {
+        return document.getElementById(ESCAPE_ID);
+    }
+
+    // Held, not guessed at: the overlay stays over the page until the next
+    // document arrives (or until this page finishes loading). If it is still
+    // there long after a page load should have finished, offer the page back —
+    // a cancelled navigation, an upload that turned into a download, a server
+    // that stopped answering, a render-blocking request that never resolves.
+    function armWait() {
+        clearWaitTimers();
+        escapeTimer = window.setTimeout(function () {
+            escapeTimer = null;
+            // `hide()` clears this timer, so reaching here means the overlay is
+            // still up; the check is for the review pin, which never arms.
+            var el = element();
+            if (!el || el.hidden) return;
+            escapable = true;
+            el.classList.add(ESCAPABLE_CLASS);
+            var control = escapeControl();
+            if (control) control.hidden = false;
+        }, ESCAPE_MS);
+        hardTimer = window.setTimeout(function () {
+            hardTimer = null;
+            hide();
+        }, HARD_MS);
+    }
+
+    function clearWaitTimers() {
+        if (escapeTimer) {
+            window.clearTimeout(escapeTimer);
+            escapeTimer = null;
+        }
+        if (hardTimer) {
+            window.clearTimeout(hardTimer);
+            hardTimer = null;
+        }
+        var el = element();
+        if (el) el.classList.remove(ESCAPABLE_CLASS);
+        var control = escapeControl();
+        if (control) control.hidden = true;
+        escapable = false;
+    }
+
+    // While the wait is long, the overlay stops being a wall: a deliberate
+    // click or Escape means "show me the page, I will wait no longer".
+    function onEscapeClick(event) {
+        if (!escapable) return;
+        event.preventDefault();
+        hide();
+    }
+
+    function onEscapeKey(event) {
+        if (!escapable) return;
+        if (event.key !== "Escape" && event.keyCode !== 27) return;
+        hide();
     }
 
     function hide() {
@@ -271,18 +366,16 @@
             window.clearTimeout(showTimer);
             showTimer = null;
         }
-        if (stuckTimer) {
-            window.clearTimeout(stuckTimer);
-            stuckTimer = null;
-        }
+        clearWaitTimers();
+        departing = false;
         if (hideTimer) {
             window.clearTimeout(hideTimer);
             hideTimer = null;
         }
         var el = element();
         document.documentElement.removeAttribute("data-nx-loading");
-        // The navigation never happened (cancelled, or the stuck timer fired):
-        // go back to this page's own shape for the next attempt.
+        // No navigation happened after all (the wait was given up on): go back
+        // to this page's own shape for the next attempt.
         restoreVariant();
         if (!el) return;
 
@@ -398,6 +491,16 @@
         }
     }
 
+    // "The page is up" — but which page? These events fire in the document they
+    // belong to, so while the overlay is up for a navigation, they belong to
+    // the page being left and must not take it down: that is the flash this
+    // controller exists to prevent. A new document starts with `departing`
+    // false, and takes its own overlay away on its own DOMContentLoaded.
+    function pageIsUp() {
+        if (departing) return;
+        hide();
+    }
+
     function start() {
         var pin = pinRequest();
         if (pin !== undefined) {
@@ -412,19 +515,30 @@
         document.addEventListener("click", onClick, true);
         document.addEventListener("submit", onSubmit, true);
 
+        // The way out of a wait that got long (see ESCAPE_MS). Both only act
+        // once the overlay has offered it.
+        document.addEventListener("click", onEscapeClick, true);
+        document.addEventListener("keydown", onEscapeKey, true);
+
         // The document is parsed and every blocking script has run: the real
         // page is on screen, so the skeleton has done its job. (`load` is kept
         // as a backstop for pages that finish later.)
         if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", hide, { once: true });
+            document.addEventListener("DOMContentLoaded", pageIsUp, { once: true });
         } else {
-            hide();
+            pageIsUp();
         }
-        window.addEventListener("load", hide);
+        window.addEventListener("load", pageIsUp);
+
+        // This page's own load can hang too (a blocked stylesheet, a stalled
+        // image). The skeleton is up and nothing has taken it down, so the same
+        // way out applies: see armWait().
+        var showing = element();
+        if (showing && !showing.hidden) armWait();
 
         // Back/forward cache restores: the page never unloaded, so clear any
         // skeleton the previous navigation painted.
-        window.addEventListener("pageshow", hide);
+        window.addEventListener("pageshow", pageIsUp);
     }
 
     window.NexusSkeleton = {

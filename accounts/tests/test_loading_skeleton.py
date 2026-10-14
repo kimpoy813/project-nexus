@@ -389,6 +389,60 @@ class SkeletonLayoutMarkupTests(SimpleTestCase):
             with self.subTest(hint=hint):
                 self.assertIn(f'data-nx-skeleton="{hint}"', markup)
 
+    def test_the_overlay_offers_a_way_out_of_a_wait_that_never_ends(self):
+        """A navigation that never arrives (a cancelled one, a download, a hung
+        server) cannot be told apart from a slow one, so instead of guessing the
+        controller holds the wait and offers the page back. The offer ships with
+        every page and starts hidden, so a page that loads normally never grows
+        a button."""
+        markup = self._read(BASE_TEMPLATE)
+        css = self._read(f"static/{STYLESHEET}")
+        js = self._read(f"static/{CONTROLLER}")
+
+        self.assertIn('id="nx-skel-escape"', markup)
+        # Hidden first: the controller is the only thing that reveals it.
+        self.assertRegex(
+            markup,
+            r'<button[^>]*id="nx-skel-escape"[^>]*\bhidden\b',
+            "the escape control must start hidden",
+        )
+        # It is the one part of the overlay a user is meant to reach, so it
+        # cannot be inside the aria-hidden frame.
+        self.assertNotRegex(
+            markup,
+            r'<div class="nx-skel-overlay__frame"[^>]*aria-hidden="true"[^>]*>\s*<button[^>]*id="nx-skel-escape"',
+        )
+        self.assertIn(".nx-skel-overlay__escape[hidden] { display: none; }", css)
+        for marker in ("ESCAPE_MS", "HARD_MS", "armWait", "clearWaitTimers", "nx-skel-escape"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, js)
+
+    def test_the_page_being_left_cannot_take_a_slow_navigation_down(self):
+        """The regression behind the skeleton flashing back: the page being left
+        finishing its own load (DOMContentLoaded / load / pageshow) must not
+        hide an overlay painted for a navigation still in flight."""
+        js = self._read(f"static/{CONTROLLER}")
+        self.assertIn("departing", js)
+        self.assertRegex(
+            js,
+            r"function pageIsUp\(\) \{\s*if \(departing\) return;",
+            "the page-up signals are no longer guarded by the departure flag",
+        )
+        for signal, wired in (
+            ("DOMContentLoaded", "pageIsUp"),
+            ("\"load\", pageIsUp", ""),
+            ("pageshow\", pageIsUp", ""),
+        ):
+            with self.subTest(signal=signal):
+                self.assertIn(signal, js)
+        # ...and the fade-out must not keep swallowing clicks.
+        css = self._read(f"static/{STYLESHEET}")
+        self.assertRegex(
+            css,
+            r"\.nx-skel-overlay\.is-leaving \{[^}]*pointer-events: none",
+            "a fading overlay blocks clicks for the first ~200ms of every page",
+        )
+
     def test_the_controller_can_switch_layouts(self):
         js = self._read(f"static/{CONTROLLER}")
         self.assertIn("variant:", js, "the controller no longer exposes variant()")
@@ -402,6 +456,43 @@ class SkeletonLayoutMarkupTests(SimpleTestCase):
         self.assertIn('p === "/logout"', js)
         # In-wizard step changes are not a page load, so they must not cover the site.
         self.assertIn("[data-nx-wizard]", js)
+
+
+class SkeletonOptOutTests(SimpleTestCase):
+    """Links that answer with a file must not paint a page skeleton.
+
+    `download` is only honoured for same-origin hrefs, and the template-produced
+    document links are not reliably marked `download` (the storage backend's URL
+    may be cross-origin, where the attribute is ignored), so each of these is
+    opted out explicitly. Otherwise the overlay goes up for a "navigation" that
+    never happens and the user waits for a page load that is really a download.
+    """
+
+    OPT_OUTS = (
+        ("proposals/templates/services/review/proposal_comment_summary_preview.html",
+         "staff_comment_summary_docx"),
+        ("proposals/templates/services/post_approval/proposal_storage.html",
+         "proposal_download_approved_docx"),
+        ("proposals/templates/services/wizard/step_17.html", "download_work_plan_template"),
+        ("proposals/templates/services/wizard/step_17.html", "download_gantt_chart_template"),
+        ("proposals/templates/services/wizard/step_18.html", "download_funding_template"),
+        ("accounts/templates/dashboard/admin/proposal_templates_list.html",
+         "proposal_template_download"),
+        ("accounts/templates/dashboard/admin/proposal_templates_list.html",
+         "proposal_custom_template_download"),
+        ("accounts/templates/dashboard/admin/proposal_template_form.html",
+         "proposal_template_download"),
+        ("accounts/templates/dashboard/admin/proposal_custom_template_form.html",
+         "proposal_custom_template_download"),
+    )
+
+    def test_download_links_carry_the_opt_out(self):
+        for relative_path, url_name in self.OPT_OUTS:
+            with self.subTest(template=relative_path, url=url_name):
+                markup = (Path(settings.BASE_DIR) / relative_path).read_text(encoding="utf-8")
+                index = markup.index(url_name)
+                tag = markup[markup.rindex("<a", 0, index):markup.index(">", index)]
+                self.assertIn("data-nx-no-skeleton", tag, tag)
 
 
 class SkeletonDestinationTests(TestCase):

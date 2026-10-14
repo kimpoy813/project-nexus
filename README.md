@@ -84,7 +84,8 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `proposals/tests_transitions.py` | MOA/implementation transitions, status derivation, wizard helpers |
 | `details/tests.py` | Content model behaviour: ordering, clamping, visibility |
 | `accounts/tests/test_layout.py` | Full-bleed layout: no capped page shells, stylesheet linked, auth/wizard/dashboard shells intact |
-| `accounts/tests/test_loading_skeleton.py` | Overlay, eight layouts, route → variant, and dest matching (login/logout plus JS vs Python for every named URL) |
+| `accounts/tests/test_loading_skeleton.py` | Overlay, eight layouts, route → variant, dest matching (login/logout plus JS vs Python for every named URL), the way out of a wait that never ends, and the download opt-outs |
+| `tests/nexus-loader.test.cjs` | The skeleton controller's lifecycle: the page being left cannot take a slow navigation down, the escape control, the backstop, and the `?nx-skeleton` review pin |
 | `accounts/tests/test_file_storage_configuration.py` | Supabase bucket/endpoint/region/key validation, the `check_file_storage` command, and the provider error shown after a failed upload |
 | `accounts/tests/test_process_reordering.py` | Extension Process steps: nesting to any depth, parent-first saves, the drag reorder endpoint, public rendering |
 | `tests/process-steps.test.cjs` | Outline maths for the nested step editor (`node --test tests/*.test.cjs`) |
