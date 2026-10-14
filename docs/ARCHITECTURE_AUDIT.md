@@ -378,6 +378,9 @@ Two smaller fixes found in the same pass:
 
 **Evidence:** `tests/nexus-loader.test.cjs` (11 cases; 8 fail against the previous controller) and
 `accounts/tests/test_loading_skeleton.py` (4 new assertions fail against the previous controller).
+Screencast frames of the same 15-second-server run, before and after, are in
+`docs/evidence/` (`skeleton-flash-before.png` / `-after.png`, with the classified timelines beside
+them).
 In a real browser, screencast frames of every page load were classified against reference shots
 of both real pages and pinned skeletons: on a 15-second server the sequence is now
 `login skeleton → login page → dashboard skeleton (30.7s) → dashboard page`, with the old page
