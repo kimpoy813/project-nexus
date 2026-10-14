@@ -32,6 +32,9 @@
                         {% if can_view_accomplishment %}
                             <a href="{% url 'accomplishment_reports_list' %}" class="dashboard-nav-btn w-full" data-nx-skeleton="list">Accomplishment Reports</a>
                         {% endif %}
+                        {% if can_request_reports %}
+                            <a href="{% url 'accomplishment_requests_list' %}" class="dashboard-nav-btn w-full" data-nx-skeleton="list">Report Requests</a>
+                        {% endif %}
                     </div>
 
                     <!-- REVIEW QUEUE FILTER PANEL -->

@@ -698,6 +698,9 @@
                                 {% if can_view_accomplishment %}
                                 <a href="{% url 'accomplishment_reports_list' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="list">Accomplishment Reports</a>
                                 {% endif %}
+                                {% if can_view_report_requests %}
+                                <a href="{% url 'accomplishment_requests_list' %}" class="block px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-100" data-nx-skeleton="list">Quarterly Report Requests</a>
+                                {% endif %}
                                 <form method="post" action="{% url 'logout' %}" data-nx-skeleton="auth">{% csrf_token %}<button type="submit" class="w-full text-left block px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 border-t border-gray-100">Logout</button></form>
                             </div>
                         </div>
@@ -740,6 +743,7 @@
                     <div class="my-2 border-t border-gray-100"></div>
                     <a href="{% url 'profile_view' %}" class="nexus-menu-link w-full" data-nx-skeleton="record">Profile</a>
                     {% if can_view_accomplishment %}<a href="{% url 'accomplishment_reports_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Accomplishment Reports</a>{% endif %}
+                    {% if can_view_report_requests %}<a href="{% url 'accomplishment_requests_list' %}" class="nexus-menu-link w-full" data-nx-skeleton="list">Quarterly Report Requests</a>{% endif %}
                     <form method="post" action="{% url 'logout' %}" data-nx-skeleton="auth">{% csrf_token %}<button type="submit" class="w-full text-left nexus-menu-link w-full text-red-600">Logout</button></form>
                 {% else %}
                     <a href="{% url 'login' %}" class="nexus-btn-primary mt-2 flex w-full justify-center rounded-2xl px-4 py-3 text-sm font-black" data-nx-skeleton="auth">Login</a>

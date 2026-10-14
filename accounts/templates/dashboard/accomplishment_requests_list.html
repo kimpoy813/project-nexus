@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Quarterly Report Requests - NExUS{% endblock %}
+{% block content %}
+<div class="nx-page py-8">
+  <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between nx-page-header">
+    <div>
+      <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Quarterly reporting cycle</p>
+      <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900 nx-page-title">Quarterly Report Requests</h1>
+      <p class="mt-2 text-sm text-gray-600 nx-page-description">
+        {% if can_request %}
+          Ask each campus for its quarterly report, then track who has filed and who has not.
+        {% else %}
+          Reports the Extension Office has asked your campus to submit.
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="{% url 'accomplishment_reports_list' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary" data-nx-skeleton="list">Reports</a>
+      {% if can_request %}
+        <a href="{% url 'accomplishment_request_create' %}" class="rounded-xl bg-primary px-4 py-2 text-sm font-black text-white hover:bg-secondary nx-btn nx-btn--primary" data-nx-skeleton="form">Ask campuses for a report</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-black uppercase tracking-wide text-gray-500">Awaiting</p>
+      <p class="mt-1 text-2xl font-black text-amber-600 tabular-nums">{{ awaiting_count }}</p>
+    </div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-black uppercase tracking-wide text-gray-500">Filed</p>
+      <p class="mt-1 text-2xl font-black text-emerald-600 tabular-nums">{{ submitted_count }}</p>
+    </div>
+    <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <p class="text-xs font-black uppercase tracking-wide text-gray-500">Requests shown</p>
+      <p class="mt-1 text-2xl font-black text-gray-900 tabular-nums">{{ rows|length }}</p>
+    </div>
+  </div>
+
+  <form method="GET" class="mb-5 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex items-center gap-2">
+      <label for="request-year" class="text-sm font-bold text-gray-700">Reporting year</label>
+      <select id="request-year" name="year" class="h-10 rounded-xl border border-gray-300 bg-white px-3 text-sm font-bold text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+        {% for y in years %}<option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary nx-btn nx-btn--primary">View</button>
+    </div>
+    <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-600">
+      <input type="checkbox" name="all" value="1" {% if show_all %}checked{% endif %} onchange="this.form.submit()" class="h-4 w-4 rounded border-gray-300">
+      Show every year
+    </label>
+  </form>
+
+  <div class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden nx-panel">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-100 nx-table">
+        <thead><tr>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Period</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Campus</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Due</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Status</th>
+          <th class="px-6 py-3 text-left text-xs font-black uppercase text-gray-500">Submission</th>
+          <th class="px-6 py-3 text-right text-xs font-black uppercase text-gray-500">Actions</th>
+        </tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for row in rows %}
+          {% with request=row.request %}
+          <tr>
+            <td class="px-6 py-4">
+              <p class="font-bold text-gray-900">{{ request.period_label }}</p>
+              {% if request.requested_by %}
+                <p class="text-xs text-gray-500">Asked by {{ request.requested_by.profile.full_name|default:request.requested_by.username }} &middot; {{ request.created_at|date:"M d, Y" }}</p>
+              {% endif %}
+              {% if request.instructions %}
+                <p class="mt-1 max-w-xs text-xs text-gray-600">{{ request.instructions }}</p>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-700">{{ request.campus }}</td>
+            <td class="px-6 py-4 text-sm {% if request.is_overdue %}font-bold text-red-600{% else %}text-gray-700{% endif %}">
+              {% if request.due_date %}{{ request.due_date|date:"M d, Y" }}{% else %}<span class="text-gray-400">No deadline</span>{% endif %}
+              {% if request.is_overdue %}<br><span class="text-xs">Overdue</span>{% endif %}
+            </td>
+            <td class="px-6 py-4">
+              {% if row.state == "submitted" %}
+                <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Report filed</span>
+              {% elif row.state == "closed" %}
+                <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-black text-gray-600">Closed</span>
+              {% else %}
+                <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">Awaiting report</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-xs text-gray-600">
+              {% if row.submission %}
+                <a href="{% url 'accomplishment_report_detail' row.submission.pk %}" class="font-bold text-primary hover:underline">{{ row.submission.title }}</a><br>
+                {% if row.submission.submitted_by %}{{ row.submission.submitted_by.profile.full_name|default:row.submission.submitted_by.username }} &middot; {% endif %}{{ row.submission.submitted_at|date:"M d, Y" }}
+              {% else %}
+                <span class="text-gray-400">No report yet</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end gap-2">
+                {% if row.state == "awaiting" and can_submit_accomplishment and not can_request %}
+                  <a href="{% url 'accomplishment_report_create' %}?request={{ request.pk }}" class="rounded-lg bg-primary px-3 py-1.5 text-xs font-black text-white hover:bg-secondary nx-btn nx-btn--primary" data-nx-skeleton="form">Submit report</a>
+                {% endif %}
+                {% if can_request %}
+                  <form method="POST" action="{% url 'accomplishment_request_close' request.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">
+                      {% if request.is_open %}Close{% else %}Re-open{% endif %}
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endwith %}
+          {% empty %}
+          <tr><td colspan="6" class="px-6 py-12 text-center text-gray-500">
+            {% if can_request %}
+              No requests for {{ current_year }} yet. Ask the campuses for their quarterly report to start the cycle.
+            {% else %}
+              The Extension Office has not asked your campus for a quarterly report yet.
+            {% endif %}
+          </td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

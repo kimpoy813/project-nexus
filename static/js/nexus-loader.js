@@ -159,6 +159,9 @@
 
         if (p === "/accomplishments/create") return "form";
         if (p === "/accomplishments") return "list";
+        // The quarterly report request list; /new is a form (see the generic
+        // create/edit/new rule below) and /<pk>/toggle is a POST back to it.
+        if (p === "/accomplishments/requests") return "list";
 
         if (p === "/manage-roles") return "record";
 

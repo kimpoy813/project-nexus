@@ -48,15 +48,44 @@
     </div>
 
 
+    {% if pending_report_requests %}
+    <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <p class="text-sm font-bold text-amber-900">
+                {{ pending_report_requests|length }} quarterly report request{{ pending_report_requests|length|pluralize }} awaiting your campus
+            </p>
+            <ul class="mt-1 space-y-1 text-sm text-amber-800">
+                {% for report_request in pending_report_requests %}
+                    <li>
+                        <span class="font-semibold">{{ report_request.period_label }}</span>
+                        {% if report_request.due_date %}
+                            &middot; due {{ report_request.due_date|date:"M d, Y" }}{% if report_request.is_overdue %} <span class="font-black text-red-700">(overdue)</span>{% endif %}
+                        {% endif %}
+                        {% if report_request.instructions %} &middot; {{ report_request.instructions }}{% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <a href="{% url 'accomplishment_requests_list' %}" class="shrink-0 text-xs font-semibold text-amber-800 bg-white border border-amber-300 px-4 py-2 rounded-lg hover:bg-amber-100 nx-btn nx-btn--secondary" data-nx-skeleton="list">
+            Open the request
+        </a>
+    </div>
+    {% endif %}
+
     {% if can_submit_accomplishment %}
     <div class="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-sm font-bold text-green-900">Quarterly accomplishment reporting is enabled for your role</p>
-            <p class="text-sm text-green-700">Submit quarterly accomplishment reports for your assigned scope.</p>
+            <p class="text-sm text-green-700">Upload the report file and answer how much of each target category the quarter included.</p>
         </div>
-        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-green-700 bg-white border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50 nx-btn nx-btn--secondary" data-nx-skeleton="list">
-            Open Reports
-        </a>
+        <div class="flex shrink-0 gap-2">
+            <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-green-700 bg-white border border-green-200 px-4 py-2 rounded-lg hover:bg-green-50 nx-btn nx-btn--secondary" data-nx-skeleton="list">
+                Open Reports
+            </a>
+            <a href="{% url 'accomplishment_report_create' %}" class="text-xs font-semibold text-white bg-primary px-4 py-2 rounded-lg hover:bg-secondary nx-btn nx-btn--primary" data-nx-skeleton="form">
+                Submit Report
+            </a>
+        </div>
     </div>
     {% endif %}
 

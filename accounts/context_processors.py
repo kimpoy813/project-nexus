@@ -36,11 +36,15 @@ def site_configuration(request):
     # disagree about who may submit or view accomplishment reports.
     can_submit_accomplishment = False
     can_view_accomplishment = False
+    can_view_report_requests = False
+    can_request_reports = False
     try:
         from . import permissions
 
         can_submit_accomplishment = permissions.can_submit_accomplishment_reports(request.user)
         can_view_accomplishment = permissions.can_view_accomplishment_reports(request.user)
+        can_view_report_requests = permissions.can_view_quarterly_requests(request.user)
+        can_request_reports = permissions.can_request_quarterly_reports(request.user)
     except AttributeError:
         # No request.user (e.g. a request that bypassed AuthenticationMiddleware).
         logger.debug("No user on request while resolving accomplishment permissions.")
@@ -61,6 +65,8 @@ def site_configuration(request):
         "role_capabilities": capabilities,
         "can_submit_accomplishment": can_submit_accomplishment,
         "can_view_accomplishment": can_view_accomplishment,
+        "can_view_report_requests": can_view_report_requests,
+        "can_request_reports": can_request_reports,
         "workflow_phase_shares": _workflow_phase_shares(),
     }
 

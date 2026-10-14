@@ -260,8 +260,31 @@ urlpatterns = [
     path("admin/wizard-steps/<int:step_no>/edit/", views.wizard_step_edit, name="wizard_step_edit"),
     path("admin/wizard-steps/<int:step_no>/delete/", views.wizard_step_delete, name="wizard_step_delete"),
     path("admin/role-capabilities/", views.role_capabilities_manager, name="role_capabilities_manager"),
+    # NOTE: literal sub-paths must come before the <int:pk> catch-all.
     path("accomplishments/", views.accomplishment_reports_list, name="accomplishment_reports_list"),
     path("accomplishments/create/", views.accomplishment_report_create, name="accomplishment_report_create"),
+    # Quarterly report requests: Staff/Director/Admin ask a campus; the Campus
+    # Coordinator answers with the file and the per-category target figures.
+    path(
+        "accomplishments/requests/",
+        views.accomplishment_requests_list,
+        name="accomplishment_requests_list",
+    ),
+    path(
+        "accomplishments/requests/new/",
+        views.accomplishment_request_create,
+        name="accomplishment_request_create",
+    ),
+    path(
+        "accomplishments/requests/<int:pk>/toggle/",
+        views.accomplishment_request_close,
+        name="accomplishment_request_close",
+    ),
+    path(
+        "accomplishments/<int:pk>/",
+        views.accomplishment_report_detail,
+        name="accomplishment_report_detail",
+    ),
 
     # Targets management
     path("admin/targets/", views.targets_list, name="targets_list"),
