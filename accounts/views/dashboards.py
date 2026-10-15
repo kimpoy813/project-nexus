@@ -24,8 +24,10 @@ from details.models import Personnel
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
 from details.models import SitePage
+from details.models import QuarterlyReportRequest
 from details.models import SustainableDevelopmentGoal
 from details.models import Target
+from details.quarterly import open_requests_for_campus
 from proposals.models import MOASubmission
 from proposals.models import Proposal
 from proposals.models import ProposalCommentSummary
@@ -944,14 +946,24 @@ def campus_coordinator_dashboard(request):
         # Only proposals the coordinator's campus/dept can see
     ).count()
 
+    # Quarterly report requests the Extension Office has asked this campus for
+    # and that have not been answered yet. They count towards the notification
+    # badge, because the whole point is that the coordinator notices them.
+    pending_report_requests = open_requests_for_campus(getattr(profile, "campus", ""))
+
     context = {
         "profile": profile,
-        "nav_notif_count": (proposals_ctx.get("needs_attention_count", 0) + action_queue_count),
+        "nav_notif_count": (
+            proposals_ctx.get("needs_attention_count", 0)
+            + action_queue_count
+            + len(pending_report_requests)
+        ),
         **proposals_ctx,
         "review_queue": review_queue,
         "review_queue_count": review_queue.count(),
         "action_queue_count": action_queue_count,
         "pending_review_count": pending_review,
+        "pending_report_requests": pending_report_requests,
     }
     return render(request, "dashboard/campus_coordinator_dashboard.html", context)
 

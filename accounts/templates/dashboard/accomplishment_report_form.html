@@ -5,25 +5,72 @@
   <div class="mb-6">
     <p class="text-xs font-black uppercase tracking-[0.18em] text-primary/70">Quarterly Report</p>
     <h1 class="mt-1 text-3xl font-black tracking-tight text-gray-900 nx-page-title">Submit Accomplishment Report</h1>
-    <p class="mt-2 text-sm text-gray-600 nx-page-description">This function is controlled by the Admin Role Capability Matrix.</p>
+    <p class="mt-2 text-sm text-gray-600 nx-page-description">
+      {% if report_request %}
+        Answering the request for <span class="font-bold">{{ report_request.period_label }} &middot; {{ report_request.campus }}</span>.
+      {% else %}
+        This function is controlled by the Admin Role Capability Matrix.
+      {% endif %}
+    </p>
   </div>
-  <form method="post" enctype="multipart/form-data" class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-5">
+
+  {% if report_request %}
+    <div class="mb-6 rounded-3xl border border-blue-200 bg-blue-50 p-5">
+      <p class="text-sm font-black text-blue-900">The Extension Office asked {{ report_request.campus }} for this report</p>
+      <ul class="mt-2 space-y-1 text-sm text-blue-800">
+        <li><span class="font-bold">Period:</span> {{ report_request.period_label }}</li>
+        {% if report_request.due_date %}
+          <li><span class="font-bold">Due:</span> {{ report_request.due_date|date:"M d, Y" }}{% if report_request.is_overdue %} <span class="font-black text-red-700">(overdue)</span>{% endif %}</li>
+        {% endif %}
+        {% if report_request.instructions %}<li><span class="font-bold">Instructions:</span> {{ report_request.instructions }}</li>{% endif %}
+        <li>The report file is required, and the target figures below are recorded for that quarter.</li>
+      </ul>
+    </div>
+  {% elif pending_requests %}
+    <div class="mb-6 rounded-3xl border border-amber-300 bg-amber-50 p-5">
+      <p class="text-sm font-black text-amber-900">{{ pending_requests|length }} request{{ pending_requests|length|pluralize }} awaiting your campus</p>
+      <ul class="mt-2 space-y-1 text-sm text-amber-800">
+        {% for request in pending_requests %}
+          <li>
+            <a href="{% url 'accomplishment_report_create' %}?request={{ request.pk }}" class="font-bold underline">
+              {{ request.period_label }}
+            </a>
+            {% if request.due_date %} &middot; due {{ request.due_date|date:"M d, Y" }}{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="mt-2 text-xs text-amber-700">Opening one fills in the period and campus for you.</p>
+    </div>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-6 nx-panel">
     {% csrf_token %}
+    {% if report_request %}<input type="hidden" name="request" value="{{ report_request.pk }}">{% endif %}
+
     <div>
-      <label class="block text-sm font-bold text-gray-700 mb-1">Report Title</label>
-      <input type="text" name="title" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+      <label class="block text-sm font-bold text-gray-700 mb-1" for="field-title">Report Title</label>
+      <input id="field-title" type="text" name="title" required value="{{ values.title }}"
+             class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      <div><label class="block text-sm font-bold text-gray-700 mb-1">Year</label><input type="number" name="year" value="{{ current_year }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
-      <div><label class="block text-sm font-bold text-gray-700 mb-1">Quarter</label><select name="quarter" required class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"><option value="">Select quarter</option>{% for value,label in quarter_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+      <div><label class="block text-sm font-bold text-gray-700 mb-1" for="field-year">Year</label><input id="field-year" type="number" name="year" value="{{ current_year }}" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"></div>
+      <div>
+        <label class="block text-sm font-bold text-gray-700 mb-1" for="field-quarter">Quarter</label>
+        <select id="field-quarter" name="quarter" required class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+          <option value="">Select quarter</option>
+          {% for value,label in quarter_choices %}<option value="{{ value }}" {% if value == selected_quarter %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
       <div>
         <label for="id_campus" class="block text-sm font-bold text-gray-700 mb-1">Campus</label>
         <select name="campus" id="id_campus" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm bg-white">
           <option value="">Select campus</option>
           {% for c in campus_choices %}
-            <option value="{{ c }}" {% if profile.campus == c %}selected{% endif %}>{{ c }}</option>
+            <option value="{{ c }}" {% if selected_campus == c %}selected{% endif %}>{{ c }}</option>
           {% endfor %}
         </select>
       </div>
@@ -40,13 +87,62 @@
         </select>
       </div>
     </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Activities Count</label><input type="number" min="0" name="activities_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Beneficiaries Count</label><input type="number" min="0" name="beneficiaries_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
       <div><label class="block text-sm font-bold text-gray-700 mb-1">Partners Count</label><input type="number" min="0" name="partners_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
     </div>
-    <div><label class="block text-sm font-bold text-gray-700 mb-1">Narrative / Highlights</label><textarea name="narrative" rows="5" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></textarea></div>
-    <div><label class="block text-sm font-bold text-gray-700 mb-1">Attachment</label><input type="file" name="attachment" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
+
+    {% if can_answer_targets %}
+    <section class="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+      <h2 class="text-sm font-black text-gray-900">How much of your target did this quarter include?</h2>
+      <p class="mt-1 text-xs text-gray-600">
+        Answer for each category. The figure is saved as this quarter's actual on the
+        campus Target tracker, replacing any earlier answer for the same quarter &mdash;
+        it is not added to it.
+      </p>
+      <div class="mt-4 space-y-3">
+        {% for row in target_rows %}
+          <div class="grid grid-cols-1 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:grid-cols-[1fr_10rem]">
+            <div>
+              <label class="block text-sm font-bold text-gray-800" for="target-{{ row.metric }}">{{ row.label }}</label>
+              <p class="text-xs text-gray-500">
+                {% if row.yearly_target is not None %}
+                  Yearly target for {{ selected_campus|default:"your campus" }}: <span class="font-bold tabular-nums">{{ row.yearly_target }}</span>
+                {% else %}
+                  No yearly target set for this campus yet &mdash; your figure is still recorded.
+                {% endif %}
+              </p>
+            </div>
+            <input id="target-{{ row.metric }}" type="number" min="0" inputmode="numeric"
+                   name="target_{{ row.metric }}"
+                   value="{{ row.answered|default_if_none:'' }}"
+                   placeholder="0"
+                   class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm tabular-nums focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <div><label class="block text-sm font-bold text-gray-700 mb-1" for="field-narrative">Narrative / Highlights</label><textarea id="field-narrative" name="narrative" rows="5" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ values.narrative }}</textarea></div>
+
+    <div>
+      <label class="block text-sm font-bold text-gray-700 mb-1" for="field-attachment">
+        Attachment {% if report_request %}<span class="text-red-500">*</span>{% endif %}
+      </label>
+      <input id="field-attachment" type="file" name="attachment" {% if report_request %}required{% endif %}
+             class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">
+      <p class="mt-1 text-xs text-gray-500">
+        {% if report_request %}
+          Upload the quarterly report (PDF, DOCX or XLSX). The Director and Staff review it here.
+        {% else %}
+          Optional for ad-hoc reports; always attached to a requested report.
+        {% endif %}
+      </p>
+    </div>
+
     <div class="flex justify-end gap-2 border-t border-gray-100 pt-5">
       <a href="{% url 'accomplishment_reports_list' %}" class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">Cancel</a>
       <button type="submit" class="rounded-xl bg-primary px-5 py-2 text-sm font-black text-white hover:bg-secondary nx-btn nx-btn--primary">Submit Report</button>

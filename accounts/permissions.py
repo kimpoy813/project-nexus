@@ -66,6 +66,17 @@ ACCOMPLISHMENT_VIEW_ONLY_ROLES = frozenset({
 #: Anyone who may open the accomplishment reports list.
 ACCOMPLISHMENT_REPORT_ROLES = ACCOMPLISHMENT_SUBMIT_ROLES | ACCOMPLISHMENT_VIEW_ONLY_ROLES
 
+#: Roles that may ask a campus for its quarterly report and monitor the answers.
+#:
+#: Unlike ``SUBMIT_QUARTERLY_ACCOMPLISHMENT`` this one *does* include Admin:
+#: opening a reporting round is an administrative act (it decides which campus
+#: is asked and by when), not a claim about what a campus accomplished.
+QUARTERLY_REQUEST_ROLES = frozenset({
+    Profile.ROLE_STAFF,
+    Profile.ROLE_DIRECTOR,
+    Profile.ROLE_ADMIN,
+})
+
 
 # ---------------------------------------------------------------------------
 # Role resolution
@@ -209,6 +220,25 @@ def sees_all_accomplishment_reports(user):
 
 
 # ---------------------------------------------------------------------------
+# Quarterly report requests
+# ---------------------------------------------------------------------------
+
+def can_request_quarterly_reports(user):
+    """Staff, Director and Admin may ask a campus for its quarterly report."""
+    return has_role(user, QUARTERLY_REQUEST_ROLES)
+
+
+def can_view_quarterly_requests(user):
+    """Requesters see every campus; Campus Coordinators see their own campus."""
+    return can_request_quarterly_reports(user) or is_campus_coordinator(user)
+
+
+def sees_all_quarterly_requests(user):
+    """Only the requesting roles see request rows for campuses other than theirs."""
+    return can_request_quarterly_reports(user)
+
+
+# ---------------------------------------------------------------------------
 # Proposals (object-level)
 # ---------------------------------------------------------------------------
 
@@ -323,3 +353,13 @@ def can_view_proposal_summary(user, proposal):
 def _matches(left, right):
     """Case- and whitespace-insensitive comparison of two scope strings."""
     return (left or "").strip().casefold() == (right or "").strip().casefold()
+
+
+def same_scope(left, right):
+    """Public name for :func:`_matches`, for callers outside this module.
+
+    Campus and department names are stored as typed on the profile but compared
+    against names chosen from a select, so every scope comparison in the system
+    has to normalise case and surrounding whitespace the same way.
+    """
+    return _matches(left, right)

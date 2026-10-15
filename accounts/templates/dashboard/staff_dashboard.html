@@ -18,11 +18,16 @@
     <div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-panel">
         <div>
             <p class="text-sm font-bold text-gray-900">Quarterly accomplishment reports</p>
-            <p class="text-sm text-gray-600">Review reports submitted by department and campus coordinators.</p>
+            <p class="text-sm text-gray-600">Ask the campuses for their report, then review the uploaded file and the target figures they answered.</p>
         </div>
-        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-primary bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 nx-btn nx-btn--secondary">
-            View Reports
-        </a>
+        <div class="flex shrink-0 gap-2">
+            <a href="{% url 'accomplishment_requests_list' %}" class="text-xs font-semibold text-primary bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 nx-btn nx-btn--secondary">
+                Report Requests
+            </a>
+            <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-primary bg-white border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 nx-btn nx-btn--secondary">
+                View Reports
+            </a>
+        </div>
     </div>
     {% endif %}
 

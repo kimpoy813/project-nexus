@@ -382,6 +382,43 @@ context processors or middleware — log it with `logger.exception(...)` and
 never interpolate the exception into a user-facing message, since that leaks
 database constraint names and internal paths.
 
+## Quarterly report cycle
+
+The system asks each campus for a quarterly accomplishment report; the Campus
+Coordinator uploads the file and answers how much of each Extension Target
+category the quarter included. Staff and Director open the requests and see the
+answers.
+
+| Route | Who | What it does |
+| --- | --- | --- |
+| `/accomplishments/requests/` | Staff, Director, Admin (every campus); Campus Coordinator (own campus) | Each request with its due date and whether a report has been filed |
+| `/accomplishments/requests/new/` | Staff, Director, Admin | Asks one, several, or every campus for a quarter |
+| `/accomplishments/create/?request=<id>` | Coordinators with `SUBMIT_QUARTERLY_ACCOMPLISHMENT` | Uploads the report file, writes the narrative, answers the target categories |
+| `/accomplishments/<id>/` | Requester roles, plus the submitter's own scope | The uploaded file, the narrative, and the figures filed |
+
+How an answer reaches the Targets tracker:
+
+* `QuarterlyReportRequest` holds one row per campus, year and quarter. Asking a
+  campus that already has a row re-opens it instead of duplicating.
+* The coordinator's answers are stored on the report as
+  `AccomplishmentTargetEntry` rows, one per `Target` metric (Programs,
+  Participants, Partners, Technology Transfer).
+* `details.quarterly.save_target_contributions()` writes each answer into the
+  campus `Target` row for that quarter (`actual_q1` … `actual_q4`), creating the
+  row when that campus has no target for the metric yet. The figure
+  **replaces** what was filed before, so a correction never double-counts.
+* A blank category is skipped, not read as 0: an untouched box must not
+  understate a campus. A category genuinely at zero is filed by typing `0`.
+* Only Campus Coordinators see the category rows. A Department Coordinator's
+  scope sits inside a campus, so their reports never write to the campus
+  tracker.
+* Answering a request requires the uploaded file; ad-hoc reports keep the file
+  optional.
+
+Pending requests are surfaced on the Campus Coordinator dashboard (and counted
+in the notification badge); the Staff and Director dashboards link straight to
+the request list.
+
 ## Permissions
 
 All permission logic lives in **`accounts/permissions.py`**. Views, templates,
@@ -406,6 +443,10 @@ manages the system rather than filing reports for a department. See
 
 Permissions, authentication, the CMS, the proposal wizard, document
 generation, and the MOA/implementation state transitions are all covered.
+
+The quarterly report cycle — who may ask, who may answer, the file requirement,
+and the write-back into the campus `Target` rows — is covered by
+`accounts/tests/test_quarterly_reports.py`.
 
 Document tests generate real files from the templates committed under
 `proposals/template_files/`, so a corrupt template or a broken field lookup

@@ -633,6 +633,15 @@ class AccomplishmentReport(models.Model):
         blank=True,
         related_name="accomplishment_reports",
     )
+    #: Set when this report answers a specific request from the Extension Office
+    #: (see :class:`QuarterlyReportRequest`). Ad-hoc reports leave it empty.
+    request = models.ForeignKey(
+        "QuarterlyReportRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="linked_reports",
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -641,6 +650,122 @@ class AccomplishmentReport(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.year} {self.quarter})"
+
+    @property
+    def period_label(self):
+        return f"{self.get_quarter_display()} {self.year}"
+
+    @property
+    def has_target_contributions(self):
+        return bool(self.target_contributions())
+
+    def target_contributions(self):
+        """``{metric: value}`` for the answers filed with this report.
+
+        Read through the report's own rows rather than the ``Target`` table:
+        the Target figures can be edited later by an administrator, while the
+        report should keep showing what the coordinator actually answered.
+        """
+        return {entry.metric: entry.value for entry in self.target_entries.all()}
+
+
+class QuarterlyReportRequest(models.Model):
+    """The Extension Office asking a campus to file its quarterly report.
+
+    One row per campus and quarter. Staff and Director open requests (usually
+    for every campus at once); the Campus Coordinator of that campus sees the
+    request on their dashboard, uploads the report file, and answers how much
+    of each target category was accomplished for the quarter. Staff and
+    Director see the submission and the answers.
+    """
+
+    class Status(models.TextChoices):
+        OPEN = "OPEN", "Open"
+        CLOSED = "CLOSED", "Closed"
+
+    year = models.PositiveIntegerField(default=2026)
+    quarter = models.CharField(max_length=2, choices=AccomplishmentReport.Quarter.choices)
+    campus = models.CharField(max_length=150)
+    title = models.CharField(max_length=220, blank=True, default="")
+    instructions = models.TextField(
+        blank=True,
+        default="",
+        help_text="Shown to the Campus Coordinator next to the request.",
+    )
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.OPEN)
+    requested_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quarterly_report_requests",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-year", "quarter", "campus"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["year", "quarter", "campus"],
+                name="unique_quarterly_report_request",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.campus} - {self.year} {self.quarter}"
+
+    @property
+    def period_label(self):
+        return f"{self.get_quarter_display()} {self.year}"
+
+    @property
+    def is_open(self):
+        return self.status == self.Status.OPEN
+
+    @property
+    def default_title(self):
+        return f"{self.get_quarter_display()} {self.year} Accomplishment Report - {self.campus}"
+
+    @property
+    def is_overdue(self):
+        return bool(
+            self.is_open
+            and self.due_date
+            and self.due_date < timezone.localdate()
+        )
+
+
+class AccomplishmentTargetEntry(models.Model):
+    """One target category's accomplishment figure answered on a report.
+
+    The coordinator answers per :class:`Target` metric (Programs, Participants,
+    Partners, Technology Transfer) so the answer lands in the campus target
+    tracker instead of living only inside the narrative.
+    """
+
+    report = models.ForeignKey(
+        AccomplishmentReport,
+        on_delete=models.CASCADE,
+        related_name="target_entries",
+    )
+    metric = models.CharField(max_length=32, choices=Target.METRIC_CHOICES)
+    value = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["report", "metric"],
+                name="unique_report_target_metric",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.report_id} - {self.get_metric_display()}: {self.value}"
 
 
 # ==============================

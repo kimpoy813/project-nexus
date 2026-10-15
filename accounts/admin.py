@@ -2,8 +2,9 @@ from django.contrib import admin
 
 from .models import Profile, Signatory, SiteConfiguration, SiteConfigurationLog, Campus, College, Department
 from details.models import (
-    AccomplishmentReport, DocumentTemplate, DynamicFormTemplate, DynamicFormField,
-    DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig, RoleCapability,
+    AccomplishmentReport, AccomplishmentTargetEntry, DocumentTemplate, DynamicFormTemplate,
+    DynamicFormField, DynamicFormResponse, DynamicFormAnswer, ProposalWizardStepConfig,
+    QuarterlyReportRequest, RoleCapability,
 )
 
 
@@ -96,11 +97,27 @@ class RoleCapabilityAdmin(admin.ModelAdmin):
     search_fields = ("notes",)
 
 
+class AccomplishmentTargetEntryInline(admin.TabularInline):
+    """The per-category target figures filed with the report."""
+
+    model = AccomplishmentTargetEntry
+    extra = 0
+
+
 @admin.register(AccomplishmentReport)
 class AccomplishmentReportAdmin(admin.ModelAdmin):
     list_display = ("title", "year", "quarter", "campus", "department", "submitted_by", "submitted_at")
     list_filter = ("year", "quarter", "campus")
     search_fields = ("title", "narrative", "submitted_by__username", "submitted_by__profile__full_name")
+    inlines = [AccomplishmentTargetEntryInline]
+
+
+@admin.register(QuarterlyReportRequest)
+class QuarterlyReportRequestAdmin(admin.ModelAdmin):
+    list_display = ("year", "quarter", "campus", "status", "due_date", "requested_by", "created_at")
+    list_filter = ("year", "quarter", "status", "campus")
+    search_fields = ("campus", "title", "instructions")
+    ordering = ("-year", "quarter", "campus")
 
 
 @admin.register(Campus)
