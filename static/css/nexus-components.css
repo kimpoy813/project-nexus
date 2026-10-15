@@ -21,7 +21,9 @@
 }
 
 /* Shared heading rhythm; public heroes and auth brand panels intentionally
-   retain their display typography instead of looking like an admin screen. */
+   retain their display typography instead of looking like an admin screen.
+   Both rules stay out of marketing/auth pages so hero subheadings keep their
+   own (white) text color instead of the admin muted gray. */
 body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus-shell .nx-page-title {
   margin: 0;
   font-size: var(--nx-title-size);
@@ -31,7 +33,7 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
   color: var(--nexus-primary);
   overflow-wrap: anywhere;
 }
-.nexus-shell .nx-page-description {
+body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus-shell .nx-page-description {
   margin-top: .375rem;
   font-size: var(--nx-component-text);
   line-height: 1.6;
