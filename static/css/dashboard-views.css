@@ -1,31 +1,83 @@
 /* Shared table/card presentation controls for role dashboards.
 
-   The switch is icon-only: the pressed button inverts its own icon, so the
-   two glyphs carry the meaning without a text label beside them. */
+   The switch is one pill with a sliding thumb: the thumb settles under the
+   icon of the active presentation, so the control reads as a switch rather
+   than two loose buttons. The two glyphs are drawn to be told apart at a
+   glance — a framed grid with a header row for the table, a pair of content
+   cards for the card view — and keep their accessible names for assistive
+   technology and for the hover tooltip. */
 .dashboard-view-toolbar {
+    /* A hand-built switch (the faculty dashboard) already sits inside a
+       padded panel body. A switch injected above a plain proposal table lands
+       directly in an unpadded card, where it would hug the header rule and
+       the panel edge, so those give the pill its own breathing room. */
+    --switch-inset-x: 0rem;
+    --switch-inset-top: 0rem;
+    --switch-segment: 2.75rem;
+    --switch-gap: .125rem;
+    --switch-pad: .25rem;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: .35rem;
-    margin: 0 0 .6rem;
+    gap: var(--switch-gap);
+    width: fit-content;
+    margin: var(--switch-inset-top) var(--switch-inset-x) .75rem auto;
+    padding: var(--switch-pad);
+    background: #eef2f7;
+    border: 1px solid #dbe2ea;
+    border-radius: 999px;
+    box-shadow: inset 0 1px 2px rgb(15 23 42 / .04);
+    position: relative;
+}
+.nx-card > .dashboard-view-toolbar {
+    --switch-inset-x: 1.25rem;
+    --switch-inset-top: .875rem;
+    margin-bottom: .625rem;
+}
+/* The thumb: it slides under whichever icon is pressed. */
+.dashboard-view-toolbar::before {
+    content: "";
+    position: absolute;
+    top: var(--switch-pad);
+    bottom: var(--switch-pad);
+    left: var(--switch-pad);
+    width: var(--switch-segment);
+    border-radius: 999px;
+    background: var(--nexus-primary, #103b07);
+    box-shadow: 0 1px 2px rgb(15 23 42 / .28);
+    transition: transform .22s cubic-bezier(.4, 0, .2, 1);
+}
+.dashboard-view-toolbar:has([data-proposal-view="cards"][aria-pressed="true"])::before {
+    transform: translateX(calc(var(--switch-segment) + var(--switch-gap)));
 }
 .dashboard-view-toggle {
+    position: relative;
+    z-index: 1;
     align-items: center;
-    background: #fff;
-    border: 1px solid #dbe2ea;
-    border-radius: .75rem;
-    color: #475569;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    color: #64748b;
     cursor: pointer;
     display: inline-flex;
     height: 2.25rem;
     justify-content: center;
     padding: 0;
-    transition: background .15s, border-color .15s, color .15s;
-    width: 2.25rem;
+    transition: color .18s;
+    width: var(--switch-segment);
 }
-.dashboard-view-toggle:hover { background: #f8fafc; border-color: #cbd5e1; color: #334155; }
-.dashboard-view-toggle[aria-pressed="true"] { background: var(--nexus-primary, #103b07); border-color: var(--nexus-primary, #103b07); color: #fff; }
-.dashboard-view-toggle[aria-pressed="true"]:hover { background: var(--nexus-primary, #103b07); color: #fff; }
+.dashboard-view-toggle:hover { color: #334155; }
+.dashboard-view-toggle[aria-pressed="true"],
+.dashboard-view-toggle[aria-pressed="true"]:hover { color: #fff; }
+.dashboard-view-toggle svg { width: 1.25rem; height: 1.25rem; }
+/* Without :has() the thumb cannot follow the pressed icon, so the pressed
+   icon carries its own pill instead of floating over the wrong half. */
+@supports not selector(:has(*)) {
+    .dashboard-view-toolbar::before { display: none; }
+    .dashboard-view-toggle[aria-pressed="true"] { background: var(--nexus-primary, #103b07); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-view-toolbar::before { transition: none; }
+}
 
 /* The existing semantic table becomes a readable stack of cards in card view:
    the first column becomes the card head, every other cell a labelled field.
@@ -87,7 +139,9 @@
     white-space: normal;
 }
 @media (max-width: 640px) {
-    .dashboard-view-toolbar { justify-content: flex-start; }
+    /* The pill is only as wide as its two icons, so alignment is expressed
+       through the auto margin instead of justify-content. */
+    .dashboard-view-toolbar { margin-inline: var(--switch-inset-x) auto; }
 }
 
 
