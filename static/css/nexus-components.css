@@ -163,17 +163,14 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
   :root { --nx-panel-padding: 1rem; }
 }
 
-/* Toggle and dense outline-editor controls share geometry, not action meaning. */
-.nexus-shell :is(.dashboard-view-toggle, .quick-tab-btn, .nx-step-btn) {
+/* Dense outline-editor controls share geometry, not action meaning. The
+   table/card switch is a pill with its own thumb, so it keeps the geometry
+   declared with it in css/dashboard-views.css instead of joining this group. */
+.nexus-shell :is(.quick-tab-btn, .nx-step-btn) {
   min-height: var(--nx-control-compact);
   border-radius: var(--nx-control-radius);
   font-size: .8125rem;
   font-weight: 600;
-}
-.nexus-shell .dashboard-view-toggle[aria-pressed="true"] {
-  background: var(--nexus-primary);
-  border-color: var(--nexus-primary);
-  color: #fff;
 }
 .nexus-shell .nx-btn:focus-visible { outline: 2px solid var(--nexus-primary) !important; }
 

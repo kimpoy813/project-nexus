@@ -15,11 +15,13 @@
     const STORAGE_KEY = 'nexus-proposal-view';
     const DEFAULT_VIEW = 'cards';
 
-    /* 20x20 heroicons drawn with `currentColor`, like every other icon in the
-       system, so the pressed state can turn them white. */
+    /* 20x20 glyphs drawn with `currentColor`, like every other icon in the
+       system, so the thumb can turn the active one white. They are drawn to
+       be told apart at a glance: the table is a framed grid with a filled
+       header row, the card view is a pair of content cards. */
     const ICONS = {
-        table: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M3 3.5A1.5 1.5 0 0 1 4.5 2h11A1.5 1.5 0 0 1 17 3.5v13a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 16.5v-13ZM4.5 3.5a.5.5 0 0 0-.5.5V7h4V3.5h-3.5ZM9.5 3.5V7h6V3.5h-6ZM4.5 8.5v4h4v-4h-4ZM9.5 8.5v4h6v-4h-6ZM4.5 14v1.5a.5.5 0 0 0 .5.5H7v-2H4.5ZM8.5 14v2h6.5a.5.5 0 0 0 .5-.5V14h-7Z" clip-rule="evenodd" /></svg>',
-        cards: '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h4A1.5 1.5 0 0 1 9 4.5v4A1.5 1.5 0 0 1 7.5 10h-4A1.5 1.5 0 0 1 2 8.5v-4ZM11 4.5A1.5 1.5 0 0 1 12.5 3h4A1.5 1.5 0 0 1 18 4.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 11 8.5v-4ZM2 13.5A1.5 1.5 0 0 1 3.5 12h4a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 7.5 16h-4A1.5 1.5 0 0 1 2 14.5v-1ZM12.5 12h4a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-1a1.5 1.5 0 0 1 1.5-1.5Z" /></svg>',
+        table: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.5 2.5h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2Zm0 1.5a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5h-11Z" clip-rule="evenodd" /><path d="M4 4h12v3H4Z" /><path d="M4 10.8h12v1.4H4Z" /><path d="M9.3 7h1.4v9H9.3Z" /></svg>',
+        cards: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M4.25 3A1.75 1.75 0 0 0 2.5 4.75v10.5A1.75 1.75 0 0 0 4.25 17h3.5A1.75 1.75 0 0 0 9.5 15.25V4.75A1.75 1.75 0 0 0 7.75 3h-3.5Zm.45 2.6h2.6a.8.8 0 0 1 0 1.6H4.7a.8.8 0 0 1 0-1.6Zm-.1 4h1.6a.7.7 0 0 1 0 1.4H4.6a.7.7 0 0 1 0-1.4Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M12.25 3a1.75 1.75 0 0 0-1.75 1.75v10.5A1.75 1.75 0 0 0 12.25 17h3.5a1.75 1.75 0 0 0 1.75-1.75V4.75A1.75 1.75 0 0 0 15.75 3h-3.5Zm.45 2.6h2.6a.8.8 0 0 1 0 1.6h-2.6a.8.8 0 0 1 0-1.6Zm-.1 4h1.6a.7.7 0 0 1 0 1.4h-1.6a.7.7 0 0 1 0-1.4Z" clip-rule="evenodd" /></svg>',
     };
 
     const LABELS = { table: 'Table view', cards: 'Card view' };

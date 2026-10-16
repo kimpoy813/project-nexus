@@ -115,6 +115,50 @@ class ProposalPresentationTests(SimpleTestCase):
         # The glyphs are the same inline icons the rest of the system draws.
         self.assertIn('viewBox="0 0 20 20" fill="currentColor"', faculty)
 
+    def test_the_template_and_the_script_ship_the_same_glyphs(self):
+        """One pair of glyphs: the hand-built switch and the injected one.
+
+        The table glyph is a framed grid with a filled header row and the
+        card glyph a pair of content cards, so the two are told apart at a
+        glance; keeping them identical in both places keeps that true
+        everywhere the switch appears.
+        """
+        script = (settings.BASE_DIR / 'static/js/dashboard-views.js').read_text()
+        faculty = (self.dashboards / 'faculty_dashboard.html').read_text()
+        # The template pretty-prints the markup the script keeps on one line,
+        # so compare the glyphs with their whitespace folded away.
+        flat = re.sub(r'\s+', '', faculty)
+        for view in ('table', 'cards'):
+            with self.subTest(view=view):
+                glyph = re.search(r"%s: '(<svg .*?</svg>)'" % view, script)
+                self.assertIsNotNone(glyph, 'the script ships a %s glyph' % view)
+                self.assertIn(re.sub(r'\s+', '', glyph.group(1)), flat)
+
+    def test_the_switch_is_a_pill_with_a_sliding_thumb(self):
+        css = (settings.BASE_DIR / 'static/css/dashboard-views.css').read_text()
+        # A single track with a thumb that slides under the pressed icon.
+        self.assertIn('.dashboard-view-toolbar::before', css)
+        self.assertIn(':has([data-proposal-view="cards"][aria-pressed="true"])::before', css)
+        # The segments stay transparent so the thumb shows through them; the
+        # pressed segment is told by its icon colour, not its own fill.
+        self.assertIn('.dashboard-view-toggle[aria-pressed="true"],', css)
+        self.assertIn('.dashboard-view-toggle[aria-pressed="true"]:hover { color: #fff; }', css)
+        # Browsers without :has() still get a switch, just without the slide.
+        self.assertIn('@supports not selector(:has(*))', css)
+        # Motion-sensitive visitors get the switch without the slide.
+        self.assertIn('prefers-reduced-motion', css)
+        # The shared control geometry no longer squares off the pill.
+        shared = (settings.BASE_DIR / 'static/css/nexus-components.css').read_text()
+        self.assertNotIn('.nexus-shell .dashboard-view-toggle[aria-pressed="true"]', shared)
+        self.assertNotIn(':is(.dashboard-view-toggle, .quick-tab-btn, .nx-step-btn)', shared)
+
+    def test_the_switch_keeps_clear_of_the_panel_edge(self):
+        css = (settings.BASE_DIR / 'static/css/dashboard-views.css').read_text()
+        # Switches injected into a bare card carry their own inset instead of
+        # hugging the header rule and the panel edge.
+        self.assertIn('.nx-card > .dashboard-view-toolbar', css)
+        self.assertIn('--switch-inset-x: 1.25rem', css)
+
     def test_the_switch_ships_no_text_caption(self):
         script = (settings.BASE_DIR / 'static/js/dashboard-views.js').read_text()
         self.assertNotIn('dashboard-view-toolbar__label', script)

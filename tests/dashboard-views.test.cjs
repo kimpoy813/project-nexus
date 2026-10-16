@@ -176,6 +176,12 @@ test('adds an icon-only switch above a proposal table', () => {
         assert.match(button.innerHTML, /^<svg /);
         assert.equal(button.getAttribute('aria-label'), button.dataset.proposalView === 'table' ? 'Table view' : 'Card view');
     }
+    // The two glyphs must not read as the same shape: a framed grid with a
+    // header row for the table, a pair of content cards for the card view.
+    const [tableButton, cardsButton] = buttons;
+    assert.notEqual(tableButton.innerHTML, cardsButton.innerHTML, 'the table and card glyphs must be distinguishable');
+    assert.match(tableButton.innerHTML, /fill-rule="evenodd"/);
+    assert.equal((cardsButton.innerHTML.match(/<path/g) || []).length, 2, 'the card view draws two cards');
     assert.equal(toolbar.children.length, 2, 'the switch holds nothing but the two icons');
 });
 

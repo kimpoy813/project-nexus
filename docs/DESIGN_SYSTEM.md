@@ -21,6 +21,7 @@ invent buttons, cards, typography and colors.
 | Icon action | Add `nx-btn--icon` and an accessible name; preserve focus treatment. |
 | Panel | `nx-panel`: 16px corners, shared neutral border, subtle stationary shadow. Optional `nx-panel__header` and `nx-panel__body` provide shared padding. |
 | Table | `nx-table`: shared header/cell rhythm, with a horizontally scrollable wrapper where needed. Preserve numeric alignment. |
+| Table/card switch | `.dashboard-view-toolbar` holding two `.dashboard-view-toggle` buttons: one pill track with a thumb that slides under the pressed icon. Keep the pill clear of the panel edge (injected switches carry their own inset), keep the glyphs distinguishable (framed grid with a header row for the table, a pair of content cards for the card view), and keep the accessible names/tooltips. `static/js/dashboard-views.js` keeps every proposal table on the page in step and remembers the choice. |
 | Badge | `nx-badge`: shared pill geometry/type. Keep semantic status/role colors and a text label; color must not be the only status signal. |
 | Field | Standard native text inputs/selects share 44px minimum height and 12px corners. Dense editor fields and multiline textareas are intentional exceptions. |
 
