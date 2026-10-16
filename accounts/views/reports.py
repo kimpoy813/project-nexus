@@ -219,7 +219,8 @@ def accomplishment_report_create(request):
     # Only a Campus Coordinator answers for a campus target. A Department
     # Coordinator's scope sits inside a campus, so their answers would land on
     # the wrong row of the tracker.
-    can_answer_targets = role == Profile.ROLE_CAMPUS_COORDINATOR
+    is_campus_coordinator = role == Profile.ROLE_CAMPUS_COORDINATOR
+    can_answer_targets = is_campus_coordinator
     own_campus = (getattr(profile, "campus", "") or "").strip()
 
     report_request = _request_for_submission(request)
@@ -228,6 +229,14 @@ def accomplishment_report_create(request):
     )
 
     values = _submission_values(request, profile, report_request)
+    if is_campus_coordinator:
+        # A Campus Coordinator files for exactly one campus - the request
+        # being answered, otherwise their own assignment - so the form shows
+        # no campus/college/department inputs at all. The scope below is the
+        # only scope the report can be saved under.
+        values["campus"] = (
+            (getattr(report_request, "campus", "") or own_campus) or ""
+        ).strip()
     contributions = {}
 
     if request.method == "POST":
@@ -236,17 +245,28 @@ def accomplishment_report_create(request):
             AccomplishmentReport.Quarter.choices
         ):
             error = "Title and quarter are required."
-        elif (
-            can_answer_targets
-            and own_campus
-            and not permissions.same_scope(values["campus"], own_campus)
-        ):
+        elif is_campus_coordinator and not values["campus"]:
             error = (
-                f"Your account files reports for {own_campus}; keep the campus "
-                "set to your assigned campus."
+                "Your account has no campus assigned yet. Ask the Admin to set "
+                "your campus before filing a report."
             )
-        elif report_request and not permissions.same_scope(
-            report_request.campus, values["campus"]
+        elif (
+            is_campus_coordinator
+            and (request.POST.get("campus") or "").strip()
+            and not permissions.same_scope(
+                (request.POST.get("campus") or "").strip(), values["campus"]
+            )
+        ):
+            # The form sends no campus field; a mismatched value here means a
+            # hand-crafted POST trying to file for another campus.
+            error = (
+                f"Your account files reports for {values['campus']}. "
+                "You cannot file for another campus."
+            )
+        elif (
+            report_request
+            and not is_campus_coordinator
+            and not permissions.same_scope(report_request.campus, values["campus"])
         ):
             error = (
                 "This report answers the request for "
@@ -267,8 +287,9 @@ def accomplishment_report_create(request):
             else:
                 if parsed and not values["campus"]:
                     error = (
-                        "Choose the campus this report is for so the target "
-                        "figures can be recorded."
+                        "Your account has no campus assigned yet, so the target "
+                        "figures cannot be recorded. Ask the Admin to set your "
+                        "campus first."
                     )
                 contributions = parsed
 
@@ -288,8 +309,10 @@ def accomplishment_report_create(request):
                 year=values["year"],
                 quarter=values["quarter"],
                 campus=values["campus"],
-                college=(request.POST.get("college") or getattr(profile, "college", "") or "").strip(),
-                department=(request.POST.get("department") or getattr(profile, "department", "") or "").strip(),
+                # A campus report covers the whole campus, so it carries no
+                # college/department scope of its own.
+                college="" if is_campus_coordinator else (request.POST.get("college") or getattr(profile, "college", "") or "").strip(),
+                department="" if is_campus_coordinator else (request.POST.get("department") or getattr(profile, "department", "") or "").strip(),
                 narrative=values["narrative"],
                 activities_count=_safe_int(request.POST.get("activities_count"), 0),
                 beneficiaries_count=_safe_int(request.POST.get("beneficiaries_count"), 0),
@@ -330,6 +353,8 @@ def accomplishment_report_create(request):
             # cascading college/department selects have a source of truth.
             "campus_choices": [value for value, _label in get_campus_choices()],
             "can_answer_targets": can_answer_targets,
+            "is_campus_coordinator": is_campus_coordinator,
+            "filing_campus": values["campus"],
             "selected_campus": values["campus"],
             "selected_quarter": values["quarter"],
             "values": values,

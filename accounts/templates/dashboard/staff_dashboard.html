@@ -31,6 +31,107 @@
     </div>
     {% endif %}
 
+    <!-- Extension Targets -->
+    <div class="nx-card mb-8 nx-panel">
+        <div class="border-b border-gray-100 px-6 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Extension Targets</h2>
+                <p class="text-sm text-gray-600 mt-1">
+                    Yearly targets per campus and what the filed quarterly reports accomplished.
+                </p>
+            </div>
+            <form method="get" class="flex shrink-0 items-center gap-2">
+                <label for="target-year" class="text-xs font-semibold text-gray-500">Year</label>
+                <select id="target-year" name="target_year" onchange="this.form.submit()"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700">
+                    {% for y in target_years %}<option value="{{ y }}" {% if y == target_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                </select>
+            </form>
+        </div>
+
+        <div class="p-6">
+            {% if targets_by_campus %}
+                <p class="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-gray-400">All campuses combined &middot; {{ target_year }}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                    {% for row in target_overall %}
+                    <div class="rounded-xl border border-gray-200 bg-white p-4">
+                        <p class="text-sm font-bold text-gray-900">{{ row.label }}</p>
+                        <p class="mt-1 text-2xl font-black tabular-nums text-gray-900">
+                            {{ row.actual_total }}
+                            <span class="text-sm font-semibold text-gray-400">/ {{ row.target }}</span>
+                        </p>
+                        {% if row.progress is not None %}
+                            <div class="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+                                <div class="h-full rounded-full {% if row.progress >= 100 %}bg-emerald-500{% elif row.progress >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}"
+                                     style="width: {% if row.progress > 100 %}100{% else %}{{ row.progress }}{% endif %}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs font-bold tabular-nums {% if row.progress >= 100 %}text-emerald-600{% elif row.progress >= 50 %}text-primary{% else %}text-amber-600{% endif %}">{{ row.progress }}% of target</p>
+                        {% else %}
+                            <p class="mt-2 text-xs text-gray-400">No yearly target set yet</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% for campus, rows in targets_by_campus.items %}
+                <div class="mb-6 last:mb-0">
+                    <div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                        <h3 class="text-base font-bold text-gray-900">{{ campus }}</h3>
+                        <a href="{% url 'accomplishment_reports_list' %}" class="text-xs font-semibold text-primary hover:underline" data-nx-skeleton="list">View reports</a>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-gray-100">
+                        <table class="min-w-full divide-y divide-gray-100 nx-table">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Metric</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Target</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Q1</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Q2</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Q3</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Q4</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Total</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
+                                {% for row in rows %}
+                                <tr>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ row.label }}</td>
+                                    <td class="px-4 py-3 text-center text-sm tabular-nums text-gray-600">{% if row.target is not None %}{{ row.target }}{% else %}—{% endif %}</td>
+                                    <td class="px-4 py-3 text-center text-sm tabular-nums text-gray-600">{{ row.actual_q1 }}</td>
+                                    <td class="px-4 py-3 text-center text-sm tabular-nums text-gray-600">{{ row.actual_q2 }}</td>
+                                    <td class="px-4 py-3 text-center text-sm tabular-nums text-gray-600">{{ row.actual_q3 }}</td>
+                                    <td class="px-4 py-3 text-center text-sm tabular-nums text-gray-600">{{ row.actual_q4 }}</td>
+                                    <td class="px-4 py-3 text-center text-sm font-bold tabular-nums text-gray-900">{{ row.actual_total }}</td>
+                                    <td class="px-4 py-3">
+                                        {% if row.progress is not None %}
+                                            <div class="flex items-center gap-2">
+                                                <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                                                    <div class="h-full rounded-full {% if row.progress >= 100 %}bg-emerald-500{% elif row.progress >= 50 %}bg-primary{% else %}bg-amber-500{% endif %}"
+                                                         style="width: {% if row.progress > 100 %}100{% else %}{{ row.progress }}{% endif %}%"></div>
+                                                </div>
+                                                <span class="w-11 shrink-0 text-right text-xs font-bold tabular-nums {% if row.progress >= 100 %}text-emerald-600{% elif row.progress >= 50 %}text-primary{% else %}text-amber-600{% endif %}">{{ row.progress }}%</span>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-xs text-gray-400">No target set</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="py-4 text-center text-sm text-gray-500">
+                    No targets recorded for {{ target_year }} yet.
+                    {% if can_view_accomplishment %}Ask the campuses for their quarterly report to start the cycle.{% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <!-- Pending -->
