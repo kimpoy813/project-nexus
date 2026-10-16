@@ -46,6 +46,7 @@ from ..models import SiteConfiguration
 from ..models import SiteConfigurationLog
 from .helpers import User, _get_or_create_profile, _get_role_dashboard_name
 from .proposal_queries import _build_proposal_dashboard_item, _get_assignable_evaluators_for_proposal, _get_assigned_evaluators_for_proposal, _get_campus_review_queue, _get_department_review_queue, _get_director_monitored_proposals, _get_evaluator_review_queue, _get_open_review_round, _get_or_create_open_review_round, _get_proposal_prohibited_evaluator_ids, _get_user_proposals_context
+from .target_helpers import all_campus_target_rows, available_target_years, campus_target_rows, overall_target_rows, resolve_target_year
 
 logger = logging.getLogger(__name__)
 
@@ -389,6 +390,10 @@ def director_dashboard(request):
 
     proposals_ctx = _get_user_proposals_context(request.user)
 
+    # Extension Targets for the dedicated Targets tab: institution-wide
+    # totals plus the per-campus tracker the quarterly reports feed.
+    target_year = resolve_target_year(request)
+
     context = {
         "profile": profile,
         "nav_notif_count": action_queue_count,
@@ -396,6 +401,10 @@ def director_dashboard(request):
         "review_queue": review_queue,
         "review_queue_count": action_queue_count,
         "monitored_page": monitored_page,
+        "target_year": target_year,
+        "target_years": available_target_years(),
+        "target_overall": overall_target_rows(target_year),
+        "targets_by_campus": all_campus_target_rows(target_year),
         "campus_stats": campus_stats,
         "institution_total": institution_total,
         "institution_pending": institution_pending,
@@ -889,6 +898,10 @@ def staff_dashboard(request):
         }
     )
 
+    # Extension Targets the campuses report against: the same tracker the
+    # coordinators' quarterly figures roll into, shown here for monitoring.
+    target_year = resolve_target_year(request)
+
     context = {
         "profile": profile,
         "nav_notif_count": (pending_count + draft_count + signed_pending_count + moa_active_count),
@@ -900,6 +913,10 @@ def staff_dashboard(request):
         "moa_queue": moa_queue,
         "moa_active_count": moa_active_count,
         "moa_draft_count": moa_draft_count,
+        "target_year": target_year,
+        "target_years": available_target_years(),
+        "target_overall": overall_target_rows(target_year),
+        "targets_by_campus": all_campus_target_rows(target_year),
     }
     return render(request, "dashboard/staff_dashboard.html", context)
 
@@ -919,6 +936,11 @@ def department_coordinator_dashboard(request):
         # Only proposals the coordinator's campus/dept can see
     ).count()
 
+    # Targets are set per campus; a department sits inside one, so the
+    # coordinator sees their campus's tracker read-only for context.
+    target_year = resolve_target_year(request)
+    target_campus = (getattr(profile, "campus", "") or "").strip()
+
     context = {
         "profile": profile,
         "nav_notif_count": (proposals_ctx.get("needs_attention_count", 0) + action_queue_count),
@@ -927,6 +949,10 @@ def department_coordinator_dashboard(request):
         "review_queue_count": review_queue.count(),
         "action_queue_count": action_queue_count,
         "pending_review_count": pending_review,
+        "target_year": target_year,
+        "target_years": available_target_years(),
+        "campus_target_campus": target_campus,
+        "campus_targets": campus_target_rows(target_campus, target_year),
     }
     return render(request, "dashboard/department_coordinator_dashboard.html", context)
 
@@ -951,6 +977,12 @@ def campus_coordinator_dashboard(request):
     # badge, because the whole point is that the coordinator notices them.
     pending_report_requests = open_requests_for_campus(getattr(profile, "campus", ""))
 
+    # This campus's Extension Targets: the yearly figures the coordinator's
+    # quarterly answers roll into, shown here so progress is visible where
+    # the reports are filed.
+    target_year = resolve_target_year(request)
+    target_campus = (getattr(profile, "campus", "") or "").strip()
+
     context = {
         "profile": profile,
         "nav_notif_count": (
@@ -964,6 +996,10 @@ def campus_coordinator_dashboard(request):
         "action_queue_count": action_queue_count,
         "pending_review_count": pending_review,
         "pending_report_requests": pending_report_requests,
+        "target_year": target_year,
+        "target_years": available_target_years(),
+        "campus_target_campus": target_campus,
+        "campus_targets": campus_target_rows(target_campus, target_year),
     }
     return render(request, "dashboard/campus_coordinator_dashboard.html", context)
 

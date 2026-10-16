@@ -163,6 +163,13 @@ from .reports import (  # noqa: F401
     can_view_quarterly_requests,
     user_has_capability,
 )
+from .target_helpers import (  # noqa: F401
+    all_campus_target_rows,
+    available_target_years,
+    campus_target_rows,
+    overall_target_rows,
+    resolve_target_year,
+)
 from .cms import (  # noqa: F401
     PAGE_PUBLIC_URL_NAMES,
     content_source_reorder,
