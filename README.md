@@ -99,6 +99,7 @@ python manage.py check_file_storage --config-only  # settings only, no network
 | `tests/process-steps.test.cjs` | Outline maths for the nested step editor (`node --test tests/*.test.cjs`) |
 | `accounts/tests/test_toasts.py` | Toasts: every page mounts the toaster, messages reach it, no native alerts, no leaked `{# #}` comment |
 | `tests/nexus-toast.test.cjs` | The toast helper: waiting for the module, the plain fallback, message tags → toast types |
+| `tests/dashboard-views.test.cjs` | The proposal table/card switch: icon-only toggles, proposal tables only, the saved preference (`node --test tests/*.test.cjs`) |
 
 `accounts/tests/factories.py` builds users with a given role. Use it rather
 than calling `create_user` directly — a signal creates a `FACULTY` profile on

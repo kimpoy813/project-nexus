@@ -1,57 +1,91 @@
-/* Shared table/card presentation controls for role dashboards. */
+/* Shared table/card presentation controls for role dashboards.
+
+   The switch is icon-only: the pressed button inverts its own icon, so the
+   two glyphs carry the meaning without a text label beside them. */
 .dashboard-view-toolbar {
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: .35rem;
-    margin: 0 0 .75rem;
+    margin: 0 0 .6rem;
 }
-.dashboard-view-toolbar__label { font-size: .75rem; font-weight: 600; color: #64748b; margin-right: .25rem; }
 .dashboard-view-toggle {
-    border: 1px solid #dbe2ea;
+    align-items: center;
     background: #fff;
-    border-radius: .5rem;
+    border: 1px solid #dbe2ea;
+    border-radius: .75rem;
     color: #475569;
     cursor: pointer;
-    font-size: .75rem;
-    font-weight: 700;
-    padding: .42rem .7rem;
+    display: inline-flex;
+    height: 2.25rem;
+    justify-content: center;
+    padding: 0;
+    transition: background .15s, border-color .15s, color .15s;
+    width: 2.25rem;
 }
-.dashboard-view-toggle:hover { background: #f8fafc; }
+.dashboard-view-toggle:hover { background: #f8fafc; border-color: #cbd5e1; color: #334155; }
 .dashboard-view-toggle[aria-pressed="true"] { background: var(--nexus-primary, #103b07); border-color: var(--nexus-primary, #103b07); color: #fff; }
+.dashboard-view-toggle[aria-pressed="true"]:hover { background: var(--nexus-primary, #103b07); color: #fff; }
 
-/* The existing semantic table becomes a readable stack of cards in card view. */
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view,
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view tbody,
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view tr,
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view td { display: block; width: 100%; }
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view thead { display: none; }
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view tbody { padding: .75rem; background: #f8fafc; }
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view tr {
+/* The existing semantic table becomes a readable stack of cards in card view:
+   the first column becomes the card head, every other cell a labelled field.
+   The rules are scoped to the app shell so they outrank the shared table
+   geometry in css/nexus-components.css. */
+.nexus-shell .dashboard-data-table.dashboard-cards-view,
+.nexus-shell .dashboard-data-table.dashboard-cards-view tbody,
+.nexus-shell .dashboard-data-table.dashboard-cards-view tr,
+.nexus-shell .dashboard-data-table.dashboard-cards-view td,
+.nexus-shell .dashboard-data-table.dashboard-cards-view th { display: block; width: 100%; }
+.nexus-shell .dashboard-data-table.dashboard-cards-view thead { display: none; }
+.nexus-shell .dashboard-data-table.dashboard-cards-view tbody { background: #f8fafc; padding: .75rem; }
+.nexus-shell .dashboard-data-table.dashboard-cards-view tr {
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: .75rem;
     box-shadow: 0 1px 2px rgb(15 23 42 / .04);
     margin: 0 0 .75rem;
     overflow: hidden;
-    padding: .25rem 0;
+    padding: 0;
 }
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view td {
+.nexus-shell .dashboard-data-table.dashboard-cards-view tr:last-child { margin-bottom: 0; }
+.nexus-shell .dashboard-data-table.dashboard-cards-view :is(td, th) {
     border: 0;
-    min-height: 2.3rem;
-    padding: .55rem 1rem;
+    padding: .6rem 1rem;
+    vertical-align: top;
+    white-space: normal;
 }
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view td::before {
-    color: #64748b;
+.nexus-shell .dashboard-data-table.dashboard-cards-view :is(td, th)::before {
+    color: #94a3b8;
     content: attr(data-card-label);
     display: block;
-    font-size: .67rem;
+    font-size: .65rem;
     font-weight: 700;
-    letter-spacing: .04em;
+    letter-spacing: .06em;
     margin-bottom: .15rem;
     text-transform: uppercase;
 }
-[data-dashboard-view] .dashboard-data-table.dashboard-cards-view td:last-child { border-top: 1px solid #f1f5f9; }
+/* The leading column carries the proposal title, so it heads the card. */
+.nexus-shell .dashboard-data-table.dashboard-cards-view :is(td, th):first-child {
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+    color: #0f172a;
+    font-size: .95rem;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: .8rem 1rem .6rem;
+}
+.nexus-shell .dashboard-data-table.dashboard-cards-view :is(td, th):first-child::before { content: none; }
+/* The trailing column carries the row actions, so it is set apart. */
+.nexus-shell .dashboard-data-table.dashboard-cards-view :is(td, th):last-child {
+    border-top: 1px solid #f1f5f9;
+    padding-top: .75rem;
+}
+/* Truncated cell text should wrap once the row is a full-width card. */
+.nexus-shell .dashboard-data-table.dashboard-cards-view td :is(p, span).truncate {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+}
 @media (max-width: 640px) {
     .dashboard-view-toolbar { justify-content: flex-start; }
 }

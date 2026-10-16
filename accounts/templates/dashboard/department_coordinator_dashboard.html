@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="nx-dash" data-dashboard-view>
+<div class="nx-dash">
 <div class="nx-dash__inner">
 
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8 nx-page-header">
@@ -167,7 +167,7 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100 nx-table">
+            <table data-proposal-table class="min-w-full divide-y divide-gray-100 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
@@ -265,7 +265,7 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100 nx-table">
+            <table data-proposal-table class="min-w-full divide-y divide-gray-100 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
@@ -338,7 +338,7 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-100 nx-table">
+            <table data-proposal-table class="min-w-full divide-y divide-gray-100 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
