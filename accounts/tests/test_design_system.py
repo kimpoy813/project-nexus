@@ -73,3 +73,54 @@ class ComponentContractTests(SimpleTestCase):
                         counts[component] += component in classes.split()
         for component, minimum in {'nx-btn': 400, 'nx-panel': 200, 'nx-page-title': 70, 'nx-table': 30, 'nx-badge': 150}.items():
             self.assertGreaterEqual(counts[component], minimum, component)
+
+
+class ProposalPresentationTests(SimpleTestCase):
+    """The table/card switch belongs to proposal tables only.
+
+    Matrix tables (extension targets, campus statistics, user lists) lose
+    their meaning when each row becomes a card, so they stay tables.
+    """
+
+    dashboards = settings.BASE_DIR / 'accounts/templates/dashboard'
+
+    def test_only_proposal_tables_are_marked_for_the_card_switch(self):
+        expected = {
+            'evaluator_dashboard.html': 3,
+            'staff_dashboard.html': 3,
+            'campus_coordinator_dashboard.html': 3,
+            'department_coordinator_dashboard.html': 3,
+            'faculty_dashboard.html': 1,
+        }
+        for name, count in expected.items():
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                marked = re.findall(r'<table[^>]*data-proposal-table[^>]*>', text)
+                self.assertEqual(len(marked), count)
+
+    def test_tables_that_are_not_proposals_are_left_alone(self):
+        for name in ('admin_dashboard.html', 'director_dashboard.html', 'dashboard_base.html'):
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                self.assertNotIn('data-proposal-table', text)
+
+    def test_the_switch_is_icon_only(self):
+        faculty = (self.dashboards / 'faculty_dashboard.html').read_text()
+        self.assertIn('data-proposal-view="table"', faculty)
+        self.assertIn('data-proposal-view="cards"', faculty)
+        self.assertIn('aria-label="Table view"', faculty)
+        self.assertIn('aria-label="Card view"', faculty)
+        self.assertNotIn('Table View', faculty)
+        self.assertNotIn('Card View', faculty)
+        # The glyphs are the same inline icons the rest of the system draws.
+        self.assertIn('viewBox="0 0 20 20" fill="currentColor"', faculty)
+
+    def test_the_switch_ships_no_text_caption(self):
+        script = (settings.BASE_DIR / 'static/js/dashboard-views.js').read_text()
+        self.assertNotIn('dashboard-view-toolbar__label', script)
+        self.assertNotIn('>View<', script)
+
+    def test_card_view_is_scoped_to_the_switched_tables(self):
+        css = (settings.BASE_DIR / 'static/css/dashboard-views.css').read_text()
+        self.assertIn('.dashboard-data-table.dashboard-cards-view', css)
+        self.assertNotIn('[data-dashboard-view]', css)
