@@ -7,10 +7,11 @@
    cards for the card view — and keep their accessible names for assistive
    technology and for the hover tooltip. */
 .dashboard-view-toolbar {
-    /* A hand-built switch (the faculty dashboard) already sits inside a
-       padded panel body. A switch injected above a plain proposal table lands
-       directly in an unpadded card, where it would hug the header rule and
-       the panel edge, so those give the pill its own breathing room. */
+    /* The switch normally sits in the panel header, which is a flush flex row,
+       so it needs no margins of its own. The fallback placements (a switch
+       injected above a plain proposal table) land in an unpadded card body
+       where they would hug the header rule and the panel edge, so those keep
+       their own breathing room. */
     --switch-inset-x: 0rem;
     --switch-inset-top: 0rem;
     --switch-segment: 2.75rem;
@@ -28,15 +29,42 @@
     box-shadow: inset 0 1px 2px rgb(15 23 42 / .04);
     position: relative;
 }
+/* The switch shares the header row with the section title: title and
+   description on the left, the pill pinned to the right edge. The row wraps
+   so a long title can push the pill onto its own line on narrow screens
+   instead of squeezing it; the auto margin keeps it right-aligned there too. */
+.dashboard-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+}
+.dashboard-panel-head > :first-child { min-width: 0; }
+.dashboard-panel-head__aside {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: .5rem;
+    margin-left: auto;
+}
+.dashboard-view-toolbar-slot {
+    display: flex;
+    flex: none;
+    margin-left: auto;
+}
+.dashboard-panel-head__aside .dashboard-view-toolbar-slot { margin-left: 0; }
+.dashboard-panel-head .dashboard-view-toolbar {
+    flex: none;
+    margin: 0 0 0 auto;
+}
 .nx-card > .dashboard-view-toolbar {
     --switch-inset-x: 1.25rem;
     --switch-inset-top: .875rem;
     margin-bottom: .625rem;
 }
-/* A layout that sits flush in the card body (the coordinator/evaluator/staff
-   proposal panels) injects its switch the same way a bare table does, so the
-   pill keeps the same clearance. The faculty layout nests inside a padded
-   panel body and is left alone. */
+/* Fallback: a layout with no header slot still gets the switch above its
+   panels, with the same clearance from the card edge. */
 .nx-card > [data-proposal-layout] > .dashboard-view-toolbar {
     --switch-inset-x: 1.25rem;
     --switch-inset-top: .875rem;

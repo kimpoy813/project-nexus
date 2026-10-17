@@ -201,16 +201,19 @@
 
     <!-- MOA Draft Workflow Queue -->
     <div class="nx-card mb-8 nx-panel">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-start sm:items-center justify-between gap-4">
-            <div>
+        <div class="dashboard-panel-head border-b border-gray-100 px-6 py-4">
+            <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-gray-900">MOA Draft Workflow Queue</h2>
                 <p class="text-sm text-gray-600 mt-1">
                     Submitted or generated MOA drafts that Staff or the Director can prepare for Legal Review, revision, certification, agenda, and completion.
                 </p>
             </div>
-            <span class="shrink-0 inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-sm font-medium text-purple-700 nx-badge">
-                {{ moa_active_count|default:0 }} active
-            </span>
+            <div class="dashboard-panel-head__aside">
+                <span class="shrink-0 inline-flex items-center rounded-full bg-purple-50 px-3 py-1 text-sm font-medium text-purple-700 nx-badge">
+                    {{ moa_active_count|default:0 }} active
+                </span>
+                <div class="dashboard-view-toolbar-slot" data-proposal-view-slot></div>
+            </div>
         </div>
 
         <div data-proposal-layout>
@@ -399,16 +402,19 @@
 
     <!-- Signed Proposal Verification -->
     <div class="nx-card mb-8 nx-panel">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-start sm:items-center justify-between gap-4">
-            <div>
+        <div class="dashboard-panel-head border-b border-gray-100 px-6 py-4">
+            <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-gray-900">Signed Proposal Verification</h2>
                 <p class="text-sm text-gray-600 mt-1">
                     Review signed proposals uploaded by proponents, then proceed to release approval documents.
                 </p>
             </div>
-            <span class="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary nx-badge">
-                {{ signed_pending_count|default:0 }} pending
-            </span>
+            <div class="dashboard-panel-head__aside">
+                <span class="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary nx-badge">
+                    {{ signed_pending_count|default:0 }} pending
+                </span>
+                <div class="dashboard-view-toolbar-slot" data-proposal-view-slot></div>
+            </div>
         </div>
 
         <div data-proposal-layout>
@@ -569,18 +575,21 @@
 
     <!-- Summary Queue -->
     <div class="nx-card nx-panel">
-        <div class="border-b border-gray-100 px-6 py-4 flex items-start sm:items-center justify-between gap-4">
-            <div>
+        <div class="dashboard-panel-head border-b border-gray-100 px-6 py-4">
+            <div class="min-w-0">
                 <h2 class="text-lg font-semibold text-gray-900">Summary Preparation Queue</h2>
                 <p class="text-sm text-gray-600 mt-1">
                     Proposals marked by the Director as ready for comment summary preparation.
                 </p>
             </div>
-            {% if summary_queue %}
-            <span class="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary nx-badge">
-                {{ summary_queue|length }} proposal{{ summary_queue|length|pluralize }}
-            </span>
-            {% endif %}
+            <div class="dashboard-panel-head__aside">
+                {% if summary_queue %}
+                <span class="shrink-0 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary nx-badge">
+                    {{ summary_queue|length }} proposal{{ summary_queue|length|pluralize }}
+                </span>
+                {% endif %}
+                <div class="dashboard-view-toolbar-slot" data-proposal-view-slot></div>
+            </div>
         </div>
 
         <div data-proposal-layout>

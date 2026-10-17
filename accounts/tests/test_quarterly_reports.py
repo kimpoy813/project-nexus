@@ -276,6 +276,12 @@ class CoordinatorSubmissionTests(TestCase):
         # The answer rows for every target category are offered.
         for _value, label in Target.METRIC_CHOICES:
             self.assertContains(response, label)
+        # The form does not restate the filing scope or explain the answer
+        # rows above them; the inputs stand on their own.
+        self.assertNotContains(response, "Filing for")
+        self.assertNotContains(
+            response, "How much of your target did this quarter include?"
+        )
 
     def test_submission_links_the_request_and_records_the_quarter_actuals(self):
         Target.objects.create(
@@ -474,7 +480,7 @@ class DepartmentCoordinatorSubmissionTests(TestCase):
         response = self.client_coordinator.get(reverse("accomplishment_report_create"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "How much of your target did this quarter include?")
+        self.assertNotContains(response, 'name="target_programs"')
 
     def test_posted_category_values_are_ignored(self):
         response = self.client_coordinator.post(

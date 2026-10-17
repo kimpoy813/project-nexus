@@ -151,6 +151,57 @@ test('works when browser storage is blocked', () => {
     assert.equal(panels[0].hidden, false);
 });
 
+test('injects the switch into the panel header slot beside the title', () => {
+    const slot = createElement('div');
+    slot.dataset.proposalViewSlot = '';
+    const panels = ['table', 'cards'].map((view) => ({ dataset: { proposalPanel: view } }));
+    const card = {
+        querySelectorAll: () => [],
+        querySelector: (selector) => (selector === '[data-proposal-view-slot]' ? slot : null),
+    };
+    const root = {
+        firstChild: null,
+        querySelectorAll: (selector) => (selector === '[data-proposal-panel]' ? panels : []),
+        closest: (selector) => (selector === '.nx-panel, .nx-card' ? card : null),
+        insertBefore(node) { this.inserted = node; },
+    };
+
+    run({ layouts: [root] });
+
+    assert.equal(slot.children.length, 1, 'the switch fills the header slot');
+    const toolbar = slot.children[0];
+    assert.equal(toolbar.className, 'dashboard-view-toolbar');
+    assert.equal(toolbar.children.length, 2);
+    assert.equal(root.inserted, undefined, 'the switch is not dropped below the header');
+    assert.equal(panels[1].hidden, false, 'the layout still defaults to cards');
+});
+
+test('a hand-built switch in the panel header drives its layout', () => {
+    const panels = ['table', 'cards'].map((view) => ({ dataset: { proposalPanel: view } }));
+    const buttons = ['table', 'cards'].map((view) => ({
+        dataset: { proposalView: view },
+        setAttribute(name, value) { this[name] = value; },
+        addEventListener(event, callback) { this.click = callback; },
+    }));
+    const card = {
+        querySelectorAll: (selector) => (selector === '[data-proposal-view]' ? buttons : []),
+        querySelector: () => null,
+    };
+    const root = {
+        querySelectorAll: (selector) => (selector === '[data-proposal-panel]' ? panels : []),
+        closest: () => card,
+    };
+
+    const { storage } = run({ layouts: [root] });
+
+    assert.equal(panels[1].hidden, false);
+    assert.equal(buttons[1]['aria-pressed'], 'true');
+    buttons[0].click();
+    assert.equal(panels[0].hidden, false);
+    assert.equal(panels[1].hidden, true);
+    assert.equal(storage.value, 'table');
+});
+
 /* ---------------------------------------------------------------------------
  * Plain proposal tables.
  * ------------------------------------------------------------------------ */
