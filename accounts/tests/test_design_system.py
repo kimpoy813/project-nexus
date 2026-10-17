@@ -152,10 +152,32 @@ class ProposalPresentationTests(SimpleTestCase):
         self.assertNotIn('.nexus-shell .dashboard-view-toggle[aria-pressed="true"]', shared)
         self.assertNotIn(':is(.dashboard-view-toggle, .quick-tab-btn, .nx-step-btn)', shared)
 
-    def test_the_switch_keeps_clear_of_the_panel_edge(self):
+    def test_the_switch_sits_beside_the_panel_title(self):
+        """The switch shares the header row instead of taking its own row."""
         css = (settings.BASE_DIR / 'static/css/dashboard-views.css').read_text()
-        # Switches injected into a bare card carry their own inset instead of
-        # hugging the header rule and the panel edge.
+        self.assertIn('.dashboard-panel-head {', css)
+        self.assertIn('.dashboard-panel-head .dashboard-view-toolbar {', css)
+        self.assertIn('margin-left: auto', css)
+        # Every proposal panel leaves a slot for the switch in its header.
+        for name in (
+            'evaluator_dashboard.html',
+            'staff_dashboard.html',
+            'campus_coordinator_dashboard.html',
+            'department_coordinator_dashboard.html',
+        ):
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                self.assertEqual(text.count('class="dashboard-panel-head border-b'), 3)
+                self.assertEqual(text.count('data-proposal-view-slot'), 3)
+        # The faculty dashboard ships its switch inside the header, above the
+        # layouts it drives rather than below the heading.
+        faculty = (self.dashboards / 'faculty_dashboard.html').read_text()
+        head = faculty.index('dashboard-panel-head')
+        toolbar = faculty.index('class="dashboard-view-toolbar"')
+        layout = faculty.index('data-proposal-layout')
+        self.assertLess(head, toolbar)
+        self.assertLess(toolbar, layout)
+        # The fallback placement above a bare table still keeps its inset.
         self.assertIn('.nx-card > .dashboard-view-toolbar', css)
         self.assertIn('--switch-inset-x: 1.25rem', css)
 

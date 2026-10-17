@@ -72,6 +72,34 @@
         return toolbar;
     }
 
+    /* The switch sits in the panel header, at the right edge of the section
+       title, so find the card that wraps a layout instead of dropping the
+       switch into the panel body below the header. */
+    function closestCard(root) {
+        return typeof root.closest === 'function' ? root.closest('.nx-panel, .nx-card') : null;
+    }
+
+    /* A template may ship the switch in its header (the faculty dashboard), or
+       leave a slot there for this script to fill, so look at both before
+       building a new one. */
+    function findToggles(root) {
+        const own = root.querySelectorAll('[data-proposal-view]');
+        if (own.length) return Array.from(own);
+        const card = closestCard(root);
+        return card ? Array.from(card.querySelectorAll('[data-proposal-view]')) : [];
+    }
+
+    function placeToolbar(root, toolbar) {
+        const card = closestCard(root);
+        const slot = card && card.querySelector('[data-proposal-view-slot]');
+        if (slot) {
+            slot.appendChild(toolbar);
+            return;
+        }
+        // No header slot: keep the switch above the panels rather than lose it.
+        root.insertBefore(toolbar, root.firstChild);
+    }
+
     function markCardLabels(table) {
         const headings = Array.from(table.querySelectorAll('thead th')).map(text);
         table.querySelectorAll('tbody tr').forEach((row) => {
@@ -88,8 +116,14 @@
         markCardLabels(table);
 
         const toolbar = buildToolbar('Choose proposal layout');
-        const anchor = table.closest('.overflow-x-auto') || table;
-        anchor.parentNode.insertBefore(toolbar, anchor);
+        const card = closestCard(table);
+        const slot = card && card.querySelector('[data-proposal-view-slot]');
+        if (slot) {
+            slot.appendChild(toolbar);
+        } else {
+            const anchor = table.closest('.overflow-x-auto') || table;
+            anchor.parentNode.insertBefore(toolbar, anchor);
+        }
 
         const buttons = Array.from(toolbar.querySelectorAll('[data-proposal-view]'));
         controllers.push({
@@ -111,11 +145,12 @@
 
     /* A hand-built table/card pair: show the panel that matches the view. */
     function enhanceLayout(root) {
-        let buttons = Array.from(root.querySelectorAll('[data-proposal-view]'));
+        let buttons = findToggles(root);
         if (!buttons.length) {
-            // The template did not ship a switch; provide the same one.
+            // The template did not ship a switch; provide the same one in the
+            // header slot beside the section title.
             const toolbar = buildToolbar('Choose proposal layout');
-            root.insertBefore(toolbar, root.firstChild);
+            placeToolbar(root, toolbar);
             buttons = Array.from(toolbar.querySelectorAll('[data-proposal-view]'));
         }
         controllers.push({

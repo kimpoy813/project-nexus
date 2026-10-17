@@ -126,14 +126,11 @@
     {% endif %}
 
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm nx-panel">
-        <div class="border-b border-gray-100 px-5 py-3">
-            <h2 class="text-base font-semibold text-gray-900">My Proposals</h2>
-            <p class="mt-0.5 text-xs text-gray-600">Track your proposals across the Proposal, MOA, and Implementation phases.</p>
-        </div>
-
-        <div class="p-5">
-            {% if all_proposals %}
-            <div data-proposal-layout>
+        <div class="dashboard-panel-head border-b border-gray-100 px-5 py-3">
+            <div class="min-w-0">
+                <h2 class="text-base font-semibold text-gray-900">My Proposals</h2>
+                <p class="mt-0.5 text-xs text-gray-600">Track your proposals across the Proposal, MOA, and Implementation phases.</p>
+            </div>
             <div class="dashboard-view-toolbar" role="group" aria-label="Proposal view">
                 <button type="button" class="dashboard-view-toggle" data-proposal-view="table" aria-label="Table view" title="Table view" aria-pressed="false">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -150,6 +147,11 @@
                     </svg>
                 </button>
             </div>
+        </div>
+
+        <div class="p-5">
+            {% if all_proposals %}
+            <div data-proposal-layout>
             <div data-proposal-panel="table" hidden class="proposal-table-scroll" role="region" aria-label="Extension proposals table" tabindex="0">
                 <table class="nx-table proposal-table" data-proposal-table>
                     <caption class="sr-only">My extension proposals</caption>
