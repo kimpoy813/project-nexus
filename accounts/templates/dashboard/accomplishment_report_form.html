@@ -66,15 +66,8 @@
 
     {% if is_campus_coordinator %}
       {# Campus Coordinators file for their own campus only, so there is no #}
-      {# scope to pick: the report is bound to the campus below on save. #}
-      {% if filing_campus %}
-        <div class="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4">
-          <p class="text-sm text-gray-700">
-            Filing for <span class="font-black text-gray-900">{{ filing_campus }}</span>
-            <span class="text-gray-500">&mdash; your assigned campus. This is a campus-wide report, so no college or department is needed.</span>
-          </p>
-        </div>
-      {% else %}
+      {# scope to pick and no need to restate it above the form. #}
+      {% if not filing_campus %}
         <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
           <p class="text-sm font-bold text-red-800">Your account has no campus assigned yet.</p>
           <p class="mt-1 text-sm text-red-700">Ask the Admin to set your campus before filing a report.</p>
@@ -113,14 +106,8 @@
     </div>
 
     {% if can_answer_targets %}
-    <section class="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-      <h2 class="text-sm font-black text-gray-900">How much of your target did this quarter include?</h2>
-      <p class="mt-1 text-xs text-gray-600">
-        Answer for each category. The figure is saved as this quarter's actual on the
-        campus Target tracker, replacing any earlier answer for the same quarter &mdash;
-        it is not added to it.
-      </p>
-      <div class="mt-4 space-y-3">
+    <div class="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+      <div class="space-y-3">
         {% for row in target_rows %}
           <div class="grid grid-cols-1 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:grid-cols-[1fr_10rem]">
             <div>
@@ -141,7 +128,7 @@
           </div>
         {% endfor %}
       </div>
-    </section>
+    </div>
     {% endif %}
 
     <div><label class="block text-sm font-bold text-gray-700 mb-1" for="field-narrative">Narrative / Highlights</label><textarea id="field-narrative" name="narrative" rows="5" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ values.narrative }}</textarea></div>
