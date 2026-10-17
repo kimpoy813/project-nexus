@@ -33,6 +33,15 @@
     --switch-inset-top: .875rem;
     margin-bottom: .625rem;
 }
+/* A layout that sits flush in the card body (the coordinator/evaluator/staff
+   proposal panels) injects its switch the same way a bare table does, so the
+   pill keeps the same clearance. The faculty layout nests inside a padded
+   panel body and is left alone. */
+.nx-card > [data-proposal-layout] > .dashboard-view-toolbar {
+    --switch-inset-x: 1.25rem;
+    --switch-inset-top: .875rem;
+    margin-bottom: .625rem;
+}
 /* The thumb: it slides under whichever icon is pressed. */
 .dashboard-view-toolbar::before {
     content: "";

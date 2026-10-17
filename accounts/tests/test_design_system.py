@@ -168,3 +168,101 @@ class ProposalPresentationTests(SimpleTestCase):
         css = (settings.BASE_DIR / 'static/css/dashboard-views.css').read_text()
         self.assertIn('.dashboard-data-table.dashboard-cards-view', css)
         self.assertNotIn('[data-dashboard-view]', css)
+
+
+class SpeedometerGaugeCardTests(SimpleTestCase):
+    """The faculty speedometer gauge card is the proposal card everywhere.
+
+    Every role dashboard that lists proposals pairs its table with the same
+    gauge card: a doughnut banded into the Proposal / MOA / Implementation
+    phase zones that counts up to the proposal's overall progress.
+    """
+
+    dashboards = settings.BASE_DIR / 'accounts/templates/dashboard'
+
+    gauge_dashboards = (
+        'faculty_dashboard.html',
+        'evaluator_dashboard.html',
+        'staff_dashboard.html',
+        'campus_coordinator_dashboard.html',
+        'department_coordinator_dashboard.html',
+        'director_dashboard.html',
+        'dashboard_base.html',
+    )
+
+    def test_every_proposal_dashboard_ships_the_gauge_card(self):
+        for name in self.gauge_dashboards:
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                self.assertIn('gaugeChart', text)
+                self.assertIn('function createDoughnutGauge', text)
+                self.assertIn('animateDoughnutGauge', text)
+
+    def test_the_card_shows_the_phase_zones_and_the_progress_readout(self):
+        for name in self.gauge_dashboards:
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                self.assertIn('nexusPhaseShares', text)
+                self.assertIn('>Progress<', text)
+                for zone in ('>Proposal<', '>MOA<', '>Implementation<'):
+                    self.assertIn(zone, text)
+
+    def test_the_gauge_arc_matches_the_faculty_card(self):
+        """Zone colours, arc geometry and the white unfinished mask are shared."""
+        faculty = (self.dashboards / 'faculty_dashboard.html').read_text()
+        for token in (
+            "#103b07",  # Proposal zone
+            "#5a1113",  # MOA zone
+            "#facc15",  # Implementation zone
+            "rgba(255,255,255,0.92)",  # unfinished mask
+            "(-234 * Math.PI) / 180",  # speedometer start angle
+            "(288 * Math.PI) / 180",  # speedometer sweep
+        ):
+            self.assertIn(token, faculty)
+            for name in (
+                'evaluator_dashboard.html',
+                'staff_dashboard.html',
+                'campus_coordinator_dashboard.html',
+                'department_coordinator_dashboard.html',
+            ):
+                with self.subTest(dashboard=name, token=token):
+                    self.assertIn(token, (self.dashboards / name).read_text())
+
+    def test_proposal_tables_are_paired_with_gauge_card_panels(self):
+        for name in (
+            'evaluator_dashboard.html',
+            'staff_dashboard.html',
+            'campus_coordinator_dashboard.html',
+            'department_coordinator_dashboard.html',
+        ):
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                self.assertEqual(text.count('data-proposal-layout'), 3)
+                self.assertEqual(text.count('data-proposal-panel="table"'), 3)
+                self.assertEqual(text.count('data-proposal-panel="cards"'), 3)
+
+
+class GaugeCardRenderingTests(TestCase):
+    """Each role dashboard renders a gauge per proposal it lists."""
+
+    def test_your_own_proposals_render_the_gauge_card(self):
+        cases = (
+            (factories.evaluator, 'evaluator_dashboard'),
+            (factories.department_coordinator, 'department_coordinator_dashboard'),
+            (factories.campus_coordinator, 'campus_coordinator_dashboard'),
+            (factories.faculty, 'faculty_dashboard'),
+        )
+        for factory, name in cases:
+            with self.subTest(dashboard=name):
+                user, client = factory(f'gauge_{name[:14]}')
+                proposal = Proposal.objects.create(created_by=user, title='Gauge Proposal')
+                response = client.get(reverse(name))
+                self.assertContains(response, f'id="gaugeChart{proposal.id}"')
+                self.assertContains(response, 'data-proposal-layout')
+
+    def test_staff_queue_proposals_render_the_gauge_card(self):
+        user, client = factories.staff('gauge_staff')
+        response = client.get(reverse('staff_dashboard'))
+        self.assertContains(response, 'function createDoughnutGauge')
+        self.assertContains(response, 'data-proposal-layout')
+        self.assertContains(response, 'data-proposal-panel="cards"')

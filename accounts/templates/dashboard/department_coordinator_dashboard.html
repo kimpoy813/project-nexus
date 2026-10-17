@@ -166,7 +166,8 @@
             </p>
         </div>
 
-        <div class="overflow-x-auto">
+        <div data-proposal-layout>
+        <div data-proposal-panel="table" hidden class="overflow-x-auto">
             <table data-proposal-table class="min-w-full divide-y divide-gray-100 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
@@ -253,6 +254,104 @@
                 </tbody>
             </table>
         </div>
+
+        <div data-proposal-panel="cards" class="p-5">
+            {% if review_queue %}
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {% for proposal in review_queue %}
+                <article class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md nx-panel">
+                    <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
+
+                    <div class="flex flex-1 flex-col p-4">
+                        <div class="mb-3 flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="line-clamp-2 text-sm font-bold leading-tight text-gray-900">
+                                    {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
+                                </h3>
+                                <p class="mt-0.5 text-xs text-gray-500">
+                                    {{ proposal.created_by.profile.full_name|default:proposal.created_by.username }} &middot; {{ proposal.get_scope_type_display|default:"—" }}
+                                </p>
+                            </div>
+
+                            <span class="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                                {% if proposal.overall_progress < 40 %}
+                                    bg-gray-100 text-gray-700
+                                {% elif proposal.overall_progress < 60 %}
+                                    bg-blue-100 text-blue-700
+                                {% elif proposal.overall_progress < 80 %}
+                                    bg-amber-100 text-amber-700
+                                {% elif proposal.overall_progress < 100 %}
+                                    bg-emerald-100 text-emerald-700
+                                {% else %}
+                                    bg-green-100 text-green-700
+                                {% endif %}
+                            ">
+                                {{ proposal.current_phase_label|default:"Proposal" }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="relative h-[102px] w-[102px] shrink-0">
+                                <canvas id="gaugeChart{{ proposal.id }}" class="h-full w-full"></canvas>
+                                <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <div id="gaugeText{{ proposal.id }}" class="text-xl font-extrabold leading-none text-gray-900">0%</div>
+                                        <div class="mt-0.5 text-[8px] uppercase tracking-wider text-gray-400">Progress</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1 space-y-2">
+                                <div>
+                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</p>
+                                    <p class="line-clamp-2 text-xs font-semibold text-gray-900">{{ proposal.current_status_label|default:proposal.get_proposal_status_display|default:"—" }}</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[10px] text-gray-500">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                        <span>Proposal</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                                        <span>MOA</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
+                                        <span>Implementation</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                            <div class="min-w-0">
+                                <p class="text-[10px] uppercase tracking-wide text-gray-400">Submitted</p>
+                                <p class="text-xs text-gray-700">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                                <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
+                                   class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary hover:text-white nx-btn nx-btn--secondary">
+                                    Review
+                                </a>
+                                <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center nx-panel">
+                <h3 class="text-base font-semibold text-gray-900">No proposals waiting for department review.</h3>
+            </div>
+            {% endif %}
+        </div>
+        </div>
     </div>
 
     <!-- Drafts -->
@@ -264,7 +363,8 @@
             </p>
         </div>
 
-        <div class="overflow-x-auto">
+        <div data-proposal-layout>
+        <div data-proposal-panel="table" hidden class="overflow-x-auto">
             <table data-proposal-table class="min-w-full divide-y divide-gray-100 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
@@ -326,6 +426,96 @@
                 </tbody>
             </table>
         </div>
+
+        <div data-proposal-panel="cards" class="p-5">
+            {% if drafts %}
+            <div id="draft-cards-grid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {% for proposal in drafts %}
+                <article id="draft-card-{{ proposal.id }}" class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md nx-panel">
+                    <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
+
+                    <div class="flex flex-1 flex-col p-4">
+                        <div class="mb-3 flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="line-clamp-2 text-sm font-bold leading-tight text-gray-900">
+                                    {{ proposal.title|default:proposal.research_title|default:"Untitled Draft" }}
+                                </h3>
+                                <p class="mt-0.5 text-xs text-gray-500">{{ proposal.get_scope_type_display|default:"—" }}</p>
+                            </div>
+
+                            <span class="shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">
+                                Draft
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="relative h-[102px] w-[102px] shrink-0">
+                                <canvas id="gaugeChart{{ proposal.id }}" class="h-full w-full"></canvas>
+                                <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <div id="gaugeText{{ proposal.id }}" class="text-xl font-extrabold leading-none text-gray-900">0%</div>
+                                        <div class="mt-0.5 text-[8px] uppercase tracking-wider text-gray-400">Progress</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1 space-y-2">
+                                <div>
+                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</p>
+                                    <p class="line-clamp-2 text-xs font-semibold text-gray-900">{{ proposal.current_status_label|default:"—" }}</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[10px] text-gray-500">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                        <span>Proposal</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                                        <span>MOA</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
+                                        <span>Implementation</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                            <div class="min-w-0">
+                                <p class="text-[10px] uppercase tracking-wide text-gray-400">Last Saved</p>
+                                <p class="text-xs text-gray-700">{{ proposal.last_saved_at|date:"M d, Y"|default:"—" }}</p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                                {% if proposal.created_by == request.user %}
+                                <button type="button"
+                                        onclick="openDeleteModal('{{ proposal.id }}', '{% url 'faculty_delete_draft' proposal.id %}', '{{ proposal.title|default:proposal.research_title|default:'Untitled Draft'|escapejs }}')}"
+                                        class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 nx-btn nx-btn--secondary">
+                                    Delete Draft
+                                </button>
+                                {% endif %}
+                                <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
+                                    Continue
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            <div id="draft-cards-empty" class="hidden rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center nx-panel">
+                <h3 class="text-base font-semibold text-gray-900">No drafts yet.</h3>
+            </div>
+            {% else %}
+            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center nx-panel">
+                <h3 class="text-base font-semibold text-gray-900">No drafts yet.</h3>
+            </div>
+            {% endif %}
+        </div>
+        </div>
     </div>
 
     <!-- Submitted -->
@@ -337,7 +527,8 @@
             </p>
         </div>
 
-        <div class="overflow-x-auto">
+        <div data-proposal-layout>
+        <div data-proposal-panel="table" hidden class="overflow-x-auto">
             <table data-proposal-table class="min-w-full divide-y divide-gray-100 nx-table">
                 <thead class="bg-gray-50">
                     <tr>
@@ -437,6 +628,98 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <div data-proposal-panel="cards" class="p-5">
+            {% if submitted_proposals %}
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {% for proposal in submitted_proposals %}
+                <article class="group relative flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md nx-panel">
+                    <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-tertiary"></div>
+
+                    <div class="flex flex-1 flex-col p-4">
+                        <div class="mb-3 flex items-start justify-between gap-3">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="line-clamp-2 text-sm font-bold leading-tight text-gray-900">
+                                    {{ proposal.title|default:proposal.research_title|default:"Untitled Proposal" }}
+                                </h3>
+                                <p class="mt-0.5 text-xs text-gray-500">{{ proposal.get_scope_type_display|default:"—" }}</p>
+                            </div>
+
+                            <span class="shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                                {% if proposal.overall_progress < 40 %}
+                                    bg-gray-100 text-gray-700
+                                {% elif proposal.overall_progress < 60 %}
+                                    bg-blue-100 text-blue-700
+                                {% elif proposal.overall_progress < 80 %}
+                                    bg-amber-100 text-amber-700
+                                {% elif proposal.overall_progress < 100 %}
+                                    bg-emerald-100 text-emerald-700
+                                {% else %}
+                                    bg-green-100 text-green-700
+                                {% endif %}
+                            ">
+                                {{ proposal.current_phase_label|default:"Proposal" }}
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <div class="relative h-[102px] w-[102px] shrink-0">
+                                <canvas id="gaugeChart{{ proposal.id }}" class="h-full w-full"></canvas>
+                                <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                    <div class="text-center">
+                                        <div id="gaugeText{{ proposal.id }}" class="text-xl font-extrabold leading-none text-gray-900">0%</div>
+                                        <div class="mt-0.5 text-[8px] uppercase tracking-wider text-gray-400">Progress</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="min-w-0 flex-1 space-y-2">
+                                <div>
+                                    <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Status</p>
+                                    <p class="line-clamp-2 text-xs font-semibold text-gray-900">{{ proposal.current_status_label|default:"—" }}</p>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[10px] text-gray-500">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                        <span>Proposal</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-secondary"></span>
+                                        <span>MOA</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="h-2 w-2 rounded-full bg-yellow-400 border border-yellow-300"></span>
+                                        <span>Implementation</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto flex items-center justify-between gap-3 border-t border-gray-100 pt-3">
+                            <div class="min-w-0">
+                                <p class="text-[10px] uppercase tracking-wide text-gray-400">Submitted</p>
+                                <p class="text-xs text-gray-700">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                                <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center nx-panel">
+                <h3 class="text-base font-semibold text-gray-900">No submitted proposals yet.</h3>
+            </div>
+            {% endif %}
+        </div>
         </div>
     </div>
 </div>
@@ -554,6 +837,18 @@ async function deleteDraft(proposalId, url) {
             row.remove();
         }
 
+        const card = document.getElementById(`draft-card-${proposalId}`);
+        if (card) {
+            card.remove();
+        }
+
+        const cardsGrid = document.getElementById("draft-cards-grid");
+        const cardsEmpty = document.getElementById("draft-cards-empty");
+        if (cardsGrid && cardsEmpty && cardsGrid.children.length === 0) {
+            cardsGrid.classList.add("hidden");
+            cardsEmpty.classList.remove("hidden");
+        }
+
         const draftCountEl = document.getElementById("draft-count");
         if (draftCountEl) {
             if (typeof data.draft_count !== "undefined") {
@@ -600,6 +895,155 @@ document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         closeDeleteModal();
     }
+});
+
+function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+}
+
+function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function createDoughnutGauge(canvas, percentage) {
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(width, height) / 2 - 8;
+    const lineWidth = 12;
+
+    const startAngle = (-234 * Math.PI) / 180;
+    const totalAngle = (288 * Math.PI) / 180;
+    const endAngle = startAngle + totalAngle;
+
+    const shares = nexusPhaseShares();
+
+    const zone1End = startAngle + totalAngle * shares.proposal;
+    const zone2End = startAngle + totalAngle * (shares.proposal + shares.moa);
+    const progressEnd = startAngle + totalAngle * (Math.max(0, Math.min(percentage, 100)) / 100);
+
+    ctx.lineCap = 'butt';
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#103b07';
+    ctx.lineWidth = lineWidth;
+    ctx.arc(centerX, centerY, radius, startAngle, zone1End, false);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#5a1113';
+    ctx.lineWidth = lineWidth;
+    ctx.arc(centerX, centerY, radius, zone1End, zone2End, false);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = lineWidth;
+    ctx.arc(centerX, centerY, radius, zone2End, endAngle, false);
+    ctx.stroke();
+
+    if (progressEnd < endAngle) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+        ctx.lineWidth = lineWidth - 1;
+        ctx.arc(centerX, centerY, radius, progressEnd, endAngle, false);
+        ctx.stroke();
+    }
+}
+
+function animateDoughnutGauge(canvas, textEl, finalPercentage) {
+    if (!canvas) return;
+
+    const target = Math.max(0, Math.min(100, Number(finalPercentage) || 0));
+    const riseDuration = 1400;
+    const holdDuration = 260;
+    const fallDuration = 1400;
+    const totalDuration = riseDuration + holdDuration + fallDuration;
+    const startTime = performance.now();
+
+    function frame(now) {
+        const elapsed = now - startTime;
+        let current;
+
+        if (elapsed <= riseDuration) {
+            const t = easeOutCubic(elapsed / riseDuration);
+            current = 100 * t;
+        } else if (elapsed <= riseDuration + holdDuration) {
+            current = 100;
+        } else if (elapsed <= totalDuration) {
+            const t = easeInOutCubic((elapsed - riseDuration - holdDuration) / fallDuration);
+            current = 100 - ((100 - target) * t);
+        } else {
+            current = target;
+        }
+
+        createDoughnutGauge(canvas, current);
+
+        if (textEl) {
+            textEl.textContent = `${Math.round(current)}%`;
+        }
+
+        if (elapsed < totalDuration) {
+            requestAnimationFrame(frame);
+        } else {
+            createDoughnutGauge(canvas, target);
+            if (textEl) textEl.textContent = `${Math.round(target)}%`;
+        }
+    }
+
+    requestAnimationFrame(frame);
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    {% for proposal in review_queue %}
+    (function () {
+        const canvas = document.getElementById("gaugeChart{{ proposal.id }}");
+        const textEl = document.getElementById("gaugeText{{ proposal.id }}");
+        if (!canvas) return;
+
+        canvas.width = 102;
+        canvas.height = 102;
+        canvas.style.width = '102px';
+        canvas.style.height = '102px';
+
+        animateDoughnutGauge(canvas, textEl, {{ proposal.overall_progress|default:0 }});
+    })();
+    {% endfor %}
+    {% for proposal in drafts %}
+    (function () {
+        const canvas = document.getElementById("gaugeChart{{ proposal.id }}");
+        const textEl = document.getElementById("gaugeText{{ proposal.id }}");
+        if (!canvas) return;
+
+        canvas.width = 102;
+        canvas.height = 102;
+        canvas.style.width = '102px';
+        canvas.style.height = '102px';
+
+        animateDoughnutGauge(canvas, textEl, {{ proposal.overall_progress|default:0 }});
+    })();
+    {% endfor %}
+    {% for proposal in submitted_proposals %}
+    (function () {
+        const canvas = document.getElementById("gaugeChart{{ proposal.id }}");
+        const textEl = document.getElementById("gaugeText{{ proposal.id }}");
+        if (!canvas) return;
+
+        canvas.width = 102;
+        canvas.height = 102;
+        canvas.style.width = '102px';
+        canvas.style.height = '102px';
+
+        animateDoughnutGauge(canvas, textEl, {{ proposal.overall_progress|default:0 }});
+    })();
+    {% endfor %}
 });
 </script>
 <script>
