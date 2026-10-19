@@ -120,6 +120,13 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 .nexus-shell .nx-btn--compact { min-height: var(--nx-control-compact); padding: .375rem .75rem; font-size: .8125rem; }
 .nexus-shell .nx-btn--icon { width: var(--nx-control-height); padding: .625rem; flex-shrink: 0; }
 .nexus-shell .nx-btn--icon.nx-btn--compact { width: var(--nx-control-compact); padding: .375rem; }
+/* Icon-only actions draw in the same brand green as every other icon in the
+   app (nav, tiles, inline glyphs) instead of the slate text color of a
+   secondary button. Filled primary actions keep their white glyph and
+   destructive actions keep the rose danger color. */
+.nexus-shell .nx-btn--icon:not(.nx-btn--primary):not(.nx-btn--danger) {
+  color: var(--nexus-primary, #103b07) !important;
+}
 .nexus-shell .nx-btn:disabled { cursor: not-allowed; opacity: .55; }
 .nexus-shell .nx-btn:focus-visible { outline: 2px solid var(--nexus-primary); outline-offset: 3px; }
 

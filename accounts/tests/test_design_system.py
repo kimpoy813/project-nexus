@@ -320,6 +320,28 @@ class ActionIconTests(SimpleTestCase):
         self.assertIn('M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793z', text)
         self.assertIn('M9 2a1 1 0 00-.894.553L7.382 4H4', text)
 
+    def test_neutral_icon_actions_take_the_app_icon_color(self):
+        """Icons use the brand green the rest of the app draws icons in.
+
+        Secondary buttons set a slate text color; icon-only actions must not
+        inherit it, or the row icons read as black next to the green nav/tile
+        glyphs. Filled primary (white) and destructive (rose) stay semantic.
+        """
+        css = (settings.BASE_DIR / 'static/css/nexus-components.css').read_text()
+        rule = re.search(
+            r'\.nx-btn--icon:not\(\.nx-btn--primary\):not\(\.nx-btn--danger\)\s*\{([^}]*)\}',
+            css,
+        )
+        self.assertIsNotNone(rule, 'neutral icon buttons get an explicit icon color')
+        self.assertIn('var(--nexus-primary', rule.group(1))
+        self.assertNotIn('#334155', rule.group(1))
+
+        # The two semantic variants keep their own glyph color.
+        primary = re.search(r'\.nx-btn--primary\s*\{([^}]*)\}', css).group(1)
+        danger = re.search(r'\.nx-btn--danger\s*\{([^}]*)\}', css).group(1)
+        self.assertIn('color: #fff', primary)
+        self.assertIn('color: #9f1239', danger)
+
     def test_the_sprite_is_loaded_once_for_the_whole_app(self):
         base = (settings.BASE_DIR / 'templates/base.html').read_text()
         self.assertEqual(base.count('partials/_icon_sprite.html'), 1)
