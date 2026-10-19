@@ -92,7 +92,13 @@
                 <span class="text-xs text-gray-400">Not filed</span>
               {% endif %}
             </td>
-            <td class="px-6 py-4">{% if report.attachment %}<a href="{{ report.attachment.url }}" target="_blank" rel="noopener" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">View file</a>{% else %}<span class="text-xs text-gray-400">None</span>{% endif %}</td>
+            <td class="px-6 py-4">{% if report.attachment %}
+              <a href="{{ report.attachment.url }}" target="_blank" rel="noopener"
+                 class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                 data-nx-tooltip="View attached file" aria-label="View attached file">
+                <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-paper-clip"></use></svg>
+              </a>
+              {% else %}<span class="text-xs text-gray-400">None</span>{% endif %}</td>
             <td class="px-6 py-4 text-right">
               <div class="nx-actions nx-actions--end">
                 <a href="{% url 'accomplishment_report_detail' report.pk %}"
