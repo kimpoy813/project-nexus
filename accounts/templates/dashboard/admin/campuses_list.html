@@ -11,11 +11,10 @@
         <p class="mt-1 text-sm text-gray-600 nx-page-description">Manage available campus selections for user registration and system scope.</p>
       </div>
 
-      <a href="{% url 'campus_create' %}" title="Add Campus"
-         class="inline-flex items-center justify-center rounded-xl bg-primary p-2.5 text-sm font-semibold text-white shadow-sm hover:bg-secondary nx-btn nx-btn--primary nx-btn--icon">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-        </svg>
+      <a href="{% url 'campus_create' %}"
+         class="nx-btn nx-btn--primary nx-btn--icon"
+         data-nx-tooltip="Add campus" aria-label="Add campus">
+        <svg class="nx-icon nx-icon--lg" aria-hidden="true"><use href="#nx-icon-plus"></use></svg>
       </a>
     </div>
 

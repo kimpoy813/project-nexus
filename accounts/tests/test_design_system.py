@@ -288,3 +288,86 @@ class GaugeCardRenderingTests(TestCase):
         self.assertContains(response, 'function createDoughnutGauge')
         self.assertContains(response, 'data-proposal-layout')
         self.assertContains(response, 'data-proposal-panel="cards"')
+
+
+class ActionIconTests(SimpleTestCase):
+    """Table actions draw from one icon set, in the style of the app's icons.
+
+    The add / edit / delete icons these pages already shipped are Heroicons
+    v1.0.6 20/solid glyphs. Row actions reuse that exact set (one 20x20 grid,
+    solid fill, currentColor) instead of mixing in outline or 24px icons.
+    """
+
+    sprite = settings.BASE_DIR / 'templates/partials/_icon_sprite.html'
+    templates = settings.BASE_DIR / 'accounts/templates'
+
+    def test_every_symbol_is_a_20px_solid_currentcolor_glyph(self):
+        text = self.sprite.read_text()
+        symbols = re.findall(r'<symbol id="([^"]+)"([^>]*)>(.*?)</symbol>', text, re.S)
+        self.assertTrue(symbols, 'the shared sprite ships icons')
+        for name, attributes, body in symbols:
+            with self.subTest(icon=name):
+                self.assertIn('viewBox="0 0 20 20"', attributes)
+                self.assertIn('fill="currentColor"', attributes)
+                self.assertIn('<path', body)
+                # Outline glyphs carry stroke geometry; this set must not.
+                self.assertNotIn('stroke=', body)
+
+    def test_the_edit_and_delete_glyphs_are_the_ones_already_in_use(self):
+        text = self.sprite.read_text()
+        # Verbatim Heroicons v1.0.6 20/solid pencil and trash, i.e. the same
+        # glyphs the admin tables drew before the icons were centralised.
+        self.assertIn('M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793z', text)
+        self.assertIn('M9 2a1 1 0 00-.894.553L7.382 4H4', text)
+
+    def test_the_sprite_is_loaded_once_for_the_whole_app(self):
+        base = (settings.BASE_DIR / 'templates/base.html').read_text()
+        self.assertEqual(base.count('partials/_icon_sprite.html'), 1)
+        # It must sit inside <body> so every page that extends base.html has it.
+        self.assertLess(base.index('<body'), base.index('partials/_icon_sprite.html'))
+
+    def test_every_table_action_is_an_icon_button_with_a_tooltip(self):
+        pattern = re.compile(r'<th[^>]*>\s*Actions?\s*</th>', re.I)
+        for path in self.templates.rglob('*.html'):
+            text = path.read_text()
+            if not pattern.search(text):
+                continue
+            with self.subTest(template=str(path.relative_to(self.templates))):
+                # Each action is one sprite icon, never a bare text control.
+                for tag in re.findall(r'<(?:a|button)\b[^>]*>', text):
+                    if 'nx-btn--icon' not in tag:
+                        continue
+                    self.assertIn('data-nx-tooltip=', tag)
+                    self.assertIn('aria-label=', tag)
+
+    def test_the_admin_user_table_uses_icons_instead_of_text_links(self):
+        text = (self.templates / 'dashboard/admin_dashboard.html').read_text()
+        self.assertIn('data-nx-tooltip="View user details"', text)
+        self.assertIn('data-nx-tooltip="Edit user"', text)
+        self.assertNotIn('class="adm-link" data-nx-skeleton="record"', text)
+        self.assertNotIn('class="adm-link" data-nx-skeleton="form"', text)
+
+    def test_icon_buttons_all_take_their_glyph_from_the_sprite(self):
+        for name in (
+            'dashboard/admin/campuses_list.html',
+            'dashboard/admin/colleges_list.html',
+            'dashboard/admin/departments_list.html',
+            'dashboard/admin/activities_list.html',
+            'dashboard/admin/personnel_list.html',
+            'dashboard/admin/targets_list.html',
+            'dashboard/admin/processes_list.html',
+            'dashboard/admin/signatories_list.html',
+            'dashboard/admin/wizard_steps_manager.html',
+            'dashboard/admin/document_templates_list.html',
+            'dashboard/accomplishment_reports_list.html',
+            'dashboard/staff_dashboard.html',
+            'dashboard/evaluator_dashboard.html',
+        ):
+            with self.subTest(template=name):
+                text = (self.templates / name).read_text()
+                uses = re.findall(r'<use href="#([^"]+)"></use>', text)
+                self.assertTrue(uses, 'icons come from the shared sprite')
+                self.assertIn('data-nx-tooltip=', text)
+                self.assertIn('aria-label=', text)
+                # The old hand-drawn 20px solids are gone.
+                self.assertNotIn('d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h3.828l8.38-8.379-2.83-2.828z"', text)

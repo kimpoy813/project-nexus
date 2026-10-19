@@ -950,10 +950,10 @@ select.dir-input {
                         <p class="text-xs text-slate-600">{% if item.is_draft %}{% if item.updated_at %}{{ item.updated_at|date:"M d, Y" }}{% else %}—{% endif %}{% else %}{% if item.submitted_at %}{{ item.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}{% endif %}</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{% url 'proposal_storage' item.proposal.id %}" class="dir-btn inline-flex items-center gap-1.5 nx-btn nx-btn--secondary" title="Proposal storage" aria-label="Proposal storage">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z" />
-                            </svg>
+                        <a href="{% url 'proposal_storage' item.proposal.id %}"
+                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                           data-nx-tooltip="Open proposal storage" aria-label="Open proposal storage">
+                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-folder"></use></svg>
                         </a>
                         <a href="{% url 'proposal_wizard' item.proposal.id 1 %}?readonly=1" class="dir-btn filled nx-btn nx-btn--primary">View</a>
                     </div>
