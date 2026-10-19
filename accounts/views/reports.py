@@ -7,14 +7,9 @@ The flow this module implements:
    :class:`details.models.QuarterlyReportRequest`), usually for every campus at
    once, with an optional due date.
 2. The Campus Coordinator sees the outstanding request on their dashboard, and
-   submits a report: the uploaded file plus the narrative and — for each
-   Extension Target category — how much of the campus target was accomplished
-   for that quarter.
-3. Those answers are rolled into the campus ``Target`` rows by
-   ``details.quarterly.save_target_contributions``, so the Extension Targets
-   tracker and the public Targets block reflect the same figures.
-4. Staff and Director see every submission, its file, and its answers, and can
-   monitor which campuses still owe a report.
+   submits a report: the uploaded file plus the narrative for the quarter.
+3. Staff and Director see every submission and its file, and can monitor which
+   campuses still owe a report.
 """
 
 from django.contrib import messages
@@ -30,10 +25,6 @@ from details.models import QuarterlyReportRequest
 from details.models import RoleCapability
 from details.models import Target
 from details.quarterly import open_requests_for_campus
-from details.quarterly import parse_target_contributions
-from details.quarterly import posted_contributions
-from details.quarterly import request_form_context
-from details.quarterly import save_target_contributions
 from details.quarterly import submissions_for
 from .. import permissions
 from ..campus_data import get_campus_choices
@@ -216,16 +207,15 @@ def accomplishment_report_create(request):
     profile = getattr(request.user, "profile", None)
     role = _user_role(request.user)
 
-    # Only a Campus Coordinator answers for a campus target. A Department
-    # Coordinator's scope sits inside a campus, so their answers would land on
-    # the wrong row of the tracker.
+    # A Campus Coordinator answers for their campus as a whole: they see the
+    # campus's pending requests and their filing answers one. A Department
+    # Coordinator's scope sits inside a campus, so neither applies to them.
     is_campus_coordinator = role == Profile.ROLE_CAMPUS_COORDINATOR
-    can_answer_targets = is_campus_coordinator
     own_campus = (getattr(profile, "campus", "") or "").strip()
 
     report_request = _request_for_submission(request)
     pending_requests = (
-        open_requests_for_campus(own_campus) if can_answer_targets else []
+        open_requests_for_campus(own_campus) if is_campus_coordinator else []
     )
 
     values = _submission_values(request, profile, report_request)
@@ -237,7 +227,6 @@ def accomplishment_report_create(request):
         values["campus"] = (
             (getattr(report_request, "campus", "") or own_campus) or ""
         ).strip()
-    contributions = {}
 
     if request.method == "POST":
         error = None
@@ -276,27 +265,10 @@ def accomplishment_report_create(request):
         elif report_request and not request.FILES.get("attachment"):
             error = "Attach the quarterly report file before submitting."
 
-        contributions = (
-            posted_contributions(request.POST) if can_answer_targets else {}
-        )
-        if error is None and can_answer_targets:
-            try:
-                parsed = parse_target_contributions(request.POST)
-            except ValueError as exc:
-                error = str(exc)
-            else:
-                if parsed and not values["campus"]:
-                    error = (
-                        "Your account has no campus assigned yet, so the target "
-                        "figures cannot be recorded. Ask the Admin to set your "
-                        "campus first."
-                    )
-                contributions = parsed
-
         if error:
             messages.error(request, error)
         else:
-            if report_request is None and contributions and can_answer_targets:
+            if report_request is None and is_campus_coordinator:
                 # Filing for a quarter the campus was asked about answers that
                 # request even when the coordinator came in through the plain
                 # "Submit Report" button.
@@ -321,26 +293,11 @@ def accomplishment_report_create(request):
                 submitted_by=request.user,
                 request=report_request,
             )
-            if contributions:
-                save_target_contributions(report, contributions)
 
-            message = "Quarterly accomplishment report submitted."
-            if contributions:
-                message += (
-                    " Your target figures were recorded for "
-                    f"{report.get_quarter_display()} {report.year}."
-                )
-            messages.success(request, message)
+            messages.success(
+                request, "Quarterly accomplishment report submitted."
+            )
             return redirect("accomplishment_reports_list")
-
-    # Re-showing what was filed before beats an empty grid: the figures are
-    # replaced, not added, so a correction should start from the old answer.
-    answers = contributions or _previously_filed_answers(report_request)
-    target_rows = (
-        request_form_context(values["year"], values["campus"], values=answers)
-        if can_answer_targets
-        else []
-    )
 
     return render(
         request,
@@ -352,7 +309,6 @@ def accomplishment_report_create(request):
             # Live campus list from the admin-managed Campus table so the
             # cascading college/department selects have a source of truth.
             "campus_choices": [value for value, _label in get_campus_choices()],
-            "can_answer_targets": can_answer_targets,
             "is_campus_coordinator": is_campus_coordinator,
             "filing_campus": values["campus"],
             "selected_campus": values["campus"],
@@ -360,18 +316,8 @@ def accomplishment_report_create(request):
             "values": values,
             "report_request": report_request,
             "pending_requests": pending_requests,
-            "target_rows": target_rows,
         },
     )
-
-
-def _previously_filed_answers(report_request):
-    """Category answers already on file for a request, for prefilling."""
-    if report_request is None:
-        return {}
-
-    submission = submissions_for([report_request]).get(report_request.pk)
-    return submission.target_contributions() if submission else {}
 
 
 def _submission_values(request, profile, report_request):
