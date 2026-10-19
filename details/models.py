@@ -674,9 +674,8 @@ class QuarterlyReportRequest(models.Model):
 
     One row per campus and quarter. Staff and Director open requests (usually
     for every campus at once); the Campus Coordinator of that campus sees the
-    request on their dashboard, uploads the report file, and answers how much
-    of each target category was accomplished for the quarter. Staff and
-    Director see the submission and the answers.
+    request on their dashboard and uploads the report file. Staff and
+    Director see the submission.
     """
 
     class Status(models.TextChoices):
@@ -738,11 +737,11 @@ class QuarterlyReportRequest(models.Model):
 
 
 class AccomplishmentTargetEntry(models.Model):
-    """One target category's accomplishment figure answered on a report.
+    """One target category's accomplishment figure recorded on a report.
 
-    The coordinator answers per :class:`Target` metric (Programs, Participants,
-    Partners, Technology Transfer) so the answer lands in the campus target
-    tracker instead of living only inside the narrative.
+    Kept per report (Programs, Participants, Partners, Technology Transfer)
+    so the figure stays attached to the submission it came from instead of
+    living only inside the narrative.
     """
 
     report = models.ForeignKey(

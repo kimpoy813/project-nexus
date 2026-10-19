@@ -264,7 +264,7 @@ urlpatterns = [
     path("accomplishments/", views.accomplishment_reports_list, name="accomplishment_reports_list"),
     path("accomplishments/create/", views.accomplishment_report_create, name="accomplishment_report_create"),
     # Quarterly report requests: Staff/Director/Admin ask a campus; the Campus
-    # Coordinator answers with the file and the per-category target figures.
+    # Coordinator answers with the report file.
     path(
         "accomplishments/requests/",
         views.accomplishment_requests_list,
