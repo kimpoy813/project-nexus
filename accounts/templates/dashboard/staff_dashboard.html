@@ -275,16 +275,18 @@
                         </td>
 
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex gap-2">
+                            <div class="nx-actions">
                                 {% if sub.file_url %}
-                                <a href="{{ sub.file_url }}" target="_blank"
-                                   class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">
-                                    View Draft
+                                <a href="{{ sub.file_url }}" target="_blank" rel="noopener"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View draft MOA file" aria-label="View draft MOA file">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'proposal_moa_tracker' sub.proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    Open Tracker
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Open MOA tracker" aria-label="Open MOA tracker">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-clipboard"></use></svg>
                                 </a>
                             </div>
                         </td>
@@ -373,16 +375,18 @@
                                 <p class="text-xs text-gray-700">{{ sub.uploaded_at|date:"M d, Y"|default:"—" }}</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 {% if sub.file_url %}
-                                <a href="{{ sub.file_url }}" target="_blank"
-                                   class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-primary hover:bg-gray-50 hover:text-primary nx-btn nx-btn--secondary">
-                                    View Draft
+                                <a href="{{ sub.file_url }}" target="_blank" rel="noopener"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View draft MOA file" aria-label="View draft MOA file">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'proposal_moa_tracker' sub.proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    Open Tracker
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Open MOA tracker" aria-label="Open MOA tracker">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-clipboard"></use></svg>
                                 </a>
                             </div>
                         </div>
@@ -458,16 +462,18 @@
                         </td>
 
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex gap-2">
+                            <div class="nx-actions">
                                 {% if doc.file %}
-                                <a href="{{ doc.file.url }}" target="_blank"
-                                   class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">
-                                    View Signed
+                                <a href="{{ doc.file.url }}" target="_blank" rel="noopener"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View signed document" aria-label="View signed document">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'staff_release_approval_documents' doc.proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    Review / Release
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Review and release signed document" aria-label="Review and release signed document">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-check-circle"></use></svg>
                                 </a>
                             </div>
                         </td>
@@ -546,16 +552,18 @@
                                 <p class="text-xs text-gray-700">{{ doc.uploaded_at|date:"M d, Y"|default:"—" }}</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 {% if doc.file %}
-                                <a href="{{ doc.file.url }}" target="_blank"
-                                   class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-primary hover:bg-gray-50 hover:text-primary nx-btn nx-btn--secondary">
-                                    View Signed
+                                <a href="{{ doc.file.url }}" target="_blank" rel="noopener"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View signed document" aria-label="View signed document">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                                 {% endif %}
                                 <a href="{% url 'staff_release_approval_documents' doc.proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    Review / Release
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Review and release signed document" aria-label="Review and release signed document">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-check-circle"></use></svg>
                                 </a>
                             </div>
                         </div>
@@ -650,14 +658,14 @@
                         </td>
 
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <a href="{% url 'proposal_comment_summary' proposal.id %}"
-                               class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-secondary nx-btn nx-btn--primary">
-                                {% if proposal.has_draft_summary %}
-                                    Edit Draft
-                                {% else %}
-                                    Prepare
-                                {% endif %}
-                            </a>
+                            <div class="nx-actions">
+                                <a href="{% url 'proposal_comment_summary' proposal.id %}"
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="{% if proposal.has_draft_summary %}Edit draft comment summary{% else %}Prepare comment summary{% endif %}"
+                                   aria-label="{% if proposal.has_draft_summary %}Edit draft comment summary{% else %}Prepare comment summary{% endif %}">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -738,14 +746,12 @@
                                 <p class="text-xs text-gray-700">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 <a href="{% url 'proposal_comment_summary' proposal.id %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    {% if proposal.has_draft_summary %}
-                                        Edit Draft
-                                    {% else %}
-                                        Prepare
-                                    {% endif %}
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="{% if proposal.has_draft_summary %}Edit draft comment summary{% else %}Prepare comment summary{% endif %}"
+                                   aria-label="{% if proposal.has_draft_summary %}Edit draft comment summary{% else %}Prepare comment summary{% endif %}">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg>
                                 </a>
                             </div>
                         </div>

@@ -49,8 +49,19 @@
                             </span>
                         </td>
                         <td class="px-6 py-4">
-                            <a href="{% url 'details:admin_process_edit' process.pk %}" class="text-primary hover:text-secondary mr-3">Edit</a>
-                            <a href="{% url 'details:admin_process_delete' process.pk %}" class="text-red-600 hover:text-red-800" onclick="return confirm('Are you sure?')">Delete</a>
+                            <div class="nx-actions">
+                                <a href="{% url 'details:admin_process_edit' process.pk %}"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Edit process" aria-label="Edit process">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                </a>
+                                <a href="{% url 'details:admin_process_delete' process.pk %}"
+                                   class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Delete process" aria-label="Delete process"
+                                   onclick="return confirm('Are you sure?')">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}

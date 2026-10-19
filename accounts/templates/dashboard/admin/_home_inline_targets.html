@@ -99,12 +99,21 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                         {% endif %}
                     </td>
                     <td class="p-3">
-                        <div class="flex items-center gap-2">
-                            <button type="button" onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn text-xs px-2 py-1 nx-btn nx-btn--secondary nx-btn--compact">Edit</button>
+                        <div class="nx-actions">
+                            <button type="button"
+                                    onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.toggle('hidden')"
+                                    class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                    data-nx-tooltip="Edit target" aria-label="Edit target">
+                                <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                            </button>
                             <form method="POST" action="{% url 'home_inline_target_delete' t.id %}" onsubmit="return confirm('Delete this target?');">
                                 {% csrf_token %}
                                 {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
-                                <button type="submit" class="pc-btn pc-btn--danger text-xs px-2 py-1 nx-btn nx-btn--danger nx-btn--compact">Delete</button>
+                                <button type="submit"
+                                        class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                        data-nx-tooltip="Delete target" aria-label="Delete target">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                </button>
                             </form>
                         </div>
                     </td>

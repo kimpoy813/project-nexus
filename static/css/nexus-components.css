@@ -119,8 +119,67 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 .nexus-shell .nx-btn--danger:hover:not(:disabled) { background: #ffe4e6 !important; border-color: #fda4af !important; }
 .nexus-shell .nx-btn--compact { min-height: var(--nx-control-compact); padding: .375rem .75rem; font-size: .8125rem; }
 .nexus-shell .nx-btn--icon { width: var(--nx-control-height); padding: .625rem; flex-shrink: 0; }
+.nexus-shell .nx-btn--icon.nx-btn--compact { width: var(--nx-control-compact); padding: .375rem; }
 .nexus-shell .nx-btn:disabled { cursor: not-allowed; opacity: .55; }
 .nexus-shell .nx-btn:focus-visible { outline: 2px solid var(--nexus-primary); outline-offset: 3px; }
+
+/* Table row actions: one compact square, one icon size, one gap everywhere.
+   Icon-only actions always carry data-nx-tooltip + aria-label (see base.html
+   and js/dashboard-views.js) so the meaning stays available on hover and to
+   keyboard/screen-reader users. */
+.nx-icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.nx-icon { display: block; width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+.nexus-shell .nx-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.nexus-shell .nx-actions--end { justify-content: flex-end; }
+.nexus-shell .nx-actions form { display: inline-flex; margin: 0; }
+/* Keep the 44px touch target on phones/tablets even though row actions are
+   visually compact on pointer devices. */
+@media (pointer: coarse) {
+  .nexus-shell .nx-btn--icon.nx-btn--compact {
+    width: var(--nx-control-height);
+    min-height: var(--nx-control-height);
+    padding: .625rem;
+  }
+}
+
+/* One tooltip, appended to <body> so table overflow containers cannot clip it. */
+.nx-tooltip {
+  position: fixed;
+  z-index: 1200;
+  max-width: min(18rem, calc(100vw - 1.5rem));
+  padding: .4rem .65rem;
+  border-radius: .5rem;
+  background: #0f172a;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+.nx-tooltip.is-visible { opacity: 1; transform: translateY(0); }
+.nx-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: var(--nx-tooltip-arrow-left, 50%);
+  margin-left: -4px;
+  border: 4px solid transparent;
+  border-top-color: #0f172a;
+}
+.nx-tooltip[data-placement="bottom"]::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: #0f172a;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-tooltip { transition: none; }
+}
 
 /* Fields: default-type text inputs must match explicit type="text" inputs.
    Exclude editors and native toggle/file internals rather than re-skin them. */

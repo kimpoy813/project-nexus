@@ -39,10 +39,27 @@
                             {% if item.is_active %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700 nx-badge">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600 nx-badge">Hidden</span>{% endif %}
                         </td>
                         <td class="px-6 py-4">
-                            <div class="flex flex-wrap gap-2">
-                                {% if item.file %}<a href="{{ item.file.url }}" target="_blank" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">Download</a>{% endif %}
-                                <a href="{% url 'document_template_edit' item.id %}" class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white nx-btn nx-btn--secondary">Edit</a>
-                                <form method="post" action="{% url 'document_template_delete' item.id %}" onsubmit="return confirm('Delete this template?');">{% csrf_token %}<button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 nx-btn nx-btn--danger">Delete</button></form>
+                            <div class="nx-actions">
+                                {% if item.file %}
+                                <a href="{{ item.file.url }}" target="_blank" rel="noopener"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Download template file" aria-label="Download template file">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'document_template_edit' item.id %}"
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Edit template" aria-label="Edit template">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                </a>
+                                <form method="post" action="{% url 'document_template_delete' item.id %}" onsubmit="return confirm('Delete this template?');">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                            data-nx-tooltip="Delete template" aria-label="Delete template">
+                                        <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

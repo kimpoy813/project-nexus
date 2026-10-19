@@ -147,20 +147,30 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex flex-wrap gap-2">
+                                    <div class="nx-actions">
                                         {% if row.downloadable %}
                                         <a href="{% url 'proposal_template_download' row.key %}"
                                            data-nx-no-skeleton
-                                           class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">Download</a>
+                                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                           data-nx-tooltip="Download template" aria-label="Download template">
+                                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg>
+                                        </a>
                                         {% endif %}
                                         <a href="{% url 'proposal_template_edit' row.key %}"
-                                           class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white nx-btn nx-btn--secondary">Edit</a>
+                                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                           data-nx-tooltip="Edit template" aria-label="Edit template">
+                                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                        </a>
                                         {% if row.override %}
                                         <form method="post" action="{% url 'proposal_template_reset' %}"
                                               onsubmit="return confirm('Reset this template to the default file shipped with the system?');">
                                             {% csrf_token %}
                                             <input type="hidden" name="key" value="{{ row.key }}">
-                                            <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 nx-btn nx-btn--danger">Reset to default</button>
+                                            <button type="submit"
+                                                    class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                                    data-nx-tooltip="Reset to system default" aria-label="Reset to system default">
+                                                <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-reset"></use></svg>
+                                            </button>
                                         </form>
                                         {% endif %}
                                     </div>
@@ -218,18 +228,28 @@
                                     </p>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex flex-wrap gap-2">
+                                    <div class="nx-actions">
                                         {% if item.file %}
                                         <a href="{% url 'proposal_custom_template_download' item.pk %}"
                                            data-nx-no-skeleton
-                                           class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">Download</a>
+                                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                           data-nx-tooltip="Download template file" aria-label="Download template file">
+                                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-download"></use></svg>
+                                        </a>
                                         {% endif %}
                                         <a href="{% url 'proposal_custom_template_edit' item.pk %}"
-                                           class="rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white nx-btn nx-btn--secondary">Edit</a>
+                                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                           data-nx-tooltip="Edit template file" aria-label="Edit template file">
+                                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                        </a>
                                         <form method="post" action="{% url 'proposal_custom_template_delete' item.pk %}"
                                               onsubmit="return confirm('Delete this template file for good?');">
                                             {% csrf_token %}
-                                            <button type="submit" class="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 nx-btn nx-btn--danger">Delete</button>
+                                            <button type="submit"
+                                                    class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                                    data-nx-tooltip="Delete template file" aria-label="Delete template file">
+                                                <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                            </button>
                                         </form>
                                     </div>
                                 </td>
