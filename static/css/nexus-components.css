@@ -118,8 +118,24 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 }
 .nexus-shell .nx-btn--danger:hover:not(:disabled) { background: #ffe4e6 !important; border-color: #fda4af !important; }
 .nexus-shell .nx-btn--compact { min-height: var(--nx-control-compact); padding: .375rem .75rem; font-size: .8125rem; }
-.nexus-shell .nx-btn--icon { width: var(--nx-control-height); padding: .625rem; flex-shrink: 0; }
-.nexus-shell .nx-btn--icon.nx-btn--compact { width: var(--nx-control-compact); padding: .375rem; }
+/* Icon buttons are exact squares with no padding: the glyph is centred on both
+   axes by the flex container, so it cannot drift when the icon size changes or
+   when a legacy padding utility is still on the element. */
+.nexus-shell .nx-btn--icon {
+  width: var(--nx-control-height);
+  min-height: var(--nx-control-height);
+  padding: 0;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+.nexus-shell .nx-btn--icon.nx-btn--compact {
+  width: var(--nx-control-compact);
+  min-height: var(--nx-control-compact);
+  padding: 0;
+}
+/* The glyph itself carries no box offset inside an icon button. */
+.nexus-shell .nx-btn--icon > svg { margin: 0; }
 /* Icon-only actions draw in the same brand green as every other icon in the
    app (nav, tiles, inline glyphs) instead of the slate text color of a
    secondary button. Filled primary actions keep their white glyph and
@@ -138,7 +154,7 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 .nx-icon { display: block; width: 1rem; height: 1rem; flex-shrink: 0; }
 /* Page-level icon buttons (Add …) keep the larger 20px glyph they always had. */
 .nx-icon--lg { width: 1.25rem; height: 1.25rem; }
-.nexus-shell .nx-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.nexus-shell .nx-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; line-height: 1; }
 .nexus-shell .nx-actions--end { justify-content: flex-end; }
 .nexus-shell .nx-actions form { display: inline-flex; margin: 0; }
 /* Keep the 44px touch target on phones/tablets even though row actions are
@@ -147,7 +163,7 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
   .nexus-shell .nx-btn--icon.nx-btn--compact {
     width: var(--nx-control-height);
     min-height: var(--nx-control-height);
-    padding: .625rem;
+    padding: 0;
   }
 }
 

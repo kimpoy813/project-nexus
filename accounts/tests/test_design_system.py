@@ -529,3 +529,55 @@ class TableAlignmentTests(SimpleTestCase):
         # Header typography must not leak into <th scope="row"> data cells.
         self.assertNotIn('.nexus-shell .nx-table th {', css)
         self.assertIn('.nexus-shell .nx-table thead th {', css)
+
+class IconButtonCenteringTests(SimpleTestCase):
+    """Icon buttons are exact squares with the glyph centred on both axes."""
+
+    css = settings.BASE_DIR / 'static/css/nexus-components.css'
+
+    def _rule(self, body):
+        css = self.css.read_text()
+        match = re.search(body + r'\s*\{([^}]*)\}', css)
+        self.assertIsNotNone(match, f'missing rule for {body}')
+        return match.group(1)
+
+    def test_icon_buttons_have_no_padding_and_centre_their_glyph(self):
+        base = self._rule(r'\.nexus-shell \.nx-btn--icon')
+        # A padded square drifts when the glyph size changes.
+        self.assertIn('padding: 0;', base)
+        self.assertIn('justify-content: center;', base)
+        self.assertIn('align-items: center;', base)
+
+        # The compact variant inherits the centring from the base class.
+        compact = self._rule(r'\.nexus-shell \.nx-btn--icon\.nx-btn--compact')
+        self.assertIn('padding: 0;', compact)
+
+    def test_icon_buttons_are_square(self):
+        for selector in (
+            r'\.nexus-shell \.nx-btn--icon',
+            r'\.nexus-shell \.nx-btn--icon\.nx-btn--compact',
+        ):
+            rule = self._rule(selector)
+            widths = re.findall(r'(?:^|;)\s*width: (var\(--nx-control-[a-z]+\));', rule)
+            heights = re.findall(r'min-height: (var\(--nx-control-[a-z]+\));', rule)
+            self.assertTrue(widths, f'{selector} sets a width')
+            self.assertTrue(heights, f'{selector} sets a min-height')
+            self.assertEqual(widths[0], heights[0], 'width and height use the same token')
+
+    def test_every_icon_button_holds_exactly_one_glyph_and_no_text(self):
+        for path in sorted((settings.BASE_DIR / 'accounts/templates').rglob('*.html')):
+            text = path.read_text()
+            if 'nx-btn--icon' not in text:
+                continue
+            parser = _TableParser()
+            parser.feed(text)
+            # A text glyph inside an icon button would not sit on the icon grid.
+            for match in re.finditer(r'<(?:a|button)\b[^>]*nx-btn--icon[^>]*>(.*?)</(?:a|button)>', text, re.S):
+                body = match.group(1)
+                with self.subTest(template=str(path.relative_to(settings.BASE_DIR))):
+                    self.assertEqual(len(re.findall(r'<svg\b', body)), 1, 'exactly one glyph')
+                    self.assertNotRegex(re.sub(r'<[^>]+>', '', body).strip(), r'\S', 'no text label inside')
+
+    def test_row_action_groups_centre_their_members(self):
+        rule = self._rule(r'\.nexus-shell \.nx-actions')
+        self.assertIn('align-items: center;', rule)
