@@ -235,10 +235,16 @@ def accomplishment_report_create(request):
         values["campus"] = (
             (getattr(report_request, "campus", "") or own_campus) or ""
         ).strip()
-    if request.method == "GET" and is_campus_coordinator:
+    # A filed request is a correction, not a fresh set of figures: keep the
+    # counts available but render their section without the initial emphasis.
+    previous_submission = (
+        submissions_for([report_request]).get(report_request.pk)
+        if is_campus_coordinator and report_request else None
+    )
+    if request.method == "GET" and previous_submission:
         # Re-showing what was filed before beats an empty grid: the figures
         # are replaced, not added, so a correction starts from the old answer.
-        values.update(_previous_counts(report_request))
+        values.update(_previous_counts(previous_submission))
     contributions = {}
 
     if request.method == "POST":
@@ -350,6 +356,7 @@ def accomplishment_report_create(request):
             "selected_quarter": values["quarter"],
             "values": values,
             "report_request": report_request,
+            "is_resubmission": previous_submission is not None,
             "pending_requests": pending_requests,
         },
     )
@@ -390,20 +397,13 @@ def _submission_values(request, profile, report_request):
     }
 
 
-def _previous_counts(report_request):
-    """Count inputs to prefill when a filed request is opened again.
+def _previous_counts(previous):
+    """Count inputs to prefill from a previously filed report.
 
     Reports filed before the form was consolidated answered Programs /
     Participants / Partners instead of filling counts, so fall back to those
     target entries when the report's counts are all zero.
     """
-    if report_request is None:
-        return {}
-
-    previous = submissions_for([report_request]).get(report_request.pk)
-    if previous is None:
-        return {}
-
     counts = {
         "activities_count": previous.activities_count,
         "beneficiaries_count": previous.beneficiaries_count,

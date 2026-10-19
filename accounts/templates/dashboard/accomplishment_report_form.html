@@ -99,7 +99,7 @@
     </div>
     {% endif %}
 
-    <div class="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+    <div class="rounded-2xl border {% if is_resubmission %}border-gray-200 bg-white{% else %}border-primary/20 bg-primary/5{% endif %} p-5">
       <p class="text-sm font-black text-gray-900">This Quarter's Accomplishments</p>
       <p class="mt-1 text-xs text-gray-600">
         {% if is_campus_coordinator %}

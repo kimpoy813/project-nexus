@@ -273,6 +273,7 @@ class CoordinatorSubmissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "3rd Quarter 2026")
         self.assertContains(response, f'value="{self.report_request.pk}"')
+        self.assertContains(response, 'border-primary/20 bg-primary/5')
         # Each figure is asked for once, as a count on the report.
         for field in ("activities_count", "beneficiaries_count", "partners_count"):
             self.assertContains(response, f'name="{field}"')
@@ -484,6 +485,26 @@ class CoordinatorSubmissionTests(TestCase):
         self.assertEqual(response.context["values"]["activities_count"], "15")
         self.assertEqual(response.context["values"]["beneficiaries_count"], "30")
         self.assertEqual(response.context["values"]["partners_count"], "2")
+        self.assertContains(response, 'border-gray-200 bg-white')
+        self.assertNotContains(response, 'border-primary/20 bg-primary/5')
+
+    def test_resubmission_without_previous_counts_is_not_highlighted(self):
+        AccomplishmentReport.objects.create(
+            title="Report without counts",
+            year=2026,
+            quarter="Q3",
+            campus="Main Campus",
+            request=self.report_request,
+        )
+
+        response = self.client_coordinator.get(
+            f"{reverse('accomplishment_report_create')}?request={self.report_request.pk}"
+        )
+
+        self.assertEqual(response.context["values"]["activities_count"], "")
+        self.assertContains(response, 'name="activities_count"')
+        self.assertContains(response, 'border-gray-200 bg-white')
+        self.assertNotContains(response, 'border-primary/20 bg-primary/5')
 
     def test_filing_for_a_requested_quarter_links_it_without_the_query_string(self):
         Target.objects.create(year=2026, campus="Main Campus", metric="programs", target=50)
