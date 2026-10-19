@@ -215,8 +215,14 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 
 /* Shared tables preserve right-aligned numeric columns and card-view behavior. */
 .nexus-shell .nx-table { width: 100%; font-size: var(--nx-component-text); line-height: 1.5; }
-.nexus-shell .nx-table th { padding: .875rem 1rem; font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
-.nexus-shell .nx-table td { padding: 1rem; vertical-align: top; }
+/* Column headings only: a <th scope="row"> in the body is data, so it keeps
+   the same type size and alignment as the cells beside it. */
+.nexus-shell .nx-table thead th { padding: .875rem 1rem; font-size: .75rem; font-weight: 600; letter-spacing: .04em; }
+/* Every cell in a row shares one vertical alignment, so an icon-only action
+   lines up with the text, badge and progress bar next to it. */
+.nexus-shell .nx-table th,
+.nexus-shell .nx-table td { vertical-align: middle; }
+.nexus-shell .nx-table td { padding: 1rem; }
 .nexus-shell .nx-badge {
   display: inline-flex;
   align-items: center;

@@ -23,7 +23,7 @@
                         <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Category</th>
                         <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Version</th>
                         <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Actions</th>
+                        <th class="px-6 py-3 text-right text-xs font-black uppercase tracking-wide text-gray-500">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -38,8 +38,8 @@
                         <td class="px-6 py-4">
                             {% if item.is_active %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700 nx-badge">Active</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600 nx-badge">Hidden</span>{% endif %}
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="nx-actions">
+                        <td class="px-6 py-4 text-right">
+                            <div class="nx-actions nx-actions--end">
                                 {% if item.file %}
                                 <a href="{{ item.file.url }}" target="_blank" rel="noopener"
                                    class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"

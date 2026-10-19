@@ -17,7 +17,7 @@
             <th class="text-left p-3">Name</th>
             <th class="text-left p-3">Position</th>
             <th class="text-left p-3">Email</th>
-            <th class="text-left p-3">Actions</th>
+            <th class="text-right p-3">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -26,8 +26,8 @@
             <td class="p-3">{{ p.name }}</td>
             <td class="p-3">{{ p.position }}</td>
             <td class="p-3">{{ p.email }}</td>
-            <td class="p-3">
-                <div class="nx-actions">
+            <td class="p-3 text-right">
+                <div class="nx-actions nx-actions--end">
                   <a href="{% url 'personnel_edit' p.id %}"
                      class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                      data-nx-tooltip="Edit personnel" aria-label="Edit personnel">

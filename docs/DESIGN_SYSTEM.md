@@ -23,6 +23,7 @@ invent buttons, cards, typography and colors.
 | Table row actions | Each row action is one `nx-btn--icon nx-btn--compact` square inside `.nx-actions` (`.nx-actions--end` for right-aligned columns): secondary for view/edit/download/reset-style actions (drawn in brand green), primary for the row's main action (white glyph on green), danger for destructive ones (rose glyph). No bare text links ("Edit"/"Delete") in an Actions column. Destructive GET links keep a `confirm()` prompt. Coarse-pointer devices get the 44px target back automatically. |
 | Panel | `nx-panel`: 16px corners, shared neutral border, subtle stationary shadow. Optional `nx-panel__header` and `nx-panel__body` provide shared padding. |
 | Table | `nx-table`: shared header/cell rhythm, with a horizontally scrollable wrapper where needed. Preserve numeric alignment. |
+| Table alignment | One alignment per column, and the heading must state it: a left-aligned column gets `text-left` on both `th` and `td`, centered figures get `text-center` on both. The **Actions** column is always right-aligned — `text-right` on the heading *and* the cell, with `.nx-actions--end` inside — in every table, including the role-dashboard table view and the inline editors. Every cell in a row shares `vertical-align: middle`, and only `thead th` carries the uppercase heading type; a `<th scope="row">` in the body is data and keeps cell typography. |
 | Table/card switch | `.dashboard-view-toolbar` holding two `.dashboard-view-toggle` buttons: one pill track with a thumb that slides under the pressed icon. The switch sits in the panel header (`.dashboard-panel-head`), at the right edge of the section title, on the same row as the heading — not below it above the table; `.dashboard-view-toolbar-slot` marks where `static/js/dashboard-views.js` injects it. Keep the glyphs distinguishable (framed grid with a header row for the table, a pair of content cards for the card view), and keep the accessible names/tooltips. `dashboard-views.js` keeps every proposal table on the page in step and remembers the choice. |
 | Proposal gauge card | The speedometer gauge card that first shipped on the faculty dashboard is the card presentation for proposal lists on every role dashboard: a 102px doughnut gauge whose arc is banded into the Proposal/MOA/Implementation phase zones (`nexusPhaseShares()`), with the unfinished portion masked white and the percentage counting up to the proposal's `overall_progress`. The card pairs the gauge with the stage badge, status line, phase legend, lifecycle date, and the section's actions. Proposal tables sit in a `data-proposal-layout` beside these cards so the shared switch flips between them. |
 | Badge | `nx-badge`: shared pill geometry/type. Keep semantic status/role colors and a text label; color must not be the only status signal. |
@@ -72,8 +73,10 @@ Do not duplicate palette hex values in a new editor stylesheet.
 2. Run Django/Node suites and frontend lint. `accounts/tests/test_design_system.py`
    guards adoption/rendering, including the icon set (`ActionIconTests`: every
    symbol is 20/solid `currentColor`, every icon-only action has a tooltip and
-   an accessible name); `tests/nexus-wizard-navigation.test.cjs` guards
-   responsive wizard initialization.
+   an accessible name) and column alignment (`TableAlignmentTests`: every
+   heading matches its cells, every Actions column is right-aligned, and row
+   cells share one vertical alignment); `tests/nexus-wizard-navigation.test.cjs`
+   guards responsive wizard initialization.
 3. Inspect actual computed styles in a browser, not just template class names.
    Check mobile (390px) and desktop (1440px), including populated/error states.
    In particular, legacy `!important` selectors can defeat an otherwise valid

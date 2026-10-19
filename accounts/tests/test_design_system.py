@@ -1,5 +1,6 @@
 """Shared component adoption, separate from page-specific workflow behavior."""
 import re
+from html.parser import HTMLParser
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
@@ -393,3 +394,138 @@ class ActionIconTests(SimpleTestCase):
                 self.assertIn('aria-label=', text)
                 # The old hand-drawn 20px solids are gone.
                 self.assertNotIn('d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h3.828l8.38-8.379-2.83-2.828z"', text)
+
+class _TableParser(HTMLParser):
+    """Collect header and body cells per table, with their alignment classes."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.tables = []
+        self._table = None
+        self._row = None
+        self._cell = None
+        self._buf = []
+        self._in_thead = False
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        classes = (attributes.get('class') or '').split()
+        if tag == 'table':
+            self._table = {'headers': [], 'rows': []}
+        elif self._table is None:
+            return
+        elif tag == 'thead':
+            self._in_thead = True
+        elif tag == 'tr':
+            self._row = []
+        elif tag in ('th', 'td') and self._row is not None:
+            self._cell = {
+                'tag': tag,
+                'classes': classes,
+                'colspan': int(attributes.get('colspan') or 1),
+            }
+            self._buf = []
+
+    def handle_data(self, data):
+        if self._cell is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag in ('th', 'td') and self._cell is not None:
+            self._cell['text'] = ''.join(self._buf).strip()
+            self._row.append(self._cell)
+            self._cell = None
+        elif tag == 'tr' and self._row is not None:
+            if self._in_thead:
+                self._table['headers'] = self._row
+            elif self._row:
+                self._table['rows'].append(self._row)
+            self._row = None
+        elif tag == 'thead':
+            self._in_thead = False
+        elif tag == 'table' and self._table is not None:
+            self.tables.append(self._table)
+            self._table = None
+
+
+class TableAlignmentTests(SimpleTestCase):
+    """Headers and body cells agree on one alignment, table after table.
+
+    A header that sits left while its column is centered (or an "Actions"
+    heading that is left while the icon buttons hug the right edge) reads as
+    a broken table. These tests resolve the same cascade a browser would:
+    explicit ``text-*`` utility first, then the shared header classes that
+    set left alignment (``nx-th``/``adm-th``), then the element default.
+    """
+
+    templates = settings.BASE_DIR / 'accounts/templates'
+    details = settings.BASE_DIR / 'details/templates'
+
+    LEFT_BY_CLASS = {'nx-th', 'adm-th', 'proposal-table__title'}
+    ACTIONS = {'action', 'actions'}
+
+    def _alignment(self, cell, header):
+        for token in ('text-left', 'text-center', 'text-right'):
+            if token in cell['classes']:
+                return token.split('-', 1)[1]
+        if header:
+            if self.LEFT_BY_CLASS & set(cell['classes']):
+                return 'left'
+            # A <thead> th defaults to centered when nothing overrides it.
+            return 'center'
+        return 'left'
+
+    def _tables(self):
+        for root in (self.templates, self.details):
+            for path in sorted(root.rglob('*.html')):
+                text = path.read_text()
+                if '<table' not in text:
+                    continue
+                parser = _TableParser()
+                parser.feed(text)
+                for table in parser.tables:
+                    if table['headers']:
+                        yield path, table
+
+    def test_every_column_header_matches_its_cells(self):
+        checked = 0
+        for path, table in self._tables():
+            width = len(table['headers'])
+            rows = [r for r in table['rows'] if len(r) == width and not any(c['colspan'] > 1 for c in r)]
+            if not rows:
+                continue
+            checked += 1
+            for index, header in enumerate(table['headers']):
+                expected = self._alignment(header, header=True)
+                for row in rows:
+                    actual = self._alignment(row[index], header=False)
+                    with self.subTest(template=str(path.relative_to(settings.BASE_DIR)), column=header['text']):
+                        self.assertEqual(
+                            actual, expected,
+                            f'"{header["text"]}" is {expected}-aligned but its cells are {actual}-aligned',
+                        )
+        self.assertGreater(checked, 30, 'the audit should cover the whole app, not one page')
+
+    def test_every_actions_column_is_right_aligned(self):
+        seen = 0
+        for path, table in self._tables():
+            width = len(table['headers'])
+            for index, header in enumerate(table['headers']):
+                if header['text'].lower() not in self.ACTIONS:
+                    continue
+                seen += 1
+                with self.subTest(template=str(path.relative_to(settings.BASE_DIR))):
+                    self.assertEqual(self._alignment(header, header=True), 'right')
+                    for row in table['rows']:
+                        if len(row) != width or row[index]['colspan'] > 1:
+                            continue
+                        self.assertEqual(self._alignment(row[index], header=False), 'right')
+        self.assertEqual(seen, 30, 'every Actions column in the app is covered')
+
+    def test_row_cells_share_one_vertical_alignment(self):
+        css = (settings.BASE_DIR / 'static/css/nexus-components.css').read_text()
+        self.assertIn('.nexus-shell .nx-table th,', css)
+        self.assertIn('.nexus-shell .nx-table td { vertical-align: middle; }', css)
+        # Header typography must not leak into <th scope="row"> data cells.
+        self.assertNotIn('.nexus-shell .nx-table th {', css)
+        self.assertIn('.nexus-shell .nx-table thead th {', css)

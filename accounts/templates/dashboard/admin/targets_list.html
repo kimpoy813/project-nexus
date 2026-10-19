@@ -49,7 +49,7 @@
             <th class="text-center p-3 font-semibold">Target (yearly)</th>
             <th class="text-center p-3 font-semibold">Actual (Q1–Q4)</th>
             <th class="text-center p-3 font-semibold">Progress</th>
-            <th class="text-left p-3 font-semibold">Actions</th>
+            <th class="text-right p-3 font-semibold">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -61,7 +61,7 @@
                 <span class="text-base font-bold text-primary tabular-nums">{{ t.target|intcomma }}</span>
                 <p class="mt-0.5 text-[0.65rem] text-slate-400">for the year</p>
             </td>
-            <td class="p-3">
+            <td class="p-3 text-center">
                 <div class="flex flex-wrap justify-center gap-1.5 text-xs">
                     <span class="rounded-md bg-slate-100 px-2 py-1"><b>Q1</b> {{ t.actual_q1|intcomma }}</span>
                     <span class="rounded-md bg-slate-100 px-2 py-1"><b>Q2</b> {{ t.actual_q2|intcomma }}</span>
@@ -83,8 +83,8 @@
                 <div class="text-xs text-slate-400">No target set</div>
                 {% endif %}
             </td>
-            <td class="p-3">
-                <div class="nx-actions">
+            <td class="p-3 text-right">
+                <div class="nx-actions nx-actions--end">
                   <a href="{% url 'target_edit' t.id %}"
                      class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                      data-nx-tooltip="Edit target for {{ t.campus }} – {{ t.get_metric_display }}"

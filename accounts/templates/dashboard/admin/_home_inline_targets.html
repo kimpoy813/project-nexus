@@ -68,7 +68,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                     <th class="text-center p-3 font-medium">Target</th>
                     <th class="text-center p-3 font-medium">Actual</th>
                     <th class="text-center p-3 font-medium">Total</th>
-                    <th class="text-left p-3 font-medium">Actions</th>
+                    <th class="text-right p-3 font-medium">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -98,8 +98,8 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                         <span class="block text-[0.65rem] text-slate-500">of {{ t.target|intcomma }} ({{ t.completion_percentage }}%)</span>
                         {% endif %}
                     </td>
-                    <td class="p-3">
-                        <div class="nx-actions">
+                    <td class="p-3 text-right">
+                        <div class="nx-actions nx-actions--end">
                             <button type="button"
                                     onclick="document.getElementById('edit-target-{{ t.id }}-{{ eid }}').classList.toggle('hidden')"
                                     class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"

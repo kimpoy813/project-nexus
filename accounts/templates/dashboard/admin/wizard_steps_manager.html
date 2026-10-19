@@ -28,7 +28,7 @@
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Title / Description</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Visible</th>
           <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Required</th>
-          <th class="px-6 py-3 text-left text-xs font-black uppercase tracking-wide text-gray-500">Action</th>
+          <th class="px-6 py-3 text-right text-xs font-black uppercase tracking-wide text-gray-500">Action</th>
         </tr></thead>
         <tbody id="wizard-steps-list" class="divide-y divide-gray-100">
           {% for step in steps %}
@@ -48,8 +48,8 @@
             </td>
             <td class="px-6 py-4">{% if step.is_visible %}<span class="rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700 nx-badge">Shown</span>{% else %}<span class="rounded-full bg-gray-50 px-3 py-1 text-xs font-black text-gray-600 nx-badge">Hidden</span>{% endif %}</td>
             <td class="px-6 py-4">{% if step.is_required %}<span class="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700 nx-badge">Required</span>{% else %}<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700 nx-badge">Optional</span>{% endif %}</td>
-            <td class="px-6 py-4">
-              <div class="nx-actions">
+            <td class="px-6 py-4 text-right">
+              <div class="nx-actions nx-actions--end">
                 <a href="{% url 'wizard_step_edit' step.step_no %}"
                    class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                    data-nx-tooltip="Edit step" aria-label="Edit step">

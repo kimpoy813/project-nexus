@@ -17,7 +17,7 @@
             <th class="text-left p-3">Title</th>
             <th class="text-left p-3">Date</th>
             <th class="text-left p-3">Active</th>
-            <th class="text-left p-3">Actions</th>
+            <th class="text-right p-3">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -36,8 +36,8 @@
             {% endif %}
             </td>
             <td class="p-3">{{ a.active }}</td>
-            <td class="p-3">
-                <div class="nx-actions">
+            <td class="p-3 text-right">
+                <div class="nx-actions nx-actions--end">
                   <a href="{% url 'activity_edit' a.id %}"
                      class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                      data-nx-tooltip="Edit activity" aria-label="Edit activity">

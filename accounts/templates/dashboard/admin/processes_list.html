@@ -25,7 +25,7 @@
                         <th class="w-20 p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Order</th>
                         <th class="p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
                         <th class="w-24 p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Steps</th>
-                        <th class="w-32 p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
+                        <th class="w-32 p-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100"
@@ -44,8 +44,8 @@
                         <td class="p-3 text-sm font-semibold text-slate-600"><span class="js-position">{{ forloop.counter }}</span></td>
                         <td class="p-3 font-medium text-gray-900">{{ p.title }}</td>
                         <td class="p-3 text-sm text-gray-600">{{ p.steps.count }}</td>
-                        <td class="p-3">
-                            <div class="nx-actions">
+                        <td class="p-3 text-right">
+                            <div class="nx-actions nx-actions--end">
                                 <a class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                                    href="{% url 'process_edit' p.id %}"
                                    data-nx-tooltip="Edit process" aria-label="Edit process">

@@ -97,7 +97,7 @@
                 <span class="text-gray-400">No report yet</span>
               {% endif %}
             </td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4 text-right">
               <div class="nx-actions nx-actions--end">
                 {% if row.state == "awaiting" and can_submit_accomplishment and not can_request %}
                   <a href="{% url 'accomplishment_report_create' %}?request={{ request.pk }}"
