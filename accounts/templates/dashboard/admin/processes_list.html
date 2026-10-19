@@ -25,7 +25,7 @@
                         <th class="w-20 p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Order</th>
                         <th class="p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Title</th>
                         <th class="w-24 p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Steps</th>
-                        <th class="w-32 p-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
+                        <th class="w-32 p-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100"
@@ -44,9 +44,20 @@
                         <td class="p-3 text-sm font-semibold text-slate-600"><span class="js-position">{{ forloop.counter }}</span></td>
                         <td class="p-3 font-medium text-gray-900">{{ p.title }}</td>
                         <td class="p-3 text-sm text-gray-600">{{ p.steps.count }}</td>
-                        <td class="p-3 text-sm">
-                            <a class="mr-3 font-semibold text-primary transition hover:text-secondary" href="{% url 'process_edit' p.id %}">Edit</a>
-                            <a class="text-red-600 hover:text-red-800" href="{% url 'process_delete' p.id %}">Delete</a>
+                        <td class="p-3 text-right">
+                            <div class="nx-actions nx-actions--end">
+                                <a class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   href="{% url 'process_edit' p.id %}"
+                                   data-nx-tooltip="Edit process" aria-label="Edit process">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                </a>
+                                <a class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                   href="{% url 'process_delete' p.id %}"
+                                   data-nx-tooltip="Delete process" aria-label="Delete process"
+                                   onclick="return confirm('Delete this process? This cannot be undone.');">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}

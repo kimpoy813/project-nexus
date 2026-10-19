@@ -97,17 +97,32 @@
                 <span class="text-gray-400">No report yet</span>
               {% endif %}
             </td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-end gap-2">
+            <td class="px-6 py-4 text-right">
+              <div class="nx-actions nx-actions--end">
                 {% if row.state == "awaiting" and can_submit_accomplishment and not can_request %}
-                  <a href="{% url 'accomplishment_report_create' %}?request={{ request.pk }}" class="rounded-lg bg-primary px-3 py-1.5 text-xs font-black text-white hover:bg-secondary nx-btn nx-btn--primary" data-nx-skeleton="form">Submit report</a>
+                  <a href="{% url 'accomplishment_report_create' %}?request={{ request.pk }}"
+                     class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                     data-nx-skeleton="form"
+                     data-nx-tooltip="Submit quarterly report" aria-label="Submit quarterly report">
+                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-document-plus"></use></svg>
+                  </a>
                 {% endif %}
                 {% if can_request %}
                   <form method="POST" action="{% url 'accomplishment_request_close' request.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 nx-btn nx-btn--secondary">
-                      {% if request.is_open %}Close{% else %}Re-open{% endif %}
+                    {% if request.is_open %}
+                    <button type="submit"
+                            class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                            data-nx-tooltip="Close report request" aria-label="Close report request">
+                      <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-lock-closed"></use></svg>
                     </button>
+                    {% else %}
+                    <button type="submit"
+                            class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                            data-nx-tooltip="Re-open report request" aria-label="Re-open report request">
+                      <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-lock-open"></use></svg>
+                    </button>
+                    {% endif %}
                   </form>
                 {% endif %}
               </div>

@@ -49,6 +49,13 @@
 
 <body data-nx-page-kind="{{ nx_skeleton_variant }}" class="bg-gray-50 text-gray-800 font-sans {% block body_class %}{% endblock %}">
     {% comment %}
+        One shared action icon set for every table/card toolbar in the app.
+        Kept at the top of the body so any page (including pages rendered from
+        other apps) can reference the same symbols without shipping its own SVG.
+    {% endcomment %}
+    {% include "partials/_icon_sprite.html" %}
+
+    {% comment %}
         Page skeleton. It is the first thing in the body and is visible by
         default, so a page that is still being fetched/parsed shows a skeleton
         of the layout instead of a blank screen. js/nexus-loader.js takes it

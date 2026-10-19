@@ -207,9 +207,20 @@
                                     </span>
                                 </td>
                                 <td class="adm-td text-right whitespace-nowrap">
-                                    <a href="{% url 'admin_user_detail' profile.user.id %}" class="adm-link" data-nx-skeleton="record">View</a>
-                                    <span class="mx-1.5 text-slate-200">|</span>
-                                    <a href="{% url 'admin_edit_user' profile.user.id %}" class="adm-link" data-nx-skeleton="form">Edit</a>
+                                    <div class="nx-actions nx-actions--end">
+                                        <a href="{% url 'admin_user_detail' profile.user.id %}"
+                                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                           data-nx-skeleton="record"
+                                           data-nx-tooltip="View user details" aria-label="View user details">
+                                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
+                                        </a>
+                                        <a href="{% url 'admin_edit_user' profile.user.id %}"
+                                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                           data-nx-skeleton="form"
+                                           data-nx-tooltip="Edit user" aria-label="Edit user">
+                                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% empty %}

@@ -101,14 +101,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-auto flex flex-wrap items-center justify-end gap-2">
+                    <div class="mt-auto nx-actions nx-actions--end">
                         <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
-                           class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary hover:text-white nx-btn nx-btn--secondary">
-                            Summary
+                           class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                           data-nx-tooltip="Open comment summary" aria-label="Open comment summary">
+                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg>
                         </a>
                         <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                           class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                            View
+                           class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                           data-nx-tooltip="View proposal" aria-label="View proposal">
+                            <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                         </a>
                     </div>
                 </article>
@@ -162,7 +164,7 @@
                         <th scope="col" class="nx-th">Status</th>
                         <th scope="col" class="nx-th">Progress</th>
                         <th scope="col" class="nx-th">Date</th>
-                        <th scope="col" class="nx-th">Actions</th>
+                        <th scope="col" class="nx-th text-right">Actions</th>
                     </tr></thead>
                     <tbody>
                     {% for item in all_proposals %}
@@ -178,7 +180,7 @@
                                 </div>
                             </td>
                             <td class="nx-td proposal-table__date"><span class="proposal-table__date-label">{% if item.is_draft %}Last saved{% else %}Submitted{% endif %}</span>{% if item.is_draft %}{{ item.updated_at|date:"M d, Y"|default:"—" }}{% else %}{{ item.submitted_at|date:"M d, Y"|default:"—" }}{% endif %}</td>
-                            <td class="nx-td"><div class="proposal-table__actions">{% include 'dashboard/partials/_faculty_proposal_actions.html' %}</div></td>
+                            <td class="nx-td text-right"><div class="proposal-table__actions nx-actions nx-actions--end">{% include 'dashboard/partials/_faculty_proposal_actions.html' %}</div></td>
                         </tr>
                     {% endfor %}
                     </tbody>
@@ -269,7 +271,7 @@
                                 </p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 {% include 'dashboard/partials/_faculty_proposal_actions.html' %}
                             </div>
                         </div>

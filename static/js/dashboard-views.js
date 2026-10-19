@@ -182,3 +182,120 @@
         applyView(readView());
     });
 })();
+
+/* One shared tooltip for icon-only table actions (and any other control that
+   opts in with `data-nx-tooltip`). It is delegated, so rows added by a filter
+   or an inline editor get the same behaviour, and the bubble is appended to
+   <body> so `overflow-x-auto` table wrappers cannot clip it. */
+(function () {
+    'use strict';
+
+    function initActionTooltips() {
+        if (!document.body || typeof document.body.appendChild !== 'function') return;
+
+        const SHOW_DELAY = 120;
+        const GAP = 8;
+        const EDGE = 8;
+        let bubble = null;
+        let activeTrigger = null;
+        let openTimer = null;
+
+        function ensureBubble() {
+            if (bubble) return bubble;
+            bubble = document.createElement('div');
+            bubble.className = 'nx-tooltip';
+            bubble.setAttribute('role', 'presentation');
+            document.body.appendChild(bubble);
+            return bubble;
+        }
+
+        function place() {
+            if (!bubble || !activeTrigger) return;
+            const triggerRect = activeTrigger.getBoundingClientRect();
+            bubble.style.left = '0px';
+            bubble.style.top = '0px';
+            const bubbleRect = bubble.getBoundingClientRect();
+            let left = triggerRect.left + (triggerRect.width - bubbleRect.width) / 2;
+            left = Math.max(EDGE, Math.min(left, window.innerWidth - bubbleRect.width - EDGE));
+            let top = triggerRect.top - bubbleRect.height - GAP;
+            let placement = 'top';
+            if (top < EDGE) {
+                top = triggerRect.bottom + GAP;
+                placement = 'bottom';
+            }
+            bubble.dataset.placement = placement;
+            bubble.style.left = left + 'px';
+            bubble.style.top = top + 'px';
+            const arrow = triggerRect.left + triggerRect.width / 2 - left;
+            bubble.style.setProperty(
+                '--nx-tooltip-arrow-left',
+                Math.max(12, Math.min(bubbleRect.width - 12, arrow)) + 'px'
+            );
+        }
+
+        function show(trigger) {
+            if (!trigger || trigger === activeTrigger) return;
+            activeTrigger = trigger;
+            window.clearTimeout(openTimer);
+            const label = (trigger.dataset.nxTooltip || trigger.getAttribute('aria-label') || '').trim();
+            if (!label) return;
+            openTimer = window.setTimeout(function () {
+                if (activeTrigger !== trigger) return;
+                const tip = ensureBubble();
+                tip.textContent = label;
+                tip.dataset.placement = 'top';
+                tip.classList.add('is-visible');
+                place();
+            }, SHOW_DELAY);
+        }
+
+        function hide() {
+            window.clearTimeout(openTimer);
+            openTimer = null;
+            activeTrigger = null;
+            if (bubble) bubble.classList.remove('is-visible');
+        }
+
+        function triggerFrom(event) {
+            const target = event.target;
+            return target && target.closest ? target.closest('[data-nx-tooltip]') : null;
+        }
+
+        document.addEventListener('pointerover', function (event) {
+            const trigger = triggerFrom(event);
+            if (!trigger) return;
+            if (event.relatedTarget && trigger.contains(event.relatedTarget)) return;
+            show(trigger);
+        });
+
+        document.addEventListener('pointerout', function (event) {
+            const trigger = triggerFrom(event);
+            if (!trigger) return;
+            if (event.relatedTarget && trigger.contains(event.relatedTarget)) return;
+            hide();
+        });
+
+        document.addEventListener('focusin', function (event) {
+            const trigger = triggerFrom(event);
+            if (trigger) show(trigger);
+        });
+
+        document.addEventListener('focusout', function (event) {
+            if (triggerFrom(event)) hide();
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') hide();
+        });
+
+        document.addEventListener('click', function (event) {
+            if (triggerFrom(event)) hide();
+        });
+
+        /* Scrolling or resizing would leave the fixed bubble behind its row. */
+        window.addEventListener('scroll', hide, true);
+        window.addEventListener('resize', hide);
+    }
+
+    document.addEventListener('DOMContentLoaded', initActionTooltips);
+})();

@@ -209,7 +209,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 bg-white">
@@ -264,14 +264,16 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-2">
+                            <div class="nx-actions nx-actions--end">
                                 <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
-                                   class="inline-flex rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white nx-btn nx-btn--secondary">
-                                    Review
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Review comments" aria-label="Review comments">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg>
                                 </a>
                                 <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                                   class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    View
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View proposal" aria-label="View proposal">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                             </div>
                         </td>
@@ -362,14 +364,16 @@
                                 <p class="text-xs text-gray-700">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 <a href="{% url 'proposal_review_comments' proposal.id 1 %}"
-                                   class="inline-flex items-center rounded-lg border border-primary px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary hover:text-white nx-btn nx-btn--secondary">
-                                    Review
+                                   class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Review comments" aria-label="Review comments">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chat"></use></svg>
                                 </a>
                                 <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    View
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View proposal" aria-label="View proposal">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                             </div>
                         </div>
@@ -408,7 +412,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Scope</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Last Saved</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
                     </tr>
                 </thead>
                 <tbody id="drafts-tbody" class="divide-y divide-gray-100 bg-white">
@@ -436,16 +440,18 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <div class="flex justify-end gap-2">
+                            <div class="nx-actions nx-actions--end">
                                 <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                                   class="inline-flex rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white nx-btn nx-btn--secondary">
-                                    Continue
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Continue editing draft" aria-label="Continue editing draft">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-arrow-right"></use></svg>
                                 </a>
                                 {% if proposal.created_by == request.user %}
                                 <button type="button"
                                         onclick="openDeleteModal('{{ proposal.id }}', '{% url 'faculty_delete_draft' proposal.id %}', '{{ proposal.title|default:proposal.research_title|default:"Untitled Draft"|escapejs }}')"
-                                        class="inline-flex rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-600 hover:text-white nx-btn nx-btn--danger">
-                                    Delete
+                                        class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                        data-nx-tooltip="Delete draft" aria-label="Delete draft">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
                                 </button>
                                 {% endif %}
                             </div>
@@ -523,17 +529,19 @@
                                 <p class="text-xs text-gray-700">{{ proposal.last_saved_at|date:"M d, Y"|default:"—" }}</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 {% if proposal.created_by == request.user %}
                                 <button type="button"
-                                        onclick="openDeleteModal('{{ proposal.id }}', '{% url 'faculty_delete_draft' proposal.id %}', '{{ proposal.title|default:proposal.research_title|default:'Untitled Draft'|escapejs }}')}"
-                                        class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 nx-btn nx-btn--secondary">
-                                    Delete Draft
+                                        onclick="openDeleteModal('{{ proposal.id }}', '{% url 'faculty_delete_draft' proposal.id %}', '{{ proposal.title|default:proposal.research_title|default:'Untitled Draft'|escapejs }}')"
+                                        class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                        data-nx-tooltip="Delete draft" aria-label="Delete draft">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
                                 </button>
                                 {% endif %}
                                 <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    Continue
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="Continue editing draft" aria-label="Continue editing draft">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-arrow-right"></use></svg>
                                 </a>
                             </div>
                         </div>
@@ -576,7 +584,7 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Submitted</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 bg-white">
@@ -651,10 +659,13 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                               class="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                View
-                            </a>
+                            <div class="nx-actions nx-actions--end">
+                                <a href="{% url 'proposal_wizard' proposal.id 1 %}"
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View proposal" aria-label="View proposal">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -741,10 +752,11 @@
                                 <p class="text-xs text-gray-700">{% if proposal.submitted_at %}{{ proposal.submitted_at|date:"M d, Y" }}{% else %}—{% endif %}</p>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-end gap-1.5">
+                            <div class="nx-actions nx-actions--end">
                                 <a href="{% url 'proposal_wizard' proposal.id 1 %}"
-                                   class="inline-flex items-center rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition hover:bg-secondary nx-btn nx-btn--primary">
-                                    View
+                                   class="nx-btn nx-btn--primary nx-btn--icon nx-btn--compact"
+                                   data-nx-tooltip="View proposal" aria-label="View proposal">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-eye"></use></svg>
                                 </a>
                             </div>
                         </div>

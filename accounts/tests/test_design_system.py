@@ -1,5 +1,6 @@
 """Shared component adoption, separate from page-specific workflow behavior."""
 import re
+from html.parser import HTMLParser
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
@@ -288,3 +289,295 @@ class GaugeCardRenderingTests(TestCase):
         self.assertContains(response, 'function createDoughnutGauge')
         self.assertContains(response, 'data-proposal-layout')
         self.assertContains(response, 'data-proposal-panel="cards"')
+
+
+class ActionIconTests(SimpleTestCase):
+    """Table actions draw from one icon set, in the style of the app's icons.
+
+    The add / edit / delete icons these pages already shipped are Heroicons
+    v1.0.6 20/solid glyphs. Row actions reuse that exact set (one 20x20 grid,
+    solid fill, currentColor) instead of mixing in outline or 24px icons.
+    """
+
+    sprite = settings.BASE_DIR / 'templates/partials/_icon_sprite.html'
+    templates = settings.BASE_DIR / 'accounts/templates'
+
+    def test_every_symbol_is_a_20px_solid_currentcolor_glyph(self):
+        text = self.sprite.read_text()
+        symbols = re.findall(r'<symbol id="([^"]+)"([^>]*)>(.*?)</symbol>', text, re.S)
+        self.assertTrue(symbols, 'the shared sprite ships icons')
+        for name, attributes, body in symbols:
+            with self.subTest(icon=name):
+                self.assertIn('viewBox="0 0 20 20"', attributes)
+                self.assertIn('fill="currentColor"', attributes)
+                self.assertIn('<path', body)
+                # Outline glyphs carry stroke geometry; this set must not.
+                self.assertNotIn('stroke=', body)
+
+    def test_the_edit_and_delete_glyphs_are_the_ones_already_in_use(self):
+        text = self.sprite.read_text()
+        # Verbatim Heroicons v1.0.6 20/solid pencil and trash, i.e. the same
+        # glyphs the admin tables drew before the icons were centralised.
+        self.assertIn('M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793z', text)
+        self.assertIn('M9 2a1 1 0 00-.894.553L7.382 4H4', text)
+
+    def test_neutral_icon_actions_take_the_app_icon_color(self):
+        """Icons use the brand green the rest of the app draws icons in.
+
+        Secondary buttons set a slate text color; icon-only actions must not
+        inherit it, or the row icons read as black next to the green nav/tile
+        glyphs. Filled primary (white) and destructive (rose) stay semantic.
+        """
+        css = (settings.BASE_DIR / 'static/css/nexus-components.css').read_text()
+        rule = re.search(
+            r'\.nx-btn--icon:not\(\.nx-btn--primary\):not\(\.nx-btn--danger\)\s*\{([^}]*)\}',
+            css,
+        )
+        self.assertIsNotNone(rule, 'neutral icon buttons get an explicit icon color')
+        self.assertIn('var(--nexus-primary', rule.group(1))
+        self.assertNotIn('#334155', rule.group(1))
+
+        # The two semantic variants keep their own glyph color.
+        primary = re.search(r'\.nx-btn--primary\s*\{([^}]*)\}', css).group(1)
+        danger = re.search(r'\.nx-btn--danger\s*\{([^}]*)\}', css).group(1)
+        self.assertIn('color: #fff', primary)
+        self.assertIn('color: #9f1239', danger)
+
+    def test_the_sprite_is_loaded_once_for_the_whole_app(self):
+        base = (settings.BASE_DIR / 'templates/base.html').read_text()
+        self.assertEqual(base.count('partials/_icon_sprite.html'), 1)
+        # It must sit inside <body> so every page that extends base.html has it.
+        self.assertLess(base.index('<body'), base.index('partials/_icon_sprite.html'))
+
+    def test_every_table_action_is_an_icon_button_with_a_tooltip(self):
+        pattern = re.compile(r'<th[^>]*>\s*Actions?\s*</th>', re.I)
+        for path in self.templates.rglob('*.html'):
+            text = path.read_text()
+            if not pattern.search(text):
+                continue
+            with self.subTest(template=str(path.relative_to(self.templates))):
+                # Each action is one sprite icon, never a bare text control.
+                for tag in re.findall(r'<(?:a|button)\b[^>]*>', text):
+                    if 'nx-btn--icon' not in tag:
+                        continue
+                    self.assertIn('data-nx-tooltip=', tag)
+                    self.assertIn('aria-label=', tag)
+
+    def test_the_admin_user_table_uses_icons_instead_of_text_links(self):
+        text = (self.templates / 'dashboard/admin_dashboard.html').read_text()
+        self.assertIn('data-nx-tooltip="View user details"', text)
+        self.assertIn('data-nx-tooltip="Edit user"', text)
+        self.assertNotIn('class="adm-link" data-nx-skeleton="record"', text)
+        self.assertNotIn('class="adm-link" data-nx-skeleton="form"', text)
+
+    def test_icon_buttons_all_take_their_glyph_from_the_sprite(self):
+        for name in (
+            'dashboard/admin/campuses_list.html',
+            'dashboard/admin/colleges_list.html',
+            'dashboard/admin/departments_list.html',
+            'dashboard/admin/activities_list.html',
+            'dashboard/admin/personnel_list.html',
+            'dashboard/admin/targets_list.html',
+            'dashboard/admin/processes_list.html',
+            'dashboard/admin/signatories_list.html',
+            'dashboard/admin/wizard_steps_manager.html',
+            'dashboard/admin/document_templates_list.html',
+            'dashboard/accomplishment_reports_list.html',
+            'dashboard/staff_dashboard.html',
+            'dashboard/evaluator_dashboard.html',
+        ):
+            with self.subTest(template=name):
+                text = (self.templates / name).read_text()
+                uses = re.findall(r'<use href="#([^"]+)"></use>', text)
+                self.assertTrue(uses, 'icons come from the shared sprite')
+                self.assertIn('data-nx-tooltip=', text)
+                self.assertIn('aria-label=', text)
+                # The old hand-drawn 20px solids are gone.
+                self.assertNotIn('d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h3.828l8.38-8.379-2.83-2.828z"', text)
+
+class _TableParser(HTMLParser):
+    """Collect header and body cells per table, with their alignment classes."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.tables = []
+        self._table = None
+        self._row = None
+        self._cell = None
+        self._buf = []
+        self._in_thead = False
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        classes = (attributes.get('class') or '').split()
+        if tag == 'table':
+            self._table = {'headers': [], 'rows': []}
+        elif self._table is None:
+            return
+        elif tag == 'thead':
+            self._in_thead = True
+        elif tag == 'tr':
+            self._row = []
+        elif tag in ('th', 'td') and self._row is not None:
+            self._cell = {
+                'tag': tag,
+                'classes': classes,
+                'colspan': int(attributes.get('colspan') or 1),
+            }
+            self._buf = []
+
+    def handle_data(self, data):
+        if self._cell is not None:
+            self._buf.append(data)
+
+    def handle_endtag(self, tag):
+        if tag in ('th', 'td') and self._cell is not None:
+            self._cell['text'] = ''.join(self._buf).strip()
+            self._row.append(self._cell)
+            self._cell = None
+        elif tag == 'tr' and self._row is not None:
+            if self._in_thead:
+                self._table['headers'] = self._row
+            elif self._row:
+                self._table['rows'].append(self._row)
+            self._row = None
+        elif tag == 'thead':
+            self._in_thead = False
+        elif tag == 'table' and self._table is not None:
+            self.tables.append(self._table)
+            self._table = None
+
+
+class TableAlignmentTests(SimpleTestCase):
+    """Headers and body cells agree on one alignment, table after table.
+
+    A header that sits left while its column is centered (or an "Actions"
+    heading that is left while the icon buttons hug the right edge) reads as
+    a broken table. These tests resolve the same cascade a browser would:
+    explicit ``text-*`` utility first, then the shared header classes that
+    set left alignment (``nx-th``/``adm-th``), then the element default.
+    """
+
+    templates = settings.BASE_DIR / 'accounts/templates'
+    details = settings.BASE_DIR / 'details/templates'
+
+    LEFT_BY_CLASS = {'nx-th', 'adm-th', 'proposal-table__title'}
+    ACTIONS = {'action', 'actions'}
+
+    def _alignment(self, cell, header):
+        for token in ('text-left', 'text-center', 'text-right'):
+            if token in cell['classes']:
+                return token.split('-', 1)[1]
+        if header:
+            if self.LEFT_BY_CLASS & set(cell['classes']):
+                return 'left'
+            # A <thead> th defaults to centered when nothing overrides it.
+            return 'center'
+        return 'left'
+
+    def _tables(self):
+        for root in (self.templates, self.details):
+            for path in sorted(root.rglob('*.html')):
+                text = path.read_text()
+                if '<table' not in text:
+                    continue
+                parser = _TableParser()
+                parser.feed(text)
+                for table in parser.tables:
+                    if table['headers']:
+                        yield path, table
+
+    def test_every_column_header_matches_its_cells(self):
+        checked = 0
+        for path, table in self._tables():
+            width = len(table['headers'])
+            rows = [r for r in table['rows'] if len(r) == width and not any(c['colspan'] > 1 for c in r)]
+            if not rows:
+                continue
+            checked += 1
+            for index, header in enumerate(table['headers']):
+                expected = self._alignment(header, header=True)
+                for row in rows:
+                    actual = self._alignment(row[index], header=False)
+                    with self.subTest(template=str(path.relative_to(settings.BASE_DIR)), column=header['text']):
+                        self.assertEqual(
+                            actual, expected,
+                            f'"{header["text"]}" is {expected}-aligned but its cells are {actual}-aligned',
+                        )
+        self.assertGreater(checked, 30, 'the audit should cover the whole app, not one page')
+
+    def test_every_actions_column_is_right_aligned(self):
+        seen = 0
+        for path, table in self._tables():
+            width = len(table['headers'])
+            for index, header in enumerate(table['headers']):
+                if header['text'].lower() not in self.ACTIONS:
+                    continue
+                seen += 1
+                with self.subTest(template=str(path.relative_to(settings.BASE_DIR))):
+                    self.assertEqual(self._alignment(header, header=True), 'right')
+                    for row in table['rows']:
+                        if len(row) != width or row[index]['colspan'] > 1:
+                            continue
+                        self.assertEqual(self._alignment(row[index], header=False), 'right')
+        self.assertEqual(seen, 30, 'every Actions column in the app is covered')
+
+    def test_row_cells_share_one_vertical_alignment(self):
+        css = (settings.BASE_DIR / 'static/css/nexus-components.css').read_text()
+        self.assertIn('.nexus-shell .nx-table th,', css)
+        self.assertIn('.nexus-shell .nx-table td { vertical-align: middle; }', css)
+        # Header typography must not leak into <th scope="row"> data cells.
+        self.assertNotIn('.nexus-shell .nx-table th {', css)
+        self.assertIn('.nexus-shell .nx-table thead th {', css)
+
+class IconButtonCenteringTests(SimpleTestCase):
+    """Icon buttons are exact squares with the glyph centred on both axes."""
+
+    css = settings.BASE_DIR / 'static/css/nexus-components.css'
+
+    def _rule(self, body):
+        css = self.css.read_text()
+        match = re.search(body + r'\s*\{([^}]*)\}', css)
+        self.assertIsNotNone(match, f'missing rule for {body}')
+        return match.group(1)
+
+    def test_icon_buttons_have_no_padding_and_centre_their_glyph(self):
+        base = self._rule(r'\.nexus-shell \.nx-btn--icon')
+        # A padded square drifts when the glyph size changes.
+        self.assertIn('padding: 0;', base)
+        self.assertIn('justify-content: center;', base)
+        self.assertIn('align-items: center;', base)
+
+        # The compact variant inherits the centring from the base class.
+        compact = self._rule(r'\.nexus-shell \.nx-btn--icon\.nx-btn--compact')
+        self.assertIn('padding: 0;', compact)
+
+    def test_icon_buttons_are_square(self):
+        for selector in (
+            r'\.nexus-shell \.nx-btn--icon',
+            r'\.nexus-shell \.nx-btn--icon\.nx-btn--compact',
+        ):
+            rule = self._rule(selector)
+            widths = re.findall(r'(?:^|;)\s*width: (var\(--nx-control-[a-z]+\));', rule)
+            heights = re.findall(r'min-height: (var\(--nx-control-[a-z]+\));', rule)
+            self.assertTrue(widths, f'{selector} sets a width')
+            self.assertTrue(heights, f'{selector} sets a min-height')
+            self.assertEqual(widths[0], heights[0], 'width and height use the same token')
+
+    def test_every_icon_button_holds_exactly_one_glyph_and_no_text(self):
+        for path in sorted((settings.BASE_DIR / 'accounts/templates').rglob('*.html')):
+            text = path.read_text()
+            if 'nx-btn--icon' not in text:
+                continue
+            parser = _TableParser()
+            parser.feed(text)
+            # A text glyph inside an icon button would not sit on the icon grid.
+            for match in re.finditer(r'<(?:a|button)\b[^>]*nx-btn--icon[^>]*>(.*?)</(?:a|button)>', text, re.S):
+                body = match.group(1)
+                with self.subTest(template=str(path.relative_to(settings.BASE_DIR))):
+                    self.assertEqual(len(re.findall(r'<svg\b', body)), 1, 'exactly one glyph')
+                    self.assertNotRegex(re.sub(r'<[^>]+>', '', body).strip(), r'\S', 'no text label inside')
+
+    def test_row_action_groups_centre_their_members(self):
+        rule = self._rule(r'\.nexus-shell \.nx-actions')
+        self.assertIn('align-items: center;', rule)
