@@ -98,7 +98,7 @@ class RoleCapabilityAdmin(admin.ModelAdmin):
 
 
 class AccomplishmentTargetEntryInline(admin.TabularInline):
-    """The per-category target figures filed with the report."""
+    """The target figures derived from the report's counts."""
 
     model = AccomplishmentTargetEntry
     extra = 0

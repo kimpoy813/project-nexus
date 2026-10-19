@@ -660,11 +660,11 @@ class AccomplishmentReport(models.Model):
         return bool(self.target_contributions())
 
     def target_contributions(self):
-        """``{metric: value}`` for the answers filed with this report.
+        """``{metric: value}`` for this report's target figures.
 
         Read through the report's own rows rather than the ``Target`` table:
         the Target figures can be edited later by an administrator, while the
-        report should keep showing what the coordinator actually answered.
+        report should keep showing what the coordinator actually reported.
         """
         return {entry.metric: entry.value for entry in self.target_entries.all()}
 
@@ -674,9 +674,9 @@ class QuarterlyReportRequest(models.Model):
 
     One row per campus and quarter. Staff and Director open requests (usually
     for every campus at once); the Campus Coordinator of that campus sees the
-    request on their dashboard, uploads the report file, and answers how much
-    of each target category was accomplished for the quarter. Staff and
-    Director see the submission and the answers.
+    request on their dashboard, uploads the report file, and enters the
+    quarter's activities, beneficiaries and partners counts. Staff and
+    Director see the submission and the figures.
     """
 
     class Status(models.TextChoices):
@@ -738,11 +738,13 @@ class QuarterlyReportRequest(models.Model):
 
 
 class AccomplishmentTargetEntry(models.Model):
-    """One target category's accomplishment figure answered on a report.
+    """One target category's accomplishment figure derived from a report.
 
-    The coordinator answers per :class:`Target` metric (Programs, Participants,
-    Partners, Technology Transfer) so the answer lands in the campus target
-    tracker instead of living only inside the narrative.
+    The submission form asks for activities, beneficiaries and partners
+    counts once; those counts answer the matching :class:`Target` metrics
+    (Programs, Participants, Partners) so the figure lands in the campus
+    target tracker instead of living only inside the narrative. Technology
+    Transfer has no count box and is maintained from the target editor.
     """
 
     report = models.ForeignKey(

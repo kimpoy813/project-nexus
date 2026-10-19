@@ -7,14 +7,14 @@ The flow this module implements:
    :class:`details.models.QuarterlyReportRequest`), usually for every campus at
    once, with an optional due date.
 2. The Campus Coordinator sees the outstanding request on their dashboard, and
-   submits a report: the uploaded file plus the narrative and — for each
-   Extension Target category — how much of the campus target was accomplished
-   for that quarter.
-3. Those answers are rolled into the campus ``Target`` rows by
+   submits a report: the uploaded file, the narrative, and the quarter's
+   activities, beneficiaries and partners counts.
+3. Those counts answer the matching target categories and are rolled into the
+   campus ``Target`` rows by
    ``details.quarterly.save_target_contributions``, so the Extension Targets
    tracker and the public Targets block reflect the same figures.
-4. Staff and Director see every submission, its file, and its answers, and can
-   monitor which campuses still owe a report.
+4. Staff and Director see every submission, its file, and its figures, and
+   can monitor which campuses still owe a report.
 """
 
 from django.contrib import messages
@@ -29,10 +29,8 @@ from details.models import AccomplishmentReport
 from details.models import QuarterlyReportRequest
 from details.models import RoleCapability
 from details.models import Target
+from details.quarterly import contributions_from_report_counts
 from details.quarterly import open_requests_for_campus
-from details.quarterly import parse_target_contributions
-from details.quarterly import posted_contributions
-from details.quarterly import request_form_context
 from details.quarterly import save_target_contributions
 from details.quarterly import submissions_for
 from .. import permissions
@@ -237,6 +235,10 @@ def accomplishment_report_create(request):
         values["campus"] = (
             (getattr(report_request, "campus", "") or own_campus) or ""
         ).strip()
+    if request.method == "GET" and is_campus_coordinator:
+        # Re-showing what was filed before beats an empty grid: the figures
+        # are replaced, not added, so a correction starts from the old answer.
+        values.update(_previous_counts(report_request))
     contributions = {}
 
     if request.method == "POST":
@@ -276,22 +278,21 @@ def accomplishment_report_create(request):
         elif report_request and not request.FILES.get("attachment"):
             error = "Attach the quarterly report file before submitting."
 
-        contributions = (
-            posted_contributions(request.POST) if can_answer_targets else {}
-        )
+        # The counts are the coordinator's one set of figures. The same
+        # numbers answer the matching target categories, so the form never
+        # asks for Programs / Participants / Partners a second time.
         if error is None and can_answer_targets:
             try:
-                parsed = parse_target_contributions(request.POST)
+                contributions = contributions_from_report_counts(values)
             except ValueError as exc:
                 error = str(exc)
             else:
-                if parsed and not values["campus"]:
+                if contributions and not values["campus"]:
                     error = (
                         "Your account has no campus assigned yet, so the target "
                         "figures cannot be recorded. Ask the Admin to set your "
                         "campus first."
                     )
-                contributions = parsed
 
         if error:
             messages.error(request, error)
@@ -314,9 +315,9 @@ def accomplishment_report_create(request):
                 college="" if is_campus_coordinator else (request.POST.get("college") or getattr(profile, "college", "") or "").strip(),
                 department="" if is_campus_coordinator else (request.POST.get("department") or getattr(profile, "department", "") or "").strip(),
                 narrative=values["narrative"],
-                activities_count=_safe_int(request.POST.get("activities_count"), 0),
-                beneficiaries_count=_safe_int(request.POST.get("beneficiaries_count"), 0),
-                partners_count=_safe_int(request.POST.get("partners_count"), 0),
+                activities_count=_safe_int(values["activities_count"], 0),
+                beneficiaries_count=_safe_int(values["beneficiaries_count"], 0),
+                partners_count=_safe_int(values["partners_count"], 0),
                 attachment=request.FILES.get("attachment"),
                 submitted_by=request.user,
                 request=report_request,
@@ -333,15 +334,6 @@ def accomplishment_report_create(request):
             messages.success(request, message)
             return redirect("accomplishment_reports_list")
 
-    # Re-showing what was filed before beats an empty grid: the figures are
-    # replaced, not added, so a correction should start from the old answer.
-    answers = contributions or _previously_filed_answers(report_request)
-    target_rows = (
-        request_form_context(values["year"], values["campus"], values=answers)
-        if can_answer_targets
-        else []
-    )
-
     return render(
         request,
         "dashboard/accomplishment_report_form.html",
@@ -352,7 +344,6 @@ def accomplishment_report_create(request):
             # Live campus list from the admin-managed Campus table so the
             # cascading college/department selects have a source of truth.
             "campus_choices": [value for value, _label in get_campus_choices()],
-            "can_answer_targets": can_answer_targets,
             "is_campus_coordinator": is_campus_coordinator,
             "filing_campus": values["campus"],
             "selected_campus": values["campus"],
@@ -360,18 +351,8 @@ def accomplishment_report_create(request):
             "values": values,
             "report_request": report_request,
             "pending_requests": pending_requests,
-            "target_rows": target_rows,
         },
     )
-
-
-def _previously_filed_answers(report_request):
-    """Category answers already on file for a request, for prefilling."""
-    if report_request is None:
-        return {}
-
-    submission = submissions_for([report_request]).get(report_request.pk)
-    return submission.target_contributions() if submission else {}
 
 
 def _submission_values(request, profile, report_request):
@@ -401,6 +382,41 @@ def _submission_values(request, profile, report_request):
             or getattr(profile, "campus", ""),
         ),
         "narrative": (request.POST.get("narrative") or "").strip(),
+        # Blank, not "0": an untouched count means "not answered this quarter"
+        # and must not overwrite an actual already on the target tracker.
+        "activities_count": (request.POST.get("activities_count") or "").strip(),
+        "beneficiaries_count": (request.POST.get("beneficiaries_count") or "").strip(),
+        "partners_count": (request.POST.get("partners_count") or "").strip(),
+    }
+
+
+def _previous_counts(report_request):
+    """Count inputs to prefill when a filed request is opened again.
+
+    Reports filed before the form was consolidated answered Programs /
+    Participants / Partners instead of filling counts, so fall back to those
+    target entries when the report's counts are all zero.
+    """
+    if report_request is None:
+        return {}
+
+    previous = submissions_for([report_request]).get(report_request.pk)
+    if previous is None:
+        return {}
+
+    counts = {
+        "activities_count": previous.activities_count,
+        "beneficiaries_count": previous.beneficiaries_count,
+        "partners_count": previous.partners_count,
+    }
+    if any(counts.values()):
+        return {field: str(value) for field, value in counts.items()}
+
+    entries = previous.target_contributions()
+    return {
+        "activities_count": str(entries.get("programs", "")),
+        "beneficiaries_count": str(entries.get("participants", "")),
+        "partners_count": str(entries.get("partners", "")),
     }
 
 

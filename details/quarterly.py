@@ -4,11 +4,15 @@ Two things live here rather than in a view, because both the coordinator-facing
 submission and the Staff/Director monitoring screens need them and they must
 agree exactly:
 
-* Parsing and storing the per-category answers a coordinator files alongside
-  the uploaded report file, and
-* Rolling those answers into the campus :class:`~details.models.Target` rows so
+* Mapping the counts a coordinator files alongside the uploaded report file to
+  the target categories they answer, and
+* Rolling those figures into the campus :class:`~details.models.Target` rows so
   the Extension Targets tracker reflects what was reported instead of being
   maintained by hand a second time.
+
+The submission form asks for each figure once, as a count on the report. That
+same count is the coordinator's answer for the matching target category, so
+there is no second set of category inputs to fill in.
 """
 
 import logging
@@ -31,32 +35,39 @@ QUARTER_ACTUAL_FIELDS = {
     AccomplishmentReport.Quarter.Q4: "actual_q4",
 }
 
-#: Prefix used by the submission form for the per-category answer inputs.
-CONTRIBUTION_FIELD_PREFIX = "target_"
+#: The count inputs on the submission form, the target category each one
+#: answers, and the label to mention in a validation error. The form asks for
+#: the figure once; the report stores it as a count and the target tracker
+#: receives the same number.
+COUNT_TARGET_METRICS = (
+    ("activities_count", "programs", "Activities Count"),
+    ("beneficiaries_count", "participants", "Beneficiaries Count"),
+    ("partners_count", "partners", "Partners Count"),
+)
 
 
-def parse_target_contributions(data, *, metrics=None):
-    """Return ``{metric: value}`` parsed from a request-like mapping.
+def contributions_from_report_counts(data):
+    """Return ``{metric: value}`` for the counts a coordinator answered.
 
     Raises :class:`ValueError` with a field-specific message so the view can
     hand it straight to ``messages.error``.
 
-    A blank category is *skipped*, not read as zero: the coordinator is
-    answering "how much did this quarter include", and recording an untouched
-    box as 0 would understate the campus. A category really at zero is filed by
-    typing 0. An entirely blank submission returns ``{}`` - nothing was
-    answered, so nothing is written.
-    """
-    metrics = list(metrics or [value for value, _label in Target.METRIC_CHOICES])
+    A blank count is *skipped*, not read as zero: the count boxes start empty,
+    and recording an untouched box as 0 would wipe an actual the campus may
+    already have on the tracker. A category really at zero is filed by typing
+    0. An entirely blank set returns ``{}`` - nothing was answered, so nothing
+    is written.
 
+    Technology Transfer has no count box on the report, so it is not touched
+    by a submission; it is maintained from the target editor.
+    """
     values = {}
-    for metric in metrics:
-        raw = data.get(f"{CONTRIBUTION_FIELD_PREFIX}{metric}")
+    for field, metric, label in COUNT_TARGET_METRICS:
+        raw = data.get(field)
         text = "" if raw is None else str(raw).strip()
         if text == "":
             continue
 
-        label = dict(Target.METRIC_CHOICES).get(metric, metric)
         try:
             number = int(text)
         except (TypeError, ValueError) as exc:
@@ -180,42 +191,3 @@ def pending_requests_for_user(user):
         key=lambda request: (request.year, request.quarter),
         reverse=True,
     )
-
-
-def request_form_context(year, campus, *, values=None):
-    """What the submission form needs to render the category answer rows.
-
-    For every ``Target`` category it reports the yearly target already set for
-    this campus (if any) and the figure filed for the quarter being reported,
-    so the coordinator can see what they are contributing to. ``values``
-    overrides the filed figures - used when a rejected submission is rendered
-    back with what the coordinator just typed.
-    """
-    targets = {
-        target.metric: target
-        for target in Target.objects.filter(
-            year=year, campus__iexact=(campus or "").strip()
-        )
-    }
-    answered = dict(values or {})
-
-    rows = []
-    for metric, label in Target.METRIC_CHOICES:
-        target = targets.get(metric)
-        rows.append(
-            {
-                "metric": metric,
-                "label": label,
-                "yearly_target": target.target if target else None,
-                "answered": answered.get(metric),
-            }
-        )
-    return rows
-
-
-def posted_contributions(data):
-    """Raw (unvalidated) contribution inputs, for re-rendering a form."""
-    return {
-        metric: (data.get(f"{CONTRIBUTION_FIELD_PREFIX}{metric}") or "").strip()
-        for metric, _label in Target.METRIC_CHOICES
-    }
