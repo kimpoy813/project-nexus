@@ -23,7 +23,7 @@
           <li><span class="font-bold">Due:</span> {{ report_request.due_date|date:"M d, Y" }}{% if report_request.is_overdue %} <span class="font-black text-red-700">(overdue)</span>{% endif %}</li>
         {% endif %}
         {% if report_request.instructions %}<li><span class="font-bold">Instructions:</span> {{ report_request.instructions }}</li>{% endif %}
-        <li>The report file is required, and the target figures below are recorded for that quarter.</li>
+        <li>The report file is required, and the counts below are recorded for that quarter.</li>
       </ul>
     </div>
   {% elif pending_requests %}
@@ -99,37 +99,36 @@
     </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
-      <div><label class="block text-sm font-bold text-gray-700 mb-1">Activities Count</label><input type="number" min="0" name="activities_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
-      <div><label class="block text-sm font-bold text-gray-700 mb-1">Beneficiaries Count</label><input type="number" min="0" name="beneficiaries_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
-      <div><label class="block text-sm font-bold text-gray-700 mb-1">Partners Count</label><input type="number" min="0" name="partners_count" value="0" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"></div>
-    </div>
-
-    {% if can_answer_targets %}
     <div class="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-      <div class="space-y-3">
-        {% for row in target_rows %}
-          <div class="grid grid-cols-1 items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:grid-cols-[1fr_10rem]">
-            <div>
-              <label class="block text-sm font-bold text-gray-800" for="target-{{ row.metric }}">{{ row.label }}</label>
-              <p class="text-xs text-gray-500">
-                {% if row.yearly_target is not None %}
-                  Yearly target for {{ selected_campus|default:"your campus" }}: <span class="font-bold tabular-nums">{{ row.yearly_target }}</span>
-                {% else %}
-                  No yearly target set for this campus yet &mdash; your figure is still recorded.
-                {% endif %}
-              </p>
-            </div>
-            <input id="target-{{ row.metric }}" type="number" min="0" inputmode="numeric"
-                   name="target_{{ row.metric }}"
-                   value="{{ row.answered|default_if_none:'' }}"
-                   placeholder="0"
-                   class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm tabular-nums focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
-          </div>
-        {% endfor %}
+      <p class="text-sm font-black text-gray-900">This Quarter's Accomplishments</p>
+      <p class="mt-1 text-xs text-gray-600">
+        {% if is_campus_coordinator %}
+          Enter each figure once. The activities, beneficiaries and partners you report are also recorded as this quarter's Programs, Participants and Partners accomplishments on your campus target tracker.
+        {% else %}
+          Enter each figure once; the counts are recorded on the report.
+        {% endif %}
+      </p>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1" for="field-activities-count">Activities Count</label>
+          <input id="field-activities-count" type="number" min="0" inputmode="numeric" name="activities_count"
+                 value="{{ values.activities_count }}" placeholder="0"
+                 class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm tabular-nums focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1" for="field-beneficiaries-count">Beneficiaries Count</label>
+          <input id="field-beneficiaries-count" type="number" min="0" inputmode="numeric" name="beneficiaries_count"
+                 value="{{ values.beneficiaries_count }}" placeholder="0"
+                 class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm tabular-nums focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+        </div>
+        <div>
+          <label class="block text-sm font-bold text-gray-700 mb-1" for="field-partners-count">Partners Count</label>
+          <input id="field-partners-count" type="number" min="0" inputmode="numeric" name="partners_count"
+                 value="{{ values.partners_count }}" placeholder="0"
+                 class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm tabular-nums focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none">
+        </div>
       </div>
     </div>
-    {% endif %}
 
     <div><label class="block text-sm font-bold text-gray-700 mb-1" for="field-narrative">Narrative / Highlights</label><textarea id="field-narrative" name="narrative" rows="5" class="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm">{{ values.narrative }}</textarea></div>
 

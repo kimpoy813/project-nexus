@@ -386,33 +386,34 @@ database constraint names and internal paths.
 ## Quarterly report cycle
 
 The system asks each campus for a quarterly accomplishment report; the Campus
-Coordinator uploads the file and answers how much of each Extension Target
-category the quarter included. Staff and Director open the requests and see the
-answers.
+Coordinator uploads the file and enters the quarter's activities, beneficiaries
+and partners counts. Staff and Director open the requests and see the figures.
 
 | Route | Who | What it does |
 | --- | --- | --- |
 | `/accomplishments/requests/` | Staff, Director, Admin (every campus); Campus Coordinator (own campus) | Each request with its due date and whether a report has been filed |
 | `/accomplishments/requests/new/` | Staff, Director, Admin | Asks one, several, or every campus for a quarter |
-| `/accomplishments/create/?request=<id>` | Coordinators with `SUBMIT_QUARTERLY_ACCOMPLISHMENT` | Uploads the report file, writes the narrative, answers the target categories |
+| `/accomplishments/create/?request=<id>` | Coordinators with `SUBMIT_QUARTERLY_ACCOMPLISHMENT` | Uploads the report file, writes the narrative, enters the quarter's counts |
 | `/accomplishments/<id>/` | Requester roles, plus the submitter's own scope | The uploaded file, the narrative, and the figures filed |
 
-How an answer reaches the Targets tracker:
+How the counts reach the Targets tracker:
 
 * `QuarterlyReportRequest` holds one row per campus, year and quarter. Asking a
   campus that already has a row re-opens it instead of duplicating.
-* The coordinator's answers are stored on the report as
-  `AccomplishmentTargetEntry` rows, one per `Target` metric (Programs,
-  Participants, Partners, Technology Transfer).
-* `details.quarterly.save_target_contributions()` writes each answer into the
+* The form asks for the figures once. Activities answer Programs, beneficiaries
+  answer Participants, and partners answer Partners; the same numbers are
+  stored on the report and as `AccomplishmentTargetEntry` rows.
+* Technology Transfer has no count box on the report; it is maintained from
+  the admin target editor.
+* `details.quarterly.save_target_contributions()` writes each figure into the
   campus `Target` row for that quarter (`actual_q1` … `actual_q4`), creating the
   row when that campus has no target for the metric yet. The figure
   **replaces** what was filed before, so a correction never double-counts.
-* A blank category is skipped, not read as 0: an untouched box must not
-  understate a campus. A category genuinely at zero is filed by typing `0`.
-* Only Campus Coordinators see the category rows. A Department Coordinator's
-  scope sits inside a campus, so their reports never write to the campus
-  tracker.
+* A blank count is skipped, not read as 0: an untouched box must not overwrite
+  an actual already on the tracker. A figure genuinely at zero is filed by
+  typing `0`.
+* Only Campus Coordinators write to the campus tracker. A Department
+  Coordinator's scope sits inside a campus, so their reports never write to it.
 * Answering a request requires the uploaded file; ad-hoc reports keep the file
   optional.
 

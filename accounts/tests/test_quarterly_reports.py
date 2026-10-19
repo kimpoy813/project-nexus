@@ -1,14 +1,14 @@
 """
-The quarterly report cycle: ask the campus, upload the file, answer the targets.
+The quarterly report cycle: ask the campus, upload the file, enter the counts.
 
 The behaviour worth locking down:
 
 * Only Staff, Director and Admin open requests; a Campus Coordinator answers.
 * A report that answers a request must carry the uploaded file.
-* The per-category answers the coordinator gives land on the campus
-  ``Target`` rows for that quarter - replacing, never adding, so a correction
-  does not double-count.
-* Staff and Director can see the file and the answers; a coordinator cannot
+* The counts the coordinator enters land on the campus ``Target`` rows for
+  that quarter - replacing, never adding, so a correction does not
+  double-count.
+* Staff and Director can see the file and the figures; a coordinator cannot
   read another campus's submission.
 """
 
@@ -26,7 +26,7 @@ from details.models import (
     QuarterlyReportRequest,
     Target,
 )
-from details.quarterly import parse_target_contributions, submissions_for
+from details.quarterly import contributions_from_report_counts, submissions_for
 
 from . import factories
 
@@ -250,7 +250,7 @@ class QuarterlyRequestCreationTests(TestCase):
 
 
 class CoordinatorSubmissionTests(TestCase):
-    """The upload plus the per-category target answers."""
+    """The upload plus the counts that answer the campus targets."""
 
     @classmethod
     def setUpTestData(cls):
@@ -273,15 +273,14 @@ class CoordinatorSubmissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "3rd Quarter 2026")
         self.assertContains(response, f'value="{self.report_request.pk}"')
-        # The answer rows for every target category are offered.
-        for _value, label in Target.METRIC_CHOICES:
-            self.assertContains(response, label)
-        # The form does not restate the filing scope or explain the answer
-        # rows above them; the inputs stand on their own.
+        # Each figure is asked for once, as a count on the report.
+        for field in ("activities_count", "beneficiaries_count", "partners_count"):
+            self.assertContains(response, f'name="{field}"')
+        # The old second set of target inputs is gone.
+        for metric in ("programs", "participants", "partners", "technology"):
+            self.assertNotContains(response, f'name="target_{metric}"')
+        # The form does not restate the filing scope.
         self.assertNotContains(response, "Filing for")
-        self.assertNotContains(
-            response, "How much of your target did this quarter include?"
-        )
 
     def test_submission_links_the_request_and_records_the_quarter_actuals(self):
         Target.objects.create(
@@ -293,10 +292,9 @@ class CoordinatorSubmissionTests(TestCase):
             report_payload(
                 request=str(self.report_request.pk),
                 attachment=SimpleUploadedFile("q3.pdf", b"report-bytes"),
-                target_programs="25",
-                target_participants="40",
-                target_partners="3",
-                target_technology="1",
+                activities_count="25",
+                beneficiaries_count="40",
+                partners_count="3",
             ),
         )
 
@@ -314,7 +312,7 @@ class CoordinatorSubmissionTests(TestCase):
 
         self.assertEqual(
             {entry.metric: entry.value for entry in report.target_entries.all()},
-            {"programs": 25, "participants": 40, "partners": 3, "technology": 1},
+            {"programs": 25, "participants": 40, "partners": 3},
         )
 
     def test_a_target_row_is_created_when_the_campus_has_none(self):
@@ -323,7 +321,7 @@ class CoordinatorSubmissionTests(TestCase):
             report_payload(
                 request=str(self.report_request.pk),
                 attachment=SimpleUploadedFile("q3.pdf", b"x"),
-                target_programs="12",
+                activities_count="12",
             ),
         )
 
@@ -336,7 +334,7 @@ class CoordinatorSubmissionTests(TestCase):
 
         response = self.client_coordinator.post(
             reverse("accomplishment_report_create"),
-            report_payload(request=str(self.report_request.pk), target_programs="5"),
+            report_payload(request=str(self.report_request.pk), activities_count="5"),
         )
 
         self.assertEqual(response.status_code, 200)
@@ -349,7 +347,7 @@ class CoordinatorSubmissionTests(TestCase):
             report_payload(
                 request=str(self.report_request.pk),
                 attachment=SimpleUploadedFile("q3.pdf", b"x"),
-                target_programs=str(value),
+                activities_count=str(value),
             ),
         )
 
@@ -375,7 +373,7 @@ class CoordinatorSubmissionTests(TestCase):
             report_payload(
                 request=str(self.report_request.pk),
                 attachment=SimpleUploadedFile("q3.pdf", b"x"),
-                target_programs="30",
+                activities_count="30",
             ),
         )
 
@@ -406,12 +404,12 @@ class CoordinatorSubmissionTests(TestCase):
             report_payload(
                 request=str(self.report_request.pk),
                 attachment=SimpleUploadedFile("q3.pdf", b"x"),
-                target_programs="many",
+                activities_count="many",
             ),
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "must be a whole number")
+        self.assertContains(response, "Activities Count must be a whole number")
         self.assertEqual(AccomplishmentReport.objects.count(), before)
 
     def test_a_coordinator_cannot_file_for_another_campus(self):
@@ -435,7 +433,7 @@ class CoordinatorSubmissionTests(TestCase):
             report_payload(
                 request=str(other.pk),
                 attachment=SimpleUploadedFile("q3.pdf", b"x"),
-                target_programs="5",
+                activities_count="5",
             ),
         )
 
@@ -446,6 +444,47 @@ class CoordinatorSubmissionTests(TestCase):
             "a hand-edited request id must not mark another campus as answered",
         )
 
+    def test_technology_transfer_is_not_touched_by_the_counts(self):
+        Target.objects.create(
+            year=2026,
+            campus="Main Campus",
+            metric="technology",
+            target=10,
+            actual_q3=4,
+        )
+
+        self.client_coordinator.post(
+            reverse("accomplishment_report_create"),
+            report_payload(
+                request=str(self.report_request.pk),
+                attachment=SimpleUploadedFile("q3.pdf", b"x"),
+                activities_count="15",
+            ),
+        )
+
+        technology = Target.objects.get(metric="technology")
+        self.assertEqual(technology.actual_q3, 4)
+
+    def test_opening_an_answered_request_prefills_the_filed_counts(self):
+        self.client_coordinator.post(
+            reverse("accomplishment_report_create"),
+            report_payload(
+                request=str(self.report_request.pk),
+                attachment=SimpleUploadedFile("q3.pdf", b"x"),
+                activities_count="15",
+                beneficiaries_count="30",
+                partners_count="2",
+            ),
+        )
+
+        response = self.client_coordinator.get(
+            f"{reverse('accomplishment_report_create')}?request={self.report_request.pk}"
+        )
+
+        self.assertEqual(response.context["values"]["activities_count"], "15")
+        self.assertEqual(response.context["values"]["beneficiaries_count"], "30")
+        self.assertEqual(response.context["values"]["partners_count"], "2")
+
     def test_filing_for_a_requested_quarter_links_it_without_the_query_string(self):
         Target.objects.create(year=2026, campus="Main Campus", metric="programs", target=50)
 
@@ -453,7 +492,7 @@ class CoordinatorSubmissionTests(TestCase):
             reverse("accomplishment_report_create"),
             report_payload(
                 attachment=SimpleUploadedFile("q3.pdf", b"x"),
-                target_programs="15",
+                activities_count="15",
             ),
         )
 
@@ -476,18 +515,19 @@ class DepartmentCoordinatorSubmissionTests(TestCase):
             "dc_coord"
         )
 
-    def test_the_category_rows_are_not_offered(self):
+    def test_the_target_inputs_are_not_offered(self):
         response = self.client_coordinator.get(reverse("accomplishment_report_create"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="activities_count"')
         self.assertNotContains(response, 'name="target_programs"')
 
-    def test_posted_category_values_are_ignored(self):
+    def test_posted_counts_do_not_write_to_the_campus_tracker(self):
         response = self.client_coordinator.post(
             reverse("accomplishment_report_create"),
             report_payload(
                 campus="Main Campus",
-                target_programs="99",
+                activities_count="99",
             ),
         )
 
@@ -530,7 +570,7 @@ class StaffAndDirectorVisibilityTests(TestCase):
                 request=str(self.report_request.pk),
                 title="Main Campus Q3",
                 attachment=SimpleUploadedFile("main-q3.pdf", b"bytes"),
-                target_programs="20",
+                activities_count="20",
             ),
         )
         self.report = AccomplishmentReport.objects.get()
@@ -591,24 +631,36 @@ class StaffAndDirectorVisibilityTests(TestCase):
 class QuarterlyHelperTests(TestCase):
     """The parsing and matching helpers, where the edge cases live."""
 
-    def test_all_blank_answers_mean_nothing_was_filed(self):
-        self.assertEqual(parse_target_contributions({}), {})
+    def test_all_blank_counts_mean_nothing_was_filed(self):
+        self.assertEqual(contributions_from_report_counts({}), {})
 
-    def test_only_the_answered_categories_are_filed(self):
-        parsed = parse_target_contributions({"target_programs": "7"})
+    def test_only_the_answered_counts_are_filed(self):
+        parsed = contributions_from_report_counts({"activities_count": "7"})
 
         self.assertEqual(parsed, {"programs": 7})
 
+    def test_each_count_answers_its_target_category(self):
+        parsed = contributions_from_report_counts(
+            {
+                "activities_count": "7",
+                "beneficiaries_count": "11",
+                "partners_count": "2",
+            }
+        )
+
+        self.assertEqual(parsed, {"programs": 7, "participants": 11, "partners": 2})
+
     def test_a_deliberate_zero_is_filed(self):
         self.assertEqual(
-            parse_target_contributions({"target_programs": "0"}), {"programs": 0}
+            contributions_from_report_counts({"activities_count": "0"}),
+            {"programs": 0},
         )
 
     def test_negative_and_non_numeric_answers_raise(self):
-        for payload in [{"target_programs": "-2"}, {"target_programs": "twelve"}]:
+        for payload in [{"activities_count": "-2"}, {"activities_count": "twelve"}]:
             with self.subTest(payload=payload):
                 with self.assertRaises(ValueError):
-                    parse_target_contributions(payload)
+                    contributions_from_report_counts(payload)
 
     def test_a_report_without_a_campus_matches_no_request(self):
         """submissions_for keys on campus, so a blank campus cannot answer."""
