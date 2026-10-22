@@ -28,7 +28,20 @@ select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdow
   }
 
   select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdown-months) {
+    /* Legacy field classes can set display: block. Keep the native value and
+       picker icon on one row anyway; width utilities still control the size. */
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    vertical-align: middle;
     cursor: pointer;
+  }
+  /* Auto-layout tables may otherwise shrink the enhanced control to its arrow
+     on narrow screens. Their existing overflow wrapper handles the extra width. */
+  @media (max-width: 640px) {
+    .nexus-shell .nx-table select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdown-months) {
+      min-width: 8rem;
+    }
   }
   /* js/nexus-select.js adds these native children only when base-select is
      supported. The browser still owns selection and updates selectedcontent;
