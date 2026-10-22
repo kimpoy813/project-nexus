@@ -45,6 +45,7 @@
     </style>
     {% block extra_head %}{% endblock %}
     <link href="{% static 'css/nexus-components.css' %}" rel="stylesheet">
+    <link href="{% static 'css/nexus-select.css' %}" rel="stylesheet">
 </head>
 
 <body data-nx-page-kind="{{ nx_skeleton_variant }}" class="bg-gray-50 text-gray-800 font-sans {% block body_class %}{% endblock %}">
@@ -854,6 +855,7 @@
 
     <script src="{% static 'js/dashboard-views.js' %}"></script>
     {# Native selects retain keyboard, mobile, disabled and required-field behavior. #}
+    <script src="{% static 'js/nexus-select.js' %}" defer></script>
     {% block extra_scripts %}{% endblock %}
 
     {% comment %}

@@ -19,6 +19,17 @@ class SharedComponentRenderingTests(TestCase):
                 self.assertContains(response, 'nx-page-title')
                 self.assertContains(response, 'nx-panel')
 
+    def test_django_admin_loads_the_same_native_select_layer(self):
+        user, client = factories.admin('design_django_admin')
+        user.is_staff = True
+        user.is_superuser = True
+        user.save(update_fields=('is_staff', 'is_superuser'))
+
+        response = client.get(reverse('admin:accounts_profile_add'))
+        self.assertContains(response, 'css/nexus-select.css')
+        self.assertContains(response, 'js/nexus-select.js')
+        self.assertContains(response, '<select name="role"', html=False)
+
     def test_auth_keeps_its_layout_but_uses_shared_panels_and_actions(self):
         response = self.client.get(reverse('login'))
         self.assertContains(response, 'data-nx-page-kind="auth"')
@@ -64,6 +75,79 @@ class ComponentContractTests(SimpleTestCase):
         html = (settings.BASE_DIR / 'templates/base.html').read_text()
         self.assertGreater(html.index('nexus-components.css'), html.index('dashboard-views.css'))
         self.assertGreater(html.index('nexus-components.css'), html.index('block extra_head'))
+
+    def test_native_select_picker_is_branded_without_replacing_the_control(self):
+        css = (settings.BASE_DIR / 'static/css/nexus-select.css').read_text()
+        html = (settings.BASE_DIR / 'templates/base.html').read_text()
+        admin_html = (settings.BASE_DIR / 'templates/admin/base_site.html').read_text()
+        script = (settings.BASE_DIR / 'static/js/nexus-select.js').read_text()
+
+        # Progressive enhancement: unsupported engines retain the working
+        # native picker, while supporting engines expose its surface to CSS.
+        self.assertIn('@supports (appearance: base-select)', css)
+        self.assertIn('appearance: base-select', css)
+        for selector in (
+            '::picker(select)',
+            '::picker-icon',
+            'option::checkmark',
+            'option:checked',
+            'option:disabled',
+            'option:focus-visible',
+        ):
+            with self.subTest(selector=selector):
+                self.assertIn(selector, css)
+        self.assertIn('color-scheme: light', css)
+        self.assertIn('rgb(var(--nexus-primary-rgb, 16 59 7)', css)
+        self.assertIn('prefers-reduced-motion', css)
+
+        # The menu itself is CSS-only. The small progressive script adds the
+        # browser-native selectedcontent slot for ellipsis; it never builds a
+        # second menu or hides the actual form control like the old skin did.
+        # Both the application and Django's separately generated admin load
+        # this exact layer; neither shell may drift back to a native skin.
+        for shell in (html, admin_html):
+            self.assertIn('css/nexus-select.css', shell)
+            self.assertIn('js/nexus-select.js', shell)
+        self.assertIn('document.createElement("selectedcontent")', script)
+        self.assertNotIn('custom-dropdown-container', html)
+        self.assertNotIn('enhanceDropdowns', html)
+        self.assertNotIn('custom-dropdown-container', script)
+
+    def test_every_select_bearing_page_inherits_the_covered_application_shell(self):
+        template_roots = tuple(
+            settings.BASE_DIR / folder
+            for folder in ('templates', 'accounts/templates', 'proposals/templates', 'details/templates')
+        )
+        templates = {
+            path.relative_to(root).as_posix(): path
+            for root in template_roots
+            for path in root.rglob('*.html')
+        }
+
+        def reaches_base(path):
+            visited = set()
+            while path and path not in visited:
+                visited.add(path)
+                match = re.search(r'{%\s*extends\s+["\']([^"\']+)["\']', path.read_text())
+                if not match:
+                    return False
+                parent = match.group(1)
+                if parent == 'base.html':
+                    return True
+                path = templates.get(parent)
+            return False
+
+        # Partial field/repeater templates are inserted into these pages (and
+        # are exercised by the observer tests). Every standalone page with a
+        # select must still resolve to the base that loads the shared assets.
+        select_pages = 0
+        for name, path in templates.items():
+            if not re.search(r'<select\b', path.read_text(), re.IGNORECASE) or path.name.startswith('_'):
+                continue
+            select_pages += 1
+            with self.subTest(template=name):
+                self.assertTrue(reaches_base(path), f'{name} is outside templates/base.html')
+        self.assertGreater(select_pages, 20, 'the audit must cover the existing select page inventory')
 
     def test_explicit_component_adoption_covers_template_families(self):
         counts = dict.fromkeys(('nx-btn', 'nx-panel', 'nx-page-title', 'nx-table', 'nx-badge'), 0)
