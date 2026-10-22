@@ -91,11 +91,12 @@ function createDocument({ layouts = [], tables = [] } = {}) {
     return doc;
 }
 
-function run({ layouts = [], tables = [], saved = null, blocked = false } = {}) {
+function run({ layouts = [], tables = [], saved = null, blocked = false, nexusGauge = undefined } = {}) {
     const storage = { value: saved };
     const doc = createDocument({ layouts, tables });
     runInNewContext(script, {
         document: doc,
+        nexusGauge,
         localStorage: {
             getItem() { if (blocked) throw Error('Blocked'); return storage.value; },
             setItem(key, value) { if (blocked) throw Error('Blocked'); storage.value = value; },
@@ -302,3 +303,26 @@ test('one switch keeps every proposal table on the page in step', () => {
     assert.ok(!second.classList.contains('dashboard-cards-view'));
     assert.equal(storage.value, 'table');
 });
+
+test('notifies nexusGauge.onPanelToggle when switching between table and card panels', () => {
+    const { buttons, root } = setupLayout();
+    const [tableButton, cardsButton] = buttons;
+    const events = [];
+    const nexusGauge = {
+        onPanelToggle(panel, visible, interactive) {
+            events.push({ panel: panel.dataset.proposalPanel, visible, interactive });
+        },
+    };
+
+    run({ layouts: [root], saved: 'table', nexusGauge });
+    assert.deepEqual(events, [
+        { panel: 'cards', visible: false, interactive: false },
+    ]);
+
+    cardsButton.click();
+    assert.deepEqual(events.at(-1), { panel: 'cards', visible: true, interactive: true });
+
+    tableButton.click();
+    assert.deepEqual(events.at(-1), { panel: 'cards', visible: false, interactive: true });
+});
+
