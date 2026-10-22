@@ -10,8 +10,12 @@ invent buttons, cards, typography and colors.
 - Shared components: `static/css/nexus-components.css`, loaded **after** legacy
   styles and `extra_head` in `templates/base.html`.
 - Fluid layout/gutters: `static/css/nexus-layout.css`.
-- Native fields, focus, disabled states: shared UI/component styles. Do not
-  replace native selects with global JavaScript imitations.
+- Native fields, focus, disabled states: shared UI/component styles. Native
+  single-choice select menus use `static/css/nexus-select.css` plus the optional
+  `static/js/nexus-select.js` selected-value enhancement. Both
+  `templates/base.html` and Django admin's `templates/admin/base_site.html` load
+  this layer, including for dynamically inserted controls and AJAX option
+  replacement. Do not replace native selects with JavaScript imitations.
 
 | Component | Contract |
 |---|---|
@@ -28,7 +32,7 @@ invent buttons, cards, typography and colors.
 | Table/card switch | `.dashboard-view-toolbar` holding two `.dashboard-view-toggle` buttons: one pill track with a thumb that slides under the pressed icon. The switch sits in the panel header (`.dashboard-panel-head`), at the right edge of the section title, on the same row as the heading — not below it above the table; `.dashboard-view-toolbar-slot` marks where `static/js/dashboard-views.js` injects it. Keep the glyphs distinguishable (framed grid with a header row for the table, a pair of content cards for the card view), and keep the accessible names/tooltips. `dashboard-views.js` keeps every proposal table on the page in step and remembers the choice. |
 | Proposal gauge card | The speedometer gauge card that first shipped on the faculty dashboard is the card presentation for proposal lists on every role dashboard: a 102px doughnut gauge whose arc is banded into the Proposal/MOA/Implementation phase zones (`nexusPhaseShares()`), with the unfinished portion masked white and the percentage counting up to the proposal's `overall_progress`. The card pairs the gauge with the stage badge, status line, phase legend, lifecycle date, and the section's actions. Proposal tables sit in a `data-proposal-layout` beside these cards so the shared switch flips between them. |
 | Badge | `nx-badge`: shared pill geometry/type. Keep semantic status/role colors and a text label; color must not be the only status signal. |
-| Field | Standard native text inputs/selects share 44px minimum height and 12px corners. Dense editor fields and multiline textareas are intentional exceptions. |
+| Field | Standard native text inputs/selects share 44px minimum height and 12px corners. Dense editor fields and multiline textareas are intentional exceptions. Single-choice select pickers use the native `appearance: base-select` enhancement for the NExUS menu surface, arrow, option hover/focus and selected checkmark; supporting browsers also add the browser-managed `selectedcontent` slot so long selected values truncate cleanly. Unsupported browsers keep the functional native fallback. Never hide the select or duplicate it with a JavaScript menu. |
 
 Example page structure:
 

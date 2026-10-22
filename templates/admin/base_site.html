@@ -2,7 +2,7 @@
 {% load i18n static %}
 
 {% comment %}
-The NExUS toaster, on Django's own admin pages.
+The NExUS toaster and native-select layer, on Django's own admin pages.
 
 The admin renders its messages as the plain `.messagelist` Django ships with.
 templates/partials/_toaster.html renders the same messages as toasts (it reads
@@ -11,8 +11,10 @@ list has done its job and is removed. If toaster.js never loads, neither the
 mount nor the removal happens and the admin keeps showing its list — the
 messages are never only in a toast.
 
-This file otherwise mirrors Django's own admin/base_site.html; it exists so the
-admin gets the toast CSS without copying the whole admin base template.
+Django admin also generates action, model-form and inline selects outside the
+application's .nexus-shell, so it loads the same isolated native-select assets
+here. This file otherwise mirrors Django's own admin/base_site.html without
+copying the whole admin base template.
 {% endcomment %}
 
 {% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
@@ -28,11 +30,15 @@ admin gets the toast CSS without copying the whole admin base template.
 
 {% block extrastyle %}
     {{ block.super }}
+    <link href="{% static 'vendor/fonts.css' %}" rel="stylesheet">
+    {% include "partials/_theme.html" %}
+    <link href="{% static 'css/nexus-select.css' %}" rel="stylesheet">
     <link href="{% static 'goey/toaster.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block extrabody %}
     {{ block.super }}
+    <script defer src="{% static 'js/nexus-select.js' %}"></script>
     {% include "partials/_toaster.html" %}
     <script>
     // The toaster has already turned this page's messages into toasts by the
