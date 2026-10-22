@@ -785,8 +785,8 @@ function createDoughnutGauge(canvas, percentage) {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
+    const width = Number(canvas.dataset && canvas.dataset.logicalWidth) || canvas.width;
+    const height = Number(canvas.dataset && canvas.dataset.logicalHeight) || canvas.height;
 
     ctx.clearRect(0, 0, width, height);
 
@@ -837,12 +837,20 @@ function createDoughnutGauge(canvas, percentage) {
 function animateDoughnutGauge(canvas, textEl, finalPercentage) {
     if (!canvas) return;
 
+    if (canvas._nxGaugeRaf) {
+        cancelAnimationFrame(canvas._nxGaugeRaf);
+        canvas._nxGaugeRaf = null;
+    }
+
     const target = Math.max(0, Math.min(100, Number(finalPercentage) || 0));
     const riseDuration = 1400;
     const holdDuration = 260;
     const fallDuration = 1400;
     const totalDuration = riseDuration + holdDuration + fallDuration;
     const startTime = performance.now();
+
+    createDoughnutGauge(canvas, 0);
+    if (textEl) textEl.textContent = '0%';
 
     function frame(now) {
         const elapsed = now - startTime;
@@ -867,14 +875,15 @@ function animateDoughnutGauge(canvas, textEl, finalPercentage) {
         }
 
         if (elapsed < totalDuration) {
-            requestAnimationFrame(frame);
+            canvas._nxGaugeRaf = requestAnimationFrame(frame);
         } else {
+            canvas._nxGaugeRaf = null;
             createDoughnutGauge(canvas, target);
             if (textEl) textEl.textContent = `${Math.round(target)}%`;
         }
     }
 
-    requestAnimationFrame(frame);
+    canvas._nxGaugeRaf = requestAnimationFrame(frame);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -883,6 +892,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const canvas = document.getElementById("gaugeChart-moa-{{ sub.proposal.id }}");
         const textEl = document.getElementById("gaugeText-moa-{{ sub.proposal.id }}");
         if (!canvas) return;
+
+        if (window.nexusGauge) {
+            window.nexusGauge.register(canvas, textEl, {{ sub.proposal.overall_progress|default:0 }}, animateDoughnutGauge, createDoughnutGauge);
+            return;
+        }
 
         canvas.width = 102;
         canvas.height = 102;
@@ -898,6 +912,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const textEl = document.getElementById("gaugeText-signed-{{ doc.proposal.id }}");
         if (!canvas) return;
 
+        if (window.nexusGauge) {
+            window.nexusGauge.register(canvas, textEl, {{ doc.proposal.overall_progress|default:0 }}, animateDoughnutGauge, createDoughnutGauge);
+            return;
+        }
+
         canvas.width = 102;
         canvas.height = 102;
         canvas.style.width = '102px';
@@ -911,6 +930,11 @@ document.addEventListener("DOMContentLoaded", function () {
         const canvas = document.getElementById("gaugeChart-summary-{{ proposal.id }}");
         const textEl = document.getElementById("gaugeText-summary-{{ proposal.id }}");
         if (!canvas) return;
+
+        if (window.nexusGauge) {
+            window.nexusGauge.register(canvas, textEl, {{ proposal.overall_progress|default:0 }}, animateDoughnutGauge, createDoughnutGauge);
+            return;
+        }
 
         canvas.width = 102;
         canvas.height = 102;

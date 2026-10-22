@@ -1149,7 +1149,7 @@ function easeOutCubic(t){return 1-Math.pow(1-t,3);}
 function easeInOutCubic(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;}
 function createDoughnutGauge(canvas,pct){
     if(!canvas)return;
-    const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;
+    const ctx=canvas.getContext('2d'),w=Number(canvas.dataset&&canvas.dataset.logicalWidth)||canvas.width,h=Number(canvas.dataset&&canvas.dataset.logicalHeight)||canvas.height;
     ctx.clearRect(0,0,w,h);
     const cx=w/2,cy=h/2,r=Math.min(w,h)/2-8,lw=12;
     const sA=(-234*Math.PI)/180,tA=(288*Math.PI)/180,eA=sA+tA;
@@ -1174,16 +1174,24 @@ function createDoughnutGauge(canvas,pct){
 }
 function animateDoughnutGauge(canvas,textEl,finalPct){
     if(!canvas)return;
+    if(canvas._nxGaugeRaf){cancelAnimationFrame(canvas._nxGaugeRaf);canvas._nxGaugeRaf=null;}
     const target=Math.max(0,Math.min(100,Number(finalPct)||0));
     const rD=1400,hD=260,fD=1400,total=rD+hD+fD,t0=performance.now();
-    function frame(now){const el=now-t0;let cur;if(el<=rD)cur=100*easeOutCubic(el/rD);else if(el<=rD+hD)cur=100;else if(el<=total)cur=100-((100-target)*easeInOutCubic((el-rD-hD)/fD));else cur=target;createDoughnutGauge(canvas,cur);if(textEl)textEl.textContent=`${Math.round(cur)}%`;if(el<total)requestAnimationFrame(frame);else{createDoughnutGauge(canvas,target);if(textEl)textEl.textContent=`${Math.round(target)}%`;}}
-    requestAnimationFrame(frame);
+    createDoughnutGauge(canvas,0);if(textEl)textEl.textContent='0%';
+    function frame(now){const el=now-t0;let cur;if(el<=rD)cur=100*easeOutCubic(el/rD);else if(el<=rD+hD)cur=100;else if(el<=total)cur=100-((100-target)*easeInOutCubic((el-rD-hD)/fD));else cur=target;createDoughnutGauge(canvas,cur);if(textEl)textEl.textContent=`${Math.round(cur)}%`;if(el<total){canvas._nxGaugeRaf=requestAnimationFrame(frame);}else{canvas._nxGaugeRaf=null;createDoughnutGauge(canvas,target);if(textEl)textEl.textContent=`${Math.round(target)}%`;}}
+    canvas._nxGaugeRaf=requestAnimationFrame(frame);
 }
 
 /* ── tab navigation ── */
-function activateDashboardTab(tabName){
+function activateDashboardTab(tabName,interactive){
     document.querySelectorAll('.dashboard-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tabName));
-    document.querySelectorAll('.dashboard-tab-panel').forEach(p=>p.classList.toggle('hidden',p.dataset.tabPanel!==tabName));
+    document.querySelectorAll('.dashboard-tab-panel').forEach(p=>{
+        const active=p.dataset.tabPanel===tabName;
+        p.classList.toggle('hidden',!active);
+        if(window.nexusGauge&&typeof window.nexusGauge.onPanelToggle==='function'){
+            window.nexusGauge.onPanelToggle(p,active,Boolean(interactive));
+        }
+    });
     document.getElementById('rq-filter-panel')?.classList.toggle('hidden',tabName!=='queue');
     document.getElementById('campus-filter-panel')?.classList.toggle('hidden',tabName!=='campuses');
     document.getElementById('extensions-filter-panel')?.classList.toggle('hidden',tabName!=='extensions');
@@ -1200,9 +1208,9 @@ document.addEventListener('DOMContentLoaded',function(){
     // tab init
     const urlParams=new URLSearchParams(window.location.search);
     const savedTab=urlParams.get('tab')||localStorage.getItem('directorAnalyticsTab')||'overview';
-    activateDashboardTab(savedTab);
-    document.querySelectorAll('.dashboard-nav-btn').forEach(btn=>{btn.addEventListener('click',function(){activateDashboardTab(this.dataset.tab);window.scrollTo({top:0,behavior:'smooth'});});});
-    document.querySelectorAll('.quick-tab-btn').forEach(btn=>{btn.addEventListener('click',function(){activateDashboardTab(this.dataset.targetTab);window.scrollTo({top:0,behavior:'smooth'});});});
+    activateDashboardTab(savedTab,false);
+    document.querySelectorAll('.dashboard-nav-btn').forEach(btn=>{btn.addEventListener('click',function(){activateDashboardTab(this.dataset.tab,true);window.scrollTo({top:0,behavior:'smooth'});});});
+    document.querySelectorAll('.quick-tab-btn').forEach(btn=>{btn.addEventListener('click',function(){activateDashboardTab(this.dataset.targetTab,true);window.scrollTo({top:0,behavior:'smooth'});});});
     bindYearReload(document.getElementById('rq-filter-year'),'queue');
     bindYearReload(document.getElementById('campus-filter-year'),'campuses');
     bindYearReload(document.getElementById('ext-filter-year'),'extensions');
@@ -1211,19 +1219,19 @@ document.addEventListener('DOMContentLoaded',function(){
     const doughnutOpts={responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{position:'bottom',labels:{color:tick,usePointStyle:true,pointStyle:'circle',font:{size:10},boxWidth:7,padding:10}}}};
 
     const processCtx=document.getElementById('processOverviewChart');
-    if(processCtx)new Chart(processCtx,{type:'doughnut',data:{labels:['Proposal','MOA','Implementation','Completed'],datasets:[{data:[{{ proposal_process_total|default:0 }},{{ moa_process_total|default:0 }},{{ implementation_process_total|default:0 }},{{ completed_process_total|default:0 }}],backgroundColor:[G,R,B,P],borderColor:'#fff',borderWidth:3}]},options:doughnutOpts});
+    if(processCtx&&typeof Chart!=='undefined')new Chart(processCtx,{type:'doughnut',data:{labels:['Proposal','MOA','Implementation','Completed'],datasets:[{data:[{{ proposal_process_total|default:0 }},{{ moa_process_total|default:0 }},{{ implementation_process_total|default:0 }},{{ completed_process_total|default:0 }}],backgroundColor:[G,R,B,P],borderColor:'#fff',borderWidth:3}]},options:doughnutOpts});
 
     const proposalStatusCtx=document.getElementById('proposalStatusChart');
-    if(proposalStatusCtx)new Chart(proposalStatusCtx,{type:'doughnut',data:{labels:['Submitted','In Review','Revision','Approved'],datasets:[{data:[{{ submitted_total|default:0 }},{{ under_review_total|default:0 }},{{ institution_revision|default:0 }},{{ institution_approved|default:0 }}],backgroundColor:[G,B,R,P],borderColor:'#fff',borderWidth:3}]},options:doughnutOpts});
+    if(proposalStatusCtx&&typeof Chart!=='undefined')new Chart(proposalStatusCtx,{type:'doughnut',data:{labels:['Submitted','In Review','Revision','Approved'],datasets:[{data:[{{ submitted_total|default:0 }},{{ under_review_total|default:0 }},{{ institution_revision|default:0 }},{{ institution_approved|default:0 }}],backgroundColor:[G,B,R,P],borderColor:'#fff',borderWidth:3}]},options:doughnutOpts});
 
     const barOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:tick,usePointStyle:true,pointStyle:'rectRounded',font:{size:10},padding:10}}},scales:{x:{ticks:{color:tick,font:{size:10}},grid:{display:false},border:{display:false}},y:{beginAtZero:true,ticks:{color:tick,precision:0,font:{size:10}},grid:{color:grid},border:{display:false}}}};
 
     const campusCtx=document.getElementById('campusComparisonChart');
-    if(campusCtx)new Chart(campusCtx,{type:'bar',data:{labels:{{ campus_chart_labels|safe }},datasets:[{label:'Proposal',data:{{ campus_chart_proposal|safe }},backgroundColor:G,borderRadius:6,maxBarThickness:16},{label:'MOA',data:{{ campus_chart_moa|safe }},backgroundColor:R,borderRadius:6,maxBarThickness:16},{label:'Impl.',data:{{ campus_chart_implementation|safe }},backgroundColor:B,borderRadius:6,maxBarThickness:16},{label:'Done',data:[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],backgroundColor:P,borderRadius:6,maxBarThickness:16}]},options:barOpts});
+    if(campusCtx&&typeof Chart!=='undefined')new Chart(campusCtx,{type:'bar',data:{labels:{{ campus_chart_labels|safe }},datasets:[{label:'Proposal',data:{{ campus_chart_proposal|safe }},backgroundColor:G,borderRadius:6,maxBarThickness:16},{label:'MOA',data:{{ campus_chart_moa|safe }},backgroundColor:R,borderRadius:6,maxBarThickness:16},{label:'Impl.',data:{{ campus_chart_implementation|safe }},backgroundColor:B,borderRadius:6,maxBarThickness:16},{label:'Done',data:[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],backgroundColor:P,borderRadius:6,maxBarThickness:16}]},options:barOpts});
 
     let campusStageChartInstance=null;
     const campusStageCtx=document.getElementById('campusStageChart');
-    if(campusStageCtx){campusStageChartInstance=new Chart(campusStageCtx,{type:'bar',data:{labels:{{ campus_chart_labels|safe }},datasets:[{label:'Proposal',data:{{ campus_chart_proposal|safe }},backgroundColor:G,borderRadius:8,maxBarThickness:28},{label:'MOA',data:{{ campus_chart_moa|safe }},backgroundColor:R,borderRadius:8,maxBarThickness:28},{label:'Implementation',data:{{ campus_chart_implementation|safe }},backgroundColor:B,borderRadius:8,maxBarThickness:28},{label:'Completed',data:[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],backgroundColor:P,borderRadius:8,maxBarThickness:28}]},options:{...barOpts,animation:{duration:1200,easing:'easeOutQuart'},plugins:{...barOpts.plugins,tooltip:{mode:'index',intersect:false}},scales:{...barOpts.scales,y:{...barOpts.scales.y,title:{display:true,text:'Number of Extensions',color:tick,font:{size:10}}}}}});}
+    if(campusStageCtx&&typeof Chart!=='undefined'){campusStageChartInstance=new Chart(campusStageCtx,{type:'bar',data:{labels:{{ campus_chart_labels|safe }},datasets:[{label:'Proposal',data:{{ campus_chart_proposal|safe }},backgroundColor:G,borderRadius:8,maxBarThickness:28},{label:'MOA',data:{{ campus_chart_moa|safe }},backgroundColor:R,borderRadius:8,maxBarThickness:28},{label:'Implementation',data:{{ campus_chart_implementation|safe }},backgroundColor:B,borderRadius:8,maxBarThickness:28},{label:'Completed',data:[{% for item in campus_stats %}{{ item.completed_count|default:0 }}{% if not forloop.last %},{% endif %}{% endfor %}],backgroundColor:P,borderRadius:8,maxBarThickness:28}]},options:{...barOpts,animation:{duration:1200,easing:'easeOutQuart'},plugins:{...barOpts.plugins,tooltip:{mode:'index',intersect:false}},scales:{...barOpts.scales,y:{...barOpts.scales.y,title:{display:true,text:'Number of Extensions',color:tick,font:{size:10}}}}}});}
 
     // campus filter
     const campusFilterCampus=document.getElementById('campus-filter-campus');
@@ -1235,10 +1243,10 @@ document.addEventListener('DOMContentLoaded',function(){
 
     // gauges
     {% for item in all_proposals %}
-    (function(){const c=document.getElementById('gaugeChart{{ item.proposal.id }}');const t=document.getElementById('gaugeText{{ item.proposal.id }}');if(!c)return;c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
+    (function(){const c=document.getElementById('gaugeChart{{ item.proposal.id }}');const t=document.getElementById('gaugeText{{ item.proposal.id }}');if(!c)return;if(window.nexusGauge){window.nexusGauge.register(c,t,{{ item.progress_percent|default:0 }},animateDoughnutGauge,createDoughnutGauge);return;}c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
     {% endfor %}
     {% for item in monitored_page %}
-    (function(){const c=document.getElementById('extGauge{{ item.proposal.id }}');const t=document.getElementById('extGaugeText{{ item.proposal.id }}');if(!c)return;c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
+    (function(){const c=document.getElementById('extGauge{{ item.proposal.id }}');const t=document.getElementById('extGaugeText{{ item.proposal.id }}');if(!c)return;if(window.nexusGauge){window.nexusGauge.register(c,t,{{ item.progress_percent|default:0 }},animateDoughnutGauge,createDoughnutGauge);return;}c.width=102;c.height=102;c.style.width='102px';c.style.height='102px';animateDoughnutGauge(c,t,{{ item.progress_percent|default:0 }});})();
     {% endfor %}
 
     // extensions filters
@@ -1248,10 +1256,10 @@ document.addEventListener('DOMContentLoaded',function(){
         if(!grid)return;
         const cards=Array.from(grid.querySelectorAll('.ext-card'));
         function norm(v){return(v||'').trim().toLowerCase();}
-        function applyExtFilters(){const qv=norm(q?q.value:''),cv=norm(ec?ec.value:''),pv=norm(ep?ep.value:''),tv=norm(et?et.value:''),sv=norm(es?es.value:'');let visible=0;cards.forEach(card=>{const show=(!qv||norm(card.dataset.title).includes(qv))&&(!cv||norm(card.dataset.campus)===cv)&&(!pv||norm(card.dataset.process)===pv)&&(!tv||norm(card.dataset.extType)===tv)&&(!sv||norm(card.dataset.scope)===sv);card.classList.toggle('hidden',!show);if(show)visible++;});if(empty)empty.classList.toggle('hidden',visible>0);if(grid)grid.classList.toggle('hidden',visible===0);}
-        if(q)q.addEventListener('input',applyExtFilters);
-        [ec,ep,et,es].forEach(s=>{if(s)s.addEventListener('change',applyExtFilters);});
-        applyExtFilters();
+        function applyExtFilters(interactive){const qv=norm(q?q.value:''),cv=norm(ec?ec.value:''),pv=norm(ep?ep.value:''),tv=norm(et?et.value:''),sv=norm(es?es.value:'');let visible=0;cards.forEach(card=>{const wasHidden=card.classList.contains('hidden');const show=(!qv||norm(card.dataset.title).includes(qv))&&(!cv||norm(card.dataset.campus)===cv)&&(!pv||norm(card.dataset.process)===pv)&&(!tv||norm(card.dataset.extType)===tv)&&(!sv||norm(card.dataset.scope)===sv);card.classList.toggle('hidden',!show);if(show)visible++;if(wasHidden!==!show&&window.nexusGauge&&typeof window.nexusGauge.onPanelToggle==='function'){window.nexusGauge.onPanelToggle(card,show,Boolean(interactive));}});if(empty)empty.classList.toggle('hidden',visible>0);if(grid)grid.classList.toggle('hidden',visible===0);}
+        if(q)q.addEventListener('input',()=>applyExtFilters(true));
+        [ec,ep,et,es].forEach(s=>{if(s)s.addEventListener('change',()=>applyExtFilters(true));});
+        applyExtFilters(false);
     })();
 });
 

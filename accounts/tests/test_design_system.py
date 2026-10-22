@@ -264,6 +264,28 @@ class SpeedometerGaugeCardTests(SimpleTestCase):
                 self.assertEqual(text.count('data-proposal-panel="table"'), 3)
                 self.assertEqual(text.count('data-proposal-panel="cards"'), 3)
 
+    def test_all_dashboards_register_gauges_with_shared_lifecycle_controller(self):
+        """Every gauge registers with window.nexusGauge so hidden panels/tabs replay."""
+        for name in (
+            'faculty_dashboard.html',
+            'evaluator_dashboard.html',
+            'staff_dashboard.html',
+            'campus_coordinator_dashboard.html',
+            'department_coordinator_dashboard.html',
+            'director_dashboard.html',
+            'dashboard_base.html',
+        ):
+            with self.subTest(dashboard=name):
+                text = (self.dashboards / name).read_text()
+                self.assertIn('window.nexusGauge.register(', text)
+                self.assertIn('_nxGaugeRaf', text)
+
+        for tabbed in ('director_dashboard.html', 'dashboard_base.html'):
+            with self.subTest(tabbed=tabbed):
+                text = (self.dashboards / tabbed).read_text()
+                self.assertIn('window.nexusGauge.onPanelToggle(', text)
+                self.assertIn("typeof Chart!=='undefined'", text)
+
 
 class GaugeCardRenderingTests(TestCase):
     """Each role dashboard renders a gauge per proposal it lists."""
@@ -282,6 +304,35 @@ class GaugeCardRenderingTests(TestCase):
                 response = client.get(reverse(name))
                 self.assertContains(response, f'id="gaugeChart{proposal.id}"')
                 self.assertContains(response, 'data-proposal-layout')
+
+    def test_evaluator_dashboard_uses_distinct_ids_when_own_proposal_is_in_review_queue(self):
+        """Regression test: review queue cards must never collide with own-proposal gauge IDs."""
+        from proposals.models import ProposalEvaluatorAssignment, ProposalReviewRound
+
+        director, _ = factories.director('gauge_dir_assigner')
+        evaluator, client = factories.evaluator('gauge_eval_unique')
+        proposal = Proposal.objects.create(
+            created_by=evaluator,
+            title='Evaluator Own Submitted Proposal',
+            proposal_status=Proposal.ProposalStatus.SUBMITTED_FOR_REVIEW,
+        )
+        rr = ProposalReviewRound.objects.create(proposal=proposal)
+        ProposalEvaluatorAssignment.objects.create(
+            proposal=proposal,
+            review_round=rr,
+            evaluator=evaluator,
+            assigned_by=director,
+        )
+
+        response = client.get(reverse('evaluator_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode('utf-8')
+        self.assertIn(f'id="gaugeChart-review-{proposal.id}"', html)
+        self.assertIn(f'id="gaugeChart{proposal.id}"', html)
+
+        ids = re.findall(r'\bid="([^"]+)"', html)
+        duplicates = {item for item in ids if ids.count(item) > 1}
+        self.assertEqual(duplicates, set(), f'unexpected duplicate HTML IDs: {duplicates}')
 
     def test_staff_queue_proposals_render_the_gauge_card(self):
         user, client = factories.staff('gauge_staff')

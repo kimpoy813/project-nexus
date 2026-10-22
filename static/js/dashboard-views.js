@@ -47,8 +47,8 @@
         try { localStorage.setItem(STORAGE_KEY, view); } catch (_) { /* private browsing */ }
     }
 
-    function applyView(view) {
-        controllers.forEach((controller) => controller.apply(view));
+    function applyView(view, interactive) {
+        controllers.forEach((controller) => controller.apply(view, Boolean(interactive)));
     }
 
     function toggleButton(view) {
@@ -137,7 +137,7 @@
         buttons.forEach((button) => {
             button.addEventListener('click', () => {
                 const view = button.dataset.proposalView;
-                applyView(view);
+                applyView(view, true);
                 writeView(view);
             });
         });
@@ -154,9 +154,17 @@
             buttons = Array.from(toolbar.querySelectorAll('[data-proposal-view]'));
         }
         controllers.push({
-            apply(view) {
+            apply(view, interactive) {
                 root.querySelectorAll('[data-proposal-panel]').forEach((panel) => {
                     panel.hidden = panel.dataset.proposalPanel !== view;
+                    if (
+                        panel.dataset.proposalPanel === 'cards' &&
+                        typeof globalThis !== 'undefined' &&
+                        globalThis.nexusGauge &&
+                        typeof globalThis.nexusGauge.onPanelToggle === 'function'
+                    ) {
+                        globalThis.nexusGauge.onPanelToggle(panel, !panel.hidden, interactive);
+                    }
                 });
                 buttons.forEach((button) => {
                     button.setAttribute('aria-pressed', String(button.dataset.proposalView === view));
@@ -166,7 +174,7 @@
         buttons.forEach((button) => {
             button.addEventListener('click', () => {
                 const view = button.dataset.proposalView;
-                applyView(view);
+                applyView(view, true);
                 writeView(view);
             });
         });
