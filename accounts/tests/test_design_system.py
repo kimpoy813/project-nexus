@@ -113,6 +113,23 @@ class ComponentContractTests(SimpleTestCase):
         self.assertNotIn('enhanceDropdowns', html)
         self.assertNotIn('custom-dropdown-container', script)
 
+    def test_customizable_select_closed_state_keeps_table_controls_usable(self):
+        css = (settings.BASE_DIR / 'static/css/nexus-select.css').read_text()
+        enhanced = css.split('@supports (appearance: base-select)', 1)[1]
+        closed_state = enhanced.split('select > button.nx-select__button', 1)[0]
+
+        # Legacy .adm-input/.dir-input-style classes set display: block. The
+        # shared enhancement must override that or the native picker icon wraps
+        # below selectedcontent and doubles the closed control's height.
+        for declaration in ('display: inline-flex', 'align-items: center', 'flex-wrap: nowrap', 'vertical-align: middle'):
+            with self.subTest(declaration=declaration):
+                self.assertIn(declaration, closed_state)
+
+        # The other narrow-table failure is collapsing to the arrow alone.
+        self.assertIn('@media (max-width: 640px)', closed_state)
+        self.assertIn('.nexus-shell .nx-table select', closed_state)
+        self.assertIn('min-width: 8rem', closed_state)
+
     def test_every_select_bearing_page_inherits_the_covered_application_shell(self):
         template_roots = tuple(
             settings.BASE_DIR / folder
