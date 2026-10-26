@@ -66,7 +66,7 @@ const volumeKeyframes = (() => {
     SCENE_STARTS[i] + scene.durationInFrames - TAIL,
   ])
     // Only duck under scenes that actually have a voiceover clip.
-    .filter((_, i) => narrationManifest.scenes.includes(i + 1))
+    .filter((_, i) => Boolean(narrationManifest.files[i + 1]))
     .sort((a, b) => a[0] - b[0]);
 
   // Merge overlapping duck intervals.
@@ -118,8 +118,7 @@ const NexusTutorial = () => (
       const from = SCENE_STARTS[i];
       const Scene = scene.component;
       const sceneNo = i + 1;
-      const hasNarration = narrationManifest.scenes.includes(sceneNo);
-      const narrationFile = `narration/scene-${String(sceneNo).padStart(2, "0")}.mp3`;
+      const narrationFile = narrationManifest.files[sceneNo];
       return (
         <Sequence
           key={scene.id}
@@ -128,7 +127,7 @@ const NexusTutorial = () => (
           layout="none"
         >
           <Scene {...(scene.componentProps ?? {})} />
-          {hasNarration && <Audio src={staticFile(narrationFile)} volume={1} />}
+          {narrationFile && <Audio src={staticFile(narrationFile)} volume={1} />}
         </Sequence>
       );
     })}

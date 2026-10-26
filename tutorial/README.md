@@ -80,12 +80,18 @@ The visual language is deliberately editorial rather than templated:
   is fully regenerable.
 - **Voiceover** — the per-scene script lives in
   [`src/narration.js`](src/narration.js), sized to each scene's duration at
-  the measured delivery rate (~3 words/second). Clips are generated externally
-  into `public/narration/scene-XX.mp3` and **committed** because they cannot be
-  regenerated offline. `scripts/sync-narration.mjs` writes
-  `src/narration-manifest.json`; `Root.jsx` mounts only clips the manifest
-  lists, so a missing line renders as a quiet music-only passage instead of
-  breaking the build.
+  the measured delivery rate (~3 words/second). Natural-voice clips are
+  generated externally into `public/narration/scene-XX.mp3` and **committed**
+  because they cannot be regenerated offline.
+- **Offline fallback voice** — when no TTS service is available,
+  `npm run narration:fallback` synthesizes all 19 clips locally with meSpeak
+  (pure-JS eSpeak, installed from npm, no network or system binaries), picking
+  a speaking rate that fits each scene and trimming silence. It writes
+  `scene-XX.wav` and replaces the whole set so one voice stays consistent;
+  natural MP3s always take precedence when both formats exist.
+  `scripts/sync-narration.mjs` writes `src/narration-manifest.json`;
+  `Root.jsx` mounts only clips the manifest lists, so a missing line renders
+  as a quiet music-only passage instead of breaking the build.
 - **Ducking** — the bed plays at 0.24 and glides down to 0.09 while a
   voiceover line is expected, opening back up between scenes.
 - After adding or replacing clips, run `npm run narration:scan` (the
@@ -100,6 +106,7 @@ tutorial/
 ├── scripts/
 │   ├── sync-fonts.mjs        # copies Inter woff2 from npm into public/fonts
 │   ├── make-music.mjs        # procedural ambient music bed (offline WAV)
+│   ├── make-narration-fallback.mjs # offline meSpeak voiceover (scene-XX.wav)
 │   ├── sync-narration.mjs    # scans narration clips → narration-manifest.json
 │   ├── prepare-browser.mjs   # offline headless-Chromium assembly (see below)
 │   ├── inspect-mp4.mjs       # dependency-free MP4 codec/size/duration check
@@ -108,7 +115,7 @@ tutorial/
 │   ├── nexus-logo.svg        # the real NExUS "Ni" monogram
 │   ├── fonts/                # generated: Inter 400–800 (woff2, offline)
 │   ├── music/                # generated: nexus-bed.wav (git-ignored)
-│   └── narration/            # voiceover scene-XX.mp3 (committed)
+│   └── narration/            # voiceover scene-XX.mp3 (natural) or .wav (fallback)
 ├── src/
 │   ├── index.js              # Remotion entry point (registerRoot)
 │   ├── Root.jsx              # composition, 19-scene timeline, audio + ducking
@@ -128,6 +135,7 @@ cd tutorial
 npm install                 # also runs the proxy-origin patch automatically
 npm run dev                 # Remotion Studio: live editor at localhost:45761
 npm run music               # regenerate the ambient music bed
+npm run narration:fallback  # offline meSpeak voiceover for all 19 scenes
 npm run narration:scan      # refresh src/narration-manifest.json from public/narration
 npm run render              # render out/nexus-tutorial.mp4 (1080p, H.264)
 npm run render:hd           # faster 720p preview render

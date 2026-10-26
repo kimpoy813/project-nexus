@@ -1,13 +1,45 @@
 {
-  "count": 8,
+  "count": 19,
+  "files": {
+    "1": "narration/scene-01.wav",
+    "2": "narration/scene-02.wav",
+    "3": "narration/scene-03.wav",
+    "4": "narration/scene-04.wav",
+    "5": "narration/scene-05.wav",
+    "6": "narration/scene-06.wav",
+    "7": "narration/scene-07.wav",
+    "8": "narration/scene-08.wav",
+    "9": "narration/scene-09.wav",
+    "10": "narration/scene-10.wav",
+    "11": "narration/scene-11.wav",
+    "12": "narration/scene-12.wav",
+    "13": "narration/scene-13.wav",
+    "14": "narration/scene-14.wav",
+    "15": "narration/scene-15.wav",
+    "16": "narration/scene-16.wav",
+    "17": "narration/scene-17.wav",
+    "18": "narration/scene-18.wav",
+    "19": "narration/scene-19.wav"
+  },
   "scenes": [
     1,
+    2,
     3,
+    4,
     5,
     6,
     7,
     8,
     9,
-    10
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
   ]
 }

@@ -3,8 +3,17 @@
 // clause pauses (measured from generated clips), so each line is capped at
 // about 2.8 words per second of scene length to leave a safety margin.
 //   5s scene <= 13 words | 6s <= 16 | 7s <= 19 | 8s <= 22 | 9s <= 25 | 10s <= 28
-// Generated MP3s live in public/narration/scene-XX.mp3; scripts/sync-narration.mjs
-// scans that folder and Root.jsx only mounts clips listed in the manifest.
+// Generated clips live in public/narration/scene-XX.{mp3,wav};
+// scripts/sync-narration.mjs scans that folder and Root.jsx only mounts clips
+// listed in the manifest.
+
+// Scene durations in seconds, index-aligned with NARRATION (mirrors the
+// SCENES manifest in Root.jsx). The offline fallback generator verifies each
+// clip fits before its sequence boundary.
+export const NARRATION_BUDGETS = [
+  5, 7, 10, 7, 7, 7, 7, 7, 7, 7, 7, 6, 9, 8, 7, 8, 7, 6, 6,
+];
+
 export const NARRATION = [
   // 01 Intro — 150f / 5s — 11 words
   "Welcome to NExUS, a plain-language guide to the system.",
