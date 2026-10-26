@@ -1,0 +1,29 @@
+{
+  "name": "nexus-remotion-tutorial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Programmatic video tutorial for NExUS (Networked Extension Unified System), built with Remotion.",
+  "scripts": {
+    "postinstall": "node scripts/patch-studio-origin.mjs",
+    "fonts": "node scripts/sync-fonts.mjs",
+    "browser:setup": "node scripts/prepare-browser.mjs",
+    "predev": "npm run fonts",
+    "dev": "remotion studio",
+    "prestudio": "npm run fonts",
+    "studio": "remotion studio",
+    "prerender": "npm run fonts && npm run browser:setup",
+    "render": "remotion render NexusTutorial out/nexus-tutorial.mp4 --concurrency=2",
+    "render:hd": "remotion render NexusTutorial out/nexus-tutorial-720p.mp4 --scale=0.6666667 --concurrency=2",
+    "still": "remotion still NexusTutorial out/cover.png",
+    "inspect": "node scripts/inspect-mp4.mjs out/nexus-tutorial.mp4",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.5",
+    "@remotion/cli": "^4.0.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {}
+}

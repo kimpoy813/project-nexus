@@ -1,0 +1,167 @@
+import React from "react";
+import {
+  AbsoluteFill,
+  interpolate,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
+import { COLORS } from "../theme.js";
+import { Background } from "../components/Background.jsx";
+import { Rise, SceneShell, Eyebrow, Heading, Body, Glyph } from "../components/Ui.jsx";
+import { MOA_STEPS } from "../content.js";
+
+const ACTIVATE_AT = [28, 56, 84, 112, 140, 168];
+
+export const MoaScene = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const activeCount = ACTIVATE_AT.filter((at) => frame >= at).length;
+  const lineGrow = interpolate(frame, [28, 175], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <SceneShell sceneIndex={14} total={19}>
+        <AbsoluteFill style={{ padding: "150px 120px 110px" }}>
+          <Rise delay={4}>
+            <Eyebrow>After approval — the agreement stage</Eyebrow>
+          </Rise>
+          <Rise delay={10}>
+            <Heading size={50}>
+              The <span style={{ color: COLORS.accent }}>MOA tracker</span> walks the
+              partnership paper to signing
+            </Heading>
+          </Rise>
+          <Rise delay={20}>
+            <Body style={{ marginTop: 18, maxWidth: 1560, fontSize: 27 }}>
+              An <b style={{ color: COLORS.white }}>MOA — Memorandum of Agreement —</b> is
+              the signed document that makes a partnership with another office or
+              community official. NExUS moves it through six visible stages:
+            </Body>
+          </Rise>
+
+          <Rise delay={26}>
+            <div
+              style={{
+                marginTop: 56,
+                background: "rgba(255,255,255,0.06)",
+                border: `1.5px solid ${COLORS.primaryLine}`,
+                borderRadius: 24,
+                padding: "64px 56px 52px",
+              }}
+            >
+              <div style={{ position: "relative", height: 150 }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 37,
+                    left: 60,
+                    right: 60,
+                    height: 5,
+                    borderRadius: 4,
+                    background: "rgba(255,255,255,0.15)",
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 37,
+                    left: 60,
+                    width: `calc((100% - 120px) * ${lineGrow})`,
+                    height: 5,
+                    borderRadius: 4,
+                    background: `linear-gradient(90deg, ${COLORS.secondary}, ${COLORS.accentDeep})`,
+                  }}
+                />
+                {MOA_STEPS.map((step, i) => {
+                  const done = i < activeCount;
+                  const current = i === activeCount - 1;
+                  const pop = spring({
+                    frame: frame - ACTIVATE_AT[i],
+                    fps,
+                    config: { damping: 14 },
+                  });
+                  const pct = i / (MOA_STEPS.length - 1);
+                  return (
+                    <div
+                      key={step}
+                      style={{
+                        position: "absolute",
+                        left: `calc(60px + (100% - 120px) * ${pct})`,
+                        top: 0,
+                        transform: `translateX(-50%) scale(${pop})`,
+                        width: 200,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 78,
+                          height: 78,
+                          borderRadius: "50%",
+                          background: done ? COLORS.secondary : "rgba(255,255,255,0.1)",
+                          border: `3px solid ${done ? COLORS.accent : COLORS.primaryLine}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: current ? "0 0 34px rgba(245,229,135,0.65)" : "none",
+                        }}
+                      >
+                        {done ? (
+                          <Glyph name="check" size={36} color={COLORS.accent} />
+                        ) : (
+                          <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 26, fontWeight: 800 }}>
+                            {i + 1}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 18,
+                          fontSize: 21,
+                          lineHeight: 1.3,
+                          fontWeight: current ? 800 : 600,
+                          color: current ? COLORS.accent : "rgba(255,255,255,0.8)",
+                          textAlign: "center",
+                        }}
+                      >
+                        {step}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </Rise>
+
+          <Rise delay={120}>
+            <div
+              style={{
+                marginTop: 40,
+                display: "flex",
+                gap: 18,
+                alignItems: "center",
+                fontSize: 25,
+                color: "rgba(255,255,255,0.78)",
+                background: "rgba(245,229,135,0.1)",
+                border: "1.5px solid rgba(245,229,135,0.4)",
+                borderRadius: 18,
+                padding: "22px 30px",
+              }}
+            >
+              <Glyph name="doc" size={32} />
+              No outside partner? Mark the MOA <b style={{ color: COLORS.accent }}>Not
+              Required</b> and the record skips straight to implementation.
+            </div>
+          </Rise>
+        </AbsoluteFill>
+      </SceneShell>
+    </AbsoluteFill>
+  );
+};

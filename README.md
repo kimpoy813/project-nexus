@@ -8,6 +8,15 @@ See [`DEPLOYMENT.md`](DEPLOYMENT.md) for production setup (PostgreSQL +
 Supabase Storage) and [`docs/ARCHITECTURE_AUDIT.md`](docs/ARCHITECTURE_AUDIT.md)
 for a prioritised review of known technical debt.
 
+## Video tutorial (Remotion)
+
+A programmatic, re-renderable video walkthrough of the full NExUS workflow
+(roles, the 20-step proposal wizard, review rounds, MOA routing, implementation
+reporting) lives in [`tutorial/`](tutorial/README.md). It is built with
+[Remotion](https://www.remotion.dev/) — scenes are React components and the
+MP4 is rendered by headless Chromium; edit `tutorial/src/content.js` and run
+`npm run render --prefix tutorial` to regenerate it.
+
 ---
 
 ## Latest system / UI audit

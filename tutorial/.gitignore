@@ -1,0 +1,12 @@
+# Assembled headless browser (scripts/prepare-browser.mjs recreates it).
+.browser/
+
+# Rendered media and Remotion caches.
+out/
+.remotion/
+
+# Copied web fonts (regenerated from @fontsource by scripts/sync-fonts.mjs).
+public/fonts/
+
+# Node.
+node_modules/
