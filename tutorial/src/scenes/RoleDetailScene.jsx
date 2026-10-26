@@ -1,23 +1,20 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { COLORS } from "../theme.js";
+import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
 import {
   Rise,
   SceneShell,
   Eyebrow,
-  CheckRow,
-  Glyph,
+  FadeIn,
 } from "../components/Ui.jsx";
 import { ROLES } from "../content.js";
 
 const ACCENT = {
   yellow: COLORS.accent,
-  green: "#7ed063",
-  maroon: "#e09a9c",
+  green: "#9edb8a",
+  maroon: "#e6b3b5",
 };
-
-const ROLE_ICONS = ["users", "folder", "check", "shield", "shield", "sign", "lock"];
 
 export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
   const role = ROLES[roleIndex];
@@ -27,33 +24,55 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
     <AbsoluteFill>
       <Background />
       <SceneShell sceneIndex={sceneIndex} total={19}>
-        <AbsoluteFill style={{ padding: "150px 120px 100px" }}>
+        <AbsoluteFill
+          style={{
+            padding: `0 ${LAYOUT.marginX}px`,
+            justifyContent: "center",
+          }}
+        >
           <Rise delay={4}>
-            <Eyebrow>Role {roleIndex + 1} of 7 — what they can do</Eyebrow>
+            <Eyebrow>
+              Role {roleIndex + 1} of 7 — what they can do
+            </Eyebrow>
           </Rise>
 
-          <div style={{ display: "flex", gap: 48, marginTop: 10 }}>
+          <div style={{ display: "flex", gap: 56, marginTop: 18 }}>
             {/* left: identity */}
-            <Rise delay={10} style={{ width: 520, flexShrink: 0 }}>
+            <Rise
+              delay={10}
+              style={{ width: 440, flexShrink: 0, display: "flex", flexDirection: "column" }}
+            >
               <div
                 style={{
-                  width: 110,
-                  height: 110,
-                  borderRadius: 26,
-                  background: "rgba(245,229,135,0.12)",
-                  border: "1.5px solid rgba(245,229,135,0.4)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 28,
+                  fontSize: 120,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                  color: "rgba(255,255,255,0.10)",
+                  fontVariantNumeric: "tabular-nums",
                 }}
               >
-                <Glyph name={ROLE_ICONS[roleIndex]} size={52} />
+                {String(roleIndex + 1).padStart(2, "0")}
               </div>
-              <div style={{ fontSize: 62, fontWeight: 800, color: COLORS.white, lineHeight: 1.05 }}>
+              <div
+                style={{
+                  fontSize: 56,
+                  fontWeight: 800,
+                  color: COLORS.white,
+                  lineHeight: 1.08,
+                  marginTop: 18,
+                }}
+              >
                 {role.key}
               </div>
-              <div style={{ fontSize: 27, lineHeight: 1.45, color: accent, fontWeight: 600, marginTop: 20 }}>
+              <div
+                style={{
+                  fontSize: 25,
+                  lineHeight: 1.45,
+                  color: accent,
+                  fontWeight: 600,
+                  marginTop: 18,
+                }}
+              >
                 {role.who}
               </div>
 
@@ -61,26 +80,79 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
                 <div
                   style={{
                     marginTop: 30,
-                    background: "rgba(90,17,19,0.35)",
-                    border: "1.5px solid rgba(240,195,197,0.4)",
-                    borderRadius: 18,
+                    background: "rgba(90,17,19,0.30)",
+                    border: "1px solid rgba(240,195,197,0.35)",
+                    borderRadius: LAYOUT.radius,
                     padding: "20px 22px",
-                    fontSize: 20,
-                    lineHeight: 1.45,
-                    color: "rgba(255,255,255,0.85)",
+                    fontSize: 19,
+                    lineHeight: 1.5,
+                    color: SURFACE.text,
                   }}
                 >
-                  <b style={{ color: "#f0c3c5" }}>A deliberate limit:</b> {role.boundary}
+                  <b style={{ color: "#f0c3c5", fontWeight: 700 }}>
+                    A deliberate limit:
+                  </b>{" "}
+                  {role.boundary}
                 </div>
               )}
             </Rise>
 
-            {/* right: functions */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 22 }}>
+            {/* divider */}
+            <div
+              style={{
+                width: 1,
+                background: SURFACE.hairlineSoft,
+                margin: "8px 0",
+              }}
+            />
+
+            {/* right: functions as an editorial hairline list */}
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+              }}
+            >
               {role.functions.map((fn, i) => (
-                <CheckRow key={fn} delay={24 + i * 14} size={26}>
-                  {fn}
-                </CheckRow>
+                <FadeIn key={fn} delay={22 + i * 8}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 20,
+                      padding: i === 0 ? "14px 0 16px" : "16px 0",
+                      borderTop:
+                        i === 0
+                          ? "none"
+                          : `1px solid ${SURFACE.hairlineSoft}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 19,
+                        fontWeight: 700,
+                        color: COLORS.accent,
+                        fontVariantNumeric: "tabular-nums",
+                        flexShrink: 0,
+                        width: 34,
+                      }}
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 25,
+                        lineHeight: 1.45,
+                        color: SURFACE.text,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {fn}
+                    </span>
+                  </div>
+                </FadeIn>
               ))}
             </div>
           </div>

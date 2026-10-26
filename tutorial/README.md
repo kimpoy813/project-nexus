@@ -55,25 +55,67 @@ editor, no re-recording.
 | Logo | `static/images/nexus-logo.svg` (copied into `public/`) |
 | Brand colors | `accounts/ui.py` → `BRAND_DEFAULTS` (`#103b07`, `#5a1113`, `#f5e587`) |
 
+## Design system
+
+The visual language is deliberately editorial rather than templated:
+
+- **One grid.** `LAYOUT` in [`src/theme.js`](src/theme.js) defines the shared
+  120 px side margins, 24 px gutter and 18 px radius; every full-screen scene
+  aligns to the same left/right edges, and card grids use 12-column spans so
+  rows of different counts (e.g. 6 stage cards above 4 reporting cards) line
+  up exactly.
+- **Calm surfaces.** Near-opaque panels with hairline borders replace frosted
+  glass; entrance motion is a short opacity fade with a 14 px rise on one
+  cubic ease — no springs, bounces, halos or drifting background layers.
+- **Numerals over icon tiles.** Index numbers (`01`, `02`…) carry hierarchy
+  instead of repeated pictogram boxes; glyphs are reserved for the product
+  mockups and the few places a symbol carries meaning.
+
+## Audio: music bed and voiceover
+
+- **Music bed** — `scripts/make-music.mjs` synthesizes a 135 s ambient bed
+  (`public/music/nexus-bed.wav`, 44.1 kHz stereo) with no external assets:
+  detuned-sine pad chords, triangle sub-bass and sparse plucks through a
+  low-pass filter. Re-run with `npm run music`; it is git-ignored because it
+  is fully regenerable.
+- **Voiceover** — the per-scene script lives in
+  [`src/narration.js`](src/narration.js), sized to each scene's duration at
+  the measured delivery rate (~3 words/second). Clips are generated externally
+  into `public/narration/scene-XX.mp3` and **committed** because they cannot be
+  regenerated offline. `scripts/sync-narration.mjs` writes
+  `src/narration-manifest.json`; `Root.jsx` mounts only clips the manifest
+  lists, so a missing line renders as a quiet music-only passage instead of
+  breaking the build.
+- **Ducking** — the bed plays at 0.24 and glides down to 0.09 while a
+  voiceover line is expected, opening back up between scenes.
+- After adding or replacing clips, run `npm run narration:scan` (the
+  `prerender` hook does this automatically).
+
 ## Project layout
 
 ```
 tutorial/
-├── package.json              # scripts: dev / render / still / inspect
+├── package.json              # scripts: dev / render / still / inspect / music
 ├── remotion.config.js        # renderer settings + headless-browser wiring
 ├── scripts/
 │   ├── sync-fonts.mjs        # copies Inter woff2 from npm into public/fonts
+│   ├── make-music.mjs        # procedural ambient music bed (offline WAV)
+│   ├── sync-narration.mjs    # scans narration clips → narration-manifest.json
 │   ├── prepare-browser.mjs   # offline headless-Chromium assembly (see below)
 │   ├── inspect-mp4.mjs       # dependency-free MP4 codec/size/duration check
 │   └── patch-studio-origin.mjs  # proxy-aware same-origin fix (postinstall)
 ├── public/
 │   ├── nexus-logo.svg        # the real NExUS "Ni" monogram
-│   └── fonts/                # generated: Inter 400–800 (woff2, offline)
+│   ├── fonts/                # generated: Inter 400–800 (woff2, offline)
+│   ├── music/                # generated: nexus-bed.wav (git-ignored)
+│   └── narration/            # voiceover scene-XX.mp3 (committed)
 ├── src/
 │   ├── index.js              # Remotion entry point (registerRoot)
-│   ├── Root.jsx              # composition + the 19-scene timeline
-│   ├── theme.js              # NExUS brand colors, fonts, canvas size
-│   ├── content.js            # ALL tutorial text — glossary, roles, features
+│   ├── Root.jsx              # composition, 19-scene timeline, audio + ducking
+│   ├── theme.js              # brand colors, LAYOUT/SURFACE/MOTION tokens
+│   ├── content.js            # ALL on-screen text — glossary, roles, features
+│   ├── narration.js          # voiceover script, one line per scene
+│   ├── narration-manifest.json  # generated: which narration clips exist
 │   ├── components/           # Fonts, Background, BrandMark, UI primitives…
 │   └── scenes/               # one file per scene (RoleDetailScene is reused 7×)
 └── out/                      # rendered MP4s and stills (git-ignored)
@@ -85,20 +127,26 @@ tutorial/
 cd tutorial
 npm install                 # also runs the proxy-origin patch automatically
 npm run dev                 # Remotion Studio: live editor at localhost:45761
+npm run music               # regenerate the ambient music bed
+npm run narration:scan      # refresh src/narration-manifest.json from public/narration
 npm run render              # render out/nexus-tutorial.mp4 (1080p, H.264)
 npm run render:hd           # faster 720p preview render
 npm run inspect             # verify MP4 codec/size/duration/frames without ffmpeg
 npx remotion still NexusTutorial out/check.png --frame=950   # one frame as PNG
 ```
 
-`npm run render` runs the font sync and headless-browser setup first
-(via the `prerender` npm hook).
+`npm run render` runs the font sync, music synthesis, narration scan and
+headless-browser setup first (via the `prerender` npm hook).
 
 ## Editing the tutorial
 
 - **Wording, role functions, glossary, feature lists:** everything lives in
   [`src/content.js`](src/content.js) — start there.
-- **Colors / fonts:** [`src/theme.js`](src/theme.js), kept in sync with
+- **Voiceover lines:** [`src/narration.js`](src/narration.js), one entry per
+  scene; keep each line within the word budget noted at the top of the file,
+  regenerate the clip into `public/narration/`, then `npm run narration:scan`.
+- **Colors / fonts / spacing:** [`src/theme.js`](src/theme.js)
+  (`COLORS`, `LAYOUT`, `SURFACE`, `MOTION`), kept in sync with
   `accounts/ui.py`.
 - **Logo:** replace `public/nexus-logo.svg` (and the `LogoBadge`/`LogoRaw`
   components in `src/components/BrandMark.jsx` if the shape changes).

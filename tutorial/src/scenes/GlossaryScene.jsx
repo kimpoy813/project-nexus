@@ -1,52 +1,81 @@
 import React from "react";
 import { AbsoluteFill } from "remotion";
-import { COLORS } from "../theme.js";
+import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
-import { Rise, SceneShell, Eyebrow, Heading } from "../components/Ui.jsx";
+import { Rise, SceneShell, Eyebrow, Heading, FadeIn } from "../components/Ui.jsx";
 import { GLOSSARY } from "../content.js";
 
 const TermCard = ({ item, index }) => (
-  <Rise delay={18 + index * 7}>
+  <FadeIn delay={16 + index * 5}>
     <div
       style={{
-        background: "rgba(255,255,255,0.06)",
-        border: `1.5px solid ${COLORS.primaryLine}`,
-        borderRadius: 18,
-        padding: "22px 24px",
-        height: 205,
+        background: SURFACE.panel,
+        border: `1px solid ${SURFACE.hairlineSoft}`,
+        borderRadius: LAYOUT.radius,
+        padding: "24px 26px",
+        height: 178,
         display: "flex",
         flexDirection: "column",
       }}
     >
       <div
         style={{
-          fontSize: 27,
-          fontWeight: 800,
-          color: COLORS.accent,
-          marginBottom: 10,
-          letterSpacing: 0.3,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 12,
         }}
       >
-        {item.term}
+        <span
+          style={{
+            width: 18,
+            height: 3,
+            borderRadius: 2,
+            background: COLORS.accent,
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            fontSize: 26,
+            fontWeight: 800,
+            color: COLORS.accent,
+            letterSpacing: 0.2,
+          }}
+        >
+          {item.term}
+        </span>
       </div>
-      <div style={{ fontSize: 20.5, lineHeight: 1.45, color: "rgba(255,255,255,0.75)" }}>
+      <div
+        style={{
+          fontSize: 20,
+          lineHeight: 1.48,
+          color: SURFACE.textSoft,
+        }}
+      >
         {item.meaning}
       </div>
     </div>
-  </Rise>
+  </FadeIn>
 );
 
 export const GlossaryScene = () => (
   <AbsoluteFill>
     <Background />
     <SceneShell sceneIndex={2}>
-      <AbsoluteFill style={{ padding: "150px 120px 90px" }}>
+      <AbsoluteFill
+        style={{
+          padding: `0 ${LAYOUT.marginX}px`,
+          justifyContent: "center",
+        }}
+      >
         <Rise delay={6}>
           <Eyebrow>Words you will hear</Eyebrow>
         </Rise>
         <Rise delay={12}>
-          <Heading size={52}>
-            The terms behind NExUS, in <span style={{ color: COLORS.accent }}>plain English</span>
+          <Heading size={50}>
+            The terms behind NExUS, in{" "}
+            <span style={{ color: COLORS.accent }}>plain English</span>
           </Heading>
         </Rise>
 
@@ -55,7 +84,7 @@ export const GlossaryScene = () => (
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
             gap: 20,
-            marginTop: 44,
+            marginTop: 42,
           }}
         >
           {GLOSSARY.map((item, i) => (

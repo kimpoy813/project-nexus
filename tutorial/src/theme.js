@@ -25,3 +25,34 @@ export const FONT = {
 
 // 1920x1080 canvas, 30 fps.
 export const VIDEO = { width: 1920, height: 1080, fps: 30 };
+
+// ------------------------------------------------------------- layout system
+// One content column for every full-screen scene so headings, cards and the
+// header lockup share the same left/right edges.
+export const LAYOUT = {
+  marginX: 120,
+  contentWidth: VIDEO.width - 240, // 1680
+  headerTop: 44,
+  contentTop: 148, // baseline where eyebrows begin
+  gutter: 24, // standard grid gap
+  radius: 18,
+};
+
+// Surfaces moved away from frosted glass: quiet, near-opaque fills with
+// hairline borders read as a designed document rather than a template.
+export const SURFACE = {
+  panel: "rgba(255,255,255,0.045)",
+  panelStrong: "rgba(255,255,255,0.07)",
+  hairline: "rgba(255,255,255,0.12)",
+  hairlineSoft: "rgba(255,255,255,0.08)",
+  text: "rgba(255,255,255,0.86)",
+  textSoft: "rgba(255,255,255,0.62)",
+  textFaint: "rgba(255,255,255,0.42)",
+};
+
+// Calm, uniform motion: short opacity + small rise, ease-out, no bounce.
+export const MOTION = {
+  fadeDuration: 16,
+  rise: 14,
+  groupStagger: 6,
+};

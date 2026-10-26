@@ -1,14 +1,14 @@
 import React from "react";
-import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { COLORS } from "../theme.js";
+import { AbsoluteFill } from "remotion";
+import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
 import {
   Rise,
   SceneShell,
   Eyebrow,
   Heading,
-  Glyph,
-  GlassCard,
+  Panel,
+  FadeIn,
 } from "../components/Ui.jsx";
 import {
   IMPLEMENTATION_STEPS,
@@ -16,93 +16,125 @@ import {
   REPORTING_FEATURES,
 } from "../content.js";
 
-const ICONS = ["flag", "doc", "chart", "shield", "return", "check"];
-
-const StageCard = ({ index, title, text, icon, delay }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - delay, fps, config: { damping: 17 } });
-  return (
-    <div
-      style={{
-        flex: 1,
-        background: "rgba(255,255,255,0.06)",
-        border: `1.5px solid ${COLORS.primaryLine}`,
-        borderRadius: 20,
-        padding: "24px 20px",
-        opacity: s,
-        transform: `translateY(${(1 - s) * 40}px)`,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          width: 60,
-          height: 60,
-          borderRadius: 16,
-          background: "rgba(245,229,135,0.12)",
-          border: "1.5px solid rgba(245,229,135,0.35)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: 16,
-        }}
-      >
-        <Glyph name={icon} size={28} />
-      </div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.accent, letterSpacing: 1.4 }}>
-        STAGE {index + 1}
-      </div>
-      <div style={{ fontSize: 21, fontWeight: 800, color: COLORS.white, lineHeight: 1.22, marginTop: 8 }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 17.5, lineHeight: 1.45, color: "rgba(255,255,255,0.68)", marginTop: 10 }}>
-        {text}
-      </div>
-    </div>
-  );
-};
-
 export const ReportScene = () => (
   <AbsoluteFill>
     <Background />
     <SceneShell sceneIndex={15} total={19}>
-      <AbsoluteFill style={{ padding: "140px 110px 90px" }}>
+      <AbsoluteFill
+        style={{
+          padding: `0 ${LAYOUT.marginX}px`,
+          justifyContent: "center",
+        }}
+      >
         <Rise delay={4}>
           <Eyebrow>Running the activity — and proving it happened</Eyebrow>
         </Rise>
         <Rise delay={10}>
-          <Heading size={48}>
-            Implementation: <span style={{ color: COLORS.accent }}>six stages to final documentation</span>
+          <Heading size={46}>
+            Implementation:{" "}
+            <span style={{ color: COLORS.accent }}>
+              six stages to final documentation
+            </span>
           </Heading>
         </Rise>
 
-        <div style={{ display: "flex", gap: 16, marginTop: 36 }}>
+        {/* One 12-column grid: six stage cards span 2 each, four reporting
+            cards span 3 each — every card flush to the same outer edges. */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(12, 1fr)",
+            gap: LAYOUT.gutter,
+            marginTop: 36,
+          }}
+        >
           {IMPLEMENTATION_STEPS.map((step, i) => (
-            <StageCard
+            <FadeIn
               key={step}
-              index={i}
-              title={step}
-              text={IMPLEMENTATION_DESCRIPTIONS[i]}
-              icon={ICONS[i]}
-              delay={26 + i * 12}
-            />
+              delay={22 + i * 6}
+              style={{ gridColumn: `span 2` }}
+            >
+              <div
+                style={{
+                  background: SURFACE.panel,
+                  border: `1px solid ${SURFACE.hairlineSoft}`,
+                  borderRadius: LAYOUT.radius,
+                  padding: "22px 20px",
+                  height: 252,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: COLORS.accent,
+                    letterSpacing: 1.4,
+                  }}
+                >
+                  STAGE {String(i + 1).padStart(2, "0")}
+                </div>
+                <div
+                  style={{
+                    fontSize: 19,
+                    fontWeight: 800,
+                    color: COLORS.white,
+                    lineHeight: 1.25,
+                    margin: "12px 0 10px",
+                  }}
+                >
+                  {step}
+                </div>
+                <div
+                  style={{
+                    fontSize: 16.5,
+                    lineHeight: 1.48,
+                    color: SURFACE.textSoft,
+                  }}
+                >
+                  {IMPLEMENTATION_DESCRIPTIONS[i]}
+                </div>
+              </div>
+            </FadeIn>
           ))}
-        </div>
 
-        <div style={{ display: "flex", gap: 22, marginTop: 38 }}>
           {REPORTING_FEATURES.map((f, i) => (
-            <Rise key={f.title} delay={56 + i * 10} style={{ flex: 1 }}>
-              <GlassCard style={{ height: 208, padding: "22px 22px" }}>
-                <div style={{ fontSize: 23, fontWeight: 800, color: COLORS.accent, lineHeight: 1.2, marginBottom: 10 }}>
+            <FadeIn
+              key={f.title}
+              delay={52 + i * 7}
+              style={{ gridColumn: "span 3" }}
+            >
+              <Panel
+                style={{
+                  height: 196,
+                  padding: "24px 26px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 21,
+                    fontWeight: 800,
+                    color: COLORS.accent,
+                    lineHeight: 1.25,
+                    marginBottom: 10,
+                  }}
+                >
                   {f.title}
                 </div>
-                <div style={{ fontSize: 18.5, lineHeight: 1.45, color: "rgba(255,255,255,0.72)" }}>
+                <div
+                  style={{
+                    fontSize: 17.5,
+                    lineHeight: 1.5,
+                    color: SURFACE.textSoft,
+                  }}
+                >
                   {f.text}
                 </div>
-              </GlassCard>
-            </Rise>
+              </Panel>
+            </FadeIn>
           ))}
         </div>
       </AbsoluteFill>

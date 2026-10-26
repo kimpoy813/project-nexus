@@ -1,14 +1,22 @@
-import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
+import { AbsoluteFill } from "remotion";
 import { COLORS } from "../theme.js";
 
-// Dark institutional-green backdrop shared by every scene:
-// vignette + faint grid + two slow-drifting glows.
-export const Background = ({ variant = "dark" }) => {
-  const frame = useCurrentFrame();
-  const drift = interpolate(frame, [0, 900], [0, 60], {
-    extrapolateRight: "extend",
-  });
+// Shared backdrop, deliberately static: a deep institutional-green field
+// with one soft top light, a faint technical grid and a film-grain overlay.
+// No drifting glows or animated layers — motion comes from the content.
+const GRAIN =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
+      <filter id="n">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+        <feColorMatrix type="saturate" values="0"/>
+      </filter>
+      <rect width="100%" height="100%" filter="url(#n)" opacity="0.5"/>
+    </svg>`
+  );
 
+export const Background = ({ variant = "dark" }) => {
   if (variant === "light") {
     return (
       <AbsoluteFill style={{ backgroundColor: COLORS.paper }}>
@@ -26,49 +34,33 @@ export const Background = ({ variant = "dark" }) => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.primary }}>
-      {/* vignette */}
+      {/* single soft light from the top, darker toward the floor */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(1400px 900px at 50% 30%, rgba(31,107,18,0.55), transparent 70%), radial-gradient(1000px 700px at 85% 90%, rgba(90,17,19,0.45), transparent 65%)",
+            "radial-gradient(1500px 850px at 50% -12%, rgba(63,140,38,0.40), transparent 62%), linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,0.22) 100%)",
         }}
       />
-      {/* grid */}
+      {/* faint static grid */}
       <div
         style={{
           position: "absolute",
-          inset: -60,
+          inset: 0,
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)",
-          backgroundSize: "80px 80px",
-          transform: `translate3d(${-drift * 0.4}px, ${-drift * 0.25}px, 0)`,
+            "linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px)",
+          backgroundSize: "96px 96px",
         }}
       />
-      {/* drifting glows */}
+      {/* grain to prevent banding and give the flat color texture */}
       <div
         style={{
           position: "absolute",
-          width: 520,
-          height: 520,
-          borderRadius: "50%",
-          background: "rgba(245,229,135,0.10)",
-          filter: "blur(90px)",
-          left: 120 + drift,
-          top: 620 - drift * 0.6,
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          width: 420,
-          height: 420,
-          borderRadius: "50%",
-          background: "rgba(31,107,18,0.55)",
-          filter: "blur(80px)",
-          right: 140 - drift * 0.5,
-          top: 90 + drift * 0.4,
+          inset: 0,
+          backgroundImage: `url("${GRAIN}")`,
+          opacity: 0.05,
+          mixBlendMode: "overlay",
         }}
       />
     </AbsoluteFill>

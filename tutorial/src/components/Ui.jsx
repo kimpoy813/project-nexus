@@ -1,27 +1,30 @@
 import React from "react";
 import {
   AbsoluteFill,
-  spring,
+  Easing,
+  interpolate,
+  interpolate as _interpolate,
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { COLORS, FONT } from "../theme.js";
+import { COLORS, FONT, LAYOUT, MOTION, SURFACE } from "../theme.js";
 import { BrandLockup } from "./BrandMark.jsx";
 
-// Fade + rise entrance. `delay` is in frames.
-export const Rise = ({ children, delay = 0, distance = 34, opacity = 1, style }) => {
+const easeOut = Easing.out(Easing.cubic);
+
+// Quiet entrance: opacity + a short rise, one easing, no spring/bounce.
+export const Rise = ({ children, delay = 0, distance = MOTION.rise, style }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = spring({
-    frame: frame - delay,
-    fps,
-    config: { damping: 18, stiffness: 110, mass: 0.9 },
+  const t = interpolate(frame - delay, [0, MOTION.fadeDuration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: easeOut,
   });
   return (
     <div
       style={{
-        opacity: s * opacity,
-        transform: `translateY(${(1 - s) * distance}px)`,
+        opacity: t,
+        transform: `translateY(${(1 - t) * distance}px)`,
         ...style,
       }}
     >
@@ -30,7 +33,19 @@ export const Rise = ({ children, delay = 0, distance = 34, opacity = 1, style })
   );
 };
 
-// Pop the whole scene out gently at the very end so cuts feel softer.
+// Fade with no movement, for elements already anchored to a grid.
+export const FadeIn = ({ children, delay = 0, style }) => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame - delay, [0, MOTION.fadeDuration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: easeOut,
+  });
+  return <div style={{ opacity, ...style }}>{children}</div>;
+};
+
+// Scene chrome: brand lockup + counter aligned to the shared content margins,
+// with a hairline rule tying the header together. Fades the scene at its end.
 export const SceneShell = ({ children, sceneIndex, total = 19, light = false }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -44,28 +59,36 @@ export const SceneShell = ({ children, sceneIndex, total = 19, light = false }) 
       <div
         style={{
           position: "absolute",
-          top: 44,
-          left: 72,
+          top: LAYOUT.headerTop,
+          left: LAYOUT.marginX,
+          right: LAYOUT.marginX,
           display: "flex",
           alignItems: "center",
-          gap: 16,
-          opacity: light ? 0.95 : 0.9,
+          justifyContent: "space-between",
         }}
       >
         <BrandLockup light={light} />
-      </div>
-      <div
-        style={{
-          position: "absolute",
-          top: 52,
-          right: 72,
-          fontSize: 22,
-          fontWeight: 600,
-          letterSpacing: 2,
-          color: light ? COLORS.muted : "rgba(255,255,255,0.55)",
-        }}
-      >
-        {String(sceneIndex).padStart(2, "0")} / {String(total).padStart(2, "0")}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: 2,
+            color: light ? COLORS.muted : SURFACE.textFaint,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          <span
+            style={{
+              width: 44,
+              height: 1,
+              background: light ? COLORS.line : SURFACE.hairline,
+            }}
+          />
+          {String(sceneIndex).padStart(2, "0")} / {String(total).padStart(2, "0")}
+        </div>
       </div>
     </AbsoluteFill>
   );
@@ -74,27 +97,31 @@ export const SceneShell = ({ children, sceneIndex, total = 19, light = false }) 
 export const Eyebrow = ({ children, color = COLORS.accent }) => (
   <div
     style={{
-      fontSize: 26,
+      display: "flex",
+      alignItems: "center",
+      gap: 14,
+      fontSize: 22,
       fontWeight: 700,
-      letterSpacing: 5,
+      letterSpacing: 3,
       textTransform: "uppercase",
       color,
-      marginBottom: 18,
+      marginBottom: 20,
     }}
   >
+    <span style={{ width: 28, height: 3, borderRadius: 2, background: color }} />
     {children}
   </div>
 );
 
-export const Heading = ({ children, style, color = COLORS.white, size = 60 }) => (
+export const Heading = ({ children, style, color = COLORS.white, size = 56 }) => (
   <h1
     style={{
       margin: 0,
       fontSize: size,
-      lineHeight: 1.12,
+      lineHeight: 1.14,
       fontWeight: 800,
       color,
-      letterSpacing: -0.8,
+      letterSpacing: -0.7,
       ...style,
     }}
   >
@@ -105,21 +132,31 @@ export const Heading = ({ children, style, color = COLORS.white, size = 60 }) =>
 export const Body = ({
   children,
   style,
-  color = "rgba(255,255,255,0.82)",
-  size = 32,
+  color = SURFACE.textSoft,
+  size = 30,
 }) => (
-  <p style={{ margin: 0, fontSize: size, lineHeight: 1.55, color, fontWeight: 400, ...style }}>
+  <p
+    style={{
+      margin: 0,
+      fontSize: size,
+      lineHeight: 1.55,
+      color,
+      fontWeight: 400,
+      ...style,
+    }}
+  >
     {children}
   </p>
 );
 
+// Restrained label chip: flat tint, no heavy outline.
 export const Pill = ({ children, tone = "green", style }) => {
   const tones = {
-    green: { bg: "rgba(31,107,18,0.35)", fg: "#c9f0b3", border: COLORS.primaryLine },
-    yellow: { bg: "rgba(245,229,135,0.18)", fg: COLORS.accent, border: "rgba(245,229,135,0.45)" },
-    maroon: { bg: "rgba(90,17,19,0.55)", fg: "#f0c3c5", border: "rgba(240,195,197,0.35)" },
-    light: { bg: "#eef2e7", fg: COLORS.primary, border: COLORS.line },
-    rose: { bg: "rgba(180,69,63,0.16)", fg: COLORS.rose, border: "rgba(180,69,63,0.4)" },
+    green: { bg: "rgba(31,107,18,0.40)", fg: "#c9f0b3" },
+    yellow: { bg: "rgba(245,229,135,0.16)", fg: COLORS.accent },
+    maroon: { bg: "rgba(90,17,19,0.55)", fg: "#f0c3c5" },
+    light: { bg: "#eef2e7", fg: COLORS.primary },
+    rose: { bg: "rgba(180,69,63,0.18)", fg: COLORS.rose },
   };
   const t = tones[tone];
   return (
@@ -128,13 +165,12 @@ export const Pill = ({ children, tone = "green", style }) => {
         display: "inline-flex",
         alignItems: "center",
         gap: 10,
-        padding: "12px 24px",
+        padding: "11px 22px",
         borderRadius: 999,
-        fontSize: 24,
+        fontSize: 23,
         fontWeight: 600,
         backgroundColor: t.bg,
         color: t.fg,
-        border: `1.5px solid ${t.border}`,
         whiteSpace: "nowrap",
         ...style,
       }}
@@ -144,53 +180,58 @@ export const Pill = ({ children, tone = "green", style }) => {
   );
 };
 
-// Animated check bullet used for plain-language feature lists.
-export const CheckRow = ({ children, delay = 0, color = COLORS.accent, size = 27 }) => {
+// Editorial list marker: a small gold dot, fading in place (no slide).
+export const PointRow = ({ children, delay = 0, size = 26 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - delay, fps, config: { damping: 16, stiffness: 130 } });
+  const opacity = interpolate(frame - delay, [0, MOTION.fadeDuration], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: easeOut,
+  });
   return (
     <div
       style={{
         display: "flex",
-        alignItems: "flex-start",
+        alignItems: "baseline",
         gap: 18,
-        opacity: s,
-        transform: `translateX(${(1 - s) * -28}px)`,
+        opacity,
       }}
     >
-      <div
+      <span
         style={{
           flexShrink: 0,
-          width: size + 10,
-          height: size + 10,
+          width: 9,
+          height: 9,
           borderRadius: "50%",
-          background: "rgba(245,229,135,0.14)",
-          border: "1.5px solid rgba(245,229,135,0.4)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 2,
+          background: COLORS.accent,
+          transform: "translateY(-3px)",
+        }}
+      />
+      <div
+        style={{
+          fontSize: size,
+          lineHeight: 1.45,
+          color: SURFACE.text,
+          fontWeight: 500,
         }}
       >
-        <Glyph name="check" size={size - 8} color={color} />
-      </div>
-      <div style={{ fontSize: size, lineHeight: 1.42, color: "rgba(255,255,255,0.88)", fontWeight: 500 }}>
         {children}
       </div>
     </div>
   );
 };
 
-// Glass card used across dark scenes.
-export const GlassCard = ({ children, style, accent }) => (
+// Back-compat alias used by scenes not yet migrated.
+export const CheckRow = PointRow;
+
+// Quiet panel: near-opaque fill, single hairline border, no blur.
+export const Panel = ({ children, style, accent }) => (
   <div
     style={{
-      background: "rgba(255,255,255,0.06)",
-      border: `1.5px solid ${accent ?? COLORS.primaryLine}`,
-      borderRadius: 24,
-      padding: "34px 32px",
-      backdropFilter: "blur(4px)",
+      background: SURFACE.panel,
+      border: `1px solid ${accent ?? SURFACE.hairlineSoft}`,
+      borderRadius: LAYOUT.radius,
+      padding: "32px 30px",
       ...style,
     }}
   >
@@ -198,64 +239,95 @@ export const GlassCard = ({ children, style, accent }) => (
   </div>
 );
 
-// Light "browser window" used for the UI mock scenes.
+export const GlassCard = Panel;
+
+// Large translucent index numeral used instead of repeated icon tiles.
+export const IndexNumeral = ({ value, color = COLORS.accent, style }) => (
+  <div
+    style={{
+      fontSize: 44,
+      fontWeight: 800,
+      letterSpacing: 1,
+      color,
+      fontVariantNumeric: "tabular-nums",
+      lineHeight: 1,
+      ...style,
+    }}
+  >
+    {String(value).padStart(2, "0")}
+  </div>
+);
+
+// Light "browser window" for the UI mock scenes. Neutral window controls and
+// an inline SVG lock instead of traffic-light dots and an emoji.
 export const BrowserChrome = ({ url, children, style }) => (
   <div
     style={{
       width: 1560,
-      borderRadius: 22,
+      borderRadius: 20,
       overflow: "hidden",
       backgroundColor: COLORS.paper,
-      boxShadow: "0 40px 90px rgba(0,0,0,0.45)",
-      border: "1px solid rgba(255,255,255,0.12)",
+      boxShadow: "0 30px 70px rgba(0,0,0,0.40)",
+      border: `1px solid ${SURFACE.hairline}`,
       ...style,
     }}
   >
     <div
       style={{
-        height: 64,
+        height: 60,
         background: "#e9ede2",
         display: "flex",
         alignItems: "center",
-        gap: 12,
+        gap: 10,
         padding: "0 24px",
         borderBottom: `1px solid ${COLORS.line}`,
       }}
     >
-      {["#e0645a", "#e6b84c", "#6fbf62"].map((c) => (
-        <div key={c} style={{ width: 16, height: 16, borderRadius: "50%", background: c }} />
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          style={{ width: 12, height: 12, borderRadius: "50%", background: "#c4cbb9" }}
+        />
       ))}
       <div
         style={{
           marginLeft: 18,
           flex: 1,
-          height: 38,
-          borderRadius: 10,
+          height: 36,
+          borderRadius: 9,
           background: COLORS.white,
           border: `1px solid ${COLORS.line}`,
           display: "flex",
           alignItems: "center",
+          gap: 10,
           padding: "0 18px",
           color: COLORS.muted,
-          fontSize: 22,
+          fontSize: 21,
           fontWeight: 500,
         }}
       >
-        🔒 {url}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={COLORS.muted} strokeWidth="2.2" strokeLinecap="round">
+          <rect x="4" y="11" width="16" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </svg>
+        {url}
       </div>
     </div>
     <div style={{ position: "relative" }}>{children}</div>
   </div>
 );
 
-// Animated doughnut ring matching the NExUS dashboard gauge card.
+// Doughnut ring matching the NExUS dashboard gauge card.
 export const Ring = ({ value, size = 150, stroke = 14, delay = 0, label }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const s = spring({ frame: frame - delay, fps, config: { damping: 20 } });
+  const t = interpolate(frame - delay, [0, 28], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: easeOut,
+  });
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const pct = Math.round(value * 100 * s);
+  const pct = Math.round(value * 100 * t);
   return (
     <div style={{ width: size, height: size, position: "relative" }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
@@ -269,7 +341,7 @@ export const Ring = ({ value, size = 150, stroke = 14, delay = 0, label }) => {
           fill="none"
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - value * s)}
+          strokeDashoffset={c * (1 - value * t)}
         />
       </svg>
       <div
@@ -294,46 +366,40 @@ export const Ring = ({ value, size = 150, stroke = 14, delay = 0, label }) => {
   );
 };
 
-// Mouse cursor that glides between keyframes: [{frame, x, y, click?}].
-export const Cursor = ({ keyframes, size = 46 }) => {
+// Mouse cursor gliding between keyframes. A click is a quiet scale-down;
+// no expanding halo rings.
+export const Cursor = ({ keyframes, size = 44 }) => {
   const frame = useCurrentFrame();
   const xs = keyframes.map((k) => k.x);
   const ys = keyframes.map((k) => k.y);
   const fs = keyframes.map((k) => k.frame);
   const x = interpolateClamp(frame, fs, xs);
   const y = interpolateClamp(frame, fs, ys);
-  const click = keyframes.find((k) => k.click && Math.abs(frame - k.frame) <= 4);
+  const click = keyframes.find((k) => k.click && Math.abs(frame - k.frame) <= 3);
   return (
-    <div style={{ position: "absolute", left: x, top: y, zIndex: 30, pointerEvents: "none" }}>
+    <div
+      style={{
+        position: "absolute",
+        left: x,
+        top: y,
+        zIndex: 30,
+        pointerEvents: "none",
+        transform: click ? "scale(0.86)" : "scale(1)",
+      }}
+    >
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M5 3l14 8-6.5 1.8L9 19 5 3z"
-          fill={click ? COLORS.accent : COLORS.ink}
+          fill={COLORS.ink}
           stroke={COLORS.white}
-          strokeWidth={1.6}
+          strokeWidth="1.6"
           strokeLinejoin="round"
         />
       </svg>
-      {click && (
-        <div
-          style={{
-            position: "absolute",
-            left: 8,
-            top: 8,
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            border: `3px solid ${COLORS.accentDeep}`,
-            opacity: 1 - Math.abs(frame - click.frame) / 4,
-            transform: `scale(${0.5 + Math.abs(frame - click.frame) * 0.28})`,
-          }}
-        />
-      )}
     </div>
   );
 };
 
-import { interpolate as _interpolate } from "remotion";
 const interpolateClamp = (frame, fs, vals) =>
   _interpolate(frame, fs, vals, { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
@@ -366,7 +432,8 @@ export const StatusBadge = ({ label, tone = "green", style }) => {
   );
 };
 
-// Minimal inline icon set (stroke style consistent across scenes).
+// Minimal inline icon set, retained for the product mockups and the few
+// places a pictogram carries meaning (shield, lock, globe).
 export const Glyph = ({ name, size = 34, color = COLORS.accent }) => {
   const common = {
     width: size,
@@ -374,7 +441,7 @@ export const Glyph = ({ name, size = 34, color = COLORS.accent }) => {
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: color,
-    strokeWidth: 2,
+    strokeWidth: 1.8,
     strokeLinecap: "round",
     strokeLinejoin: "round",
   };

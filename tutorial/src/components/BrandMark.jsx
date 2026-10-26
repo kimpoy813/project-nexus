@@ -1,5 +1,5 @@
 import React from "react";
-import { Img, staticFile, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { Img, staticFile, interpolate, useCurrentFrame, Easing } from "remotion";
 import { COLORS } from "../theme.js";
 
 // The real NExUS logo (the green "Ni" monogram, static/images/nexus-logo.svg
@@ -7,9 +7,13 @@ import { COLORS } from "../theme.js";
 // green auth panel: a white rounded tile with padding and a soft shadow.
 export const LogoBadge = ({ size = 120, animate = false, tilePadding = 0.16 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const pop = animate
-    ? spring({ frame, fps, config: { damping: 14, stiffness: 120 } })
+  // Quiet settle: opacity + a barely-there scale, eased, never bouncy.
+  const t = animate
+    ? interpolate(frame, [0, 20], [0, 1], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+        easing: Easing.out(Easing.cubic),
+      })
     : 1;
 
   return (
@@ -17,7 +21,8 @@ export const LogoBadge = ({ size = 120, animate = false, tilePadding = 0.16 }) =
       style={{
         width: size,
         height: size,
-        transform: `scale(${pop})`,
+        opacity: t,
+        transform: `scale(${0.96 + 0.04 * t})`,
         borderRadius: size * 0.22,
         background: COLORS.white,
         padding: size * tilePadding,
@@ -67,10 +72,10 @@ export const Wordmark = ({
     {tagline && (
       <div
         style={{
-          marginTop: fontSize * 0.16,
-          fontSize: fontSize * 0.21,
-          fontWeight: 700,
-          letterSpacing: fontSize * 0.09,
+          marginTop: fontSize * 0.18,
+          fontSize: fontSize * 0.2,
+          fontWeight: 600,
+          letterSpacing: fontSize * 0.055,
           textTransform: "uppercase",
           color: taglineColor,
         }}
