@@ -5,9 +5,10 @@
 // Pronunciation: the product is written NExUS but spoken "nexus", so every
 // spoken line uses the lowercase word — never the letter-by-letter spelling.
 //
-// Natural-voice clips are generated to public/narration/sXX-YY.mp3; the
-// offline meSpeak fallback writes .wav with the same names. Both are timed
-// against NARRATION_BUDGETS (scene lengths in Root.jsx).
+// Natural-voice clips live at public/narration/sXX-YY.mp3; the offline
+// meSpeak fallback writes .wav with the same names. Segment start frames are
+// spaced so measured clip lengths never overlap or run past their scene
+// (each scene keeps a 12-frame tail for the transition).
 export const NARRATION_BUDGETS = [
   7, 8, 11, 8, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7, 10, 9, 8, 9, 8, 7, 7,
 ];
@@ -18,7 +19,7 @@ export const NARRATION = [
     segments: [
       { at: 10, text: "Welcome to nexus." },
       {
-        at: 56,
+        at: 66,
         text: "It's the online home for all extension paperwork.",
       },
     ],
@@ -31,8 +32,8 @@ export const NARRATION = [
         text: "Extension means training and outreach projects run with outside communities.",
       },
       {
-        at: 140,
-        text: "One record follows proposal, agreement, delivery.",
+        at: 155,
+        text: "One record follows the whole journey.",
       },
     ],
   },
@@ -41,11 +42,11 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "First, the people: a proponent owns the proposal, evaluators review it, coordinators endorse it.",
+        text: "A proponent owns the proposal; evaluators review it; coordinators endorse it.",
       },
       {
-        at: 180,
-        text: "An MOA is the signed partnership agreement, and a tracker shows each document's stage.",
+        at: 174,
+        text: "An MOA is the signed partnership agreement. A tracker shows its stage.",
       },
     ],
   },
@@ -54,9 +55,9 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "Seven roles use nexus, and each one lands on a dashboard built for its work.",
+        text: "Seven roles use nexus, each with a dashboard for its work.",
       },
-      { at: 140, text: "Next, see exactly what each role can do." },
+      { at: 150, text: "Next, what each role can do." },
     ],
   },
   // 05 Faculty — 225f
@@ -117,7 +118,7 @@ export const NARRATION = [
   {
     segments: [
       {
-        at: 12,
+        at: 8,
         text: "Admins run the system — accounts, website, templates, security — but never your proposal.",
       },
     ],
@@ -127,7 +128,7 @@ export const NARRATION = [
     segments: [
       {
         at: 10,
-        text: "After signing in, your dashboard shows every proposal you own and where each one stands.",
+        text: "Your dashboard shows your proposals and where each stands.",
       },
       { at: 132, text: "Start one with a single click." },
     ],
@@ -140,8 +141,8 @@ export const NARRATION = [
         text: "Building a proposal means walking through twenty guided sections, one question at a time.",
       },
       {
-        at: 175,
-        text: "Drafts save automatically, so return anytime and submit when complete.",
+        at: 176,
+        text: "Drafts save automatically, so return and submit when complete.",
       },
     ],
   },
@@ -150,11 +151,11 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "Reviewers attach comments to the exact section that needs changing, not vague email threads.",
+        text: "Reviewers comment on the exact section, not vague email threads.",
       },
       {
-        at: 145,
-        text: "Every revision stays on the record as it moves through seven statuses.",
+        at: 150,
+        text: "Every revision stays on the record through seven statuses.",
       },
     ],
   },
@@ -163,9 +164,9 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "When a partner is involved, the MOA tracker carries the agreement through six stages to signing.",
+        text: "With a partner, the MOA tracker moves through six stages to signing.",
       },
-      { at: 180, text: "No partner? Skip it." },
+      { at: 168, text: "No partner? Skip." },
     ],
   },
   // 16 Reports — 270f
@@ -173,10 +174,10 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "Once approved, the activity runs through six implementation stages, from launch to final documents.",
+        text: "The activity then runs through six stages to final documents.",
       },
       {
-        at: 145,
+        at: 150,
         text: "Reports and paperwork come from the same record, ready to print.",
       },
     ],
@@ -186,9 +187,9 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "The public website is edited without code — admins drag reusable blocks onto pages.",
+        text: "The public website is edited without code, using reusable blocks.",
       },
-      { at: 150, text: "Every change is logged, showing who edited it." },
+      { at: 150, text: "Every change is logged, with the editor named." },
     ],
   },
   // 18 Security — 210f
@@ -196,15 +197,15 @@ export const NARRATION = [
     segments: [
       {
         at: 12,
-        text: "Every account is protected by verified email, auto-logout, login lockouts, and secure cloud storage.",
+        text: "Every account has verified email, auto-logout, login lockouts, and secure storage.",
       },
     ],
   },
   // 19 Outro — 210f
   {
     segments: [
-      { at: 8, text: "That's nexus — one record, from idea to final document." },
-      { at: 120, text: "Log in and start your first proposal." },
+      { at: 8, text: "That's nexus — one record, from idea to finish." },
+      { at: 125, text: "Log in and start your first proposal." },
     ],
   },
 ];
