@@ -3,17 +3,14 @@ import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from "remotion";
 import { COLORS, LAYOUT } from "../theme.js";
 import { Background } from "../components/Background.jsx";
 import {
-  Rise,
   SceneShell,
   Eyebrow,
   Heading,
   BrowserChrome,
 } from "../components/Ui.jsx";
+import { SlideIn, ProgressBar, easeOut } from "../components/Motion.jsx";
 import { WIZARD_STEPS, WIZARD_HIGHLIGHTS, EXTENSION_TYPES } from "../content.js";
 
-const easeOut = Easing.out(Easing.cubic);
-
-// Which highlight step is active at a given frame.
 const SWITCH_FRAMES = [40, 92, 144, 196, 248];
 
 const useActiveStep = (frame) => {
@@ -55,9 +52,7 @@ const StepperRow = ({ no, label, state }) => {
             ? COLORS.accent
             : COLORS.white,
           color: done ? COLORS.white : current ? COLORS.primary : COLORS.muted,
-          border: `1.5px solid ${
-            done || current ? "transparent" : COLORS.line
-          }`,
+          border: `1.5px solid ${done || current ? "transparent" : COLORS.line}`,
         }}
       >
         {done ? "✓" : no}
@@ -116,43 +111,45 @@ const Field = ({ label, wide = false, delay, lines = 1 }) => {
 export const WizardScene = () => {
   const frame = useCurrentFrame();
   const active = useActiveStep(frame);
-  const pct = interpolate(frame, [40, 290], [0.05, 0.85], {
+  const pct = interpolate(frame, [40, 292], [0.05, 0.85], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
+  // Content cross-slide progress measured from the actual switch frame so
+  // the fade-slide starts exactly when a new step takes over.
+  const lastSwitch = [...SWITCH_FRAMES].reverse().find((f) => frame >= f) ?? 0;
+  const contentT = interpolate(
+    frame - lastSwitch,
+    [0, 12],
+    [0, 1],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.out(Easing.cubic) }
+  );
 
   return (
     <AbsoluteFill>
       <Background />
       <SceneShell sceneIndex={12}>
         <AbsoluteFill
-          style={{
-            padding: `0 ${LAYOUT.marginX}px`,
-            justifyContent: "center",
-          }}
+          style={{ padding: `0 ${LAYOUT.marginX}px`, justifyContent: "center" }}
         >
-          <Rise delay={4}>
+          <SlideIn delay={4} from="up" distance={18}>
             <Eyebrow>Step 2 — Build the proposal</Eyebrow>
-          </Rise>
-          <Rise delay={10}>
-            <Heading size={48}>
+          </SlideIn>
+          <SlideIn delay={10} from="up" distance={22}>
+            <Heading size={46}>
               The guided wizard walks you through{" "}
               <span style={{ color: COLORS.accent }}>20 sections</span>
             </Heading>
-          </Rise>
+          </SlideIn>
 
-          <Rise delay={20} style={{ marginTop: 32 }}>
+          <SlideIn delay={18} from="up" distance={28} style={{ marginTop: 28 }}>
             <BrowserChrome
               url={`nexus.example/proposals/id/edit/step/${active.no}/`}
             >
               <div
-                style={{
-                  display: "flex",
-                  minHeight: 560,
-                  background: COLORS.paper,
-                }}
+                style={{ display: "flex", minHeight: 560, background: COLORS.paper }}
               >
-                {/* left: full 20-step stepper, every step visible */}
+                {/* left: full 20-step stepper */}
                 <div
                   style={{
                     width: 320,
@@ -176,215 +173,195 @@ export const WizardScene = () => {
                   {WIZARD_STEPS.map((label, i) => {
                     const no = i + 1;
                     const state =
-                      no < active.no
-                        ? "done"
-                        : no === active.no
-                        ? "current"
-                        : "todo";
-                    return (
-                      <StepperRow
-                        key={label}
-                        no={no}
-                        label={label}
-                        state={state}
-                      />
-                    );
+                      no < active.no ? "done" : no === active.no ? "current" : "todo";
+                    return <StepperRow key={label} no={no} label={label} state={state} />;
                   })}
                 </div>
 
-                {/* middle: the form for the active step */}
+                {/* middle: form for the active step, cross-sliding on change */}
                 <div
-                  style={{ flex: 1, padding: "30px 36px" }}
+                  style={{ flex: 1, padding: "28px 34px", position: "relative", overflow: "hidden" }}
                   key={active.no}
                 >
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
+                      opacity: contentT,
+                      transform: `translateX(${(1 - contentT) * 34}px)`,
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: 17,
-                        fontWeight: 800,
-                        color: COLORS.primary,
-                        background: "#dfead3",
-                        borderRadius: 8,
-                        padding: "7px 14px",
-                      }}
-                    >
-                      Step {active.no} of 20
+                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                      <div
+                        style={{
+                          fontSize: 17,
+                          fontWeight: 800,
+                          color: COLORS.primary,
+                          background: "#dfead3",
+                          borderRadius: 8,
+                          padding: "7px 14px",
+                        }}
+                      >
+                        Step {active.no} of 20
+                      </div>
+                      <div
+                        style={{ fontSize: 27, fontWeight: 800, color: COLORS.ink }}
+                      >
+                        {active.title}
+                      </div>
                     </div>
                     <div
-                      style={{
-                        fontSize: 28,
-                        fontWeight: 800,
-                        color: COLORS.ink,
-                      }}
+                      style={{ fontSize: 18, color: COLORS.muted, marginTop: 8 }}
                     >
-                      {active.title}
+                      {active.hint}
                     </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 18,
-                      color: COLORS.muted,
-                      marginTop: 8,
-                    }}
-                  >
-                    {active.hint}
-                  </div>
 
-                  {/* step-specific mock content */}
-                  {active.no === 1 && (
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 16,
-                        marginTop: 24,
-                      }}
-                    >
-                      {EXTENSION_TYPES.map((t, i) => (
-                        <div
-                          key={t}
-                          style={{
-                            border: `2px solid ${
-                              i === 2 ? COLORS.primary : COLORS.line
-                            }`,
-                            background: i === 2 ? "#dfead3" : COLORS.white,
-                            borderRadius: 12,
-                            padding: "18px 20px",
-                            fontSize: 18,
-                            fontWeight: i === 2 ? 800 : 600,
-                            color: COLORS.ink,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 12,
-                          }}
-                        >
-                          <span
+                    {active.no === 1 && (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: 16,
+                          marginTop: 24,
+                        }}
+                      >
+                        {EXTENSION_TYPES.map((t, i) => (
+                          <div
+                            key={t}
                             style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: "50%",
                               border: `2px solid ${
-                                i === 2 ? COLORS.primary : COLORS.muted
+                                i === 2 ? COLORS.primary : COLORS.line
                               }`,
-                              background:
-                                i === 2 ? COLORS.primary : "transparent",
+                              background: i === 2 ? "#dfead3" : COLORS.white,
+                              borderRadius: 12,
+                              padding: "18px 20px",
+                              fontSize: 18,
+                              fontWeight: i === 2 ? 800 : 600,
+                              color: COLORS.ink,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
                             }}
-                          />
-                          {t}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          >
+                            <span
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: "50%",
+                                border: `2px solid ${
+                                  i === 2 ? COLORS.primary : COLORS.muted
+                                }`,
+                                background: i === 2 ? COLORS.primary : "transparent",
+                              }}
+                            />
+                            {t}
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  {active.no !== 1 && active.no !== 17 && (
+                    {active.no !== 1 && active.no !== 17 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 20,
+                          marginTop: 26,
+                        }}
+                      >
+                        <Field label="Title / name" wide delay={26} />
+                        <Field label="Primary detail" delay={34} />
+                        <Field label="Supporting detail" delay={40} />
+                        <Field label="Background and notes" wide delay={46} lines={2} />
+                      </div>
+                    )}
+
+                    {active.no === 17 && (
+                      <div
+                        style={{
+                          marginTop: 24,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 12,
+                        }}
+                      >
+                        {[
+                          "Work plan and schedule (DOCX)",
+                          "Gantt chart (XLSX)",
+                          "Supporting attachments",
+                        ].map((f, i) => (
+                          <div
+                            key={f}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 14,
+                              border: `1.5px solid ${COLORS.line}`,
+                              background: COLORS.white,
+                              borderRadius: 12,
+                              padding: "16px 20px",
+                              fontSize: 18,
+                              fontWeight: 600,
+                              color: COLORS.ink,
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 42,
+                                height: 42,
+                                borderRadius: 9,
+                                background: "#dfead3",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: COLORS.primary,
+                                fontWeight: 800,
+                                fontSize: 14,
+                              }}
+                            >
+                              {i === 1 ? "XLS" : "DOC"}
+                            </div>
+                            {f}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div
                       style={{
                         display: "flex",
-                        flexWrap: "wrap",
-                        gap: 20,
+                        justifyContent: "flex-end",
+                        gap: 14,
                         marginTop: 26,
                       }}
                     >
-                      <Field label="Title / name" wide delay={28} />
-                      <Field label="Primary detail" delay={36} />
-                      <Field label="Supporting detail" delay={42} />
-                      <Field label="Background and notes" wide delay={48} lines={2} />
-                    </div>
-                  )}
-
-                  {active.no === 17 && (
-                    <div
-                      style={{
-                        marginTop: 24,
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 12,
-                      }}
-                    >
-                      {[
-                        "Work plan and schedule (DOCX)",
-                        "Gantt chart (XLSX)",
-                        "Supporting attachments",
-                      ].map((f, i) => (
-                        <div
-                          key={f}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 14,
-                            border: `1.5px solid ${COLORS.line}`,
-                            background: COLORS.white,
-                            borderRadius: 12,
-                            padding: "16px 20px",
-                            fontSize: 18,
-                            fontWeight: 600,
-                            color: COLORS.ink,
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 42,
-                              height: 42,
-                              borderRadius: 9,
-                              background: "#dfead3",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: COLORS.primary,
-                              fontWeight: 800,
-                              fontSize: 14,
-                            }}
-                          >
-                            {i === 1 ? "XLS" : "DOC"}
-                          </div>
-                          {f}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "flex-end",
-                      gap: 14,
-                      marginTop: 28,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 19,
-                        fontWeight: 700,
-                        color: COLORS.primary,
-                        border: `1.5px solid ${COLORS.primary}`,
-                        borderRadius: 10,
-                        padding: "12px 24px",
-                      }}
-                    >
-                      Save draft
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 19,
-                        fontWeight: 700,
-                        color: COLORS.white,
-                        background: COLORS.primary,
-                        borderRadius: 10,
-                        padding: "12px 28px",
-                      }}
-                    >
-                      Save &amp; Next →
+                      <div
+                        style={{
+                          fontSize: 19,
+                          fontWeight: 700,
+                          color: COLORS.primary,
+                          border: `1.5px solid ${COLORS.primary}`,
+                          borderRadius: 10,
+                          padding: "12px 24px",
+                        }}
+                      >
+                        Save draft
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 19,
+                          fontWeight: 700,
+                          color: COLORS.white,
+                          background: COLORS.primary,
+                          borderRadius: 10,
+                          padding: "12px 28px",
+                        }}
+                      >
+                        Save &amp; Next →
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* right: context rail */}
+                {/* right: context rail with the live completion bar */}
                 <div
                   style={{
                     width: 272,
@@ -394,31 +371,15 @@ export const WizardScene = () => {
                     padding: "26px 22px",
                   }}
                 >
-                  <div
-                    style={{
-                      fontSize: 17,
-                      fontWeight: 800,
-                      color: COLORS.ink,
-                    }}
-                  >
+                  <div style={{ fontSize: 17, fontWeight: 800, color: COLORS.ink }}>
                     Completion
                   </div>
-                  <div
-                    style={{
-                      height: 10,
-                      borderRadius: 8,
-                      background: COLORS.line,
-                      marginTop: 12,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${pct * 100}%`,
-                        height: "100%",
-                        background: `linear-gradient(90deg, ${COLORS.primaryBright}, ${COLORS.primary})`,
-                        borderRadius: 8,
-                      }}
+                  <div style={{ marginTop: 14 }}>
+                    <ProgressBar
+                      progress={pct}
+                      height={10}
+                      color={`linear-gradient(90deg, ${COLORS.primaryBright}, ${COLORS.primary})`}
+                      track={COLORS.line}
                     />
                   </div>
                   <div
@@ -427,6 +388,7 @@ export const WizardScene = () => {
                       color: COLORS.muted,
                       marginTop: 8,
                       fontWeight: 600,
+                      fontVariantNumeric: "tabular-nums",
                     }}
                   >
                     {Math.round(pct * 100)}% complete
@@ -467,7 +429,7 @@ export const WizardScene = () => {
                 </div>
               </div>
             </BrowserChrome>
-          </Rise>
+          </SlideIn>
         </AbsoluteFill>
       </SceneShell>
     </AbsoluteFill>

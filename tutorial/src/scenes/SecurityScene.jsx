@@ -2,13 +2,8 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
-import {
-  Rise,
-  SceneShell,
-  Eyebrow,
-  Heading,
-  FadeIn,
-} from "../components/Ui.jsx";
+import { SceneShell, Eyebrow, Heading } from "../components/Ui.jsx";
+import { SlideIn, DrawCheck } from "../components/Motion.jsx";
 import { SAFETY_FEATURES } from "../content.js";
 
 export const SecurityScene = () => (
@@ -16,20 +11,17 @@ export const SecurityScene = () => (
     <Background />
     <SceneShell sceneIndex={17} total={19}>
       <AbsoluteFill
-        style={{
-          padding: `0 ${LAYOUT.marginX}px`,
-          justifyContent: "center",
-        }}
+        style={{ padding: `0 ${LAYOUT.marginX}px`, justifyContent: "center" }}
       >
-        <Rise delay={4}>
+        <SlideIn delay={4} from="up" distance={18}>
           <Eyebrow>Safe, tidy and easy to come back to</Eyebrow>
-        </Rise>
-        <Rise delay={10}>
+        </SlideIn>
+        <SlideIn delay={10} from="up" distance={22}>
           <Heading size={46}>
-            The everyday safeguards built into{" "}
+            Safeguards built into{" "}
             <span style={{ color: COLORS.accent }}>every account</span>
           </Heading>
-        </Rise>
+        </SlideIn>
 
         <div
           style={{
@@ -39,53 +31,61 @@ export const SecurityScene = () => (
             marginTop: 38,
           }}
         >
-          {SAFETY_FEATURES.map((f, i) => (
-            <FadeIn key={f.title} delay={16 + i * 5}>
-              <div
-                style={{
-                  background: SURFACE.panel,
-                  border: `1px solid ${SURFACE.hairlineSoft}`,
-                  borderRadius: LAYOUT.radius,
-                  padding: "24px 22px",
-                  height: 262,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: SURFACE.textFaint,
-                    letterSpacing: 1.5,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+          {SAFETY_FEATURES.map((item, i) => {
+            const row = Math.floor(i / 4);
+            const delay = (row === 0 ? 22 : 88) + (i % 4) * 8;
+            return (
+              <SlideIn key={item.title} delay={delay} from="up" distance={26}>
                 <div
                   style={{
-                    fontSize: 22,
-                    fontWeight: 800,
-                    color: COLORS.white,
-                    lineHeight: 1.25,
-                    margin: "16px 0 10px",
+                    background: SURFACE.panel,
+                    border: `1px solid ${SURFACE.hairlineSoft}`,
+                    borderRadius: LAYOUT.radius,
+                    padding: "22px 22px 24px",
+                    height: 236,
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  {f.title}
+                  <div
+                    style={{
+                      width: 46,
+                      height: 46,
+                      borderRadius: 12,
+                      background: "rgba(245,229,135,0.12)",
+                      border: "1px solid rgba(245,229,135,0.3)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <DrawCheck delay={delay + 14} size={24} />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 21.5,
+                      fontWeight: 800,
+                      color: COLORS.white,
+                      marginBottom: 9,
+                      lineHeight: 1.25,
+                    }}
+                  >
+                    {item.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 17,
+                      lineHeight: 1.45,
+                      color: SURFACE.textSoft,
+                    }}
+                  >
+                    {item.text}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 17.5,
-                    lineHeight: 1.5,
-                    color: SURFACE.textSoft,
-                  }}
-                >
-                  {f.text}
-                </div>
-              </div>
-            </FadeIn>
-          ))}
+              </SlideIn>
+            );
+          })}
         </div>
       </AbsoluteFill>
     </SceneShell>

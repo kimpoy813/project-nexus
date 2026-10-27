@@ -3,7 +3,6 @@ import { AbsoluteFill } from "remotion";
 import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
 import {
-  Rise,
   SceneShell,
   Eyebrow,
   Heading,
@@ -11,6 +10,7 @@ import {
   Panel,
   IndexNumeral,
 } from "../components/Ui.jsx";
+import { SlideIn, FlowToken, DrawPath } from "../components/Motion.jsx";
 
 const CARDS = [
   {
@@ -32,20 +32,17 @@ export const AboutScene = () => (
     <Background />
     <SceneShell sceneIndex={1}>
       <AbsoluteFill
-        style={{
-          padding: `0 ${LAYOUT.marginX}px`,
-          justifyContent: "center",
-        }}
+        style={{ padding: `0 ${LAYOUT.marginX}px`, justifyContent: "center" }}
       >
-        <Rise delay={6}>
+        <SlideIn delay={6} from="up">
           <Eyebrow>What is NExUS?</Eyebrow>
-        </Rise>
-        <Rise delay={12}>
+        </SlideIn>
+        <SlideIn delay={12} from="up" distance={26}>
           <Heading style={{ maxWidth: 1280 }}>
             The online home for the Extension Office&apos;s paperwork
           </Heading>
-        </Rise>
-        <Rise delay={20}>
+        </SlideIn>
+        <SlideIn delay={24} from="up" distance={20}>
           <Body style={{ maxWidth: 1500, marginTop: 22 }}>
             <b style={{ color: COLORS.white, fontWeight: 700 }}>Extension</b>{" "}
             means the training, workshops and outreach projects the institution
@@ -53,65 +50,98 @@ export const AboutScene = () => (
             <b style={{ color: COLORS.white, fontWeight: 700 }}>
               Networked Extension Unified System
             </b>{" "}
-            — holds every document one of those projects needs, on a single
-            record that moves through three stages:
+            — holds every document one of those projects needs.
           </Body>
-        </Rise>
+        </SlideIn>
 
-        <div style={{ display: "flex", gap: LAYOUT.gutter, marginTop: 44 }}>
-          {CARDS.map((card, i) => (
-            <Rise
-              key={card.title}
-              delay={30 + i * 8}
-              style={{ flex: 1 }}
-            >
-              <Panel
-                style={{
-                  height: 330,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
+        {/* Stage cards with a connector the record travels along */}
+        <div style={{ position: "relative", marginTop: 46 }}>
+          <svg
+            width={LAYOUT.contentWidth}
+            height={6}
+            style={{ position: "absolute", top: 40, left: 0, overflow: "visible" }}
+          >
+            <line
+              x1={0}
+              y1={3}
+              x2={LAYOUT.contentWidth}
+              y2={3}
+              stroke="rgba(255,255,255,0.12)"
+              strokeWidth={2}
+            />
+            <DrawPath
+              d={`M0 3 H${LAYOUT.contentWidth}`}
+              length={LAYOUT.contentWidth}
+              delay={56}
+              duration={110}
+              stroke={COLORS.accent}
+              strokeWidth={2.5}
+            />
+          </svg>
+          <FlowToken
+            fadeAfterLast={12}
+            keyframes={[
+              { frame: 60, x: 60, y: 43 },
+              { frame: 110, x: LAYOUT.contentWidth / 2, y: 43 },
+              { frame: 175, x: LAYOUT.contentWidth - 60, y: 43 },
+            ]}
+          />
+          <div style={{ display: "flex", gap: LAYOUT.gutter }}>
+            {CARDS.map((card, i) => (
+              <SlideIn
+                key={card.title}
+                delay={60 + i * 20}
+                from="left"
+                distance={48}
+                style={{ flex: 1 }}
               >
-                <IndexNumeral value={i + 1} />
-                <div
+                <Panel
                   style={{
-                    fontSize: 34,
-                    fontWeight: 800,
-                    color: COLORS.white,
-                    margin: "22px 0 14px",
+                    height: 318,
+                    display: "flex",
+                    flexDirection: "column",
                   }}
                 >
-                  {card.title}
-                </div>
-                <div
-                  style={{
-                    fontSize: 24,
-                    lineHeight: 1.52,
-                    color: SURFACE.textSoft,
-                  }}
-                >
-                  {card.text}
-                </div>
-              </Panel>
-            </Rise>
-          ))}
+                  <IndexNumeral value={i + 1} />
+                  <div
+                    style={{
+                      fontSize: 32,
+                      fontWeight: 800,
+                      color: COLORS.white,
+                      margin: "20px 0 14px",
+                    }}
+                  >
+                    {card.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 23,
+                      lineHeight: 1.52,
+                      color: SURFACE.textSoft,
+                    }}
+                  >
+                    {card.text}
+                  </div>
+                </Panel>
+              </SlideIn>
+            ))}
+          </div>
         </div>
 
-        <Rise delay={66}>
+        <SlideIn delay={186} from="up" distance={16}>
           <div
             style={{
-              marginTop: 40,
-              paddingTop: 26,
+              marginTop: 38,
+              paddingTop: 24,
               borderTop: `1px solid ${SURFACE.hairlineSoft}`,
-              fontSize: 25,
+              fontSize: 24,
               color: SURFACE.textSoft,
             }}
           >
-            Nothing is passed between offices by email or lost on
-            someone&apos;s computer — the same record follows the work the
-            whole way.
+            Nothing is passed between offices by email — the same record follows
+            the work the whole way.
           </div>
-        </Rise>
+        </SlideIn>
       </AbsoluteFill>
     </SceneShell>
   </AbsoluteFill>

@@ -13,3 +13,6 @@ public/music/
 
 # Node.
 node_modules/
+
+# QA stills (local visual verification only).
+qa/

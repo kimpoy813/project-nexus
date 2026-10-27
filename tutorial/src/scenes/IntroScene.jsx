@@ -3,17 +3,22 @@ import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { COLORS, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
 import { LogoBadge, Wordmark } from "../components/BrandMark.jsx";
-import { Rise } from "../components/Ui.jsx";
+import { SlideIn, PopIn, AnimatedNumber, easeOut } from "../components/Motion.jsx";
 
 const STATS = [
-  { figure: "7", label: "User roles, each with its own dashboard" },
-  { figure: "20", label: "Guided sections in the proposal form" },
-  { figure: "1", label: "Record that follows the work from idea to close" },
+  { figure: 7, label: "User roles, each with its own dashboard" },
+  { figure: 20, label: "Guided sections in the proposal form" },
+  { figure: 1, label: "Record that follows the work from idea to close" },
 ];
 
 export const IntroScene = () => {
   const frame = useCurrentFrame();
-  const lineGrow = interpolate(frame, [22, 52], [0, 1], {
+  const lineGrow = interpolate(frame, [26, 56], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: easeOut,
+  });
+  const chipOpacity = interpolate(frame, [40, 56], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -28,30 +33,47 @@ export const IntroScene = () => {
           flexDirection: "column",
         }}
       >
-        <Rise delay={4}>
-          <LogoBadge size={156} animate />
-        </Rise>
+        <PopIn delay={2}>
+          <LogoBadge size={148} animate />
+        </PopIn>
 
-        <div style={{ height: 34 }} />
+        <div style={{ height: 30 }} />
 
-        <Rise delay={14}>
-          <Wordmark fontSize={88} tagline />
-        </Rise>
+        <SlideIn delay={14} from="up" distance={26}>
+          <Wordmark fontSize={82} tagline />
+        </SlideIn>
+
+        <div
+          style={{
+            opacity: chipOpacity,
+            marginTop: 14,
+            fontSize: 21,
+            fontWeight: 600,
+            letterSpacing: 1.5,
+            color: COLORS.accent,
+            background: "rgba(245,229,135,0.10)",
+            border: "1px solid rgba(245,229,135,0.35)",
+            borderRadius: 999,
+            padding: "8px 22px",
+          }}
+        >
+          pronounced “nexus”
+        </div>
 
         <div
           style={{
             height: 3,
-            width: 380 * lineGrow,
+            width: 360 * lineGrow,
             borderRadius: 2,
             background: COLORS.accent,
-            margin: "34px 0 30px",
+            margin: "26px 0 24px",
           }}
         />
 
-        <Rise delay={26}>
+        <SlideIn delay={60} from="up" distance={22}>
           <div
             style={{
-              fontSize: 54,
+              fontSize: 50,
               fontWeight: 800,
               color: COLORS.white,
               letterSpacing: -0.6,
@@ -60,26 +82,26 @@ export const IntroScene = () => {
           >
             A Plain-Language Guide to NExUS
           </div>
-        </Rise>
-        <Rise delay={38}>
+        </SlideIn>
+        <SlideIn delay={74} from="up" distance={18}>
           <div
             style={{
-              fontSize: 29,
+              fontSize: 27,
               color: SURFACE.textSoft,
-              marginTop: 18,
+              marginTop: 16,
               textAlign: "center",
-              maxWidth: 1180,
+              maxWidth: 1140,
               lineHeight: 1.5,
             }}
           >
             What it does, what every role can do, and how a proposal travels
             from an idea to a finished, documented activity
           </div>
-        </Rise>
+        </SlideIn>
 
-        <div style={{ height: 64 }} />
+        <div style={{ height: 58 }} />
 
-        <Rise delay={54} style={{ display: "flex", alignItems: "stretch" }}>
+        <div style={{ display: "flex", alignItems: "stretch" }}>
           {STATS.map((s, i) => (
             <React.Fragment key={s.label}>
               {i > 0 && (
@@ -91,7 +113,10 @@ export const IntroScene = () => {
                   }}
                 />
               )}
-              <div
+              <SlideIn
+                delay={100 + i * 12}
+                from="up"
+                distance={24}
                 style={{
                   width: 360,
                   display: "flex",
@@ -107,24 +132,23 @@ export const IntroScene = () => {
                     fontWeight: 800,
                     color: COLORS.accent,
                     lineHeight: 1,
-                    fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {s.figure}
+                  <AnimatedNumber value={s.figure} delay={104 + i * 12} duration={38} />
                 </div>
                 <div
                   style={{
-                    fontSize: 21,
+                    fontSize: 20,
                     lineHeight: 1.45,
                     color: SURFACE.textSoft,
                   }}
                 >
                   {s.label}
                 </div>
-              </div>
+              </SlideIn>
             </React.Fragment>
           ))}
-        </Rise>
+        </div>
       </AbsoluteFill>
     </AbsoluteFill>
   );

@@ -5,7 +5,6 @@ import {
   interpolate,
   interpolate as _interpolate,
   useCurrentFrame,
-  useVideoConfig,
 } from "remotion";
 import { COLORS, FONT, LAYOUT, MOTION, SURFACE } from "../theme.js";
 import { BrandLockup } from "./BrandMark.jsx";
@@ -45,16 +44,11 @@ export const FadeIn = ({ children, delay = 0, style }) => {
 };
 
 // Scene chrome: brand lockup + counter aligned to the shared content margins,
-// with a hairline rule tying the header together. Fades the scene at its end.
+// with a hairline rule tying the header together. Scene-to-scene fades are
+// handled by TransitionSeries in Root.jsx, so the shell stays fully opaque.
 export const SceneShell = ({ children, sceneIndex, total = 19, light = false }) => {
-  const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
-  const fadeOut =
-    frame < durationInFrames - 10
-      ? 1
-      : 1 - (frame - (durationInFrames - 10)) / 10;
   return (
-    <AbsoluteFill style={{ fontFamily: FONT.stack, opacity: Math.max(0, fadeOut) }}>
+    <AbsoluteFill style={{ fontFamily: FONT.stack }}>
       {children}
       <div
         style={{

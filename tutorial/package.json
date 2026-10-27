@@ -8,7 +8,7 @@
     "fonts": "node scripts/sync-fonts.mjs",
     "music": "node scripts/make-music.mjs",
     "narration:scan": "node scripts/sync-narration.mjs",
-    "narration:fallback": "node scripts/make-narration-fallback.mjs && npm run narration:scan",
+    "narration:fallback": "node scripts/make-narration-fallback.mjs; npm run narration:scan",
     "browser:setup": "node scripts/prepare-browser.mjs",
     "predev": "npm run fonts && npm run music && npm run narration:scan",
     "dev": "remotion studio",
@@ -24,6 +24,7 @@
   "dependencies": {
     "@fontsource/inter": "^5.2.5",
     "@remotion/cli": "^4.0.0",
+    "@remotion/transitions": "^4.0.539",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "remotion": "^4.0.0"

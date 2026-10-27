@@ -2,12 +2,8 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
-import {
-  Rise,
-  SceneShell,
-  Eyebrow,
-  FadeIn,
-} from "../components/Ui.jsx";
+import { SceneShell, Eyebrow } from "../components/Ui.jsx";
+import { SlideIn, PopIn } from "../components/Motion.jsx";
 import { ROLES } from "../content.js";
 
 const ACCENT = {
@@ -25,26 +21,23 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
       <Background />
       <SceneShell sceneIndex={sceneIndex} total={19}>
         <AbsoluteFill
-          style={{
-            padding: `0 ${LAYOUT.marginX}px`,
-            justifyContent: "center",
-          }}
+          style={{ padding: `0 ${LAYOUT.marginX}px`, justifyContent: "center" }}
         >
-          <Rise delay={4}>
-            <Eyebrow>
-              Role {roleIndex + 1} of 7 — what they can do
-            </Eyebrow>
-          </Rise>
+          <SlideIn delay={4} from="up" distance={18}>
+            <Eyebrow>Role {roleIndex + 1} of 7 — what they can do</Eyebrow>
+          </SlideIn>
 
-          <div style={{ display: "flex", gap: 56, marginTop: 18 }}>
+          <div style={{ display: "flex", gap: 56, marginTop: 16 }}>
             {/* left: identity */}
-            <Rise
+            <SlideIn
               delay={10}
+              from="left"
+              distance={44}
               style={{ width: 440, flexShrink: 0, display: "flex", flexDirection: "column" }}
             >
               <div
                 style={{
-                  fontSize: 120,
+                  fontSize: 118,
                   fontWeight: 800,
                   lineHeight: 1,
                   color: "rgba(255,255,255,0.10)",
@@ -55,47 +48,49 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
               </div>
               <div
                 style={{
-                  fontSize: 56,
+                  fontSize: 54,
                   fontWeight: 800,
                   color: COLORS.white,
                   lineHeight: 1.08,
-                  marginTop: 18,
+                  marginTop: 16,
                 }}
               >
                 {role.key}
               </div>
               <div
                 style={{
-                  fontSize: 25,
+                  fontSize: 24,
                   lineHeight: 1.45,
                   color: accent,
                   fontWeight: 600,
-                  marginTop: 18,
+                  marginTop: 16,
                 }}
               >
                 {role.who}
               </div>
 
               {role.boundary && (
-                <div
-                  style={{
-                    marginTop: 30,
-                    background: "rgba(90,17,19,0.30)",
-                    border: "1px solid rgba(240,195,197,0.35)",
-                    borderRadius: LAYOUT.radius,
-                    padding: "20px 22px",
-                    fontSize: 19,
-                    lineHeight: 1.5,
-                    color: SURFACE.text,
-                  }}
-                >
-                  <b style={{ color: "#f0c3c5", fontWeight: 700 }}>
-                    A deliberate limit:
-                  </b>{" "}
-                  {role.boundary}
-                </div>
+                <SlideIn delay={168} from="up" distance={22}>
+                  <div
+                    style={{
+                      marginTop: 28,
+                      background: "rgba(90,17,19,0.30)",
+                      border: "1px solid rgba(240,195,197,0.35)",
+                      borderRadius: LAYOUT.radius,
+                      padding: "18px 20px",
+                      fontSize: 18.5,
+                      lineHeight: 1.5,
+                      color: SURFACE.text,
+                    }}
+                  >
+                    <b style={{ color: "#f0c3c5", fontWeight: 700 }}>
+                      A deliberate limit:
+                    </b>{" "}
+                    {role.boundary}
+                  </div>
+                </SlideIn>
               )}
-            </Rise>
+            </SlideIn>
 
             {/* divider */}
             <div
@@ -106,7 +101,7 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
               }}
             />
 
-            {/* right: functions as an editorial hairline list */}
+            {/* right: functions arrive one by one under the narration */}
             <div
               style={{
                 flex: 1,
@@ -116,34 +111,39 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
               }}
             >
               {role.functions.map((fn, i) => (
-                <FadeIn key={fn} delay={22 + i * 8}>
+                <SlideIn
+                  key={fn}
+                  delay={40 + i * 22}
+                  from="left"
+                  distance={36}
+                >
                   <div
                     style={{
                       display: "flex",
                       alignItems: "baseline",
                       gap: 20,
-                      padding: i === 0 ? "14px 0 16px" : "16px 0",
+                      padding: i === 0 ? "13px 0 15px" : "15px 0",
                       borderTop:
-                        i === 0
-                          ? "none"
-                          : `1px solid ${SURFACE.hairlineSoft}`,
+                        i === 0 ? "none" : `1px solid ${SURFACE.hairlineSoft}`,
                     }}
                   >
+                    <PopIn delay={42 + i * 22}>
+                      <span
+                        style={{
+                          fontSize: 19,
+                          fontWeight: 700,
+                          color: COLORS.accent,
+                          fontVariantNumeric: "tabular-nums",
+                          width: 34,
+                          display: "inline-block",
+                        }}
+                      >
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                    </PopIn>
                     <span
                       style={{
-                        fontSize: 19,
-                        fontWeight: 700,
-                        color: COLORS.accent,
-                        fontVariantNumeric: "tabular-nums",
-                        flexShrink: 0,
-                        width: 34,
-                      }}
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 25,
+                        fontSize: 24.5,
                         lineHeight: 1.45,
                         color: SURFACE.text,
                         fontWeight: 500,
@@ -152,7 +152,7 @@ export const RoleDetailScene = ({ roleIndex, sceneIndex }) => {
                       {fn}
                     </span>
                   </div>
-                </FadeIn>
+                </SlideIn>
               ))}
             </div>
           </div>

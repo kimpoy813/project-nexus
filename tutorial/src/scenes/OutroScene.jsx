@@ -3,8 +3,19 @@ import { AbsoluteFill } from "remotion";
 import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
 import { LogoBadge, Wordmark } from "../components/BrandMark.jsx";
-import { Rise, FadeIn } from "../components/Ui.jsx";
+import {
+  SlideIn,
+  PopIn,
+  DrawPath,
+  FlowToken,
+  DrawCheck,
+} from "../components/Motion.jsx";
 import { JOURNEY_STEPS } from "../content.js";
+
+const INSET = 44;
+const nodeX = (i) =>
+  INSET + (i * (LAYOUT.contentWidth - INSET * 2)) / (JOURNEY_STEPS.length - 1);
+const ACTIVATE_AT = JOURNEY_STEPS.map((_, i) => 30 + i * 12);
 
 export const OutroScene = () => (
   <AbsoluteFill>
@@ -17,129 +28,133 @@ export const OutroScene = () => (
         padding: `0 ${LAYOUT.marginX}px`,
       }}
     >
-      <Rise
-        delay={4}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <LogoBadge size={116} animate />
-        <div style={{ height: 24 }} />
-        <Wordmark fontSize={56} tagline />
-      </Rise>
+      <PopIn delay={2}>
+        <LogoBadge size={112} animate />
+      </PopIn>
+      <div style={{ height: 20 }} />
+      <SlideIn delay={12} from="up" distance={20}>
+        <Wordmark fontSize={54} tagline />
+      </SlideIn>
 
-      {/* Journey as one connected numbered line */}
+      {/* the whole journey, one line */}
       <div
         style={{
           position: "relative",
-          display: "flex",
-          justifyContent: "space-between",
           width: LAYOUT.contentWidth,
+          height: 200,
           marginTop: 56,
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: 19,
-            left: 20,
-            right: 20,
-            height: 1,
-            background: SURFACE.hairline,
-          }}
+        <svg
+          width={LAYOUT.contentWidth}
+          height={6}
+          style={{ position: "absolute", top: 26, left: 0, overflow: "visible" }}
+        >
+          <line
+            x1={INSET}
+            y1={3}
+            x2={LAYOUT.contentWidth - INSET}
+            y2={3}
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth={2}
+          />
+          <DrawPath
+            d={`M${INSET} 3 H${LAYOUT.contentWidth - INSET}`}
+            length={LAYOUT.contentWidth - INSET * 2}
+            delay={24}
+            duration={92}
+            stroke={COLORS.accent}
+            strokeWidth={2.5}
+          />
+        </svg>
+        <FlowToken
+          size={18}
+          fadeAfterLast={10}
+          keyframes={ACTIVATE_AT.map((f, i) => ({ frame: f + 2, x: nodeX(i), y: 29 }))}
         />
         {JOURNEY_STEPS.map((step, i) => (
-          <FadeIn
+          <div
             key={step.title}
-            delay={20 + i * 6}
             style={{
-              position: "relative",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              width: 150,
+              position: "absolute",
+              left: nodeX(i),
+              top: 0,
+              transform: "translateX(-50%)",
+              width: 188,
+              textAlign: "center",
             }}
           >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                background: i >= 5 ? COLORS.accent : COLORS.primaryBright,
-                border: `1.5px solid ${
-                  i >= 5 ? COLORS.accent : "rgba(201,240,179,0.5)"
-                }`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 17,
-                fontWeight: 800,
-                color: i >= 5 ? COLORS.primary : COLORS.white,
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              {i + 1}
-            </div>
+            <PopIn delay={ACTIVATE_AT[i]}>
+              <div
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: "50%",
+                  margin: "0 auto",
+                  background: COLORS.accent,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <DrawCheck delay={ACTIVATE_AT[i] + 5} size={24} color={COLORS.primary} />
+              </div>
+            </PopIn>
             <div
               style={{
                 marginTop: 12,
-                fontSize: 18,
-                fontWeight: 700,
-                color: SURFACE.text,
-                textAlign: "center",
+                fontSize: 19,
+                fontWeight: 800,
+                color: COLORS.white,
               }}
             >
               {step.title}
             </div>
-          </FadeIn>
+            <div
+              style={{
+                marginTop: 5,
+                fontSize: 14.5,
+                lineHeight: 1.35,
+                color: SURFACE.textSoft,
+              }}
+            >
+              {step.text}
+            </div>
+          </div>
         ))}
       </div>
 
-      <Rise delay={80}>
-        <div
-          style={{
-            marginTop: 52,
-            fontSize: 40,
-            fontWeight: 800,
-            color: COLORS.white,
-            textAlign: "center",
-            letterSpacing: -0.4,
-          }}
-        >
-          Log in, open your dashboard, and start a new proposal
-        </div>
-      </Rise>
-
-      <Rise delay={94}>
-        <div style={{ marginTop: 24, display: "flex", gap: 16 }}>
+      <div style={{ display: "flex", gap: 22, marginTop: 44 }}>
+        <SlideIn delay={132} from="up" distance={22}>
           <div
             style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: COLORS.white,
-              border: `1.5px solid ${SURFACE.hairline}`,
-              borderRadius: 12,
-              padding: "13px 30px",
-            }}
-          >
-            Sign in
-          </div>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: COLORS.primary,
               background: COLORS.accent,
-              borderRadius: 12,
-              padding: "13px 30px",
+              color: COLORS.primary,
+              fontSize: 23,
+              fontWeight: 800,
+              borderRadius: 999,
+              padding: "16px 38px",
             }}
           >
-            Start a new proposal →
+            Sign in and open your dashboard
           </div>
-        </div>
-      </Rise>
+        </SlideIn>
+        <SlideIn delay={144} from="up" distance={22}>
+          <div
+            style={{
+              background: "transparent",
+              color: COLORS.white,
+              fontSize: 23,
+              fontWeight: 700,
+              borderRadius: 999,
+              padding: "16px 38px",
+              border: `1.5px solid rgba(255,255,255,0.4)`,
+            }}
+          >
+            Visit the public site
+          </div>
+        </SlideIn>
+      </div>
     </AbsoluteFill>
   </AbsoluteFill>
 );

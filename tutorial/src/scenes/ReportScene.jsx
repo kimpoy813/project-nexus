@@ -2,113 +2,143 @@ import React from "react";
 import { AbsoluteFill } from "remotion";
 import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
-import {
-  Rise,
-  SceneShell,
-  Eyebrow,
-  Heading,
-  Panel,
-  FadeIn,
-} from "../components/Ui.jsx";
+import { SceneShell, Eyebrow, Heading } from "../components/Ui.jsx";
+import { SlideIn, DrawPath } from "../components/Motion.jsx";
 import {
   IMPLEMENTATION_STEPS,
   IMPLEMENTATION_DESCRIPTIONS,
   REPORTING_FEATURES,
 } from "../content.js";
 
+const cardWidth =
+  (LAYOUT.contentWidth - LAYOUT.gutter * (IMPLEMENTATION_STEPS.length - 1)) /
+  IMPLEMENTATION_STEPS.length;
+
 export const ReportScene = () => (
   <AbsoluteFill>
     <Background />
     <SceneShell sceneIndex={15} total={19}>
       <AbsoluteFill
-        style={{
-          padding: `0 ${LAYOUT.marginX}px`,
-          justifyContent: "center",
-        }}
+        style={{ padding: `0 ${LAYOUT.marginX}px`, justifyContent: "center" }}
       >
-        <Rise delay={4}>
+        <SlideIn delay={4} from="up" distance={18}>
           <Eyebrow>Running the activity — and proving it happened</Eyebrow>
-        </Rise>
-        <Rise delay={10}>
-          <Heading size={46}>
-            Implementation:{" "}
-            <span style={{ color: COLORS.accent }}>
-              six stages to final documentation
-            </span>
+        </SlideIn>
+        <SlideIn delay={10} from="up" distance={22}>
+          <Heading size={44}>
+            Delivery, monitoring and reports stay{" "}
+            <span style={{ color: COLORS.accent }}>on the same record</span>
           </Heading>
-        </Rise>
+        </SlideIn>
 
-        {/* One 12-column grid: six stage cards span 2 each, four reporting
-            cards span 3 each — every card flush to the same outer edges. */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(12, 1fr)",
-            gap: LAYOUT.gutter,
-            marginTop: 36,
-          }}
-        >
-          {IMPLEMENTATION_STEPS.map((step, i) => (
-            <FadeIn
-              key={step}
-              delay={22 + i * 6}
-              style={{ gridColumn: `span 2` }}
-            >
-              <div
-                style={{
-                  background: SURFACE.panel,
-                  border: `1px solid ${SURFACE.hairlineSoft}`,
-                  borderRadius: LAYOUT.radius,
-                  padding: "22px 20px",
-                  height: 252,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
+        {/* implementation pipeline */}
+        <div style={{ position: "relative", marginTop: 34, height: 218 }}>
+          <svg
+            width={LAYOUT.contentWidth}
+            height={6}
+            style={{ position: "absolute", top: 34, left: 0, overflow: "visible" }}
+          >
+            <line
+              x1={cardWidth / 2}
+              y1={3}
+              x2={LAYOUT.contentWidth - cardWidth / 2}
+              y2={3}
+              stroke="rgba(255,255,255,0.10)"
+              strokeWidth={2}
+            />
+            <DrawPath
+              d={`M${cardWidth / 2} 3 H${LAYOUT.contentWidth - cardWidth / 2}`}
+              length={LAYOUT.contentWidth - cardWidth}
+              delay={60}
+              duration={70}
+              stroke={COLORS.accent}
+              strokeWidth={2.5}
+            />
+          </svg>
+          <div style={{ display: "flex", gap: LAYOUT.gutter }}>
+            {IMPLEMENTATION_STEPS.map((step, i) => (
+              <SlideIn
+                key={step}
+                delay={28 + i * 9}
+                from="up"
+                distance={26}
+                style={{ width: cardWidth }}
               >
                 <div
                   style={{
-                    fontSize: 15,
+                    width: 70,
+                    height: 70,
+                    borderRadius: "50%",
+                    background: COLORS.accent,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 26,
                     fontWeight: 800,
-                    color: COLORS.accent,
-                    letterSpacing: 1.4,
+                    color: COLORS.primary,
+                    margin: "0 auto 14px",
                   }}
                 >
-                  STAGE {String(i + 1).padStart(2, "0")}
+                  {i + 1}
                 </div>
                 <div
                   style={{
-                    fontSize: 19,
-                    fontWeight: 800,
-                    color: COLORS.white,
-                    lineHeight: 1.25,
-                    margin: "12px 0 10px",
+                    background: SURFACE.panel,
+                    border: `1px solid ${SURFACE.hairlineSoft}`,
+                    borderRadius: LAYOUT.radius,
+                    padding: "16px 16px 18px",
+                    height: 130,
                   }}
                 >
-                  {step}
+                  <div
+                    style={{
+                      fontSize: 17.5,
+                      fontWeight: 800,
+                      lineHeight: 1.25,
+                      color: COLORS.white,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {step}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 15.5,
+                      lineHeight: 1.4,
+                      color: SURFACE.textSoft,
+                    }}
+                  >
+                    {IMPLEMENTATION_DESCRIPTIONS[i]}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 16.5,
-                    lineHeight: 1.48,
-                    color: SURFACE.textSoft,
-                  }}
-                >
-                  {IMPLEMENTATION_DESCRIPTIONS[i]}
-                </div>
-              </div>
-            </FadeIn>
-          ))}
+              </SlideIn>
+            ))}
+          </div>
+        </div>
 
+        {/* reporting conveniences arrive with the second narration line */}
+        <div
+          style={{
+            display: "flex",
+            gap: LAYOUT.gutter,
+            marginTop: 34,
+          }}
+        >
           {REPORTING_FEATURES.map((f, i) => (
-            <FadeIn
+            <SlideIn
               key={f.title}
-              delay={52 + i * 7}
-              style={{ gridColumn: "span 3" }}
+              delay={148 + i * 11}
+              from={i % 2 === 0 ? "left" : "right"}
+              distance={42}
+              style={{ flex: 1 }}
             >
-              <Panel
+              <div
                 style={{
-                  height: 196,
-                  padding: "24px 26px",
+                  background: SURFACE.panelStrong,
+                  border: `1px solid ${SURFACE.hairlineSoft}`,
+                  borderRadius: LAYOUT.radius,
+                  padding: "20px 22px",
+                  height: 188,
                   display: "flex",
                   flexDirection: "column",
                 }}
@@ -118,8 +148,8 @@ export const ReportScene = () => (
                     fontSize: 21,
                     fontWeight: 800,
                     color: COLORS.accent,
-                    lineHeight: 1.25,
                     marginBottom: 10,
+                    lineHeight: 1.25,
                   }}
                 >
                   {f.title}
@@ -127,14 +157,14 @@ export const ReportScene = () => (
                 <div
                   style={{
                     fontSize: 17.5,
-                    lineHeight: 1.5,
+                    lineHeight: 1.45,
                     color: SURFACE.textSoft,
                   }}
                 >
                   {f.text}
                 </div>
-              </Panel>
-            </FadeIn>
+              </div>
+            </SlideIn>
           ))}
         </div>
       </AbsoluteFill>

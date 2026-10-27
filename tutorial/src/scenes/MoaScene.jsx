@@ -1,197 +1,177 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame, Easing } from "remotion";
+import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { COLORS, LAYOUT, SURFACE } from "../theme.js";
 import { Background } from "../components/Background.jsx";
+import { SceneShell, Eyebrow, Heading, Body } from "../components/Ui.jsx";
 import {
-  Rise,
-  SceneShell,
-  Eyebrow,
-  Heading,
-  Body,
-  Glyph,
-} from "../components/Ui.jsx";
+  SlideIn,
+  PopIn,
+  DrawCheck,
+  DrawPath,
+  FlowToken,
+  easeOut,
+} from "../components/Motion.jsx";
 import { MOA_STEPS } from "../content.js";
 
-const easeOut = Easing.out(Easing.cubic);
-const ACTIVATE_AT = [28, 56, 84, 112, 140, 168];
+const PIPE_WIDTH = LAYOUT.contentWidth; // 1680
+const INSET = 34;
+const nodeX = (i) => INSET + (i * (PIPE_WIDTH - INSET * 2)) / (MOA_STEPS.length - 1);
+const ACTIVATE_AT = [40, 66, 92, 118, 144, 170];
+const LINE_LENGTH = PIPE_WIDTH - INSET * 2;
+
+const MoaNode = ({ label, i }) => {
+  const frame = useCurrentFrame();
+  const on = frame >= ACTIVATE_AT[i];
+  const pop = interpolate(frame - ACTIVATE_AT[i], [0, 16], [0.75, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: easeOut,
+  });
+  const x = nodeX(i);
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: x,
+        top: 0,
+        transform: "translateX(-50%)",
+        width: 224,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+      }}
+    >
+      <PopIn delay={ACTIVATE_AT[i]}>
+        <div
+          style={{
+            width: 62,
+            height: 62,
+            borderRadius: "50%",
+            background: on ? COLORS.accent : "rgba(255,255,255,0.08)",
+            border: `2px solid ${on ? COLORS.accent : "rgba(255,255,255,0.3)"}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: `scale(${pop})`,
+          }}
+        >
+          {on ? (
+            <DrawCheck delay={ACTIVATE_AT[i] + 4} size={30} color={COLORS.primary} />
+          ) : (
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 800,
+                color: SURFACE.textFaint,
+              }}
+            >
+              {i + 1}
+            </span>
+          )}
+        </div>
+      </PopIn>
+      <div
+        style={{
+          marginTop: 16,
+          fontSize: 19,
+          fontWeight: on ? 700 : 500,
+          lineHeight: 1.3,
+          color: on ? COLORS.white : SURFACE.textFaint,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+};
 
 export const MoaScene = () => {
   const frame = useCurrentFrame();
-  const activeCount = ACTIVATE_AT.filter((at) => frame >= at).length;
-  const lineGrow = interpolate(frame, [28, 175], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
   return (
     <AbsoluteFill>
       <Background />
       <SceneShell sceneIndex={14} total={19}>
         <AbsoluteFill
-          style={{
-            padding: `0 ${LAYOUT.marginX}px`,
-            justifyContent: "center",
-          }}
+          style={{ padding: `0 ${LAYOUT.marginX}px`, justifyContent: "center" }}
         >
-          <Rise delay={4}>
-            <Eyebrow>After approval — the agreement stage</Eyebrow>
-          </Rise>
-          <Rise delay={10}>
-            <Heading size={48}>
-              The <span style={{ color: COLORS.accent }}>MOA tracker</span>{" "}
-              walks the partnership paper to signing
+          <SlideIn delay={4} from="up" distance={18}>
+            <Eyebrow>When partners are involved — the MOA</Eyebrow>
+          </SlideIn>
+          <SlideIn delay={10} from="up" distance={22}>
+            <Heading size={46}>
+              A{" "}
+              <span style={{ color: COLORS.accent }}>
+                Memorandum of Agreement
+              </span>{" "}
+              follows its own tracked pipeline
             </Heading>
-          </Rise>
-          <Rise delay={18}>
-            <Body style={{ marginTop: 16, maxWidth: 1500, fontSize: 26 }}>
-              An{" "}
-              <b style={{ color: COLORS.white, fontWeight: 700 }}>
-                MOA — Memorandum of Agreement —
-              </b>{" "}
-              is the signed document that makes a partnership with another
-              office or community official. NExUS moves it through six visible
-              stages:
+          </SlideIn>
+          <SlideIn delay={20} from="up" distance={16}>
+            <Body style={{ marginTop: 14, maxWidth: 1500, fontSize: 24 }}>
+              An MOA is the signed understanding between the institution and its
+              partner. NExUS carries it through legal review, certification and
+              signing — with a tracker the whole time.
             </Body>
-          </Rise>
+          </SlideIn>
 
-          <Rise delay={24}>
+          <SlideIn delay={28} from="up" distance={26} style={{ marginTop: 70 }}>
+            <div style={{ position: "relative", width: PIPE_WIDTH, height: 220 }}>
+              {/* base track */}
+              <svg
+                width={PIPE_WIDTH}
+                height={6}
+                style={{ position: "absolute", top: 28, left: 0, overflow: "visible" }}
+              >
+                <line
+                  x1={INSET}
+                  y1={3}
+                  x2={PIPE_WIDTH - INSET}
+                  y2={3}
+                  stroke="rgba(255,255,255,0.12)"
+                  strokeWidth={2}
+                />
+                <DrawPath
+                  d={`M${INSET} 3 H${PIPE_WIDTH - INSET}`}
+                  length={LINE_LENGTH}
+                  delay={36}
+                  duration={136}
+                  stroke={COLORS.accent}
+                  strokeWidth={2.5}
+                />
+              </svg>
+              <FlowToken
+                size={18}
+                fadeAfterLast={10}
+                keyframes={ACTIVATE_AT.map((f, i) => ({
+                  frame: f + 2,
+                  x: nodeX(i),
+                  y: 31,
+                }))}
+              />
+              {MOA_STEPS.map((label, i) => (
+                <MoaNode key={label} label={label} i={i} />
+              ))}
+            </div>
+          </SlideIn>
+
+          <SlideIn delay={186} from="up" distance={20}>
             <div
               style={{
-                marginTop: 48,
-                background: SURFACE.panel,
-                border: `1px solid ${SURFACE.hairlineSoft}`,
-                borderRadius: LAYOUT.radius,
-                padding: "58px 56px 48px",
+                marginTop: 26,
+                alignSelf: "center",
+                background: "rgba(245,229,135,0.10)",
+                border: "1px solid rgba(245,229,135,0.35)",
+                borderRadius: 999,
+                padding: "14px 30px",
+                fontSize: 23,
+                fontWeight: 600,
+                color: COLORS.accent,
               }}
             >
-              <div style={{ position: "relative", height: 150 }}>
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 37,
-                    left: 60,
-                    right: 60,
-                    height: 4,
-                    borderRadius: 3,
-                    background: "rgba(255,255,255,0.12)",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 37,
-                    left: 60,
-                    width: `calc((100% - 120px) * ${lineGrow})`,
-                    height: 4,
-                    borderRadius: 3,
-                    background: `linear-gradient(90deg, ${COLORS.secondary}, ${COLORS.accentDeep})`,
-                  }}
-                />
-                {MOA_STEPS.map((step, i) => {
-                  const done = i < activeCount;
-                  const current = i === activeCount - 1;
-                  const pop = interpolate(
-                    frame - ACTIVATE_AT[i],
-                    [0, 16],
-                    [0.86, 1],
-                    {
-                      extrapolateLeft: "clamp",
-                      extrapolateRight: "clamp",
-                      easing: easeOut,
-                    }
-                  );
-                  const pct = i / (MOA_STEPS.length - 1);
-                  return (
-                    <div
-                      key={step}
-                      style={{
-                        position: "absolute",
-                        left: `calc(60px + (100% - 120px) * ${pct})`,
-                        top: 0,
-                        opacity: frame >= ACTIVATE_AT[i] - 6 ? 1 : 0,
-                        transform: `translateX(-50%) scale(${pop})`,
-                        width: 200,
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 78,
-                          height: 78,
-                          borderRadius: "50%",
-                          background: done
-                            ? COLORS.secondary
-                            : "rgba(255,255,255,0.08)",
-                          border: `2px solid ${
-                            done ? COLORS.accent : SURFACE.hairline
-                          }`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {done ? (
-                          <Glyph name="check" size={34} color={COLORS.accent} />
-                        ) : (
-                          <span
-                            style={{
-                              color: SURFACE.textFaint,
-                              fontSize: 25,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {i + 1}
-                          </span>
-                        )}
-                      </div>
-                      <div
-                        style={{
-                          marginTop: 16,
-                          fontSize: 20,
-                          lineHeight: 1.3,
-                          fontWeight: current ? 800 : 600,
-                          color: current
-                            ? COLORS.accent
-                            : "rgba(255,255,255,0.78)",
-                          textAlign: "center",
-                        }}
-                      >
-                        {step}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              No partner? Skip this stage — a proposal never needs an MOA.
             </div>
-          </Rise>
-
-          <Rise delay={110}>
-            <div
-              style={{
-                marginTop: 34,
-                display: "flex",
-                gap: 16,
-                alignItems: "center",
-                fontSize: 24,
-                color: SURFACE.textSoft,
-                background: "rgba(245,229,135,0.08)",
-                border: `1px solid rgba(245,229,135,0.32)`,
-                borderRadius: LAYOUT.radius,
-                padding: "20px 28px",
-              }}
-            >
-              <Glyph name="doc" size={30} />
-              <span>
-                No outside partner? Mark the MOA{" "}
-                <b style={{ color: COLORS.accent, fontWeight: 700 }}>
-                  Not Required
-                </b>{" "}
-                and the record skips straight to implementation.
-              </span>
-            </div>
-          </Rise>
+          </SlideIn>
         </AbsoluteFill>
       </SceneShell>
     </AbsoluteFill>

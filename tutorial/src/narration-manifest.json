@@ -1,45 +1,280 @@
 {
-  "count": 19,
-  "files": {
-    "1": "narration/scene-01.wav",
-    "2": "narration/scene-02.wav",
-    "3": "narration/scene-03.wav",
-    "4": "narration/scene-04.wav",
-    "5": "narration/scene-05.wav",
-    "6": "narration/scene-06.wav",
-    "7": "narration/scene-07.wav",
-    "8": "narration/scene-08.wav",
-    "9": "narration/scene-09.wav",
-    "10": "narration/scene-10.wav",
-    "11": "narration/scene-11.wav",
-    "12": "narration/scene-12.wav",
-    "13": "narration/scene-13.wav",
-    "14": "narration/scene-14.wav",
-    "15": "narration/scene-15.wav",
-    "16": "narration/scene-16.wav",
-    "17": "narration/scene-17.wav",
-    "18": "narration/scene-18.wav",
-    "19": "narration/scene-19.wav"
-  },
+  "count": 30,
   "scenes": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    17,
-    18,
-    19
+    {
+      "scene": 1,
+      "segments": [
+        {
+          "file": "narration/s01-01.wav",
+          "at": 10,
+          "frames": 40,
+          "text": "Welcome to nexus."
+        },
+        {
+          "file": "narration/s01-02.wav",
+          "at": 56,
+          "frames": 93,
+          "text": "It's the online home for all extension paperwork."
+        }
+      ]
+    },
+    {
+      "scene": 2,
+      "segments": [
+        {
+          "file": "narration/s02-01.wav",
+          "at": 12,
+          "frames": 147,
+          "text": "Extension means training and outreach projects run with outside communities."
+        },
+        {
+          "file": "narration/s02-02.wav",
+          "at": 140,
+          "frames": 81,
+          "text": "One record follows proposal, agreement, delivery."
+        }
+      ]
+    },
+    {
+      "scene": 3,
+      "segments": [
+        {
+          "file": "narration/s03-01.wav",
+          "at": 12,
+          "frames": 194,
+          "text": "First, the people: a proponent owns the proposal, evaluators review it, coordinators endorse it."
+        },
+        {
+          "file": "narration/s03-02.wav",
+          "at": 180,
+          "frames": 134,
+          "text": "An MOA is the signed partnership agreement, and a tracker shows each document's stage."
+        }
+      ]
+    },
+    {
+      "scene": 4,
+      "segments": [
+        {
+          "file": "narration/s04-01.wav",
+          "at": 12,
+          "frames": 152,
+          "text": "Seven roles use nexus, and each one lands on a dashboard built for its work."
+        },
+        {
+          "file": "narration/s04-02.wav",
+          "at": 140,
+          "frames": 84,
+          "text": "Next, see exactly what each role can do."
+        }
+      ]
+    },
+    {
+      "scene": 5,
+      "segments": [
+        {
+          "file": "narration/s05-01.wav",
+          "at": 12,
+          "frames": 188,
+          "text": "Faculty create proposals, answer reviewer comments, run the activity, and file its reports."
+        }
+      ]
+    },
+    {
+      "scene": 6,
+      "segments": [
+        {
+          "file": "narration/s06-01.wav",
+          "at": 12,
+          "frames": 167,
+          "text": "Office staff see every proposal, move agreements along, and request quarterly reports."
+        }
+      ]
+    },
+    {
+      "scene": 7,
+      "segments": [
+        {
+          "file": "narration/s07-01.wav",
+          "at": 12,
+          "frames": 188,
+          "text": "Evaluators work a review queue, comment on exact sections, and return or approve proposals."
+        }
+      ]
+    },
+    {
+      "scene": 8,
+      "segments": [
+        {
+          "file": "narration/s08-01.wav",
+          "at": 12,
+          "frames": 166,
+          "text": "Department coordinators endorse their department's proposals and file its quarterly reports."
+        }
+      ]
+    },
+    {
+      "scene": 9,
+      "segments": [
+        {
+          "file": "narration/s09-01.wav",
+          "at": 12,
+          "frames": 157,
+          "text": "Campus coordinators route work across departments and monitor all campus proposals."
+        }
+      ]
+    },
+    {
+      "scene": 10,
+      "segments": [
+        {
+          "file": "narration/s10-01.wav",
+          "at": 12,
+          "frames": 169,
+          "text": "The Director assigns evaluators, gives final approval, and watches the office's targets."
+        }
+      ]
+    },
+    {
+      "scene": 11,
+      "segments": [
+        {
+          "file": "narration/s11-01.wav",
+          "at": 12,
+          "frames": 182,
+          "text": "Admins run the system — accounts, website, templates, security — but never your proposal."
+        }
+      ]
+    },
+    {
+      "scene": 12,
+      "segments": [
+        {
+          "file": "narration/s12-01.wav",
+          "at": 10,
+          "frames": 166,
+          "text": "After signing in, your dashboard shows every proposal you own and where each one stands."
+        },
+        {
+          "file": "narration/s12-02.wav",
+          "at": 132,
+          "frames": 59,
+          "text": "Start one with a single click."
+        }
+      ]
+    },
+    {
+      "scene": 13,
+      "segments": [
+        {
+          "file": "narration/s13-01.wav",
+          "at": 12,
+          "frames": 161,
+          "text": "Building a proposal means walking through twenty guided sections, one question at a time."
+        },
+        {
+          "file": "narration/s13-02.wav",
+          "at": 175,
+          "frames": 113,
+          "text": "Drafts save automatically, so return anytime and submit when complete."
+        }
+      ]
+    },
+    {
+      "scene": 14,
+      "segments": [
+        {
+          "file": "narration/s14-01.wav",
+          "at": 12,
+          "frames": 176,
+          "text": "Reviewers attach comments to the exact section that needs changing, not vague email threads."
+        },
+        {
+          "file": "narration/s14-02.wav",
+          "at": 145,
+          "frames": 110,
+          "text": "Every revision stays on the record as it moves through seven statuses."
+        }
+      ]
+    },
+    {
+      "scene": 15,
+      "segments": [
+        {
+          "file": "narration/s15-01.wav",
+          "at": 12,
+          "frames": 173,
+          "text": "When a partner is involved, the MOA tracker carries the agreement through six stages to signing."
+        },
+        {
+          "file": "narration/s15-02.wav",
+          "at": 180,
+          "frames": 46,
+          "text": "No partner? Skip it."
+        }
+      ]
+    },
+    {
+      "scene": 16,
+      "segments": [
+        {
+          "file": "narration/s16-01.wav",
+          "at": 12,
+          "frames": 193,
+          "text": "Once approved, the activity runs through six implementation stages, from launch to final documents."
+        },
+        {
+          "file": "narration/s16-02.wav",
+          "at": 145,
+          "frames": 111,
+          "text": "Reports and paperwork come from the same record, ready to print."
+        }
+      ]
+    },
+    {
+      "scene": 17,
+      "segments": [
+        {
+          "file": "narration/s17-01.wav",
+          "at": 12,
+          "frames": 155,
+          "text": "The public website is edited without code — admins drag reusable blocks onto pages."
+        },
+        {
+          "file": "narration/s17-02.wav",
+          "at": 150,
+          "frames": 76,
+          "text": "Every change is logged, showing who edited it."
+        }
+      ]
+    },
+    {
+      "scene": 18,
+      "segments": [
+        {
+          "file": "narration/s18-01.wav",
+          "at": 12,
+          "frames": 180,
+          "text": "Every account is protected by verified email, auto-logout, login lockouts, and secure cloud storage."
+        }
+      ]
+    },
+    {
+      "scene": 19,
+      "segments": [
+        {
+          "file": "narration/s19-01.wav",
+          "at": 8,
+          "frames": 112,
+          "text": "That's nexus — one record, from idea to final document."
+        },
+        {
+          "file": "narration/s19-02.wav",
+          "at": 120,
+          "frames": 72,
+          "text": "Log in and start your first proposal."
+        }
+      ]
+    }
   ]
 }

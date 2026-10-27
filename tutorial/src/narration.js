@@ -1,56 +1,210 @@
-// Voiceover script, one entry per scene in Root.jsx SCENES order.
-// Timing budget: the TTS voice delivers ~3 spoken words per second including
-// clause pauses (measured from generated clips), so each line is capped at
-// about 2.8 words per second of scene length to leave a safety margin.
-//   5s scene <= 13 words | 6s <= 16 | 7s <= 19 | 8s <= 22 | 9s <= 25 | 10s <= 28
-// Generated clips live in public/narration/scene-XX.{mp3,wav};
-// scripts/sync-narration.mjs scans that folder and Root.jsx only mounts clips
-// listed in the manifest.
-
-// Scene durations in seconds, index-aligned with NARRATION (mirrors the
-// SCENES manifest in Root.jsx). The offline fallback generator verifies each
-// clip fits before its sequence boundary.
+// Voiceover script, rebuilt as TIMED SEGMENTS so the spoken line matches the
+// exact visual beat on screen. Each scene lists segments in playback order;
+// `at` is the frame (local to the scene, 30 fps) where the line begins.
+//
+// Pronunciation: the product is written NExUS but spoken "nexus", so every
+// spoken line uses the lowercase word — never the letter-by-letter spelling.
+//
+// Natural-voice clips are generated to public/narration/sXX-YY.mp3; the
+// offline meSpeak fallback writes .wav with the same names. Both are timed
+// against NARRATION_BUDGETS (scene lengths in Root.jsx).
 export const NARRATION_BUDGETS = [
-  5, 7, 10, 7, 7, 7, 7, 7, 7, 7, 7, 6, 9, 8, 7, 8, 7, 6, 6,
+  7, 8, 11, 8, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7.5, 7, 10, 9, 8, 9, 8, 7, 7,
 ];
 
 export const NARRATION = [
-  // 01 Intro — 150f / 5s — 11 words
-  "Welcome to NExUS, a plain-language guide to the system.",
-  // 02 About — 210f / 7s — 16 words
-  "NExUS keeps every document a project needs on one record, from idea to completion.",
-  // 03 Glossary — 300f / 10s — 25 words
-  "A few key words: a proposal is the written plan, the proponent owns it, evaluators review it, and an MOA is the signed partnership agreement.",
-  // 04 Roles — 210f / 7s — 12 words
-  "Seven roles use NExUS, each landing on its own dashboard.",
-  // 05 Faculty — 210f / 7s — 11 words
-  "Faculty create proposals, answer reviews, and file activity reports.",
-  // 06 Staff — 210f / 7s — 14 words
-  "Office staff track every proposal, move agreements along, and request quarterly reports.",
-  // 07 Evaluator — 210f / 7s — 17 words
-  "Evaluators get a review queue, comment on the exact section, and return or approve each proposal.",
-  // 08 Department Coordinator — 210f / 7s — 13 words
-  "Department coordinators endorse their department's proposals and file its quarterly reports.",
-  // 09 Campus Coordinator — 210f / 7s — 14 words
-  "Campus coordinators route work across every department and monitor the campus's proposals.",
-  // 10 Director — 210f / 7s — 14 words
-  "The Director assigns evaluators, gives final approval, and watches the office's targets.",
-  // 11 Admin — 210f / 7s — 16 words
-  "Admins manage accounts, the public website, templates, and security — but never your proposal.",
-  // 12 Dashboard — 180f / 6s — 11 words
-  "After signing in, your dashboard shows every proposal you own.",
-  // 13 Wizard — 270f / 9s — 19 words
-  "Building a proposal means walking through twenty guided sections. Drafts save automatically, so return anytime and submit when complete.",
-  // 14 Collaboration — 240f / 8s — 16 words
-  "Reviewers comment on the exact section, and every revision stays on the same record.",
-  // 15 MOA — 210f / 7s — 13 words
-  "The MOA tracker carries each partnership agreement through six stages to signing.",
-  // 16 Reports — 240f / 8s — 17 words
-  "Once approved, activities run through six stages, with reports and paperwork from the same record.",
-  // 17 PublicSite — 210f / 7s — 13 words
-  "The public website is edited without code, and every change is logged.",
-  // 18 Security — 180f / 6s — 13 words
-  "Every account gets verified email, auto-logout, login protection, and secure storage.",
-  // 19 Outro — 180f / 6s — 13 words
-  "That's NExUS. Log in, open your dashboard, and start your first proposal.",
+  // 01 Intro — 210f
+  {
+    segments: [
+      { at: 10, text: "Welcome to nexus." },
+      {
+        at: 56,
+        text: "It's the online home for all extension paperwork.",
+      },
+    ],
+  },
+  // 02 About — 240f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Extension means training and outreach projects run with outside communities.",
+      },
+      {
+        at: 140,
+        text: "One record follows proposal, agreement, delivery.",
+      },
+    ],
+  },
+  // 03 Glossary — 330f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "First, the people: a proponent owns the proposal, evaluators review it, coordinators endorse it.",
+      },
+      {
+        at: 180,
+        text: "An MOA is the signed partnership agreement, and a tracker shows each document's stage.",
+      },
+    ],
+  },
+  // 04 Roles — 240f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Seven roles use nexus, and each one lands on a dashboard built for its work.",
+      },
+      { at: 140, text: "Next, see exactly what each role can do." },
+    ],
+  },
+  // 05 Faculty — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Faculty create proposals, answer reviewer comments, run the activity, and file its reports.",
+      },
+    ],
+  },
+  // 06 Staff — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Office staff see every proposal, move agreements along, and request quarterly reports.",
+      },
+    ],
+  },
+  // 07 Evaluator — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Evaluators work a review queue, comment on exact sections, and return or approve proposals.",
+      },
+    ],
+  },
+  // 08 Department Coordinator — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Department coordinators endorse their department's proposals and file its quarterly reports.",
+      },
+    ],
+  },
+  // 09 Campus Coordinator — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Campus coordinators route work across departments and monitor all campus proposals.",
+      },
+    ],
+  },
+  // 10 Director — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "The Director assigns evaluators, gives final approval, and watches the office's targets.",
+      },
+    ],
+  },
+  // 11 Admin — 225f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Admins run the system — accounts, website, templates, security — but never your proposal.",
+      },
+    ],
+  },
+  // 12 Dashboard — 210f
+  {
+    segments: [
+      {
+        at: 10,
+        text: "After signing in, your dashboard shows every proposal you own and where each one stands.",
+      },
+      { at: 132, text: "Start one with a single click." },
+    ],
+  },
+  // 13 Wizard — 300f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Building a proposal means walking through twenty guided sections, one question at a time.",
+      },
+      {
+        at: 175,
+        text: "Drafts save automatically, so return anytime and submit when complete.",
+      },
+    ],
+  },
+  // 14 Collaboration — 270f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Reviewers attach comments to the exact section that needs changing, not vague email threads.",
+      },
+      {
+        at: 145,
+        text: "Every revision stays on the record as it moves through seven statuses.",
+      },
+    ],
+  },
+  // 15 MOA — 240f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "When a partner is involved, the MOA tracker carries the agreement through six stages to signing.",
+      },
+      { at: 180, text: "No partner? Skip it." },
+    ],
+  },
+  // 16 Reports — 270f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Once approved, the activity runs through six implementation stages, from launch to final documents.",
+      },
+      {
+        at: 145,
+        text: "Reports and paperwork come from the same record, ready to print.",
+      },
+    ],
+  },
+  // 17 PublicSite — 240f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "The public website is edited without code — admins drag reusable blocks onto pages.",
+      },
+      { at: 150, text: "Every change is logged, showing who edited it." },
+    ],
+  },
+  // 18 Security — 210f
+  {
+    segments: [
+      {
+        at: 12,
+        text: "Every account is protected by verified email, auto-logout, login lockouts, and secure cloud storage.",
+      },
+    ],
+  },
+  // 19 Outro — 210f
+  {
+    segments: [
+      { at: 8, text: "That's nexus — one record, from idea to final document." },
+      { at: 120, text: "Log in and start your first proposal." },
+    ],
+  },
 ];

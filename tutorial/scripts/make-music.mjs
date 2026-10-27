@@ -21,7 +21,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outPath = join(here, "..", "public", "music", "nexus-bed.wav");
 
 const SR = 44100;
-const DURATION = 135; // matches the 4050-frame / 30 fps composition
+const DURATION = 146; // covers the transition-overlapped ~144s composition
 const N = SR * DURATION;
 const TWO_PI = 2 * Math.PI;
 
