@@ -21,7 +21,10 @@
  * Genuinely cross-origin requests against a public Host are still rejected,
  * so DNS-rebinding protection stays in place for normal (non-proxied) use.
  *
- * Idempotent: safe to run from `postinstall` on every npm install.
+ * Idempotent: if the marker is already present the file is left untouched.
+ * npm re-runs postinstall on every install, and reverse-editing the injected
+ * block proved fragile (a double-apply once left duplicate braces and broke
+ * the studio server), so the first successful patch is the final one.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -43,12 +46,12 @@ const MARKER = "nexus-proxy-aware-origin";
 const PATCHED_BLOCK = `    // [${MARKER}] Reverse-proxy-aware comparison. Trust the public host
     // supplied by the proxy (X-Forwarded-Host, then RFC 7239 Forwarded),
     // fall back to Host, and compare hostnames (plus explicit ports) rather
-    // than scheme+host so an https preview proxy in front of this http studio
+    // scheme+host so an https preview proxy in front of this http studio
     // is not treated as cross-origin.
     const forwardedHeader = req.headers['forwarded'];
     const rfcForwardedHost =
         typeof forwardedHeader === 'string'
-            ? (forwardedHeader.match(/(?:^|;|\\s)host=("?)([^";]+)\\1/i) || [])[2]
+            ? (forwardedHeader.match(/(?:^|;|\\s)host=(\"?)([^\";]+)\\1/i) || [])[2]
             : undefined;
     const xForwardedHost = req.headers['x-forwarded-host'];
     const forwardedHost =
@@ -66,7 +69,7 @@ const PATCHED_BLOCK = `    // [${MARKER}] Reverse-proxy-aware comparison. Trust 
         originPort !== effectiveHostPort;
     const behindTlsProxy =
         req.headers['x-forwarded-proto'] === 'https' ||
-        (typeof forwardedHeader === 'string' && /proto=("?)https\\1/i.test(forwardedHeader));
+        (typeof forwardedHeader === 'string' && /proto=(\"?)https\\1/i.test(forwardedHeader));
     const hostIsPrivate =
         effectiveHostName === 'localhost' ||
         effectiveHostName === '127.0.0.1' ||
@@ -79,7 +82,7 @@ const PATCHED_BLOCK = `    // [${MARKER}] Reverse-proxy-aware comparison. Trust 
         throw new Error('Request from different origin not allowed');
     }`;
 
-// Every upstream/previous block this script might encounter.
+// The exact upstream snippet this patch replaces.
 const REPLACEABLE = [
   `    if (originUrl.origin !== \`http://\${host}\`) {
         throw new Error('Request from different origin not allowed');
@@ -94,14 +97,8 @@ if (!existsSync(target)) {
 let source = readFileSync(target, "utf8");
 
 if (source.includes(MARKER)) {
-  // Re-apply: strip any earlier revision of our block back to the upstream
-  // shape so a single replacement rule stays the source of truth.
-  const previous = source.match(
-    new RegExp(`    // \\[${MARKER}\\][\\s\\S]*?throw new Error\\('Request from different origin not allowed'\\);\\n`)
-  );
-  if (previous) {
-    source = source.replace(previous[0], REPLACEABLE[0] + "\n");
-  }
+  console.log(`[${MARKER}] already applied - skipping.`);
+  process.exit(0);
 }
 
 if (!source.includes(REPLACEABLE[0])) {
