@@ -91,7 +91,7 @@
                      aria-label="Edit target for {{ t.campus }} – {{ t.get_metric_display }}">
                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                   </a>
-                  <form method="POST" action="{% url 'target_delete' t.id %}" onsubmit="return confirm('Delete the {{ t.get_metric_display|escapejs }} target for {{ t.campus|escapejs }} ({{ t.year }})? This cannot be undone.');">
+                  <form method="POST" action="{% url 'target_delete' t.id %}" data-nx-confirm="Delete the {{ t.get_metric_display|escapejs }} target for {{ t.campus|escapejs }} ({{ t.year }})? This cannot be undone.">
                     {% csrf_token %}
                     <button type="submit"
                             class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"

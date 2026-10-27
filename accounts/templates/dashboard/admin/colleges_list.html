@@ -42,7 +42,7 @@
                        data-nx-tooltip="Edit college" aria-label="Edit college">
                       <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                     </a>
-                    <form method="post" action="{% url 'college_delete' col.id %}" onsubmit="return confirm('Delete college {{ col.name }}?');" class="inline">
+                    <form method="post" action="{% url 'college_delete' col.id %}" data-nx-confirm="Delete college {{ col.name }}?" class="inline">
                       {% csrf_token %}
                       <button type="submit"
                               class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"

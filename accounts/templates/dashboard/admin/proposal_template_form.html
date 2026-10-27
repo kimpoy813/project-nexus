@@ -69,7 +69,7 @@
                 {% if override %}
                 <button type="submit" form="reset-form" formnovalidate
                         class="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50 nx-btn nx-btn--danger"
-                        onclick="return confirm('Reset this template to the default file shipped with the system?');">
+                        data-nx-confirm="Reset this template to the default file shipped with the system?">
                     Reset to default
                 </button>
                 {% endif %}

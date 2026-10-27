@@ -47,7 +47,7 @@
                        data-nx-tooltip="Edit signatory" aria-label="Edit signatory">
                       <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                     </a>
-                    <form method="post" action="{% url 'signatory_delete' s.id %}" onsubmit="return confirm('Delete this signatory?');">
+                    <form method="post" action="{% url 'signatory_delete' s.id %}" data-nx-confirm="Delete this signatory?">
                       {% csrf_token %}
                       <button type="submit"
                               class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"

@@ -31,6 +31,31 @@ def validate_nexus_password_rules(password):
     return password
 
 
+#: The rules `validate_nexus_password_rules` enforces, named so the shared
+#: password component (js/nexus-password.js) can render them next to the field.
+PASSWORD_RULES = "length,number,uppercase"
+
+
+def password_widget_attrs(*, match=None):
+    """Attributes every password input carries.
+
+    ``autocomplete`` lets a password manager fill the right field instead of
+    guessing; ``data-nx-password-rules`` shows the rules while typing rather
+    than only after a rejected submit; ``data-nx-match`` turns the confirmation
+    field into live feedback. The toggle itself is added by the shared script,
+    so no template has to remember it.
+    """
+    attrs = {
+        "autocomplete": "new-password",
+        "autocapitalize": "none",
+        "spellcheck": "false",
+        "data-nx-password-rules": PASSWORD_RULES,
+    }
+    if match:
+        attrs["data-nx-match"] = match
+    return attrs
+
+
 class StyledFormMixin:
     text_input_classes = (
         "w-full rounded-xl border border-gray-300 px-4 py-2.5 "
@@ -428,7 +453,11 @@ class RegisterForm(StyledFormMixin, CampusStructureMixin, forms.ModelForm):
         self.fields["full_name"].widget.attrs["placeholder"] = "Enter full name"
         self.fields["username"].widget.attrs["placeholder"] = "Enter username"
         self.fields["email"].widget.attrs["placeholder"] = "Enter email"
+        self.fields["password"].widget.attrs.update(password_widget_attrs())
         self.fields["password"].widget.attrs["placeholder"] = "Enter password"
+        self.fields["confirm_password"].widget.attrs.update(
+            password_widget_attrs(match=self["password"].auto_id)
+        )
         self.fields["confirm_password"].widget.attrs["placeholder"] = "Confirm password"
 
     def clean_username(self):
@@ -537,6 +566,7 @@ class AdminCreateUserForm(StyledFormMixin, CampusStructureMixin, forms.Form):
 
         self.fields["username"].widget.attrs["placeholder"] = "Enter username"
         self.fields["email"].widget.attrs["placeholder"] = "Enter email"
+        self.fields["password"].widget.attrs.update(password_widget_attrs())
         self.fields["password"].widget.attrs["placeholder"] = "Enter password"
         self.fields["full_name"].widget.attrs["placeholder"] = "Enter full name"
 
@@ -588,8 +618,12 @@ class NexusSetPasswordForm(SetPasswordForm, StyledFormMixin):
         super().__init__(*args, **kwargs)
         self.apply_styled_widgets()
         if "new_password1" in self.fields:
+            self.fields["new_password1"].widget.attrs.update(password_widget_attrs())
             self.fields["new_password1"].widget.attrs["placeholder"] = "Enter new password"
         if "new_password2" in self.fields:
+            self.fields["new_password2"].widget.attrs.update(
+                password_widget_attrs(match=self["new_password1"].auto_id)
+            )
             self.fields["new_password2"].widget.attrs["placeholder"] = "Confirm new password"
 
     def clean_new_password1(self):
@@ -734,6 +768,7 @@ class AdminEditUserForm(AdminCreateUserForm):
             saved = getattr(profile, key)
             if preserve and saved and saved not in dict(self.fields[key].choices):
                 self.fields[key].choices = [*self.fields[key].choices, (saved, saved)]
+        self.fields["password"].widget.attrs.update(password_widget_attrs())
         self.fields["password"].widget.attrs["placeholder"] = "Leave blank to keep current password"
 
     def clean_username(self):

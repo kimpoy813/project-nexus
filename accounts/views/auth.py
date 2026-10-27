@@ -13,6 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordResetForm
 from django.core.mail import send_mail
 from django.db import transaction
+from django.http import Http404
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
@@ -188,6 +189,17 @@ def verify_email(request, uidb64, token):
     return redirect("register")
 
 
+def _login_page(request, error=""):
+    """Render the sign-in page, writing the reason twice on purpose.
+
+    ``messages.error`` is what the toaster announces (and what other pages
+    already read), while ``error`` becomes the inline summary the shared form
+    script focuses on load. The transient toast can be missed or dismissed
+    before it is read; the summary stays next to the fields until it is fixed.
+    """
+    return render(request, "accounts/login.html", {"error": error})
+
+
 @require_http_methods(["GET", "POST"])
 @csrf_protect
 @ensure_csrf_cookie
@@ -209,8 +221,9 @@ def login_view(request):
 
         for key in identifiers:
             if _is_blocked(key):
-                messages.error(request, "Too many failed login attempts. Try again later.")
-                return render(request, "accounts/login.html")
+                message = "Too many failed login attempts. Try again later."
+                messages.error(request, message)
+                return _login_page(request, message)
 
         username_to_auth = identifier
         if "@" in identifier:
@@ -221,15 +234,17 @@ def login_view(request):
                 pass
             except User.MultipleObjectsReturned:
                 # Legacy accounts can share an email. Never choose one arbitrarily.
-                messages.error(request, "More than one account uses this email. Please sign in with your username.")
-                return render(request, "accounts/login.html")
+                message = "More than one account uses this email. Please sign in with your username."
+                messages.error(request, message)
+                return _login_page(request, message)
 
         user = authenticate(request, username=username_to_auth, password=password)
 
         if user:
             if not user.is_active:
-                messages.error(request, "Email not verified. Please check your inbox.")
-                return render(request, "accounts/login.html")
+                message = "Email not verified. Please check your inbox."
+                messages.error(request, message)
+                return _login_page(request, message)
 
             for key in identifiers:
                 _reset_failed(key)
@@ -252,9 +267,11 @@ def login_view(request):
         for key in identifiers:
             _increment_failed(key)
 
-        messages.error(request, "Invalid username/email or password.")
+        message = "Invalid username/email or password."
+        messages.error(request, message)
+        return _login_page(request, message)
 
-    return render(request, "accounts/login.html")
+    return _login_page(request)
 
 
 @require_POST
@@ -353,6 +370,16 @@ def change_password_email_view(request):
 @ensure_csrf_cookie
 @csrf_protect
 def debug_login_view(request):
+    """Sign-in helper for local development, never part of the live site.
+
+    It prints CSRF diagnostics, which is useful while wiring a form up and a
+    liability anywhere else, so it only exists while ``DEBUG`` is on. A 404 —
+    rather than a redirect or a "not available" page — keeps the route off the
+    map entirely.
+    """
+    if not settings.DEBUG:
+        raise Http404("Debug sign-in is only available in development.")
+
     if request.method == "POST":
         return HttpResponseRedirect(reverse("login"))
     return render(request, "debug_login.html")

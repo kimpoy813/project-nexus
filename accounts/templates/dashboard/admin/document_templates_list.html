@@ -52,7 +52,7 @@
                                    data-nx-tooltip="Edit template" aria-label="Edit template">
                                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                                 </a>
-                                <form method="post" action="{% url 'document_template_delete' item.id %}" onsubmit="return confirm('Delete this template?');">
+                                <form method="post" action="{% url 'document_template_delete' item.id %}" data-nx-confirm="Delete this template?">
                                     {% csrf_token %}
                                     <button type="submit"
                                             class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"

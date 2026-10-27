@@ -163,7 +163,7 @@
                                         </a>
                                         {% if row.override %}
                                         <form method="post" action="{% url 'proposal_template_reset' %}"
-                                              onsubmit="return confirm('Reset this template to the default file shipped with the system?');">
+                                              data-nx-confirm="Reset this template to the default file shipped with the system?">
                                             {% csrf_token %}
                                             <input type="hidden" name="key" value="{{ row.key }}">
                                             <button type="submit"
@@ -243,7 +243,7 @@
                                             <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                                         </a>
                                         <form method="post" action="{% url 'proposal_custom_template_delete' item.pk %}"
-                                              onsubmit="return confirm('Delete this template file for good?');">
+                                              data-nx-confirm="Delete this template file for good?">
                                             {% csrf_token %}
                                             <button type="submit"
                                                     class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"

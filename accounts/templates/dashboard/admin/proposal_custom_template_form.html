@@ -91,7 +91,7 @@
             {% if template_obj.pk %}
             <button type="submit" form="delete-form" formnovalidate
                     class="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50 nx-btn nx-btn--danger"
-                    onclick="return confirm('Delete this template file for good?');">
+                    data-nx-confirm="Delete this template file for good?">
                 Delete
             </button>
             {% endif %}

@@ -46,7 +46,7 @@
                   <a href="{% url 'activity_delete' a.id %}"
                      class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
                      data-nx-tooltip="Delete activity" aria-label="Delete activity"
-                     onclick="return confirm('Delete this activity? This cannot be undone.');">
+                     data-nx-confirm="Delete this activity? This cannot be undone.">
                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
                   </a>
                 </div>
