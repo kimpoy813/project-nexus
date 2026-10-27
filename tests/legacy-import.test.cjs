@@ -26,8 +26,11 @@ function setup(initial = 'HISTORICAL') {
     for (const [wrapper, control] of [
         ['historical-status-field', 'id_proposal_status'], ['moa-stage-field', 'id_moa_stage'],
         ['implementation-stage-field', 'id_implementation_stage'],
-        ['completion-certificate-field', 'id_certificate_of_completion_file'], ['moa-file-field', 'id_moa_draft_file'],
+        ['terminal-report-field', 'id_terminal_report_file'], ['moa-file-field', 'id_moa_draft_file'],
     ]) get(wrapper).querySelectorAll = () => [get(control)];
+    // The photo block holds a multi-file picker plus its shared caption box.
+    get('photo-documentation-field').querySelectorAll =
+        () => [get('id_documentation_photos'), get('id_documentation_caption')];
     for (const id of ['review-proposal', 'review-moa', 'review-implementation']) get(id).parent = element();
     get('id_proposal_status').value = 'APPROVED';
     get('id_proposal_status').selectedOptions = [{ textContent: 'Approved / Claiming' }];
@@ -35,7 +38,10 @@ function setup(initial = 'HISTORICAL') {
     get('id_implementation_stage').value = 'IMPLEMENTATION';
     get('id_implementation_stage').selectedOptions = [{ textContent: 'Implementation of Extension Activity' }];
     get('assignment-error').hidden = true;
-    const files = ['id_legacy_proposal_file', 'id_moa_draft_file', 'id_certificate_of_completion_file', 'id_attachments'].map(get);
+    const files = [
+        'id_legacy_proposal_file', 'id_moa_draft_file', 'id_terminal_report_file',
+        'id_documentation_photos', 'id_attachments',
+    ].map(get);
     form.querySelector = () => selected;
     form.querySelectorAll = (selector) => selector.includes('assigned_proponents') ? accounts : files.filter(input => !input.disabled);
     const window = element();
@@ -69,18 +75,20 @@ test('phase cards update the preview and disable irrelevant controls', () => {
     setState('ONGOING');
     assert.equal(get('id_moa_stage').disabled, true);
     assert.equal(get('id_implementation_stage').disabled, false);
-    assert.equal(get('id_certificate_of_completion_file').disabled, true);
+    assert.equal(get('id_terminal_report_file').disabled, true);
+    assert.equal(get('id_documentation_photos').disabled, true);
     assert.equal(get('review-moa').textContent, 'Completed');
     assert.equal(get('review-reporting').textContent, 'Director view: Implementation · In progress.');
     setState('COMPLETED');
     assert.equal(get('id_implementation_stage').disabled, true);
-    assert.equal(get('id_certificate_of_completion_file').disabled, false);
+    assert.equal(get('id_terminal_report_file').disabled, false);
+    assert.equal(get('id_documentation_photos').disabled, false);
     assert.equal(get('review-reporting').textContent, 'Director view: Completed · Completed.');
 });
 
 test('hidden files are excluded, but selections are preserved when switching back', () => {
     const { get, setState, change } = setup('COMPLETED');
-    get('id_certificate_of_completion_file').files = [{}];
+    get('id_terminal_report_file').files = [{}];
     get('id_moa_draft_file').files = [{}];
     change();
     assert.equal(get('review-files').textContent, '2');
@@ -95,10 +103,34 @@ test('hidden files are excluded, but selections are preserved when switching bac
 test('historical summary matches file-inferred progress without assuming proposal completion', () => {
     const { get, change } = setup();
     get('id_moa_draft_file').files = [{}];
-    get('id_certificate_of_completion_file').files = [{}]; change();
+    get('id_terminal_report_file').files = [{}]; change();
     assert.equal(get('review-reporting').textContent, 'Director view: Implementation · In progress.');
     get('id_proposal_status').value = 'COMPLETED'; change();
     assert.equal(get('review-reporting').textContent, 'Director view: Completed · Completed.');
+});
+
+test('photo documentation opens only once the activity is completed', () => {
+    const { get, setState, change } = setup('HISTORICAL');
+    assert.equal(get('photo-documentation-field').hidden, true);
+    assert.equal(get('id_documentation_photos').disabled, true);
+    assert.equal(get('id_documentation_caption').disabled, true);
+    for (const state of ['MOA_PENDING', 'ONGOING']) {
+        setState(state);
+        assert.equal(get('photo-documentation-field').hidden, true, `${state} keeps the photo block closed`);
+        assert.equal(get('id_documentation_photos').disabled, true);
+    }
+    setState('COMPLETED');
+    assert.equal(get('photo-documentation-field').hidden, false);
+    assert.equal(get('id_documentation_photos').disabled, false);
+    assert.equal(get('id_documentation_caption').disabled, false);
+    // Photos count towards the attached-files summary only while they are filed.
+    get('id_documentation_photos').files = [{}, {}];
+    change();
+    assert.equal(get('review-files').textContent, '2');
+    setState('ONGOING');
+    assert.equal(get('review-files').textContent, '0');
+    setState('COMPLETED');
+    assert.equal(get('review-files').textContent, '2');
 });
 
 test('search and selected-only filtering never clear assignments', () => {
