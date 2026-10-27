@@ -221,6 +221,241 @@ def _resolve_personnel(section):
     return {"personnel": qs}
 
 
+def _resolve_system_profile(section):
+    """Facts about the system itself, for the About page.
+
+    The copy lives in ``details.system_profile`` so the developer credit, the
+    office, and the stack are defined once instead of drifting between the
+    template, the README, and the deployment config.
+    """
+    from .system_profile import profile
+
+    return {"profile": profile()}
+
+
+def _campus_key(value):
+    """Normalise a campus name so "Sta. Maria Campus" matches "Sta Maria"."""
+    text = (value or "").lower().replace("campus", "")
+    return "".join(character for character in text if character.isalnum())
+
+
+def _resolve_campuses(section):
+    """The campuses the office serves, with how many programs each has run.
+
+    Campus rows are the institution's own (``accounts.Campus``); the programme
+    counts come from the same directory the Programs page uses, so the two can
+    never disagree. A campus that only appears in a program record is still
+    listed, because it is genuinely being served.
+    """
+    from accounts.models import Campus
+
+    from .program_directory import build_program_entries
+
+    entries = build_program_entries()
+    counts = {}
+    for entry in entries:
+        key = _campus_key(entry.get("campus"))
+        if key:
+            counts[key] = counts.get(key, 0) + 1
+
+    campuses = []
+    seen = set()
+    for campus in Campus.objects.all():
+        key = _campus_key(campus.name)
+        seen.add(key)
+        campuses.append(
+            {
+                "name": campus.name,
+                "label": f"{campus.name} Campus",
+                "program_count": counts.get(key, 0),
+            }
+        )
+
+    for entry in entries:
+        key = _campus_key(entry.get("campus"))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        campuses.append(
+            {
+                "name": entry["campus"],
+                "label": entry["campus"],
+                "program_count": counts[key],
+            }
+        )
+
+    campuses.sort(key=lambda campus: campus["label"].lower())
+    return {
+        "campuses": campuses,
+        "campus_count": len(campuses),
+        "program_count": len(entries),
+    }
+
+
+def _facet(entries, field, choices=None):
+    """``[{value, label, count, percent}, ...]`` for a Programs-block filter.
+
+    Counts are of the published entries only, so a filter never offers a value
+    the visitor can select and then see nothing. ``percent`` is the share of
+    the directory, which drives the overview bars. Choice fields keep the
+    declared order (``choices``); free-text fields such as campus are sorted
+    alphabetically.
+    """
+    counts = {}
+    labels = {}
+    for entry in entries:
+        value = entry.get(field) or ""
+        if not value:
+            continue
+        counts[value] = counts.get(value, 0) + 1
+        if choices and value in dict(choices):
+            labels[value] = str(dict(choices)[value])
+        elif entry.get(f"{field}_label"):
+            labels[value] = entry[f"{field}_label"]
+
+    if choices:
+        ordered = [value for value, _label in choices if value in counts]
+    else:
+        ordered = sorted(counts, key=str.lower)
+
+    total = len(entries)
+    return [
+        {
+            "value": value,
+            "label": labels.get(value, value),
+            "count": counts[value],
+            "percent": round(100 * counts[value] / total) if total else 0,
+        }
+        for value in ordered
+    ]
+
+
+def _resolve_programs(section):
+    """The Programs directory: merged entries, their facets, and totals.
+
+    Entries come from ``details.program_directory``, which joins approved
+    proposals, legacy uploads, and standalone program records into one list —
+    so the page shows the office's real inventory, with each program's own
+    document, instead of a second copy of it.
+    """
+    from .models import ExtensionProgram
+    from .program_directory import build_program_entries, program_entry_stats
+
+    entries = build_program_entries()
+
+    year_counts = {}
+    for entry in entries:
+        if entry["year"]:
+            year_counts[entry["year"]] = year_counts.get(entry["year"], 0) + 1
+
+    return {
+        "programs": entries,
+        "stats": program_entry_stats(entries),
+        "facets": {
+            "campuses": _facet(entries, "campus"),
+            "years": [
+                {
+                    "value": year,
+                    "label": str(year),
+                    "count": year_counts[year],
+                    "percent": (
+                        round(100 * year_counts[year] / len(entries))
+                        if entries
+                        else 0
+                    ),
+                }
+                for year in sorted(year_counts, reverse=True)
+            ],
+            "extension_types": _facet(
+                entries, "extension_type", ExtensionProgram.ExtensionType.choices
+            ),
+            "research_bases": _facet(
+                entries, "research_basis", ExtensionProgram.ResearchBasis.choices
+            ),
+            "proponents": _facet(
+                entries, "led_by", ExtensionProgram.Proponent.choices
+            ),
+        },
+    }
+
+
+def _resolve_gallery(section):
+    """Photos for the Gallery block.
+
+    The primary source is the documentation a proponent submits with the
+    terminal report (``proposals.TerminalReportPhoto``): the photos already
+    exist because the office requires them at "Final Evaluation and
+    Documentation", so the public gallery is filled by the workflow itself
+    rather than by a second upload.
+
+    Photos the office arranged by hand (``details.GalleryPhoto``) follow, for
+    work that predates the system or was never filed through a proposal. Each
+    entry is a plain dict, so the block template does not care which source an
+    image came from.
+    """
+    from .models import GalleryPhoto
+
+    entries = []
+
+    try:
+        from proposals.models import Proposal, TerminalReportPhoto
+    except Exception:  # pragma: no cover - proposals is always installed
+        Proposal = TerminalReportPhoto = None
+
+    if TerminalReportPhoto is not None:
+        photos = (
+            TerminalReportPhoto.objects.filter(
+                is_visible=True,
+                proposal__status__in=[
+                    Proposal.OverallStatus.ACTIVE,
+                    Proposal.OverallStatus.COMPLETED,
+                ],
+            )
+            .exclude(proposal__proposal_status="REJECTED")
+            .select_related("proposal")
+            .order_by("-proposal__last_saved_at", "order", "id")
+        )
+        entries.extend(
+            {
+                "image_url": photo.image.url,
+                "title": photo.display_title,
+                "caption": photo.caption,
+                "subtitle": photo.proposal.display_title,
+                "campus": photo.proposal.campus or "",
+                "taken_on": photo.uploaded_at.date() if photo.uploaded_at else None,
+                "source": "TERMINAL_REPORT",
+                "source_label": "Terminal report",
+            }
+            for photo in photos
+            if photo.image
+        )
+
+    arranged = (
+        GalleryPhoto.objects.filter(is_visible=True)
+        .select_related("program")
+        .order_by("order", "id")
+    )
+    entries.extend(
+        {
+            "image_url": photo.image.url,
+            "title": photo.display_title,
+            "caption": photo.caption,
+            "subtitle": (
+                photo.program_title
+                if photo.program_title and photo.program_title != photo.display_title
+                else ""
+            ),
+            "campus": photo.campus_label,
+            "taken_on": photo.taken_on,
+            "source": "ARRANGED",
+            "source_label": "Office upload",
+        }
+        for photo in arranged
+    )
+
+    return {"photos": entries, "photo_count": len(entries)}
+
+
 # ==============================================================
 # THE REGISTRY
 # ==============================================================
@@ -301,6 +536,40 @@ _SOURCES = (
         manager_url_name="document_templates_list",
         editor_template="dashboard/admin/_inline_document_templates.html",
         icon_path="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2",
+    ),
+    ContentSource(
+        key="PROGRAMS",
+        label="Extension Programs",
+        description="The searchable directory of extension programs, with live filters and totals.",
+        block_template="details/blocks/programs.html",
+        resolve=_resolve_programs,
+        manager_url_name="programs_list",
+        icon_path="M4 6h16M4 10h16M4 14h10M4 18h10M18 14l2 2 3-3",
+    ),
+    ContentSource(
+        key="SYSTEM_PROFILE",
+        label="System profile",
+        description="Who developed NExUS, who it was built for, and what it runs on.",
+        block_template="details/blocks/system_profile.html",
+        resolve=_resolve_system_profile,
+        icon_path="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
+    ),
+    ContentSource(
+        key="CAMPUSES",
+        label="Campuses",
+        description="The institution's campuses, each with the number of programs it has run.",
+        block_template="details/blocks/campuses.html",
+        resolve=_resolve_campuses,
+        icon_path="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6",
+    ),
+    ContentSource(
+        key="GALLERY",
+        label="Program Gallery",
+        description="A photo grid of extension programs, with a lightbox view.",
+        block_template="details/blocks/gallery.html",
+        resolve=_resolve_gallery,
+        manager_url_name="gallery_photos_list",
+        icon_path="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z",
     ),
 )
 

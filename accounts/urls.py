@@ -104,7 +104,7 @@ urlpatterns = [
     # Admin content dashboard
     path("admin/content/", views.admin_content_dashboard, name="admin_content_dashboard"),
 
-    # Public page content editor (Home, Services, Reports, Achievements).
+    # Public page content editor (Home, Services, Programs, Gallery, About).
     # NOTE: literal sub-paths (logs/) must come before the <slug> catch-all.
     path("admin/pages/", views.page_content_list, name="page_content_list"),
     path("admin/pages/logs/", views.page_content_logs, name="page_content_logs"),
@@ -191,6 +191,30 @@ urlpatterns = [
     path("admin/activities/create/", views.activity_create, name="activity_create"),
     path("admin/activities/<int:pk>/edit/", views.activity_edit, name="activity_edit"),
     path("admin/activities/<int:pk>/delete/", views.activity_delete, name="activity_delete"),
+
+    # Extension Programs — the directory behind the Programs page
+    path("admin/programs/", views.programs_list, name="programs_list"),
+    path("admin/programs/import/", views.programs_import, name="programs_import"),
+    path("admin/programs/create/", views.program_create, name="program_create"),
+    path("admin/programs/<int:pk>/edit/", views.program_edit, name="program_edit"),
+    path("admin/programs/<int:pk>/delete/", views.program_delete, name="program_delete"),
+
+    # Gallery — photographs of extension programs
+    path("admin/gallery/", views.gallery_photos_list, name="gallery_photos_list"),
+    path("admin/gallery/create/", views.gallery_photo_create, name="gallery_photo_create"),
+    path("admin/gallery/<int:pk>/edit/", views.gallery_photo_edit, name="gallery_photo_edit"),
+    path("admin/gallery/<int:pk>/delete/", views.gallery_photo_delete, name="gallery_photo_delete"),
+    # Documentation photos submitted with terminal reports (public Gallery).
+    path(
+        "admin/gallery/terminal/<int:pk>/toggle/",
+        views.terminal_photo_toggle,
+        name="terminal_photo_toggle",
+    ),
+    path(
+        "admin/gallery/terminal/<int:pk>/delete/",
+        views.terminal_photo_delete,
+        name="terminal_photo_delete",
+    ),
 
     # Processes management
     path("admin/processes/", views.processes_list, name="processes_list"),

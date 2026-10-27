@@ -14,9 +14,17 @@ from ..models import Proposal
 from ..models import ProposalCommentSummary
 from ..models import ProposalFinalDocument
 from ..models import ProposalPhaseLog
+from ..models import TerminalReportPhoto
 from .permissions import _can_manage_phase, _can_view_proposal
 
 logger = logging.getLogger(__name__)
+
+#: Documentation photos are shown on a public page, so only real images of a
+#: sane size are accepted. A phone photo is typically 2-6 MB.
+DOCUMENTATION_IMAGE_TYPES = {
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+}
+DOCUMENTATION_IMAGE_MAX_BYTES = 12 * 1024 * 1024
 
 
 @login_required
@@ -67,7 +75,13 @@ def proposal_implementation_tracker(request, proposal_id):
         action = (request.POST.get("action") or "").strip()
         remarks = (request.POST.get("remarks") or "").strip()
 
-        if action in {"upload_progress", "upload_terminal", "upload_certificate"}:
+        if action in {
+            "upload_progress",
+            "upload_terminal",
+            "upload_certificate",
+            "upload_documentation",
+            "remove_documentation",
+        }:
             if not can_upload:
                 messages.error(request, "You do not have permission to upload documents here.")
                 return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
@@ -101,6 +115,56 @@ def proposal_implementation_tracker(request, proposal_id):
                         is_verified=False,
                     )
                     messages.success(request, "Terminal report uploaded.")
+
+            elif action == "upload_documentation":
+                # The documentation photos belong to the terminal report: the
+                # "Final Evaluation and Documentation" step. They are what the
+                # public Gallery shows, so the office uploads them once, here.
+                photos = request.FILES.getlist("documentation_photos")
+                if not photos:
+                    messages.error(request, "Please choose at least one photo to upload.")
+                else:
+                    caption = (request.POST.get("documentation_caption") or "").strip()
+                    saved = 0
+                    for photo_file in photos:
+                        content_type = (getattr(photo_file, "content_type", "") or "").lower()
+                        if content_type not in DOCUMENTATION_IMAGE_TYPES:
+                            messages.error(
+                                request,
+                                f'"{photo_file.name}" is not a JPEG, PNG, WebP, or GIF image.',
+                            )
+                            continue
+                        if photo_file.size > DOCUMENTATION_IMAGE_MAX_BYTES:
+                            messages.error(
+                                request,
+                                f'"{photo_file.name}" is larger than 12 MB.',
+                            )
+                            continue
+                        TerminalReportPhoto.objects.create(
+                            proposal=proposal,
+                            image=photo_file,
+                            caption=caption,
+                            uploaded_by=request.user,
+                        )
+                        saved += 1
+                    if saved:
+                        messages.success(
+                            request,
+                            f"{saved} documentation photo{'s' if saved != 1 else ''} "
+                            "added. They appear in the public Gallery.",
+                        )
+
+            elif action == "remove_documentation":
+                # ``can_upload`` already limited this to the proposal's own
+                # proponents and the staff who manage it, so a mistake (or a
+                # photo that should not be public) can be undone right here.
+                photo = get_object_or_404(
+                    TerminalReportPhoto,
+                    pk=request.POST.get("photo_id"),
+                    proposal=proposal,
+                )
+                photo.delete()
+                messages.success(request, "Documentation photo removed.")
 
             elif action == "upload_certificate":
                 certificate_file = request.FILES.get("certificate_file")
@@ -171,6 +235,8 @@ def proposal_implementation_tracker(request, proposal_id):
     ).select_related("uploaded_by").order_by("-version")
     terminal_doc = terminal_versions.filter(is_current=True).first() or terminal_versions.first()
 
+    documentation_photos = proposal.documentation_photos.select_related("uploaded_by")
+
     context = {
         "proposal": proposal,
         "steps": proposal.implementation_step_states(),
@@ -181,6 +247,8 @@ def proposal_implementation_tracker(request, proposal_id):
         "progress_versions": progress_versions,
         "terminal_doc": terminal_doc,
         "terminal_versions": terminal_versions,
+        "documentation_photos": documentation_photos,
+        "documentation_photo_count": documentation_photos.count(),
         "logs": proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.IMPLEMENTATION),
         "is_first_stage": proposal.implementation_status in {
             Proposal.ImplementationStatus.NOT_STARTED,

@@ -1,0 +1,77 @@
+{% comment %}
+Visual overview for the Programs directory (source key PROGRAMS).
+
+Three small bar panels — per year, by type, by campus — computed server-side
+from the published rows, matching the totals above. Each bar is a button that
+applies the matching filter, so the picture and the list stay one interface.
+
+Lives in its own partial because the design-system audit requires a standalone
+page template containing a <select> to extend templates/base.html; this block
+has no form controls and is included by the directory block.
+
+Context: data.facets, data.stats
+{% endcomment %}
+{% if data.stats.program_count %}
+<div class="mt-6 grid gap-4 lg:grid-cols-3">
+
+    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-year-{{ section.id }}">
+        <h3 id="programs-by-year-{{ section.id }}" class="text-sm font-semibold text-gray-900">Programs per year</h3>
+        <p class="mt-0.5 text-xs text-gray-500">Click a year to filter the list.</p>
+        <ul class="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
+            {% for option in data.facets.years %}
+                <li>
+                    <button type="button" @click="year = '{{ option.value|escapejs }}'; apply()"
+                            class="flex w-full items-center gap-3 rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                        <span class="w-10 shrink-0 text-xs tabular-nums text-gray-500">{{ option.label }}</span>
+                        <span class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                            <span class="block h-full rounded-full bg-primary/70" style="width: {{ option.percent }}%"></span>
+                        </span>
+                        <span class="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-700">{{ option.count }}</span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-type-{{ section.id }}">
+        <h3 id="programs-by-type-{{ section.id }}" class="text-sm font-semibold text-gray-900">By type of extension</h3>
+        <p class="mt-0.5 text-xs text-gray-500">Click a type to filter the list.</p>
+        <ul class="mt-4 space-y-3">
+            {% for option in data.facets.extension_types %}
+                <li>
+                    <button type="button" @click="type = '{{ option.value|escapejs }}'; apply()"
+                            class="w-full rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                        <span class="flex items-center justify-between text-xs">
+                            <span class="font-medium text-gray-700">{{ option.label }}</span>
+                            <span class="tabular-nums text-gray-500">{{ option.count }} · {{ option.percent }}%</span>
+                        </span>
+                        <span class="mt-1.5 block h-2 overflow-hidden rounded-full bg-gray-100">
+                            <span class="block h-full rounded-full bg-primary/70" style="width: {{ option.percent }}%"></span>
+                        </span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-campus-{{ section.id }}">
+        <h3 id="programs-by-campus-{{ section.id }}" class="text-sm font-semibold text-gray-900">Programs by campus</h3>
+        <p class="mt-0.5 text-xs text-gray-500">Click a campus to filter the list.</p>
+        <ul class="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
+            {% for option in data.facets.campuses %}
+                <li>
+                    <button type="button" @click="campus = '{{ option.value|escapejs }}'; apply()"
+                            class="flex w-full items-center gap-3 rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                        <span class="w-24 shrink-0 truncate text-xs text-gray-600" title="{{ option.label }}">{{ option.label }}</span>
+                        <span class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                            <span class="block h-full rounded-full bg-primary/70" style="width: {{ option.percent }}%"></span>
+                        </span>
+                        <span class="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-700">{{ option.count }}</span>
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+
+</div>
+{% endif %}

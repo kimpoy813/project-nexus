@@ -1,14 +1,21 @@
-/* Public landing-page refinements.
-   Keep the two public entry pages calm: one institutional accent, neutral
-   surfaces, and copy that is easy to scan before a user opens the detail. */
+/* Public page refinements.
+   Keep the public entry pages calm: one institutional accent, neutral
+   surfaces, and copy that is easy to scan before a user opens the detail.
+   The same treatment now covers Programs, Gallery, and About. */
 
 body.home-page-body,
-body.services-page-body {
+body.services-page-body,
+body.programs-page-body,
+body.gallery-page-body,
+body.about-page-body {
   background: #f6f8f3 !important;
 }
 
 body.home-page-body .nexus-footer,
-body.services-page-body .nexus-footer {
+body.services-page-body .nexus-footer,
+body.programs-page-body .nexus-footer,
+body.gallery-page-body .nexus-footer,
+body.about-page-body .nexus-footer {
   background: var(--nexus-primary) !important;
 }
 

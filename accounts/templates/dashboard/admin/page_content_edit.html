@@ -35,8 +35,13 @@
                 <input type="text" name="hero_eyebrow" value="{{ page.hero_eyebrow }}" class="pc-input" placeholder="e.g. Extension Services">
             </div>
             <div>
-                <label class="pc-label">Hero Heading</label>
-                <input type="text" name="hero_heading" value="{{ page.hero_heading }}" class="pc-input">
+                <label class="pc-label">Hero Heading <span class="text-slate-400">(optional)</span></label>
+                <input type="text" name="hero_heading" value="{{ page.hero_heading }}" class="pc-input"
+                       placeholder="{{ page.title }}">
+                <p class="mt-1 text-xs text-slate-500">
+                    Leave blank to show the page title, so renaming the page renames the banner too.
+                    The banner currently reads “{{ page.hero_title }}”.
+                </p>
             </div>
             <div>
                 <label class="pc-label">Hero Subheading</label>

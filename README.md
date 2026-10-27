@@ -139,7 +139,8 @@ it to the package's `__init__.py` too** — otherwise the URLconf raises
 
 A **content source** is a body of admin-managed data that has its own no-code
 builder: Extension Thrust cards, Personnel, Activities, Processes, Targets, the
-SDGs, the Template Library, the Form Builder. Every source is declared once in
+SDGs, the Template Library, the Form Builder, Extension Programs, and the
+Program Gallery. Every source is declared once in
 **`details/content_sources.py`**, and everything else reads from that registry:
 
 | Reads the registry | For |
@@ -150,6 +151,54 @@ SDGs, the Template Library, the Form Builder. Every source is declared once in
 | `details/blocks/<source>.html` | the public markup |
 | the nested editor | in-place CRUD inside the section |
 | `content_source_reorder` | drag-to-order the items in a source |
+
+### Programs and Gallery
+
+The **Programs** page is the directory of every extension program, assembled by
+`details/program_directory.py` from the records that already hold them:
+
+| Source | What it is | Document shown |
+| --- | --- | --- |
+| Approved `Proposal` | A proposal the office approved; it *is* the program once implemented | Its current `SIGNED_PROPOSAL` file |
+| Legacy `Proposal` (`is_legacy`) | Work the office imported from before the system | `legacy_proposal_file` |
+| `ExtensionProgram` | A record with no proposal at all | Its `document` upload (a legacy file) |
+
+An `ExtensionProgram` may link to a proposal (`proposal` FK) to add photos or
+correct published details; it is then not listed twice. Each card's document
+button points at `/programs/document/<key>/` (`details.views.program_document`),
+which resolves only published entries — a draft's signed proposal is a 404, not
+a leaked file. The block renders the totals and the year/type/campus overview
+bars on the server and filters the cards in the browser, so the list still reads
+with JavaScript off.
+
+The **Gallery** block is fed by the terminal report: proponents upload
+documentation photos with the terminal report in the Implementation Tracker
+(`proposals.TerminalReportPhoto`), and those photos appear publicly. Photos the
+office arranged by hand (`GalleryPhoto`) follow, for work that predates the
+system. Both are managed from **Admin → Gallery**, where a photo can be hidden
+without deleting it from the proposal's record. An existing spreadsheet can be
+loaded through **Programs → Import CSV** (column aliases live in
+`PROGRAM_CSV_COLUMNS` in `accounts/views/content.py`).
+
+### Public pages: banner, sections, and empty states
+
+Each public page is a `SitePage` with a banner and an ordered set of sections.
+
+* **The banner follows the page title.** `SitePage.hero_title` returns an
+  explicitly written `hero_heading`, else the page's `title`. Saving the title
+  into the hero field is treated as "no override" (`accounts/views/cms.py`), so
+  renaming a page renames its banner instead of leaving yesterday's wording.
+* **One job per page.** Programs holds only its directory and Gallery only its
+  gallery — the Targets and Activities blocks that came over from the replaced
+  pages were dropped in `details/migrations/0050_…`. The `#anchor` bar renders
+  only when a page has more than one section.
+* **About** combines an editable introduction, a **Campuses** block (the
+  institution's `accounts.Campus` rows, each with its count of published
+  programs, resolved by `_resolve_campuses`), and a closing call to action.
+* **Empty means empty.** Nothing is seeded into the public pages: the Programs
+  directory and the Gallery fill themselves from approved proposals, legacy
+  uploads, and terminal reports. When there are none, the block says so and
+  tells an admin where the records come from, rather than showing a bare list.
 
 ### Extension Process steps nest to any depth
 

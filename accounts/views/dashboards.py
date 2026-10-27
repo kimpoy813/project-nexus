@@ -20,6 +20,8 @@ from django.views.decorators.http import require_POST
 from details.models import Activity
 from details.models import DocumentTemplate
 from details.models import ExtensionProcess
+from details.models import ExtensionProgram
+from details.models import GalleryPhoto
 from details.models import Personnel
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
@@ -1038,6 +1040,8 @@ def admin_dashboard(request):
         "admin_count": Profile.objects.filter(role=Profile.ROLE_ADMIN).count(),
         "personnel_count": Personnel.objects.count(),
         "activities_count": Activity.objects.count(),
+        "programs_count": ExtensionProgram.objects.count(),
+        "gallery_photo_count": GalleryPhoto.objects.count(),
         "processes_count": ExtensionProcess.objects.count(),
         "targets_count": Target.objects.count(),
         "signatories_count": Signatory.objects.count(),
@@ -1058,6 +1062,8 @@ def admin_dashboard(request):
         "total_content": (
             Personnel.objects.count()
             + Activity.objects.count()
+            + ExtensionProgram.objects.count()
+            + GalleryPhoto.objects.count()
             + ExtensionProcess.objects.count()
             + Target.objects.count()
             + Signatory.objects.count()

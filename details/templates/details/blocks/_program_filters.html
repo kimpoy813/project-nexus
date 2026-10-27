@@ -1,0 +1,83 @@
+{% comment %}
+Filters for the Programs directory.
+
+Lives in its own partial because the design-system audit requires a standalone
+page template that contains a <select> to extend templates/base.html; this is
+included inside the directory block instead. The Alpine state it binds to
+(campus, year, type, basis, led, query, apply, reset) is declared by
+``details/blocks/programs.html`` on the wrapping element.
+
+Context: data.facets, data.stats
+{% endcomment %}
+    <!-- Filters -->
+    <div class="mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <div class="xl:col-span-2">
+                <label for="program-search-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Search</label>
+                <input id="program-search-{{ section.id }}" type="search" x-model="query" @input.debounce.150ms="apply()"
+                       placeholder="Title, campus, or community"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+            </div>
+            <div>
+                <label for="program-campus-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Campus</label>
+                <select id="program-campus-{{ section.id }}" x-model="campus" @change="apply()"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">All campuses</option>
+                    {% for option in data.facets.campuses %}
+                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="program-year-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Year</label>
+                <select id="program-year-{{ section.id }}" x-model="year" @change="apply()"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">All years</option>
+                    {% for option in data.facets.years %}
+                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="program-type-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Type</label>
+                <select id="program-type-{{ section.id }}" x-model="type" @change="apply()"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">All types</option>
+                    {% for option in data.facets.extension_types %}
+                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="program-basis-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Research basis</label>
+                <select id="program-basis-{{ section.id }}" x-model="basis" @change="apply()"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">All bases</option>
+                    {% for option in data.facets.research_bases %}
+                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="program-led-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Led by</label>
+                <select id="program-led-{{ section.id }}" x-model="led" @change="apply()"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">Anyone</option>
+                    {% for option in data.facets.proponents %}
+                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
+            <p class="text-sm text-gray-600" aria-live="polite">
+                Showing <strong class="text-gray-900" x-text="shown">{{ data.stats.program_count }}</strong>
+                of <strong class="text-gray-900">{{ data.stats.program_count }}</strong> program{{ data.stats.program_count|pluralize }}
+            </p>
+            <button type="button" @click="reset()"
+                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
+                Reset filters
+            </button>
+        </div>
+    </div>
