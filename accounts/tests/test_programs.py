@@ -952,6 +952,21 @@ class AboutPageTests(TestCase):
         self.assertContains(response, 'href="/gallery/"')
         self.assertContains(response, 'href="/proposals/"')
 
+    def test_every_internal_link_on_the_page_resolves(self):
+        """A hand-written link in About copy must not point at a dead URL."""
+        html = self.client.get(self.about_url).content.decode()
+        internal = {
+            href
+            for href in re.findall(r'href="([^"]+)"', html)
+            if href.startswith("/")
+            and not href.startswith("//")
+            and not href.startswith("/static/")
+        }
+        self.assertTrue(internal)
+        for href in sorted(internal):
+            with self.subTest(href=href):
+                self.assertEqual(self.client.get(href).status_code, 200)
+
     def test_it_offers_a_way_to_contact_the_office(self):
         self.assertContains(self.client.get(self.about_url), "mailto:")
 

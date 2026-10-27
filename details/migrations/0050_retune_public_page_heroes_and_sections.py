@@ -41,10 +41,13 @@ and <a href="/gallery/">Gallery</a> shows the photographs submitted with termina
 reports.</p>
 """
 
+#: "Services" is ``services_home``, which lives at /proposals/ — the same page
+#: that holds the workflow, the official templates, and the proposal workspace.
 ABOUT_CTA_BODY = """
-<p>Proponents and offices work through <a href="/proposals/">Proposals</a> and the
-processes on <a href="/services/">Services</a>. Partner communities, agencies, and
-researchers can reach the office at
+<p>Proponents and offices work through <a href="/proposals/">Services</a>: the
+process from proposal to implementation, the official templates, and the
+workspace where a proposal is filed and followed. Partner communities, agencies,
+and researchers can reach the office at
 <a href="mailto:ispsc.nexus@gmail.com">ispsc.nexus@gmail.com</a>.</p>
 """
 
