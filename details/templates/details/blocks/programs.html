@@ -1,9 +1,11 @@
 {% comment %}
 Block: Extension Programs directory (source key PROGRAMS).
 
-Renders every published ``ExtensionProgram`` as a card, with server-rendered
-totals and client-side filters by campus, year, type, research basis, and the
-group that led it. Filtering is progressive: with JavaScript disabled the
+Renders every published program as a card, with server-rendered totals and
+client-side filters by campus, year, type, research basis, and the group that
+led it. A program is an approved proposal or a legacy upload — the entries are
+built in ``details.program_directory`` — so each card can link to that
+proposal's own document. Filtering is progressive: with JavaScript disabled the
 full list is still readable, and the count line simply keeps its server value.
 
 Context: section, data.programs, data.stats, data.facets
@@ -185,10 +187,6 @@ Context: section, data.programs, data.stats, data.facets
                 <a href="{% url 'admin_legacy_proposal_create' %}"
                    class="inline-flex items-center rounded-lg bg-primary px-4 py-2 font-semibold text-white transition hover:bg-secondary nx-btn nx-btn--primary">
                     Add a legacy upload
-                </a>
-                <a href="{% url 'programs_import' %}"
-                   class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
-                    Import a spreadsheet
                 </a>
             </div>
         {% endif %}

@@ -3,7 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import redirect, render
 from accounts.decorators import admin_required
-from ..models import Proposal, ProposalAttachment, ProposalProponent, ProposalPhaseLog
+from ..models import (
+    DocumentationPhoto,
+    Proposal,
+    ProposalAttachment,
+    ProposalPhaseLog,
+    ProposalProponent,
+)
 from ..legacy_forms import LegacyProposalForm
 from .constants import LAST_BUILTIN_STEP_NO
 
@@ -31,6 +37,17 @@ def admin_legacy_proposal_create(request):
             for file in request.FILES.getlist("attachments[]"):
                 ProposalAttachment.objects.create(
                     proposal=proposal, file=file, category=ProposalAttachment.Category.OTHER,
+                )
+            # Photo documentation is what the public Gallery shows, so a legacy
+            # import is the one chance to file it for work that predates the
+            # system (the live equivalent is the terminal report step).
+            caption = (form.cleaned_data.get("documentation_caption") or "").strip()[:200]
+            for file in form.cleaned_data.get("documentation_photos") or []:
+                DocumentationPhoto.objects.create(
+                    proposal=proposal,
+                    image=file,
+                    caption=caption or proposal.title,
+                    uploaded_by=request.user,
                 )
             for phase, status in [
                 (ProposalPhaseLog.Phase.MOA, proposal.moa_status),

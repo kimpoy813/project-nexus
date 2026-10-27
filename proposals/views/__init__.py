@@ -148,6 +148,7 @@ from .moa import (  # noqa: F401
     _set_moa_status_if_possible,
 )
 from .implementation import (  # noqa: F401
+    documentation_is_open,
     proposal_implementation_tracker,
     proposal_storage,
 )
@@ -217,6 +218,7 @@ __all__ = [
     "proposal_download_approved_docx",
     "proposal_editor_ping",
     "proposal_file_preview",
+    "documentation_is_open",
     "proposal_implementation_tracker",
     "proposal_mark_campus_review_done",
     "proposal_mark_claimed",

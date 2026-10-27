@@ -4,7 +4,7 @@ from .models import (
     PageContentLog,
     Personnel, Activity, ProcessStep, Target, ExtensionProcess,
     SitePage, PageSection, HomeThrust, HomeSectionHeading, WorkflowPhase,
-    SustainableDevelopmentGoal, ExtensionProgram, GalleryPhoto,
+    SustainableDevelopmentGoal,
 )
 
 admin.site.register(Personnel)
@@ -123,26 +123,3 @@ class PageContentLogAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
-
-
-@admin.register(ExtensionProgram)
-class ExtensionProgramAdmin(admin.ModelAdmin):
-    """The records behind the Programs page directory."""
-
-    list_display = (
-        'title', 'proposal', 'campus', 'year', 'extension_type', 'led_by',
-        'beneficiaries', 'is_visible',
-    )
-    list_filter = ('year', 'campus', 'extension_type', 'research_basis', 'is_visible')
-    search_fields = ('title', 'campus', 'target_community', 'objectives')
-    ordering = ('-year', 'title')
-
-
-@admin.register(GalleryPhoto)
-class GalleryPhotoAdmin(admin.ModelAdmin):
-    """Photographs shown in the Gallery block."""
-
-    list_display = ('display_title', 'program', 'campus', 'taken_on', 'is_visible', 'order')
-    list_filter = ('is_visible', 'campus')
-    search_fields = ('title', 'caption', 'program__title')
-    ordering = ('order', 'id')

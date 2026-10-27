@@ -219,6 +219,24 @@ class Proposal(models.Model):
     beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
     beneficiaries_who = models.TextField(blank=True, default="")
 
+    # Participant split, as the terminal report requires (a separate matrix for
+    # ISPSC students and faculty) and as the Programs directory displays.
+    student_participants = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="ISPSC students involved, when the activity involved students.",
+    )
+    faculty_participants = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="ISPSC faculty involved.",
+    )
+    research_staff_participants = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="RDE / research staff involved.",
+    )
+
     estimated_month = models.CharField(max_length=20, blank=True, default="")
     estimated_year = models.PositiveIntegerField(null=True, blank=True)
     extension_venue = models.CharField(max_length=255, blank=True, default="")
@@ -1782,7 +1800,7 @@ class ProposalFinalDocument(models.Model):
                 is_current=True,
             )
     
-def terminal_photo_path(instance, filename):
+def documentation_photo_path(instance, filename):
     """Storage path for one terminal-report photo.
 
     Files are grouped per proposal and renamed to a random id, so two phones
@@ -1792,17 +1810,22 @@ def terminal_photo_path(instance, filename):
     suffix = os.path.splitext(filename or "")[1].lower()
     if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
         suffix = ".jpg"
-    return f"terminal_report_photos/{instance.proposal_id}/{uuid.uuid4().hex}{suffix}"
+    return f"documentation_photos/{instance.proposal_id}/{uuid.uuid4().hex}{suffix}"
 
 
-class TerminalReportPhoto(models.Model):
-    """A documentation photo submitted with a proposal's terminal report.
+class DocumentationPhoto(models.Model):
+    """One photo documenting an extension activity, with its caption.
 
-    The "Final Evaluation and Documentation" step of the implementation
-    tracker is where a proponent hands over the terminal report — and the
-    photographs that document the activity. Those photos are what the public
-    Gallery displays, so the office never has to upload the same pictures a
-    second time.
+    The terminal report the proponent files at "Final Evaluation and
+    Documentation" requires *photo documentation in action with caption*
+    (appendix E.13), so the proponent uploads these with the report and the
+    public Gallery shows them — the office never has to collect the same
+    pictures again.
+
+    Legacy activities have no terminal report in the system, so the office
+    attaches their documentation photos while importing the legacy proposal.
+    Either way there is exactly one place photos live, keyed to the activity
+    they document.
 
     ``is_visible`` lets the Extension Office keep a photo on the record while
     withholding it from the public gallery (a photo showing identifiable
@@ -1815,21 +1838,24 @@ class TerminalReportPhoto(models.Model):
         related_name="documentation_photos",
     )
     image = models.ImageField(
-        upload_to=terminal_photo_path,
+        upload_to=documentation_photo_path,
         help_text="Photo of the activity, as submitted with the terminal report.",
     )
     caption = models.CharField(
         max_length=200,
         blank=True,
         default="",
-        help_text="Optional caption shown in the public gallery.",
+        help_text=(
+            "What the photo shows, e.g. “Participants practising compost "
+            "preparation.” Required by the terminal report (appendix E.13)."
+        ),
     )
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="uploaded_terminal_report_photos",
+        related_name="uploaded_documentation_photos",
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     is_visible = models.BooleanField(
@@ -1840,7 +1866,7 @@ class TerminalReportPhoto(models.Model):
 
     class Meta:
         ordering = ["order", "id"]
-        verbose_name = "Terminal Report Photo"
+        verbose_name = "Documentation Photo"
 
     def __str__(self):
         return self.caption or f"{self.proposal} · photo {self.pk}"
@@ -1848,7 +1874,7 @@ class TerminalReportPhoto(models.Model):
     def save(self, *args, **kwargs):
         if self.order is None or self.order == 0:
             last = (
-                TerminalReportPhoto.objects.filter(proposal_id=self.proposal_id)
+                DocumentationPhoto.objects.filter(proposal_id=self.proposal_id)
                 .aggregate(models.Max("order"))["order__max"]
                 or 0
             )

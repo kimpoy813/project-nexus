@@ -192,28 +192,21 @@ urlpatterns = [
     path("admin/activities/<int:pk>/edit/", views.activity_edit, name="activity_edit"),
     path("admin/activities/<int:pk>/delete/", views.activity_delete, name="activity_delete"),
 
-    # Extension Programs — the directory behind the Programs page
+    # Extension Programs — the published directory, read-only. Programs are
+    # approved and legacy proposals, so there is nothing to create here.
     path("admin/programs/", views.programs_list, name="programs_list"),
-    path("admin/programs/import/", views.programs_import, name="programs_import"),
-    path("admin/programs/create/", views.program_create, name="program_create"),
-    path("admin/programs/<int:pk>/edit/", views.program_edit, name="program_edit"),
-    path("admin/programs/<int:pk>/delete/", views.program_delete, name="program_delete"),
 
-    # Gallery — photographs of extension programs
+    # Gallery — the photo documentation filed with each proposal.
     path("admin/gallery/", views.gallery_photos_list, name="gallery_photos_list"),
-    path("admin/gallery/create/", views.gallery_photo_create, name="gallery_photo_create"),
-    path("admin/gallery/<int:pk>/edit/", views.gallery_photo_edit, name="gallery_photo_edit"),
-    path("admin/gallery/<int:pk>/delete/", views.gallery_photo_delete, name="gallery_photo_delete"),
-    # Documentation photos submitted with terminal reports (public Gallery).
     path(
-        "admin/gallery/terminal/<int:pk>/toggle/",
-        views.terminal_photo_toggle,
-        name="terminal_photo_toggle",
+        "admin/gallery/<int:pk>/toggle/",
+        views.documentation_photo_toggle,
+        name="documentation_photo_toggle",
     ),
     path(
-        "admin/gallery/terminal/<int:pk>/delete/",
-        views.terminal_photo_delete,
-        name="terminal_photo_delete",
+        "admin/gallery/<int:pk>/delete/",
+        views.documentation_photo_delete,
+        name="documentation_photo_delete",
     ),
 
     # Processes management

@@ -1,10 +1,10 @@
 {% comment %}
 Block: Program Gallery (source key GALLERY).
 
-Photos submitted with a program's terminal report come first — that is where
-the proponent already files the documentation — followed by photos the office
-arranged by hand for work that predates the system. Both arrive as the same
-dict shape from ``_resolve_gallery``; clicking a tile opens a lightbox.
+Every photo is the documentation filed with an activity: the proponent submits
+it with the terminal report, the office submits it with a legacy upload. Photos
+arrive as plain dicts from ``_resolve_gallery``, so the block does not care
+where they came from; clicking a tile opens a lightbox.
 
 Each tile owns its own Alpine state, so the lightbox markup stays next to the
 photo it shows and captions need no escaping into a JavaScript string.
@@ -77,9 +77,9 @@ Context: section, data.photos, data.photo_count
             office already requires at “Final Evaluation and Documentation”.
         </p>
         {% if user.is_authenticated and user.profile.role == 'ADMIN' %}
-            <a href="{% url 'gallery_photo_create' %}"
+            <a href="{% url 'admin_legacy_proposal_create' %}"
                class="mt-6 inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
-                Add a photo for older work
+                Import older work with its photos
             </a>
         {% endif %}
     </div>

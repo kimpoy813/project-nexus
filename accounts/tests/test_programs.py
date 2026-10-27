@@ -6,27 +6,30 @@ the same rule as the rest of the CMS suite: an admin edits a record, and the
 public page reflects it — while nothing an admin has not published leaks out.
 
   * **Programs**    - every published program, its totals, and its filters
-  * **Gallery**     - photographs, either attached to a program or standalone
+  * **Gallery**     - the photo documentation filed with each activity
   * **About**       - the seeded page, editable like any other
   * **Navigation**  - the site menu offers the new pages and none of the old
+
+A program is not its own record: it is an approved proposal, or a legacy
+proposal imported through *Legacy Records Upload*. The tests below therefore
+seed proposals, and the photo tests seed the documentation photos that belong
+to them — there is no second table to keep in step.
 """
 
 import re
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
 from accounts.models import Campus, Profile
 from details.content_sources import get_content_source
 from details.models import (
-    ExtensionProgram,
-    GalleryPhoto,
     PageSection,
     SitePage,
     resolve_section_data,
 )
-from proposals.models import Proposal, ProposalFinalDocument, TerminalReportPhoto
+from proposals.models import DocumentationPhoto, Proposal, ProposalFinalDocument
 
 from . import factories
 
@@ -72,29 +75,38 @@ def make_signed_document(proposal, name="signed.pdf"):
     )
 
 
-def make_terminal_photo(proposal, caption="TERMINAL-PHOTO", **overrides):
+def make_documentation_photo(proposal, caption="DOCUMENTATION-PHOTO", **overrides):
+    """A photo filed with the activity — the Gallery's only source."""
     defaults = {
         "proposal": proposal,
         "image": SimpleUploadedFile("doc.gif", TINY_GIF, content_type="image/gif"),
         "caption": caption,
     }
     defaults.update(overrides)
-    return TerminalReportPhoto.objects.create(**defaults)
+    return DocumentationPhoto.objects.create(**defaults)
+
+
+def make_legacy_proposal(*, title="LEGACY-MARKER", **overrides):
+    """Older work imported by the office, with its own uploaded document."""
+    defaults = {
+        "title": title,
+        "status": "COMPLETED",
+        "proposal_status": "COMPLETED",
+        "is_legacy": True,
+        "campus": "Candon Campus",
+        "estimated_year": 2019,
+        "legacy_proposal_file": SimpleUploadedFile(
+            "old-proposal.pdf", b"%PDF-1.4 legacy"
+        ),
+    }
+    defaults.update(overrides)
+    return make_proposal(**defaults)
 
 
 def hero_heading(response):
     """The text inside the page's `<h1>`, whitespace collapsed."""
     match = re.search(r"<h1[^>]*>(.*?)</h1>", response.content.decode(), re.S)
     return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
-
-
-def make_photo(**overrides):
-    defaults = {
-        "image": SimpleUploadedFile("photo.gif", TINY_GIF, content_type="image/gif"),
-        "title": "PHOTO-MARKER",
-    }
-    defaults.update(overrides)
-    return GalleryPhoto.objects.create(**defaults)
 
 
 class SeededPageTests(TestCase):
@@ -163,20 +175,27 @@ class ProgramsPageTests(TestCase):
         self.programs_url = reverse("programs_page")
 
     def test_a_program_row_appears_with_its_details(self):
-        program = ExtensionProgram.objects.create(
+        make_proposal(
             title="PROGRAM-MARKER",
             campus="Main Campus",
-            year=2025,
-            extension_type=ExtensionProgram.ExtensionType.RESEARCH_BASED,
-            research_basis=ExtensionProgram.ResearchBasis.FACULTY,
-            led_by=ExtensionProgram.Proponent.JOINT,
-            target_community="Dili National High School",
-            duration="September 2025 – February 2026",
-            objectives="Improve reading comprehension.",
+            estimated_year=2025,
+            extension_type=Proposal.ExtensionType.RESEARCH_FACULTY,
+            beneficiaries_count=34,
+            beneficiaries_who="Dili National High School",
+            date_venue="September 2025 – February 2026",
+            general_objective="Improve reading comprehension.",
             student_participants=50,
             faculty_participants=5,
-            beneficiaries=34,
-            document=SimpleUploadedFile("doc-marker.pdf", b"%PDF-1.4 marker"),
+        )
+        make_legacy_proposal(
+            title="PROGRAM-MARKER-LEGACY",
+            campus="Main Campus",
+            date_venue="September 2025 – February 2026",
+            general_objective="Improve reading comprehension.",
+            student_participants=50,
+            faculty_participants=5,
+            beneficiaries_count=34,
+            beneficiaries_who="Dili National High School",
         )
 
         response = self.client.get(self.programs_url)
@@ -186,21 +205,25 @@ class ProgramsPageTests(TestCase):
         self.assertContains(response, "September 2025 – February 2026")
         self.assertContains(response, "Improve reading comprehension.")
         self.assertContains(response, "View legacy upload")
-        self.assertContains(
-            response, reverse("program_document", kwargs={"key": f"r{program.pk}"})
-        )
-        # Filters are built from the published rows only.
+        # Filters are built from the published entries only.
         self.assertContains(response, 'data-campus="Main Campus"')
         self.assertContains(response, 'id="program-campus-')
 
     def test_the_totals_count_only_published_programs(self):
-        ExtensionProgram.objects.create(
-            title="VISIBLE", student_participants=10, faculty_participants=2,
-            beneficiaries=100, campus="Main Campus",
+        make_proposal(
+            title="VISIBLE",
+            campus="Main Campus",
+            student_participants=10,
+            faculty_participants=2,
+            beneficiaries_count=100,
         )
-        ExtensionProgram.objects.create(
-            title="HIDDEN", student_participants=999, beneficiaries=999,
-            campus="Cervantes Campus", is_visible=False,
+        make_proposal(
+            title="HIDDEN",
+            campus="Cervantes Campus",
+            proposal_status="DRAFTING",
+            status="DRAFT",
+            student_participants=999,
+            beneficiaries_count=999,
         )
 
         section = PageSection.objects.filter(
@@ -218,10 +241,13 @@ class ProgramsPageTests(TestCase):
         self.assertNotContains(response, "HIDDEN")
         self.assertNotContains(response, "Cervantes Campus")
 
-    def test_a_hidden_program_leaves_its_campus_out_of_the_filter(self):
-        ExtensionProgram.objects.create(title="LIVE", campus="Main Campus")
-        ExtensionProgram.objects.create(
-            title="OFF", campus="Tagudin Campus", is_visible=False
+    def test_an_unpublished_proposal_leaves_its_campus_out_of_the_filter(self):
+        make_proposal(title="LIVE", campus="Main Campus")
+        make_proposal(
+            title="OFF",
+            campus="Tagudin Campus",
+            proposal_status="IN_REVIEW",
+            status="ACTIVE",
         )
         section = PageSection.objects.filter(
             page__slug="programs", layout=PageSection.Layout.PROGRAMS
@@ -230,13 +256,17 @@ class ProgramsPageTests(TestCase):
         self.assertEqual([c["value"] for c in campuses], ["Main Campus"])
 
     def test_the_overview_bars_summarise_published_programs(self):
-        ExtensionProgram.objects.create(
-            title="ONE", campus="Main Campus", year=2025,
-            extension_type=ExtensionProgram.ExtensionType.RESEARCH_BASED,
+        make_proposal(
+            title="ONE",
+            campus="Main Campus",
+            estimated_year=2025,
+            extension_type=Proposal.ExtensionType.RESEARCH_FACULTY,
         )
-        ExtensionProgram.objects.create(
-            title="TWO", campus="Main Campus", year=2025,
-            extension_type=ExtensionProgram.ExtensionType.COMMUNITY_BASED,
+        make_proposal(
+            title="TWO",
+            campus="Main Campus",
+            estimated_year=2025,
+            extension_type=Proposal.ExtensionType.COMMUNITY_BASED,
         )
         response = self.client.get(self.programs_url)
         self.assertContains(response, "Programs per year")
@@ -263,8 +293,13 @@ class ProgramsPageTests(TestCase):
                 self.assertIn(key, PageSection.DATA_LAYOUTS)
 
 
-class ProgramAdminTests(TestCase):
-    """Admins manage programs from Content & Builders."""
+class NoProgramBuilderTests(TestCase):
+    """Programs are not added by hand, imported, edited, or deleted.
+
+    The office asked for one data structure: a program is a proposal. The
+    builder routes that used to create a second copy are gone, and the admin
+    page says where programs come from instead of offering an add button.
+    """
 
     @classmethod
     def setUpTestData(cls):
@@ -274,210 +309,51 @@ class ProgramAdminTests(TestCase):
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
 
-    def _payload(self, **overrides):
-        data = {
-            "title": "NEW-PROGRAM-MARKER",
-            "campus": "Main Campus",
-            "year": "2026",
-            "extension_type": ExtensionProgram.ExtensionType.COMMUNITY_BASED,
-            "research_basis": ExtensionProgram.ResearchBasis.OTHERS,
-            "led_by": ExtensionProgram.Proponent.FACULTY,
-            "target_community": "Brgy. Sabangan",
-            "duration": "May 2026",
-            "objectives": "One objective per line.",
-            "student_participants": "7",
-            "faculty_participants": "3",
-            "research_staff_participants": "1",
-            "beneficiaries": "42",
-            "document_url": "",
-            "is_visible": "on",
-        }
-        data.update(overrides)
-        return data
+    def test_the_removed_routes_do_not_exist(self):
+        proposal = make_proposal()
+        for name in (
+            "program_create",
+            "programs_import",
+            "program_edit",
+            "program_delete",
+            "gallery_photo_create",
+            "gallery_photo_edit",
+            "gallery_photo_delete",
+        ):
+            with self.subTest(name=name):
+                with self.assertRaises(NoReverseMatch):
+                    reverse(name, args=[proposal.pk])
 
-    def test_the_list_page_shows_programs(self):
-        ExtensionProgram.objects.create(title="LISTED-MARKER")
+    def test_the_list_page_reports_published_programs(self):
+        make_proposal(title="APPROVED-LISTED")
+        make_legacy_proposal(title="LEGACY-LISTED")
         response = self.client_admin.get(reverse("programs_list"))
-        self.assertContains(response, "LISTED-MARKER")
+        self.assertContains(response, "APPROVED-LISTED")
+        self.assertContains(response, "LEGACY-LISTED")
         self.assertContains(response, "Extension Programs")
 
-    def test_a_program_can_be_created_and_published(self):
-        response = self.client_admin.post(reverse("program_create"), self._payload())
-        self.assertRedirects(response, reverse("programs_list"))
+    def test_the_list_page_offers_no_import_or_add_controls(self):
+        response = self.client_admin.get(reverse("programs_list"))
+        html = response.content.decode()
+        self.assertNotIn("Import CSV", html)
+        self.assertNotIn("Add program", html)
+        # Instead it points at the only way old work gets in.
+        self.assertContains(response, reverse("admin_legacy_proposal_create"))
 
-        program = ExtensionProgram.objects.get(title="NEW-PROGRAM-MARKER")
-        self.assertEqual(program.beneficiaries, 42)
-        self.assertTrue(program.is_visible)
-        self.assertContains(self.client.get(reverse("programs_page")), "NEW-PROGRAM-MARKER")
+    def test_the_list_page_can_be_searched(self):
+        make_proposal(title="SEARCH-MARKER")
+        make_proposal(title="OTHER-MARKER")
+        response = self.client_admin.get(reverse("programs_list"), {"q": "search"})
+        self.assertContains(response, "SEARCH-MARKER")
+        self.assertNotContains(response, "OTHER-MARKER")
 
-    def test_editing_a_program_updates_the_public_card(self):
-        program = ExtensionProgram.objects.create(title="BEFORE-MARKER")
-        self.client_admin.post(
-            reverse("program_edit", args=[program.id]),
-            self._payload(title="AFTER-MARKER"),
-        )
-        program.refresh_from_db()
-        self.assertEqual(program.title, "AFTER-MARKER")
-        self.assertContains(self.client.get(reverse("programs_page")), "AFTER-MARKER")
-
-    def test_a_program_can_be_hidden_from_the_page(self):
-        program = ExtensionProgram.objects.create(title="TO-HIDE-MARKER")
-        payload = self._payload(title=program.title)
-        payload.pop("is_visible")
-        self.client_admin.post(reverse("program_edit", args=[program.id]), payload)
-
-        program.refresh_from_db()
-        self.assertFalse(program.is_visible)
-        self.assertNotContains(self.client.get(reverse("programs_page")), "TO-HIDE-MARKER")
-
-    def test_a_typed_document_url_is_not_published(self):
-        """The document is a file, not a free-form link the admin types."""
-        program = ExtensionProgram.objects.create(
-            title="LINK-ONLY",
-            document_url="https://example.com/still-archived",
-        )
-        response = self.client.get(reverse("programs_page"))
-        self.assertContains(response, "LINK-ONLY")
-        self.assertNotContains(response, "still-archived")
-        self.assertEqual(program.safe_document_url, "https://example.com/still-archived")
-
-    def test_delete_requires_post(self):
-        program = ExtensionProgram.objects.create(title="DELETE-ME")
-        self.assertEqual(
-            self.client_admin.get(reverse("program_delete", args=[program.id])).status_code,
-            405,
-        )
-        self.assertTrue(ExtensionProgram.objects.filter(pk=program.pk).exists())
-
-        self.client_admin.post(reverse("program_delete", args=[program.id]))
-        self.assertFalse(ExtensionProgram.objects.filter(pk=program.pk).exists())
-
-    def test_non_admins_cannot_manage_programs(self):
+    def test_non_admins_cannot_see_the_directory(self):
         client = factories.make_client(self.faculty)
         self.assertIn(client.get(reverse("programs_list")).status_code, DENIED)
-        self.assertIn(client.get(reverse("program_create")).status_code, DENIED)
-
-        status = client.post(reverse("program_create"), self._payload()).status_code
-        self.assertIn(status, DENIED)
-        self.assertFalse(
-            ExtensionProgram.objects.filter(title="NEW-PROGRAM-MARKER").exists()
-        )
-
-
-class ProgramCsvImportTests(TestCase):
-    """The office's spreadsheet export imports without retyping."""
-
-    HEADER = (
-        "Year,Campus,Program title,Extension type,Research basis,Led by,"
-        "Target community / beneficiaries,Duration & frequency,Objectives,"
-        "Students,Faculty,Research staff,Beneficiaries,Document link\n"
-    )
-
-    @classmethod
-    def setUpTestData(cls):
-        cls.admin = factories.make_user("import_admin", Profile.ROLE_ADMIN)
-        cls.faculty = factories.make_user("import_faculty", Profile.ROLE_FACULTY)
-
-    def setUp(self):
-        self.client_admin = factories.make_client(self.admin)
-
-    def _upload(self, body, client=None):
-        upload = SimpleUploadedFile(
-            "programs.csv",
-            (self.HEADER + body).encode("utf-8"),
-            content_type="text/csv",
-        )
-        return (client or self.client_admin).post(
-            reverse("programs_import"), {"file": upload}
-        )
-
-    def test_the_import_page_renders(self):
-        response = self.client_admin.get(reverse("programs_import"))
-        self.assertContains(response, "Import Programs from CSV")
-        self.assertContains(response, "Document link")
-
-    def test_rows_are_imported_with_their_labels_and_numbers(self):
-        response = self._upload(
-            '2025,Main Campus,"CSV-MARKER","Research-based","Faculty Research",'
-            'Joint,"Dili National High School","October 2025","Objective one",'
-            '"1,024",5,2,300,https://example.com/doc\n'
-        )
-        self.assertRedirects(response, reverse("programs_list"))
-
-        program = ExtensionProgram.objects.get(title="CSV-MARKER")
-        self.assertEqual(program.year, 2025)
-        self.assertEqual(
-            program.extension_type, ExtensionProgram.ExtensionType.RESEARCH_BASED
-        )
-        self.assertEqual(
-            program.research_basis, ExtensionProgram.ResearchBasis.FACULTY
-        )
-        self.assertEqual(program.led_by, ExtensionProgram.Proponent.JOINT)
-        self.assertEqual(program.student_participants, 1024)
-        self.assertEqual(program.beneficiaries, 300)
-        self.assertEqual(program.document_url, "https://example.com/doc")
-        self.assertContains(self.client.get(reverse("programs_page")), "CSV-MARKER")
-
-    def test_a_reimport_updates_rather_than_duplicates(self):
-        self._upload(
-            '2025,Main Campus,"REIMPORT-MARKER",Community-based,Others,Faculty,'
-            'Brgy. A,June 2025,First objective,0,0,0,10,\n'
-        )
-        self._upload(
-            '2026,Tagudin Campus,"REIMPORT-MARKER",Community-based,Others,Faculty,'
-            'Brgy. B,July 2026,Second objective,0,0,0,20,\n'
-        )
-
-        program = ExtensionProgram.objects.get(title="REIMPORT-MARKER")
-        self.assertEqual(ExtensionProgram.objects.filter(title="REIMPORT-MARKER").count(), 1)
-        self.assertEqual(program.campus, "Tagudin Campus")
-        self.assertEqual(program.year, 2026)
-        self.assertEqual(program.beneficiaries, 20)
-
-    def test_a_row_without_a_title_is_skipped_with_a_message(self):
-        response = self._upload(
-            '2025,Main Campus,"KEPT-MARKER",Community-based,Others,Faculty,,,,\n'
-            '2025,Main Campus,,,,,,,,\n',
-            client=self.client_admin,
-        )
-        self.assertRedirects(response, reverse("programs_list"))
-        self.assertTrue(ExtensionProgram.objects.filter(title="KEPT-MARKER").exists())
-        self.assertEqual(ExtensionProgram.objects.count(), 1)
-
-    def test_an_unsafe_document_link_is_dropped(self):
-        self._upload(
-            '2025,Main Campus,"UNSAFE-LINK",Community-based,Others,Faculty,,,,"0,0,0,0,'
-            'javascript:alert(1)\n'
-        )
-        program = ExtensionProgram.objects.get(title="UNSAFE-LINK")
-        self.assertEqual(program.document_url, "")
-        self.assertEqual(program.safe_document_url, "")
-        self.assertNotContains(
-            self.client.get(reverse("programs_page")), "javascript:alert(1)"
-        )
-
-    def test_a_file_without_a_header_is_refused(self):
-        upload = SimpleUploadedFile("empty.csv", b"", content_type="text/csv")
-        response = self.client_admin.post(
-            reverse("programs_import"), {"file": upload}
-        )
-        self.assertRedirects(response, reverse("programs_import"))
-
-    def test_non_admins_cannot_import(self):
-        client = factories.make_client(self.faculty)
-        self.assertIn(client.get(reverse("programs_import")).status_code, DENIED)
-        response = self._upload(
-            '2025,Main Campus,"DENIED-MARKER",Community-based,Others,Faculty,,,,\n',
-            client=client,
-        )
-        self.assertIn(response.status_code, DENIED)
-        self.assertFalse(
-            ExtensionProgram.objects.filter(title="DENIED-MARKER").exists()
-        )
 
 
 class GalleryTests(TestCase):
-    """Photos published by an admin appear in the Gallery block."""
+    """The Gallery shows the photo documentation filed with each activity."""
 
     @classmethod
     def setUpTestData(cls):
@@ -487,57 +363,54 @@ class GalleryTests(TestCase):
         self.client_admin = factories.make_client(self.admin)
         self.gallery_url = reverse("gallery_page")
 
-    def test_a_published_photo_appears_in_the_grid(self):
-        make_photo(title="GALLERY-MARKER")
+    def test_a_documentation_photo_appears_in_the_grid(self):
+        make_documentation_photo(make_proposal(), caption="GALLERY-MARKER")
         response = self.client.get(self.gallery_url)
         self.assertContains(response, "GALLERY-MARKER")
         self.assertContains(response, "Open photo: GALLERY-MARKER")
 
     def test_a_hidden_photo_stays_out_of_the_grid(self):
-        make_photo(title="HIDDEN-PHOTO", is_visible=False)
+        make_documentation_photo(
+            make_proposal(), caption="HIDDEN-PHOTO", is_visible=False
+        )
         self.assertNotContains(self.client.get(self.gallery_url), "HIDDEN-PHOTO")
 
-    def test_a_photo_attached_to_a_program_inherits_its_labels(self):
-        program = ExtensionProgram.objects.create(
-            title="PARENT-PROGRAM", campus="Sta. Maria Campus", year=2025
+    def test_a_photo_names_the_activity_it_documents(self):
+        make_documentation_photo(
+            make_proposal(title="PARENT-PROGRAM", campus="Sta. Maria Campus"),
+            caption="Seedling distribution",
         )
-        make_photo(program=program, title="Seedling distribution")
         response = self.client.get(self.gallery_url)
         self.assertContains(response, "Seedling distribution")
         self.assertContains(response, "PARENT-PROGRAM")
         self.assertContains(response, "Sta. Maria Campus")
 
-    def test_an_admin_can_upload_a_photo(self):
-        response = self.client_admin.post(
-            reverse("gallery_photo_create"),
-            {
-                "title": "UPLOADED-MARKER",
-                "caption": "",
-                "campus": "",
-                "taken_on": "",
-                "is_visible": "on",
-                "image": SimpleUploadedFile(
-                    "uploaded.gif", TINY_GIF, content_type="image/gif"
-                ),
-            },
+    def test_a_legacy_activity_says_its_photos_came_from_the_import(self):
+        make_documentation_photo(make_legacy_proposal(), caption="IMPORTED-PHOTO")
+        response = self.client.get(self.gallery_url)
+        self.assertContains(response, "IMPORTED-PHOTO")
+        self.assertContains(response, "Legacy upload")
+
+    def test_the_office_hides_an_unpublishable_photo_instead_of_deleting_it(self):
+        photo = make_documentation_photo(make_proposal(), caption="SENSITIVE")
+        self.client_admin.post(reverse("documentation_photo_toggle", args=[photo.id]))
+
+        photo.refresh_from_db()
+        self.assertFalse(photo.is_visible)
+        self.assertNotContains(self.client.get(self.gallery_url), "SENSITIVE")
+        # The record keeps the photo: hiding is not deleting.
+        self.assertTrue(DocumentationPhoto.objects.filter(pk=photo.pk).exists())
+
+    def test_the_manager_lists_photos_with_their_activity(self):
+        make_documentation_photo(
+            make_proposal(title="MANAGED-ACTIVITY"), caption="MANAGED-PHOTO"
         )
-        self.assertRedirects(response, reverse("gallery_photos_list"))
-        self.assertTrue(GalleryPhoto.objects.filter(title="UPLOADED-MARKER").exists())
-        self.assertContains(self.client.get(self.gallery_url), "UPLOADED-MARKER")
-
-    def test_a_photo_can_be_deleted(self):
-        photo = make_photo(title="DELETE-PHOTO")
-        self.client_admin.post(reverse("gallery_photo_delete", args=[photo.id]))
-        self.assertFalse(GalleryPhoto.objects.filter(pk=photo.pk).exists())
-        self.assertNotContains(self.client.get(self.gallery_url), "DELETE-PHOTO")
-
-    def test_the_manager_lists_photos(self):
-        make_photo(title="MANAGED-PHOTO")
         response = self.client_admin.get(reverse("gallery_photos_list"))
         self.assertContains(response, "MANAGED-PHOTO")
+        self.assertContains(response, "MANAGED-ACTIVITY")
 
     def test_the_gallery_block_reports_its_photo_count(self):
-        make_photo(title="COUNTED")
+        make_documentation_photo(make_proposal())
         section = PageSection.objects.filter(
             page__slug="gallery", layout=PageSection.Layout.GALLERY
         ).first()
@@ -602,7 +475,7 @@ class ProgramsCmsTests(TestCase):
         self.client_admin.post(
             reverse("page_section_add_source", args=["about"]), {"source": "PROGRAMS"}
         )
-        ExtensionProgram.objects.create(title="CROSS-PAGE-MARKER")
+        make_proposal(title="CROSS-PAGE-MARKER")
         self.assertContains(
             self.client.get(reverse("about_page")), "CROSS-PAGE-MARKER"
         )
@@ -670,28 +543,6 @@ class ProposalDirectoryTests(TestCase):
             response, reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
         )
 
-    def test_a_standalone_record_still_appears(self):
-        ExtensionProgram.objects.create(
-            title="MANUAL-MARKER",
-            campus="Candon Campus",
-            year=2019,
-            document=SimpleUploadedFile("manual.pdf", b"%PDF-1.4 manual"),
-        )
-        response = self.client.get(self.programs_url)
-        self.assertContains(response, "MANUAL-MARKER")
-        self.assertContains(response, "View legacy upload")
-
-    def test_a_record_linked_to_a_proposal_is_not_listed_twice(self):
-        proposal = make_proposal(title="LINKED-PROPOSAL")
-        ExtensionProgram.objects.create(
-            title=proposal.title,
-            campus=proposal.campus,
-            year=2025,
-            proposal=proposal,
-        )
-        html = self.client.get(self.programs_url).content.decode()
-        self.assertEqual(html.count("LINKED-PROPOSAL"), 1)
-
     def program_data(self):
         """The Programs block data, resolved the way the page renders it."""
         section = PageSection.objects.filter(
@@ -699,16 +550,15 @@ class ProposalDirectoryTests(TestCase):
         ).first()
         return resolve_section_data(section)
 
-    def test_the_totals_row_counts_proposals_and_records(self):
+    def test_the_totals_row_counts_proposals_and_legacy_uploads(self):
         make_proposal(title="ONE", beneficiaries_count=10)
         make_proposal(title="TWO", beneficiaries_count=15)
-        ExtensionProgram.objects.create(
-            title="THREE", campus="Tagudin Campus", beneficiaries=5
-        )
+        make_legacy_proposal(title="THREE", beneficiaries_count=5)
         stats = self.program_data()["stats"]
         self.assertEqual(stats["program_count"], 3)
         self.assertEqual(stats["beneficiaries"], 30)
         self.assertEqual(stats["approved"], 2)
+        self.assertEqual(stats["legacy"], 1)
 
     def test_the_extension_type_choices_come_from_the_proposals(self):
         make_proposal(title="RESEARCH", extension_type="RESEARCH_FACULTY")
@@ -752,14 +602,14 @@ class ProgramDocumentTests(TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
-    def test_a_hidden_records_document_is_not_reachable(self):
-        record = ExtensionProgram.objects.create(
+    def test_an_unapproved_legacy_upload_is_not_reachable(self):
+        proposal = make_legacy_proposal(
             title="HIDDEN",
-            is_visible=False,
-            document=SimpleUploadedFile("hidden.pdf", b"%PDF-1.4 hidden"),
+            proposal_status="DRAFTING",
+            status="DRAFT",
         )
         response = self.client.get(
-            reverse("program_document", kwargs={"key": f"r{record.pk}"})
+            reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
         )
         self.assertEqual(response.status_code, 404)
 
@@ -777,62 +627,58 @@ class ProgramDocumentTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class TerminalReportGalleryTests(TestCase):
-    """Gallery photos come from the terminal report the proponent submits."""
+class DocumentationGalleryTests(TestCase):
+    """The proponent's terminal-report photos are the public Gallery."""
 
     def setUp(self):
         self.gallery_url = reverse("gallery_page")
 
     def test_a_terminal_report_photo_appears_in_the_gallery(self):
-        make_terminal_photo(make_proposal(), caption="TERMINAL-CAPTION")
+        make_documentation_photo(make_proposal(), caption="TERMINAL-CAPTION")
         response = self.client.get(self.gallery_url)
         self.assertContains(response, "TERMINAL-CAPTION")
         self.assertContains(response, "Terminal report")
 
     def test_a_hidden_terminal_photo_stays_private(self):
-        make_terminal_photo(make_proposal(), caption="PRIVATE-PHOTO", is_visible=False)
+        make_documentation_photo(
+            make_proposal(), caption="PRIVATE-PHOTO", is_visible=False
+        )
         self.assertNotContains(self.client.get(self.gallery_url), "PRIVATE-PHOTO")
 
     def test_a_draft_proposals_photos_stay_private(self):
-        proposal = make_proposal(status="DRAFTING", overall="DRAFT")
-        make_terminal_photo(proposal, caption="DRAFT-PHOTO")
+        proposal = make_proposal(proposal_status="DRAFTING", status="DRAFT")
+        make_documentation_photo(proposal, caption="DRAFT-PHOTO")
         self.assertNotContains(self.client.get(self.gallery_url), "DRAFT-PHOTO")
 
-    def test_terminal_photos_are_listed_before_arranged_ones(self):
-        make_terminal_photo(make_proposal(), caption="FROM-TERMINAL")
-        make_photo(title="FROM-OFFICE")
-        html = self.client.get(self.gallery_url).content.decode()
-        self.assertLess(html.index("FROM-TERMINAL"), html.index("FROM-OFFICE"))
-
-    def test_the_terminal_photo_count_is_reported(self):
-        make_terminal_photo(make_proposal())
+    def test_the_photo_count_is_reported(self):
+        make_documentation_photo(make_proposal())
         section = PageSection.objects.filter(
             page__slug="gallery", layout=PageSection.Layout.GALLERY
         ).first()
         self.assertEqual(resolve_section_data(section)["photo_count"], 1)
 
-    def test_an_admin_can_hide_a_terminal_photo(self):
+    def test_an_admin_can_hide_a_photo(self):
         admin = factories.make_user("moderator", Profile.ROLE_ADMIN)
         client = factories.make_client(admin)
-        photo = make_terminal_photo(make_proposal(), caption="MODERATED")
-        response = client.post(reverse("terminal_photo_toggle", args=[photo.id]))
+        photo = make_documentation_photo(make_proposal(), caption="MODERATED")
+        response = client.post(reverse("documentation_photo_toggle", args=[photo.id]))
         self.assertEqual(response.status_code, 302)
         photo.refresh_from_db()
         self.assertFalse(photo.is_visible)
         self.assertNotContains(self.client.get(self.gallery_url), "MODERATED")
 
-    def test_an_admin_can_delete_a_terminal_photo(self):
+    def test_an_admin_can_delete_a_photo(self):
         admin = factories.make_user("remover", Profile.ROLE_ADMIN)
         client = factories.make_client(admin)
-        photo = make_terminal_photo(make_proposal())
-        client.post(reverse("terminal_photo_delete", args=[photo.id]))
-        self.assertFalse(TerminalReportPhoto.objects.filter(pk=photo.pk).exists())
+        photo = make_documentation_photo(make_proposal())
+        client.post(reverse("documentation_photo_delete", args=[photo.id]))
+        self.assertFalse(DocumentationPhoto.objects.filter(pk=photo.pk).exists())
 
     def test_a_non_admin_cannot_moderate_photos(self):
         user = factories.make_user("plain-user", Profile.ROLE_FACULTY)
         client = factories.make_client(user)
-        photo = make_terminal_photo(make_proposal())
-        response = client.post(reverse("terminal_photo_toggle", args=[photo.id]))
+        photo = make_documentation_photo(make_proposal())
+        response = client.post(reverse("documentation_photo_toggle", args=[photo.id]))
         self.assertIn(response.status_code, DENIED)
         photo.refresh_from_db()
         self.assertTrue(photo.is_visible)
@@ -916,9 +762,7 @@ class CampusesBlockTests(TestCase):
                 self.assertContains(response, name)
 
     def test_each_campus_shows_how_many_programs_it_has_run(self):
-        ExtensionProgram.objects.create(
-            title="STA-MARIA-PROGRAM", campus="Sta. Maria Campus", year=2025
-        )
+        make_proposal(title="STA-MARIA-PROGRAM", campus="Sta. Maria Campus")
         data = resolve_section_data(self.section)
         counts = {c["label"]: c["program_count"] for c in data["campuses"]}
         # "Sta. Maria Campus" on the program matches the "Sta Maria" campus row.
@@ -927,10 +771,8 @@ class CampusesBlockTests(TestCase):
         # Every campus the institution records is listed, not just the seeded ones.
         self.assertEqual(data["campus_count"], Campus.objects.count())
 
-    def test_a_campus_that_only_appears_in_a_program_is_still_listed(self):
-        ExtensionProgram.objects.create(
-            title="UNLISTED-CAMPUS", campus="Cervantes Campus", year=2025
-        )
+    def test_a_campus_that_only_appears_in_a_proposal_is_still_listed(self):
+        make_proposal(title="UNLISTED-CAMPUS", campus="Cervantes Campus")
         data = resolve_section_data(self.section)
         labels = {c["label"] for c in data["campuses"]}
         self.assertIn("Cervantes Campus", labels)

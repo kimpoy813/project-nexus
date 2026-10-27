@@ -244,8 +244,8 @@ def _resolve_campuses(section):
 
     Campus rows are the institution's own (``accounts.Campus``); the programme
     counts come from the same directory the Programs page uses, so the two can
-    never disagree. A campus that only appears in a program record is still
-    listed, because it is genuinely being served.
+    never disagree. A campus named only on a proposal is still listed, because
+    it is genuinely being served.
     """
     from accounts.models import Campus
 
@@ -333,13 +333,18 @@ def _facet(entries, field, choices=None):
 def _resolve_programs(section):
     """The Programs directory: merged entries, their facets, and totals.
 
-    Entries come from ``details.program_directory``, which joins approved
-    proposals, legacy uploads, and standalone program records into one list —
-    so the page shows the office's real inventory, with each program's own
-    document, instead of a second copy of it.
+    Entries come from ``details.program_directory``, which reads approved and
+    legacy proposals — the only place a program is recorded — so the page shows
+    the office's real inventory with each program's own document, instead of a
+    second copy of it.
     """
-    from .models import ExtensionProgram
-    from .program_directory import build_program_entries, program_entry_stats
+    from .program_directory import (
+        EXTENSION_TYPE_LABELS,
+        LED_BY_LABELS,
+        RESEARCH_BASIS_LABELS,
+        build_program_entries,
+        program_entry_stats,
+    )
 
     entries = build_program_entries()
 
@@ -367,91 +372,60 @@ def _resolve_programs(section):
                 for year in sorted(year_counts, reverse=True)
             ],
             "extension_types": _facet(
-                entries, "extension_type", ExtensionProgram.ExtensionType.choices
+                entries, "extension_type", tuple(EXTENSION_TYPE_LABELS.items())
             ),
             "research_bases": _facet(
-                entries, "research_basis", ExtensionProgram.ResearchBasis.choices
+                entries, "research_basis", tuple(RESEARCH_BASIS_LABELS.items())
             ),
             "proponents": _facet(
-                entries, "led_by", ExtensionProgram.Proponent.choices
+                entries, "led_by", tuple(LED_BY_LABELS.items())
             ),
         },
     }
 
 
 def _resolve_gallery(section):
-    """Photos for the Gallery block.
+    """Photos for the Gallery block: the documentation filed with a proposal.
 
-    The primary source is the documentation a proponent submits with the
-    terminal report (``proposals.TerminalReportPhoto``): the photos already
-    exist because the office requires them at "Final Evaluation and
-    Documentation", so the public gallery is filled by the workflow itself
-    rather than by a second upload.
+    The terminal report requires *photo documentation in action with caption*
+    (appendix E.13), so the proponent uploads those photos with the report and
+    the Gallery shows them. Legacy activities have no terminal report in the
+    system, so the office attaches the same kind of photos while importing the
+    legacy proposal.
 
-    Photos the office arranged by hand (``details.GalleryPhoto``) follow, for
-    work that predates the system or was never filed through a proposal. Each
-    entry is a plain dict, so the block template does not care which source an
-    image came from.
+    One structure, one place: a photo belongs to the activity it documents, so
+    it can never appear in the gallery without the program behind it. Each
+    entry is a plain dict, so the block template does not care where an image
+    came from.
     """
-    from .models import GalleryPhoto
+    from proposals.models import DocumentationPhoto, Proposal
 
-    entries = []
-
-    try:
-        from proposals.models import Proposal, TerminalReportPhoto
-    except Exception:  # pragma: no cover - proposals is always installed
-        Proposal = TerminalReportPhoto = None
-
-    if TerminalReportPhoto is not None:
-        photos = (
-            TerminalReportPhoto.objects.filter(
-                is_visible=True,
-                proposal__status__in=[
-                    Proposal.OverallStatus.ACTIVE,
-                    Proposal.OverallStatus.COMPLETED,
-                ],
-            )
-            .exclude(proposal__proposal_status="REJECTED")
-            .select_related("proposal")
-            .order_by("-proposal__last_saved_at", "order", "id")
+    photos = (
+        DocumentationPhoto.objects.filter(
+            is_visible=True,
+            proposal__proposal_status__in=["APPROVED", "COMPLETED"],
         )
-        entries.extend(
-            {
-                "image_url": photo.image.url,
-                "title": photo.display_title,
-                "caption": photo.caption,
-                "subtitle": photo.proposal.display_title,
-                "campus": photo.proposal.campus or "",
-                "taken_on": photo.uploaded_at.date() if photo.uploaded_at else None,
-                "source": "TERMINAL_REPORT",
-                "source_label": "Terminal report",
-            }
-            for photo in photos
-            if photo.image
-        )
-
-    arranged = (
-        GalleryPhoto.objects.filter(is_visible=True)
-        .select_related("program")
-        .order_by("order", "id")
+        .exclude(proposal__status=Proposal.OverallStatus.REJECTED)
+        .select_related("proposal")
+        .order_by("-proposal__estimated_year", "-proposal__last_saved_at", "order", "id")
     )
-    entries.extend(
+
+    entries = [
         {
             "image_url": photo.image.url,
-            "title": photo.display_title,
-            "caption": photo.caption,
-            "subtitle": (
-                photo.program_title
-                if photo.program_title and photo.program_title != photo.display_title
-                else ""
+            "title": photo.caption or photo.proposal.display_title,
+            "caption": photo.caption if photo.caption != photo.proposal.display_title else "",
+            "subtitle": photo.proposal.display_title,
+            "campus": photo.proposal.campus or "",
+            "taken_on": photo.uploaded_at.date() if photo.uploaded_at else None,
+            "source": "LEGACY" if photo.proposal.is_legacy else "TERMINAL_REPORT",
+            "source_label": (
+                "Legacy upload" if photo.proposal.is_legacy else "Terminal report"
             ),
-            "campus": photo.campus_label,
-            "taken_on": photo.taken_on,
-            "source": "ARRANGED",
-            "source_label": "Office upload",
         }
-        for photo in arranged
-    )
+        for photo in photos
+        if photo.image
+    ]
 
     return {"photos": entries, "photo_count": len(entries)}
 
