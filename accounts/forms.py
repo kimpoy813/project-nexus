@@ -776,8 +776,9 @@ class ExtensionProgramForm(StyledFormMixin, forms.ModelForm):
     """Admin form for one Extension Program record.
 
     ``year`` is bounded so a typo (e.g. 20255) cannot push the program out of
-    every filter on the public directory, and ``document_url`` is only allowed
-    to be http(s) so a pasted "javascript:" link can never reach the page.
+    every filter on the public directory. The document is a file upload, not a
+    typed link: a program's paper trail is either the approved proposal already
+    on the system or the legacy upload the office attaches here.
     """
 
     class Meta:
@@ -786,6 +787,7 @@ class ExtensionProgramForm(StyledFormMixin, forms.ModelForm):
         model = _ExtensionProgram
         fields = [
             "title",
+            "proposal",
             "campus",
             "year",
             "extension_type",
@@ -799,7 +801,7 @@ class ExtensionProgramForm(StyledFormMixin, forms.ModelForm):
             "research_staff_participants",
             "beneficiaries",
             "cover_image",
-            "document_url",
+            "document",
             "is_visible",
         ]
         widgets = {
@@ -814,7 +816,20 @@ class ExtensionProgramForm(StyledFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from details.models import ExtensionProgram
+        from proposals.models import Proposal
+
         self.fields["year"].widget.attrs.update({"min": 2000, "max": 2100})
+        # Only approved proposals belong in the directory, so only those can be
+        # picked as the source of a record.
+        self.fields["proposal"].queryset = (
+            Proposal.objects.filter(proposal_status__in=["APPROVED", "COMPLETED"])
+            .exclude(pk__in=ExtensionProgram.objects.exclude(pk=self.instance.pk or 0)
+                     .exclude(proposal__isnull=True).values_list("proposal_id", flat=True))
+            .order_by("-last_saved_at")
+        )
+        self.fields["proposal"].empty_label = "No proposal (legacy / manual record)"
+        self.fields["document"].widget.attrs.update({"accept": ".pdf,.doc,.docx"})
         self.apply_styled_widgets()
 
     def clean_year(self):
@@ -822,16 +837,6 @@ class ExtensionProgramForm(StyledFormMixin, forms.ModelForm):
         if not 2000 <= year <= 2100:
             raise ValidationError("Enter a year between 2000 and 2100.")
         return year
-
-    def clean_document_url(self):
-        url = (self.cleaned_data.get("document_url") or "").strip()
-        if not url:
-            return ""
-        from django.core.validators import URLValidator
-
-        URLValidator(schemes=["http", "https"])(url)
-        return url
-
 
 class GalleryPhotoForm(StyledFormMixin, forms.ModelForm):
     """Admin form for one Gallery photo."""

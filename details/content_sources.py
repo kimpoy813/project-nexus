@@ -221,10 +221,10 @@ def _resolve_personnel(section):
     return {"personnel": qs}
 
 
-def _facet(rows, field, choices=None):
+def _facet(entries, field, choices=None):
     """``[{value, label, count, percent}, ...]`` for a Programs-block filter.
 
-    Counts are of the *published* rows only, so a filter never offers a value
+    Counts are of the published entries only, so a filter never offers a value
     the visitor can select and then see nothing. ``percent`` is the share of
     the directory, which drives the overview bars. Choice fields keep the
     declared order (``choices``); free-text fields such as campus are sorted
@@ -232,20 +232,22 @@ def _facet(rows, field, choices=None):
     """
     counts = {}
     labels = {}
-    for row in rows:
-        value = getattr(row, field) or ""
+    for entry in entries:
+        value = entry.get(field) or ""
         if not value:
             continue
         counts[value] = counts.get(value, 0) + 1
         if choices and value in dict(choices):
             labels[value] = str(dict(choices)[value])
+        elif entry.get(f"{field}_label"):
+            labels[value] = entry[f"{field}_label"]
 
     if choices:
         ordered = [value for value, _label in choices if value in counts]
     else:
         ordered = sorted(counts, key=str.lower)
 
-    total = len(rows)
+    total = len(entries)
     return [
         {
             "value": value,
@@ -258,78 +260,111 @@ def _facet(rows, field, choices=None):
 
 
 def _resolve_programs(section):
-    """The Programs directory: published programs, their facets, and totals."""
-    from .models import ExtensionProgram
+    """The Programs directory: merged entries, their facets, and totals.
 
-    programs = list(
-        ExtensionProgram.objects.filter(is_visible=True).order_by("-year", "title")
-    )
+    Entries come from ``details.program_directory``, which joins approved
+    proposals, legacy uploads, and standalone program records into one list —
+    so the page shows the office's real inventory, with each program's own
+    document, instead of a second copy of it.
+    """
+    from .models import ExtensionProgram
+    from .program_directory import build_program_entries, program_entry_stats
+
+    entries = build_program_entries()
 
     year_counts = {}
-    for program in programs:
-        if program.year:
-            year_counts[program.year] = year_counts.get(program.year, 0) + 1
-
-    stats = {
-        "program_count": len(programs),
-        "campus_count": len({p.campus for p in programs if p.campus}),
-        "beneficiaries": sum(p.beneficiaries for p in programs),
-        "students": sum(p.student_participants for p in programs),
-        "faculty": sum(p.faculty_participants for p in programs),
-        "research_staff": sum(p.research_staff_participants for p in programs),
-    }
+    for entry in entries:
+        if entry["year"]:
+            year_counts[entry["year"]] = year_counts.get(entry["year"], 0) + 1
 
     return {
-        "programs": programs,
-        "stats": stats,
+        "programs": entries,
+        "stats": program_entry_stats(entries),
         "facets": {
-            "campuses": _facet(programs, "campus"),
+            "campuses": _facet(entries, "campus"),
             "years": [
                 {
                     "value": year,
                     "label": str(year),
                     "count": year_counts[year],
                     "percent": (
-                        round(100 * year_counts[year] / len(programs))
-                        if programs
+                        round(100 * year_counts[year] / len(entries))
+                        if entries
                         else 0
                     ),
                 }
                 for year in sorted(year_counts, reverse=True)
             ],
             "extension_types": _facet(
-                programs, "extension_type", ExtensionProgram.ExtensionType.choices
+                entries, "extension_type", ExtensionProgram.ExtensionType.choices
             ),
             "research_bases": _facet(
-                programs, "research_basis", ExtensionProgram.ResearchBasis.choices
+                entries, "research_basis", ExtensionProgram.ResearchBasis.choices
             ),
             "proponents": _facet(
-                programs, "led_by", ExtensionProgram.Proponent.choices
+                entries, "led_by", ExtensionProgram.Proponent.choices
             ),
         },
     }
 
 
 def _resolve_gallery(section):
-    """Photos published in the Gallery block.
+    """Photos for the Gallery block.
 
-    Gallery photos come first, in the order the office arranged them. A
-    program's own cover photo is then added for any published program that has
-    no gallery photo yet, so the gallery fills itself from the Programs
-    directory instead of asking for the same upload twice. Adding a real
-    gallery photo for that program retires the automatic cover.
+    The primary source is the documentation a proponent submits with the
+    terminal report (``proposals.TerminalReportPhoto``): the photos already
+    exist because the office requires them at "Final Evaluation and
+    Documentation", so the public gallery is filled by the workflow itself
+    rather than by a second upload.
 
-    Every entry is a plain dict, so the block template does not have to know
-    which of the two sources an image came from.
+    Photos the office arranged by hand (``details.GalleryPhoto``) follow, for
+    work that predates the system or was never filed through a proposal. Each
+    entry is a plain dict, so the block template does not care which source an
+    image came from.
     """
-    from .models import ExtensionProgram, GalleryPhoto
+    from .models import GalleryPhoto
 
-    photos = list(
+    entries = []
+
+    try:
+        from proposals.models import Proposal, TerminalReportPhoto
+    except Exception:  # pragma: no cover - proposals is always installed
+        Proposal = TerminalReportPhoto = None
+
+    if TerminalReportPhoto is not None:
+        photos = (
+            TerminalReportPhoto.objects.filter(
+                is_visible=True,
+                proposal__status__in=[
+                    Proposal.OverallStatus.ACTIVE,
+                    Proposal.OverallStatus.COMPLETED,
+                ],
+            )
+            .exclude(proposal__proposal_status="REJECTED")
+            .select_related("proposal")
+            .order_by("-proposal__last_saved_at", "order", "id")
+        )
+        entries.extend(
+            {
+                "image_url": photo.image.url,
+                "title": photo.display_title,
+                "caption": photo.caption,
+                "subtitle": photo.proposal.display_title,
+                "campus": photo.proposal.campus or "",
+                "taken_on": photo.uploaded_at.date() if photo.uploaded_at else None,
+                "source": "TERMINAL_REPORT",
+                "source_label": "Terminal report",
+            }
+            for photo in photos
+            if photo.image
+        )
+
+    arranged = (
         GalleryPhoto.objects.filter(is_visible=True)
         .select_related("program")
         .order_by("order", "id")
     )
-    entries = [
+    entries.extend(
         {
             "image_url": photo.image.url,
             "title": photo.display_title,
@@ -341,28 +376,11 @@ def _resolve_gallery(section):
             ),
             "campus": photo.campus_label,
             "taken_on": photo.taken_on,
+            "source": "ARRANGED",
+            "source_label": "Office upload",
         }
-        for photo in photos
-    ]
-
-    covered_programs = {photo.program_id for photo in photos if photo.program_id}
-    covers = (
-        ExtensionProgram.objects.filter(is_visible=True, cover_image__isnull=False)
-        .exclude(cover_image="")
-        .exclude(pk__in=covered_programs)
-        .order_by("-year", "title")
+        for photo in arranged
     )
-    for program in covers:
-        entries.append(
-            {
-                "image_url": program.cover_image.url,
-                "title": program.title,
-                "caption": "",
-                "subtitle": "",
-                "campus": program.campus,
-                "taken_on": None,
-            }
-        )
 
     return {"photos": entries, "photo_count": len(entries)}
 

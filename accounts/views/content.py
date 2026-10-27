@@ -873,7 +873,9 @@ def programs_list(request):
 
     from details.models import ExtensionProgram
 
-    programs = ExtensionProgram.objects.all().order_by("-year", "title")
+    from proposals.models import Proposal
+
+    programs = ExtensionProgram.objects.select_related("proposal").order_by("-year", "title")
     query = (request.GET.get("q") or "").strip()
     if query:
         programs = programs.filter(
@@ -881,6 +883,15 @@ def programs_list(request):
             | Q(campus__icontains=query)
             | Q(target_community__icontains=query)
         )
+
+    # Approved proposals are published automatically; these counts show how
+    # much of the directory the office does not have to maintain by hand.
+    approved = Proposal.objects.filter(
+        proposal_status__in=["APPROVED", "COMPLETED"], is_legacy=False
+    )
+    legacy = Proposal.objects.filter(
+        proposal_status__in=["APPROVED", "COMPLETED"], is_legacy=True
+    )
 
     return render(
         request,
@@ -890,6 +901,9 @@ def programs_list(request):
             "query": query,
             "total_count": ExtensionProgram.objects.count(),
             "visible_count": ExtensionProgram.objects.filter(is_visible=True).count(),
+            "approved_count": approved.count(),
+            "legacy_count": legacy.count(),
+            "legacy_without_file": legacy.filter(legacy_proposal_file="").count(),
         },
     )
 
@@ -954,17 +968,65 @@ def program_delete(request, pk):
 @login_required
 @admin_required
 def gallery_photos_list(request):
+    """Moderate both gallery sources: arranged photos and terminal reports.
+
+    The gallery is fed by the terminal reports proponents submit, so the
+    office needs somewhere to hide a photo that should stay on the record but
+    not on a public page.
+    """
     from details.models import GalleryPhoto
+    from proposals.models import TerminalReportPhoto
 
     photos = (
         GalleryPhoto.objects.select_related("program")
         .order_by("order", "id")
     )
+    terminal_photos = (
+        TerminalReportPhoto.objects.select_related("proposal", "uploaded_by")
+        .order_by("-proposal__last_saved_at", "order", "id")
+    )
     return render(
         request,
         "dashboard/admin/gallery_photos_list.html",
-        {"photos": photos},
+        {
+            "photos": photos,
+            "terminal_photos": terminal_photos,
+            "terminal_photo_count": terminal_photos.count(),
+            "hidden_terminal_count": terminal_photos.filter(is_visible=False).count(),
+        },
     )
+
+
+@login_required
+@admin_required
+@require_POST
+def terminal_photo_toggle(request, pk):
+    """Show or hide one terminal-report photo on the public Gallery."""
+    from proposals.models import TerminalReportPhoto
+
+    photo = get_object_or_404(TerminalReportPhoto, pk=pk)
+    photo.is_visible = not photo.is_visible
+    photo.save(update_fields=["is_visible"])
+    messages.success(
+        request,
+        "Photo is now shown in the public gallery."
+        if photo.is_visible
+        else "Photo is hidden from the public gallery but kept on the record.",
+    )
+    return redirect("gallery_photos_list")
+
+
+@login_required
+@admin_required
+@require_POST
+def terminal_photo_delete(request, pk):
+    """Delete one terminal-report photo, on the record and in the gallery."""
+    from proposals.models import TerminalReportPhoto
+
+    photo = get_object_or_404(TerminalReportPhoto, pk=pk)
+    photo.delete()
+    messages.success(request, "Documentation photo deleted.")
+    return redirect("gallery_photos_list")
 
 
 @login_required

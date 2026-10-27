@@ -6,8 +6,10 @@
         <div>
             <h1 class="text-2xl font-bold nx-page-title">Extension Programs</h1>
             <p class="mt-1 text-sm text-gray-600 nx-page-description">
-                {{ total_count }} program{{ total_count|pluralize }} · {{ visible_count }} published.
-                These records feed the Programs page directory and the Gallery.
+                Approved proposals ({{ approved_count }}) and legacy uploads
+                ({{ legacy_count }}) are published automatically. The
+                {{ total_count }} record{{ total_count|pluralize }} below are for
+                programs with no proposal in the system.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -32,11 +34,21 @@
         {% endif %}
     </form>
 
+    {% if legacy_without_file %}
+        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            {{ legacy_without_file }} legacy upload{{ legacy_without_file|pluralize }} ha{{ legacy_without_file|pluralize:"s,ve" }}
+            no document attached, so their directory cards have no “View legacy upload” link.
+            Add the document from <em>Content &amp; Builders → Legacy Proposals</em>.
+        </div>
+    {% endif %}
+
     <div class="bg-white border rounded-xl overflow-hidden nx-panel">
         <table class="min-w-full nx-table">
         <thead class="bg-gray-50">
             <tr>
             <th class="text-left p-3">Program</th>
+            <th class="text-left p-3">Linked proposal</th>
+            <th class="text-left p-3">Document</th>
             <th class="text-left p-3">Campus</th>
             <th class="text-left p-3">Year</th>
             <th class="text-left p-3">Type</th>
@@ -51,6 +63,22 @@
             <td class="p-3">
                 <p class="font-medium text-gray-900">{{ program.title }}</p>
                 <p class="text-xs text-gray-500">{{ program.get_research_basis_display }} · Led by {{ program.get_led_by_display }}</p>
+            </td>
+            <td class="p-3 text-xs text-gray-500">
+                {% if program.proposal %}
+                    <span class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 font-semibold text-primary">Approved</span>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td class="p-3 text-xs">
+                {% if program.document %}
+                    <a href="{{ program.document.url }}" target="_blank" rel="noopener" class="font-medium text-primary hover:underline">Legacy upload</a>
+                {% elif program.safe_document_url %}
+                    <a href="{{ program.safe_document_url }}" target="_blank" rel="noopener" class="font-medium text-primary hover:underline">External link</a>
+                {% else %}
+                    <span class="text-gray-400">None</span>
+                {% endif %}
             </td>
             <td class="p-3">{{ program.campus|default:"—" }}</td>
             <td class="p-3 tabular-nums">{{ program.year }}</td>
@@ -82,7 +110,7 @@
             </td>
             </tr>
             {% empty %}
-            <tr><td class="p-6 text-gray-500" colspan="7">
+            <tr><td class="p-6 text-gray-500" colspan="9">
                 {% if query %}No programs match “{{ query }}”.{% else %}No programs yet. Add the first one with the + button.{% endif %}
             </td></tr>
             {% endfor %}

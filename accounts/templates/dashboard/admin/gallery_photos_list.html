@@ -6,9 +6,9 @@
         <div>
             <h1 class="text-2xl font-bold nx-page-title">Gallery</h1>
             <p class="mt-1 text-sm text-gray-600 nx-page-description">
-                Photographs of extension programs. The order here is the order
-                visitors see on the Gallery page. A program with no gallery photo
-                here shows its own cover photo automatically.
+                Photos come from the documentation proponents submit with their
+                terminal reports. Uploads below are for work that predates the
+                system.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -19,6 +19,78 @@
                 <svg class="nx-icon nx-icon--lg" aria-hidden="true"><use href="#nx-icon-plus"></use></svg>
             </a>
         </div>
+    </div>
+
+    <!-- From terminal reports (the primary source) -->
+    <section class="mb-8">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <h2 class="text-base font-semibold text-gray-900">From Terminal Reports</h2>
+                <p class="mt-0.5 text-xs text-gray-500">
+                    {{ terminal_photo_count }} photo{{ terminal_photo_count|pluralize }}
+                    {% if hidden_terminal_count %}· {{ hidden_terminal_count }} hidden{% endif %}
+                    · submitted by proponents at “Final Evaluation and Documentation”.
+                </p>
+            </div>
+            <a href="{% url 'programs_list' %}" class="text-xs font-medium text-primary hover:underline">Programs directory →</a>
+        </div>
+
+        {% if terminal_photos %}
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {% for photo in terminal_photos %}
+                <article class="overflow-hidden rounded-xl border bg-white nx-panel">
+                    <div class="relative">
+                        <img src="{{ photo.image.url }}" alt="{{ photo.display_title }}"
+                             class="h-36 w-full object-cover">
+                        {% if not photo.is_visible %}
+                            <span class="absolute inset-0 grid place-items-center bg-black/50 text-[11px] font-bold uppercase tracking-wide text-white">
+                                Hidden from gallery
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="p-3">
+                        <p class="truncate text-xs font-semibold text-gray-900" title="{{ photo.proposal.display_title }}">
+                            {{ photo.proposal.display_title }}
+                        </p>
+                        <p class="mt-0.5 text-[11px] text-gray-500">
+                            {{ photo.proposal.campus|default:"No campus" }}
+                            · uploaded {{ photo.uploaded_at|date:"M d, Y" }}
+                        </p>
+                        <div class="mt-3 flex items-center justify-between gap-2">
+                            <form method="post" action="{% url 'terminal_photo_toggle' photo.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="nx-btn nx-btn--secondary nx-btn--compact text-xs">
+                                    {% if photo.is_visible %}Hide{% else %}Show{% endif %}
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'terminal_photo_delete' photo.id %}"
+                                  onsubmit="return confirm('Delete this photo? It is removed from the record and the gallery.');">
+                                {% csrf_token %}
+                                <button type="submit" class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                        data-nx-tooltip="Delete photo" aria-label="Delete photo">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="rounded-xl border border-dashed bg-white p-8 text-center nx-panel">
+                <p class="text-sm text-gray-500">
+                    No documentation photos yet. Proponents add them to the terminal report in the
+                    Implementation Tracker, and they appear here automatically.
+                </p>
+            </div>
+        {% endif %}
+    </section>
+
+    <div class="mb-3">
+        <h2 class="text-base font-semibold text-gray-900">Added by the office</h2>
+        <p class="mt-0.5 text-xs text-gray-500">
+            Photos for work that predates the system, shown after the terminal-report photos.
+        </p>
     </div>
 
     {% if photos %}

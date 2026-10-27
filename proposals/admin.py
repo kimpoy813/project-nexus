@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import CustomProposalTemplate
 from .models import ProposalPhaseLog
 from .models import ProposalTemplateOverride
+from .models import TerminalReportPhoto
 
 
 @admin.register(ProposalPhaseLog)
@@ -30,3 +31,14 @@ class CustomProposalTemplateAdmin(admin.ModelAdmin):
     prepopulated_fields = {"key": ("title",)}
     readonly_fields = ("uploaded_at", "updated_at")
     ordering = ("title",)
+
+
+@admin.register(TerminalReportPhoto)
+class TerminalReportPhotoAdmin(admin.ModelAdmin):
+    """Documentation photos that fill the public Gallery."""
+
+    list_display = ("proposal", "caption", "is_visible", "uploaded_by", "uploaded_at")
+    list_filter = ("is_visible",)
+    search_fields = ("caption", "proposal__title", "proposal__research_title")
+    readonly_fields = ("uploaded_at",)
+    ordering = ("-uploaded_at",)

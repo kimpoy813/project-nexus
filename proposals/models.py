@@ -1782,6 +1782,84 @@ class ProposalFinalDocument(models.Model):
                 is_current=True,
             )
     
+def terminal_photo_path(instance, filename):
+    """Storage path for one terminal-report photo.
+
+    Files are grouped per proposal and renamed to a random id, so two phones
+    uploading ``IMG_0001.jpg`` in the same batch cannot overwrite each other
+    and a replacement never inherits the old image's cached URL.
+    """
+    suffix = os.path.splitext(filename or "")[1].lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+        suffix = ".jpg"
+    return f"terminal_report_photos/{instance.proposal_id}/{uuid.uuid4().hex}{suffix}"
+
+
+class TerminalReportPhoto(models.Model):
+    """A documentation photo submitted with a proposal's terminal report.
+
+    The "Final Evaluation and Documentation" step of the implementation
+    tracker is where a proponent hands over the terminal report — and the
+    photographs that document the activity. Those photos are what the public
+    Gallery displays, so the office never has to upload the same pictures a
+    second time.
+
+    ``is_visible`` lets the Extension Office keep a photo on the record while
+    withholding it from the public gallery (a photo showing identifiable
+    beneficiaries, for example), without deleting the documentation.
+    """
+
+    proposal = models.ForeignKey(
+        Proposal,
+        on_delete=models.CASCADE,
+        related_name="documentation_photos",
+    )
+    image = models.ImageField(
+        upload_to=terminal_photo_path,
+        help_text="Photo of the activity, as submitted with the terminal report.",
+    )
+    caption = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Optional caption shown in the public gallery.",
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_terminal_report_photos",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Uncheck to keep the photo on file but out of the public gallery.",
+    )
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Terminal Report Photo"
+
+    def __str__(self):
+        return self.caption or f"{self.proposal} · photo {self.pk}"
+
+    def save(self, *args, **kwargs):
+        if self.order is None or self.order == 0:
+            last = (
+                TerminalReportPhoto.objects.filter(proposal_id=self.proposal_id)
+                .aggregate(models.Max("order"))["order__max"]
+                or 0
+            )
+            self.order = last + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def display_title(self):
+        return self.caption or (self.proposal.display_title if self.proposal_id else "")
+
+
 class ProposalPhaseLog(models.Model):
     """
     Audit trail entry for a MOA or Implementation stage transition.

@@ -204,6 +204,17 @@ urlpatterns = [
     path("admin/gallery/create/", views.gallery_photo_create, name="gallery_photo_create"),
     path("admin/gallery/<int:pk>/edit/", views.gallery_photo_edit, name="gallery_photo_edit"),
     path("admin/gallery/<int:pk>/delete/", views.gallery_photo_delete, name="gallery_photo_delete"),
+    # Documentation photos submitted with terminal reports (public Gallery).
+    path(
+        "admin/gallery/terminal/<int:pk>/toggle/",
+        views.terminal_photo_toggle,
+        name="terminal_photo_toggle",
+    ),
+    path(
+        "admin/gallery/terminal/<int:pk>/delete/",
+        views.terminal_photo_delete,
+        name="terminal_photo_delete",
+    ),
 
     # Processes management
     path("admin/processes/", views.processes_list, name="processes_list"),

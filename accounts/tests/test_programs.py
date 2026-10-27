@@ -24,6 +24,7 @@ from details.models import (
     SitePage,
     resolve_section_data,
 )
+from proposals.models import Proposal, ProposalFinalDocument, TerminalReportPhoto
 
 from . import factories
 
@@ -36,6 +37,47 @@ TINY_GIF = (
     b"\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00"
     b"\x00\x02\x02D\x01\x00;"
 )
+
+
+def make_proposal(*, status="APPROVED", overall="ACTIVE", legacy=False, **overrides):
+    """A proposal in the state the Programs directory publishes."""
+    owner = overrides.pop("owner", None) or factories.make_user(
+        f"owner-{Proposal.objects.count()}", Profile.ROLE_FACULTY
+    )
+    defaults = {
+        "created_by": owner,
+        "title": "PROPOSAL-MARKER",
+        "campus": "Main Campus",
+        "proposal_status": status,
+        "status": overall,
+        "is_legacy": legacy,
+        "extension_type": Proposal.ExtensionType.COMMUNITY_BASED,
+        "beneficiaries_count": 40,
+        "beneficiaries_who": "Barangay Sabangan residents",
+        "estimated_month": "May",
+        "estimated_year": 2025,
+        "general_objective": "Improve household nutrition.",
+    }
+    defaults.update(overrides)
+    return Proposal.objects.create(**defaults)
+
+
+def make_signed_document(proposal, name="signed.pdf"):
+    return ProposalFinalDocument.add_version(
+        proposal=proposal,
+        document_type=ProposalFinalDocument.DocumentType.SIGNED_PROPOSAL,
+        file=SimpleUploadedFile(name, b"%PDF-1.4 signed proposal"),
+    )
+
+
+def make_terminal_photo(proposal, caption="TERMINAL-PHOTO", **overrides):
+    defaults = {
+        "proposal": proposal,
+        "image": SimpleUploadedFile("doc.gif", TINY_GIF, content_type="image/gif"),
+        "caption": caption,
+    }
+    defaults.update(overrides)
+    return TerminalReportPhoto.objects.create(**defaults)
 
 
 def make_photo(**overrides):
@@ -112,7 +154,7 @@ class ProgramsPageTests(TestCase):
         self.programs_url = reverse("programs_page")
 
     def test_a_program_row_appears_with_its_details(self):
-        ExtensionProgram.objects.create(
+        program = ExtensionProgram.objects.create(
             title="PROGRAM-MARKER",
             campus="Main Campus",
             year=2025,
@@ -125,7 +167,7 @@ class ProgramsPageTests(TestCase):
             student_participants=50,
             faculty_participants=5,
             beneficiaries=34,
-            document_url="https://example.com/document",
+            document=SimpleUploadedFile("doc-marker.pdf", b"%PDF-1.4 marker"),
         )
 
         response = self.client.get(self.programs_url)
@@ -134,7 +176,10 @@ class ProgramsPageTests(TestCase):
         self.assertContains(response, "Dili National High School")
         self.assertContains(response, "September 2025 – February 2026")
         self.assertContains(response, "Improve reading comprehension.")
-        self.assertContains(response, 'href="https://example.com/document"')
+        self.assertContains(response, "View legacy upload")
+        self.assertContains(
+            response, reverse("program_document", kwargs={"key": f"r{program.pk}"})
+        )
         # Filters are built from the published rows only.
         self.assertContains(response, 'data-campus="Main Campus"')
         self.assertContains(response, 'id="program-campus-')
@@ -274,13 +319,16 @@ class ProgramAdminTests(TestCase):
         self.assertFalse(program.is_visible)
         self.assertNotContains(self.client.get(reverse("programs_page")), "TO-HIDE-MARKER")
 
-    def test_a_url_outside_http_is_rejected(self):
-        before = ExtensionProgram.objects.count()
-        self.client_admin.post(
-            reverse("program_create"),
-            self._payload(document_url="javascript:alert(1)"),
+    def test_a_typed_document_url_is_not_published(self):
+        """The document is a file, not a free-form link the admin types."""
+        program = ExtensionProgram.objects.create(
+            title="LINK-ONLY",
+            document_url="https://example.com/still-archived",
         )
-        self.assertEqual(ExtensionProgram.objects.count(), before)
+        response = self.client.get(reverse("programs_page"))
+        self.assertContains(response, "LINK-ONLY")
+        self.assertNotContains(response, "still-archived")
+        self.assertEqual(program.safe_document_url, "https://example.com/still-archived")
 
     def test_delete_requires_post(self):
         program = ExtensionProgram.objects.create(title="DELETE-ME")
@@ -477,42 +525,6 @@ class GalleryTests(TestCase):
         response = self.client_admin.get(reverse("gallery_photos_list"))
         self.assertContains(response, "MANAGED-PHOTO")
 
-    def test_a_program_cover_fills_the_gallery_when_no_photo_exists(self):
-        """A cover photo already uploaded on the program is not asked for twice."""
-        ExtensionProgram.objects.create(
-            title="COVER-PROGRAM",
-            campus="Main Campus",
-            cover_image=SimpleUploadedFile(
-                "cover.gif", TINY_GIF, content_type="image/gif"
-            ),
-        )
-        response = self.client.get(self.gallery_url)
-        self.assertContains(response, "COVER-PROGRAM")
-
-    def test_adding_a_gallery_photo_retires_the_automatic_cover(self):
-        program = ExtensionProgram.objects.create(
-            title="COVER-PROGRAM",
-            cover_image=SimpleUploadedFile(
-                "cover.gif", TINY_GIF, content_type="image/gif"
-            ),
-        )
-        make_photo(program=program, title="REAL-PHOTO")
-
-        response = self.client.get(self.gallery_url)
-        self.assertContains(response, "REAL-PHOTO")
-        # The cover is no longer added on its own, so the program appears once.
-        self.assertEqual(response.content.decode().count("Open photo: COVER-PROGRAM"), 0)
-
-    def test_a_hidden_programs_cover_stays_out_of_the_gallery(self):
-        ExtensionProgram.objects.create(
-            title="HIDDEN-COVER",
-            is_visible=False,
-            cover_image=SimpleUploadedFile(
-                "cover.gif", TINY_GIF, content_type="image/gif"
-            ),
-        )
-        self.assertNotContains(self.client.get(self.gallery_url), "HIDDEN-COVER")
-
     def test_the_gallery_block_reports_its_photo_count(self):
         make_photo(title="COUNTED")
         section = PageSection.objects.filter(
@@ -583,3 +595,233 @@ class ProgramsCmsTests(TestCase):
         self.assertContains(
             self.client.get(reverse("about_page")), "CROSS-PAGE-MARKER"
         )
+
+
+class ProposalDirectoryTests(TestCase):
+    """Programs come from the system: approved proposals and legacy uploads.
+
+    The office should not maintain a second copy of a program it already
+    approved, so the directory reads the proposals themselves — and a
+    proposal's own signed document is what its card links to.
+    """
+
+    def setUp(self):
+        self.programs_url = reverse("programs_page")
+
+    def test_an_approved_proposal_appears_with_its_own_details(self):
+        make_proposal(title="APPROVED-MARKER")
+        response = self.client.get(self.programs_url)
+        self.assertContains(response, "APPROVED-MARKER")
+        self.assertContains(response, "Barangay Sabangan residents")
+        self.assertContains(response, "Improve household nutrition.")
+
+    def test_a_draft_proposal_stays_private(self):
+        make_proposal(title="DRAFT-MARKER", status="DRAFTING", overall="DRAFT")
+        self.assertNotContains(self.client.get(self.programs_url), "DRAFT-MARKER")
+
+    def test_a_proposal_under_review_stays_private(self):
+        make_proposal(
+            title="REVIEW-MARKER",
+            status="IN_REVIEW",
+            overall="REJECTED",
+        )
+        self.assertNotContains(self.client.get(self.programs_url), "REVIEW-MARKER")
+
+    def test_a_proposals_signed_document_is_its_document_link(self):
+        proposal = make_proposal(title="DOCUMENT-MARKER")
+        make_signed_document(proposal)
+        response = self.client.get(self.programs_url)
+        self.assertContains(response, "View approved proposal")
+        self.assertContains(
+            response, reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
+        )
+
+    def test_a_proposal_without_a_signed_document_has_no_document_link(self):
+        make_proposal(title="NO-DOCUMENT-MARKER")
+        response = self.client.get(self.programs_url)
+        self.assertContains(response, "NO-DOCUMENT-MARKER")
+        self.assertNotContains(response, "View approved proposal")
+
+    def test_a_legacy_upload_uses_its_uploaded_file(self):
+        proposal = make_proposal(
+            title="LEGACY-MARKER",
+            status="COMPLETED",
+            overall="COMPLETED",
+            legacy=True,
+            legacy_proposal_file=SimpleUploadedFile(
+                "old-proposal.pdf", b"%PDF-1.4 legacy"
+            ),
+        )
+        response = self.client.get(self.programs_url)
+        self.assertContains(response, "LEGACY-MARKER")
+        self.assertContains(response, "View legacy upload")
+        self.assertContains(
+            response, reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
+        )
+
+    def test_a_standalone_record_still_appears(self):
+        ExtensionProgram.objects.create(
+            title="MANUAL-MARKER",
+            campus="Candon Campus",
+            year=2019,
+            document=SimpleUploadedFile("manual.pdf", b"%PDF-1.4 manual"),
+        )
+        response = self.client.get(self.programs_url)
+        self.assertContains(response, "MANUAL-MARKER")
+        self.assertContains(response, "View legacy upload")
+
+    def test_a_record_linked_to_a_proposal_is_not_listed_twice(self):
+        proposal = make_proposal(title="LINKED-PROPOSAL")
+        ExtensionProgram.objects.create(
+            title=proposal.title,
+            campus=proposal.campus,
+            year=2025,
+            proposal=proposal,
+        )
+        html = self.client.get(self.programs_url).content.decode()
+        self.assertEqual(html.count("LINKED-PROPOSAL"), 1)
+
+    def program_data(self):
+        """The Programs block data, resolved the way the page renders it."""
+        section = PageSection.objects.filter(
+            page__slug="programs", layout=PageSection.Layout.PROGRAMS
+        ).first()
+        return resolve_section_data(section)
+
+    def test_the_totals_row_counts_proposals_and_records(self):
+        make_proposal(title="ONE", beneficiaries_count=10)
+        make_proposal(title="TWO", beneficiaries_count=15)
+        ExtensionProgram.objects.create(
+            title="THREE", campus="Tagudin Campus", beneficiaries=5
+        )
+        stats = self.program_data()["stats"]
+        self.assertEqual(stats["program_count"], 3)
+        self.assertEqual(stats["beneficiaries"], 30)
+        self.assertEqual(stats["approved"], 2)
+
+    def test_the_extension_type_choices_come_from_the_proposals(self):
+        make_proposal(title="RESEARCH", extension_type="RESEARCH_FACULTY")
+        types = {
+            facet["value"]
+            for facet in self.program_data()["facets"]["extension_types"]
+        }
+        self.assertIn("RESEARCH_BASED", types)
+        self.assertNotIn("REQUEST_BASED", types)
+
+
+class ProgramDocumentTests(TestCase):
+    """``/programs/document/<key>/`` serves only what the directory publishes."""
+
+    def test_an_approved_proposals_document_downloads(self):
+        proposal = make_proposal()
+        make_signed_document(proposal)
+        response = self.client.get(
+            reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("attachment", response["Content-Disposition"] + "attachment")
+
+    def test_a_legacy_upload_document_downloads(self):
+        proposal = make_proposal(
+            legacy=True,
+            legacy_proposal_file=SimpleUploadedFile(
+                "legacy.pdf", b"%PDF-1.4 legacy"
+            ),
+        )
+        response = self.client.get(
+            reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_a_drafts_document_is_not_reachable(self):
+        proposal = make_proposal(status="DRAFTING", overall="DRAFT")
+        make_signed_document(proposal)
+        response = self.client.get(
+            reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_a_hidden_records_document_is_not_reachable(self):
+        record = ExtensionProgram.objects.create(
+            title="HIDDEN",
+            is_visible=False,
+            document=SimpleUploadedFile("hidden.pdf", b"%PDF-1.4 hidden"),
+        )
+        response = self.client.get(
+            reverse("program_document", kwargs={"key": f"r{record.pk}"})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_a_proposal_without_a_file_is_not_reachable(self):
+        proposal = make_proposal()
+        response = self.client.get(
+            reverse("program_document", kwargs={"key": f"p{proposal.pk}"})
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_an_unparseable_key_is_a_404(self):
+        response = self.client.get(
+            reverse("program_document", kwargs={"key": "zzz"})
+        )
+        self.assertEqual(response.status_code, 404)
+
+
+class TerminalReportGalleryTests(TestCase):
+    """Gallery photos come from the terminal report the proponent submits."""
+
+    def setUp(self):
+        self.gallery_url = reverse("gallery_page")
+
+    def test_a_terminal_report_photo_appears_in_the_gallery(self):
+        make_terminal_photo(make_proposal(), caption="TERMINAL-CAPTION")
+        response = self.client.get(self.gallery_url)
+        self.assertContains(response, "TERMINAL-CAPTION")
+        self.assertContains(response, "Terminal report")
+
+    def test_a_hidden_terminal_photo_stays_private(self):
+        make_terminal_photo(make_proposal(), caption="PRIVATE-PHOTO", is_visible=False)
+        self.assertNotContains(self.client.get(self.gallery_url), "PRIVATE-PHOTO")
+
+    def test_a_draft_proposals_photos_stay_private(self):
+        proposal = make_proposal(status="DRAFTING", overall="DRAFT")
+        make_terminal_photo(proposal, caption="DRAFT-PHOTO")
+        self.assertNotContains(self.client.get(self.gallery_url), "DRAFT-PHOTO")
+
+    def test_terminal_photos_are_listed_before_arranged_ones(self):
+        make_terminal_photo(make_proposal(), caption="FROM-TERMINAL")
+        make_photo(title="FROM-OFFICE")
+        html = self.client.get(self.gallery_url).content.decode()
+        self.assertLess(html.index("FROM-TERMINAL"), html.index("FROM-OFFICE"))
+
+    def test_the_terminal_photo_count_is_reported(self):
+        make_terminal_photo(make_proposal())
+        section = PageSection.objects.filter(
+            page__slug="gallery", layout=PageSection.Layout.GALLERY
+        ).first()
+        self.assertEqual(resolve_section_data(section)["photo_count"], 1)
+
+    def test_an_admin_can_hide_a_terminal_photo(self):
+        admin = factories.make_user("moderator", Profile.ROLE_ADMIN)
+        client = factories.make_client(admin)
+        photo = make_terminal_photo(make_proposal(), caption="MODERATED")
+        response = client.post(reverse("terminal_photo_toggle", args=[photo.id]))
+        self.assertEqual(response.status_code, 302)
+        photo.refresh_from_db()
+        self.assertFalse(photo.is_visible)
+        self.assertNotContains(self.client.get(self.gallery_url), "MODERATED")
+
+    def test_an_admin_can_delete_a_terminal_photo(self):
+        admin = factories.make_user("remover", Profile.ROLE_ADMIN)
+        client = factories.make_client(admin)
+        photo = make_terminal_photo(make_proposal())
+        client.post(reverse("terminal_photo_delete", args=[photo.id]))
+        self.assertFalse(TerminalReportPhoto.objects.filter(pk=photo.pk).exists())
+
+    def test_a_non_admin_cannot_moderate_photos(self):
+        user = factories.make_user("plain-user", Profile.ROLE_FACULTY)
+        client = factories.make_client(user)
+        photo = make_terminal_photo(make_proposal())
+        response = client.post(reverse("terminal_photo_toggle", args=[photo.id]))
+        self.assertIn(response.status_code, DENIED)
+        photo.refresh_from_db()
+        self.assertTrue(photo.is_visible)

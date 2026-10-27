@@ -1,4 +1,4 @@
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import render
 
 from .models import SitePage, resolve_section_data
@@ -68,3 +68,34 @@ def gallery_page(request):
 def about_page(request):
     """The Extension Office's story, contacts, and mandate."""
     return _render_content_page(request, SitePage.Slug.ABOUT)
+
+
+def program_document(request, key):
+    """Serve the document behind one Programs directory entry.
+
+    A program's paper trail is already in the system — the signed proposal of
+    an approved proposal, or the file attached to a legacy upload — so the
+    directory links here instead of asking the office to re-upload it.
+
+    ``key`` is an opaque entry id (see ``details.program_directory``), not a
+    storage path, and only entries the directory publishes resolve at all: a
+    draft's signed document 404s. Files are streamed through Django so the
+    active storage backend (local media or Supabase) behaves the same.
+    """
+    from .program_directory import find_program_document
+
+    resolved = find_program_document(key)
+    if resolved is None:
+        raise Http404("That document is not available.")
+
+    field, filename, title = resolved
+    try:
+        handle = field.open("rb")
+    except FileNotFoundError as error:
+        raise Http404("That document is not available.") from error
+    except Exception as error:  # storage outage must not become a 500
+        raise Http404("That document is not available.") from error
+
+    response = FileResponse(handle, as_attachment=False, filename=filename)
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    return response

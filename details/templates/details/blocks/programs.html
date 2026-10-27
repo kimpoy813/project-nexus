@@ -84,8 +84,8 @@ Context: section, data.programs, data.stats, data.facets
                      data-led="{{ program.led_by }}"
                      data-search="{{ program.title|lower }} {{ program.campus|lower }} {{ program.target_community|lower }}"
                      class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-primary/40 nx-panel">
-                {% if program.cover_image %}
-                    <img src="{{ program.cover_image.url }}" alt="{{ program.title }}"
+                {% if program.cover_image_url %}
+                    <img src="{{ program.cover_image_url }}" alt="{{ program.title }}"
                          class="h-48 w-full object-cover" loading="lazy">
                 {% endif %}
 
@@ -95,12 +95,20 @@ Context: section, data.programs, data.stats, data.facets
                         {% if program.campus %}
                             <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">{{ program.campus }}</span>
                         {% endif %}
-                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{{ program.get_extension_type_display }}</span>
-                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{{ program.get_research_basis_display }}</span>
-                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">Led by {{ program.get_led_by_display }}</span>
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{{ program.extension_type_label }}</span>
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{{ program.research_basis_label }}</span>
+                        {% if program.led_by_label %}
+                            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">Led by {{ program.led_by_label }}</span>
+                        {% endif %}
                     </div>
 
                     <h3 class="mt-3 text-lg font-semibold leading-snug text-gray-900">{{ program.title }}</h3>
+
+                    {% if program.source_label %}
+                        <p class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                            {{ program.source_label }}
+                        </p>
+                    {% endif %}
 
                     {% if program.target_community %}
                         <p class="mt-2 text-sm text-gray-600">
@@ -141,11 +149,11 @@ Context: section, data.programs, data.stats, data.facets
                         </details>
                     {% endif %}
 
-                    {% if program.safe_document_url %}
+                    {% if program.document_url %}
                         <div class="mt-auto pt-4">
-                            <a href="{{ program.safe_document_url }}" target="_blank" rel="noopener noreferrer"
+                            <a href="{{ program.document_url }}" target="_blank" rel="noopener noreferrer"
                                class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-                                View document
+                                {{ program.document_label|default:"View document" }}
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M14 5h5m0 0v5m0-5L10 14M5 7v12h12" />
                                 </svg>

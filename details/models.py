@@ -872,10 +872,34 @@ class ExtensionProgram(models.Model):
         null=True,
         help_text="Optional photo shown on the program card.",
     )
+    document = models.FileField(
+        upload_to="programs/documents/",
+        blank=True,
+        null=True,
+        help_text=(
+            "Legacy upload: the program's proposal document, for work that "
+            "predates this system. Approved proposals already on the system "
+            "are listed automatically, using their own signed document."
+        ),
+    )
     document_url = models.URLField(
         blank=True,
         default="",
-        help_text="Link to the full document, e.g. a Google Drive file.",
+        help_text=(
+            "Archive only: link recorded from an imported spreadsheet. The "
+            "Programs page links to the uploaded document instead."
+        ),
+    )
+    proposal = models.OneToOneField(
+        "proposals.Proposal",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="extension_program",
+        help_text=(
+            "Optional. Link this record to its proposal when the program also "
+            "exists in the system, so the two never drift apart."
+        ),
     )
 
     is_visible = models.BooleanField(

@@ -154,18 +154,31 @@ Program Gallery. Every source is declared once in
 
 ### Programs and Gallery
 
-The **Programs** page is the directory of every published `ExtensionProgram`:
-campus, year, type of extension, research basis, who led it, the partner
-community, schedule, objectives, and the four participant counts. The block
-renders the totals and the year/type/campus overview bars on the server and
-filters the cards in the browser, so the list still reads with JavaScript off.
+The **Programs** page is the directory of every extension program, assembled by
+`details/program_directory.py` from the records that already hold them:
 
-The **Gallery** block shows arranged `GalleryPhoto` rows, then the cover photo
-of any published program that has no gallery photo of its own — one upload can
-serve both pages. Both record types are managed from **Admin → Content &
-Builders**, and an existing spreadsheet can be loaded through **Programs →
-Import CSV** (column aliases live in `PROGRAM_CSV_COLUMNS` in
-`accounts/views/content.py`).
+| Source | What it is | Document shown |
+| --- | --- | --- |
+| Approved `Proposal` | A proposal the office approved; it *is* the program once implemented | Its current `SIGNED_PROPOSAL` file |
+| Legacy `Proposal` (`is_legacy`) | Work the office imported from before the system | `legacy_proposal_file` |
+| `ExtensionProgram` | A record with no proposal at all | Its `document` upload (a legacy file) |
+
+An `ExtensionProgram` may link to a proposal (`proposal` FK) to add photos or
+correct published details; it is then not listed twice. Each card's document
+button points at `/programs/document/<key>/` (`details.views.program_document`),
+which resolves only published entries — a draft's signed proposal is a 404, not
+a leaked file. The block renders the totals and the year/type/campus overview
+bars on the server and filters the cards in the browser, so the list still reads
+with JavaScript off.
+
+The **Gallery** block is fed by the terminal report: proponents upload
+documentation photos with the terminal report in the Implementation Tracker
+(`proposals.TerminalReportPhoto`), and those photos appear publicly. Photos the
+office arranged by hand (`GalleryPhoto`) follow, for work that predates the
+system. Both are managed from **Admin → Gallery**, where a photo can be hidden
+without deleting it from the proposal's record. An existing spreadsheet can be
+loaded through **Programs → Import CSV** (column aliases live in
+`PROGRAM_CSV_COLUMNS` in `accounts/views/content.py`).
 
 ### Extension Process steps nest to any depth
 

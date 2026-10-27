@@ -130,7 +130,7 @@ class ExtensionProgramAdmin(admin.ModelAdmin):
     """The records behind the Programs page directory."""
 
     list_display = (
-        'title', 'campus', 'year', 'extension_type', 'led_by',
+        'title', 'proposal', 'campus', 'year', 'extension_type', 'led_by',
         'beneficiaries', 'is_visible',
     )
     list_filter = ('year', 'campus', 'extension_type', 'research_basis', 'is_visible')

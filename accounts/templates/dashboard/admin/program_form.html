@@ -27,6 +27,17 @@
             {% if form.title.errors %}<p class="mt-1 text-xs text-red-600">{{ form.title.errors|join:" " }}</p>{% endif %}
         </div>
 
+        <div class="nx-full">
+            <label for="{{ form.proposal.id_for_label }}" class="block text-sm font-medium mb-1">Linked proposal (optional)</label>
+            {{ form.proposal }}
+            <p class="mt-1 text-xs text-gray-500">
+                Approved proposals are already listed on the Programs page with their signed document.
+                Link one here only to add photos or fine-tune its published details. Leave empty for work
+                that predates the system.
+            </p>
+            {% if form.proposal.errors %}<p class="mt-1 text-xs text-red-600">{{ form.proposal.errors|join:" " }}</p>{% endif %}
+        </div>
+
         <div>
             <label for="{{ form.campus.id_for_label }}" class="block text-sm font-medium mb-1">Campus</label>
             {{ form.campus }}
@@ -110,10 +121,16 @@
         </div>
 
         <div>
-            <label for="{{ form.document_url.id_for_label }}" class="block text-sm font-medium mb-1">Document link</label>
-            {{ form.document_url }}
-            <p class="mt-1 text-xs text-gray-500">Full https:// link, e.g. a Google Drive file.</p>
-            {% if form.document_url.errors %}<p class="mt-1 text-xs text-red-600">{{ form.document_url.errors|join:" " }}</p>{% endif %}
+            <label for="{{ form.document.id_for_label }}" class="block text-sm font-medium mb-1">Legacy upload (document)</label>
+            {{ form.document }}
+            <p class="mt-1 text-xs text-gray-500">
+                The program's proposal document, for work that predates this system.
+                It becomes the “View legacy upload” link on its card.
+            </p>
+            {% if program and program.document %}
+                <p class="mt-1 text-xs text-gray-500">Current: <a class="text-primary hover:underline" href="{{ program.document.url }}" target="_blank" rel="noopener">{{ program.document.name }}</a></p>
+            {% endif %}
+            {% if form.document.errors %}<p class="mt-1 text-xs text-red-600">{{ form.document.errors|join:" " }}</p>{% endif %}
         </div>
 
         <div class="flex items-center gap-2">

@@ -1,9 +1,10 @@
 {% comment %}
 Block: Program Gallery (source key GALLERY).
 
-Grid of published gallery photos, followed by the cover photo of any program
-that does not have one yet (both arrive as the same dict shape from
-``_resolve_gallery``). Clicking a tile opens a lightbox.
+Photos submitted with a program's terminal report come first — that is where
+the proponent already files the documentation — followed by photos the office
+arranged by hand for work that predates the system. Both arrive as the same
+dict shape from ``_resolve_gallery``; clicking a tile opens a lightbox.
 
 Each tile owns its own Alpine state, so the lightbox markup stays next to the
 photo it shows and captions need no escaping into a JavaScript string.
@@ -29,6 +30,9 @@ Context: section, data.photos, data.photo_count
                 {% if photo.subtitle %}
                     <span class="text-xs text-gray-500">· {{ photo.subtitle }}</span>
                 {% endif %}
+                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                    {{ photo.source_label }}
+                </span>
                 {% if photo.campus %}
                     <span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">{{ photo.campus }}</span>
                 {% endif %}

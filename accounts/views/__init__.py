@@ -127,6 +127,8 @@ from .content import (  # noqa: F401
     target_delete,
     target_edit,
     targets_list,
+    terminal_photo_delete,
+    terminal_photo_toggle,
     _build_scope_choices,
     _signatory_scope_meta,
 )
@@ -357,6 +359,8 @@ __all__ = [
     "target_delete",
     "target_edit",
     "targets_list",
+    "terminal_photo_delete",
+    "terminal_photo_toggle",
     "user_has_capability",
     "verify_email",
     "wizard_step_create",
