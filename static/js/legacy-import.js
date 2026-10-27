@@ -28,13 +28,16 @@
     showField('historical-status-field', historical);
     showField('moa-stage-field', pending);
     showField('implementation-stage-field', implementation);
-    showField('completion-certificate-field', historical || completed);
+    showField('terminal-report-field', historical || completed);
+    // Photo documentation is part of the terminal report (appendix E.13), so it
+    // only opens once the activity is completed.
+    showField('photo-documentation-field', completed);
     showField('moa-file-field', !pending || byId('id_moa_stage').value !== 'NOT_STARTED');
     text('assignment-help', ongoing() ? 'Select at least one account to continue the remaining workflow.' : 'Optional. Select the accounts that should have access to this activity.');
     text('document-guidance', historical
-      ? 'Historical mode uses files to record progress: an MOA file marks MOA complete; a completion certificate marks Implementation complete. Your proposal status stays as selected.'
+      ? 'Historical mode uses files to record progress: an MOA file marks MOA complete; a terminal report marks Implementation complete. Your proposal status stays as selected.'
       : pending && byId('id_moa_stage').value === 'NOT_STARTED'
-        ? 'No MOA document is needed yet. You can add the original proposal and supporting files. MOA and Implementation will remain Not Started.'
+        ? 'No MOA document is needed yet. You can add the approved proposal and supporting files. MOA and Implementation will remain Not Started.'
         : 'Files are optional. The stage selected above determines progress, not the attached documents. Files in hidden fields will not be imported.');
 
     const count = selectedAccounts().length;
@@ -45,7 +48,7 @@
     text('review-campus', byId('id_campus').value || 'No campus selected');
     let proposalDone = !historical || byId('id_proposal_status').value === 'COMPLETED';
     let moaDone = completed || implementation || (historical && byId('id_moa_draft_file').files.length > 0);
-    let implementationDone = completed || (historical && byId('id_certificate_of_completion_file').files.length > 0);
+    let implementationDone = completed || (historical && byId('id_terminal_report_file').files.length > 0);
     phase('review-proposal', proposalDone ? 'Completed' : optionLabel('id_proposal_status'), proposalDone ? 'done' : 'active');
     phase('review-moa', moaDone ? 'Completed' : pending ? optionLabel('id_moa_stage') : 'Not Started', moaDone ? 'done' : pending && byId('id_moa_stage').value !== 'NOT_STARTED' ? 'active' : 'waiting');
     phase('review-implementation', implementationDone ? 'Completed' : implementation ? optionLabel('id_implementation_stage') : 'Not Started', implementationDone ? 'done' : implementation ? 'active' : 'waiting');

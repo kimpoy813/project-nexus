@@ -50,6 +50,16 @@ class LegacyProposalForm(forms.ModelForm):
         initial=Proposal.ImplementationStatus.IMPLEMENTATION,
         required=False,
     )
+    terminal_report_file = forms.FileField(
+        label="Terminal report",
+        required=False,
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf,.doc,.docx"}),
+        help_text=(
+            "The terminal report the activity closed with. It is filed where the "
+            "system keeps terminal reports, alongside the activity's photo "
+            "documentation."
+        ),
+    )
     documentation_photos = MultipleFileField(
         label="Photo documentation",
         required=False,
@@ -58,8 +68,8 @@ class LegacyProposalForm(forms.ModelForm):
         ),
         help_text=(
             "Photos of the activity in action, each with a caption. They appear on "
-            "the public Gallery page. Legacy activities have no terminal report in "
-            "the system, so this is where their documentation is attached."
+            "the public Gallery page and belong with the terminal report, so they "
+            "are filed once the activity is completed."
         ),
     )
     documentation_caption = forms.CharField(
@@ -83,7 +93,7 @@ class LegacyProposalForm(forms.ModelForm):
             "title", "extension_type", "scope_type", "campus", "college", "department",
             "implementing_agency", "beneficiaries_who", "beneficiaries_count",
             "estimated_month", "estimated_year", "extension_venue", "proposal_status",
-            "legacy_proposal_file", "moa_draft_file", "certificate_of_completion_file",
+            "legacy_proposal_file", "moa_draft_file",
             # What the Programs directory publishes. An imported activity has no
             # proposal wizard behind it, so these are the only chance to record
             # them; leaving them blank simply shows less on the card.
@@ -130,11 +140,21 @@ class LegacyProposalForm(forms.ModelForm):
         state = data.get("activity_state") or self.HISTORICAL
         data["activity_state"] = state
         data["proposal_status"] = data.get("proposal_status") or Proposal.ProposalStatus.APPROVED
+        if state != self.COMPLETED and data.get("documentation_photos"):
+            # Photo documentation is part of the terminal report (appendix E.13),
+            # so it is only filed once the activity is completed. Without
+            # JavaScript the field is visible for every stage, so refuse it here
+            # rather than storing photos for work that is still running.
+            self.add_error(
+                "documentation_photos",
+                "Photo documentation is filed with the terminal report. Choose Activity completed to attach photos.",
+            )
+
         if state in {self.MOA_PENDING, self.ONGOING}:
             if not data.get("assigned_proponents"):
                 self.add_error("assigned_proponents", "Assign at least one proponent account for an ongoing activity.")
-            if data.get("certificate_of_completion_file"):
-                self.add_error("certificate_of_completion_file", "An ongoing activity cannot have a completion certificate. Upload interim reports as supporting documents instead.")
+            if data.get("terminal_report_file"):
+                self.add_error("terminal_report_file", "An ongoing activity cannot have a terminal report. Upload interim reports as supporting documents instead.")
 
         if state in {self.MOA_PENDING, self.ONGOING, self.COMPLETED}:
             data["proposal_status"] = Proposal.ProposalStatus.COMPLETED
@@ -151,9 +171,10 @@ class LegacyProposalForm(forms.ModelForm):
                     data.get("implementation_stage") or Proposal.ImplementationStatus.IMPLEMENTATION
                 ) if state == self.ONGOING else Proposal.ImplementationStatus.COMPLETED
         else:
-            # Preserve the original import contract for historical proposals.
+            # Preserve the original import contract for historical proposals:
+            # the documents on file decide which phases are recorded as done.
             if data.get("moa_draft_file"):
                 self.instance.moa_status = Proposal.MOAStatus.COMPLETED
-            if data.get("certificate_of_completion_file"):
+            if data.get("terminal_report_file"):
                 self.instance.implementation_status = Proposal.ImplementationStatus.COMPLETED
         return data

@@ -7,6 +7,7 @@ from ..models import (
     DocumentationPhoto,
     Proposal,
     ProposalAttachment,
+    ProposalFinalDocument,
     ProposalPhaseLog,
     ProposalProponent,
 )
@@ -38,9 +39,23 @@ def admin_legacy_proposal_create(request):
                 ProposalAttachment.objects.create(
                     proposal=proposal, file=file, category=ProposalAttachment.Category.OTHER,
                 )
-            # Photo documentation is what the public Gallery shows, so a legacy
-            # import is the one chance to file it for work that predates the
-            # system (the live equivalent is the terminal report step).
+            # A completed activity's terminal report belongs where the system
+            # files every terminal report ("Final Evaluation and Documentation"),
+            # so the tracker and proposal storage show it next to the photos.
+            terminal_report = form.cleaned_data.get("terminal_report_file")
+            if terminal_report:
+                ProposalFinalDocument.add_version(
+                    proposal=proposal,
+                    document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL,
+                    file=terminal_report,
+                    uploaded_by=request.user,
+                    remarks="Imported by admin through Legacy Records Upload.",
+                    is_verified=True,
+                )
+            # Photo documentation is filed with the terminal report (appendix
+            # E.13) and is what the public Gallery shows, so a legacy import of a
+            # completed activity is the one chance to file it for work that
+            # predates the system.
             caption = (form.cleaned_data.get("documentation_caption") or "").strip()[:200]
             for file in form.cleaned_data.get("documentation_photos") or []:
                 DocumentationPhoto.objects.create(

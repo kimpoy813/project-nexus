@@ -10,6 +10,7 @@ from .models import (
     DocumentationPhoto,
     Proposal,
     ProposalAttachment,
+    ProposalFinalDocument,
     ProposalPhaseLog,
     ProposalProponent,
 )
@@ -24,6 +25,12 @@ class LegacyActivityImportTests(TestCase):
         cls.other, cls.other_client = factories.faculty("unassigned")
         cls.director, cls.director_client = factories.director("import_director")
         cls.url = reverse("admin_legacy_proposal_create")
+
+    gif = (
+        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!"
+        b"\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00"
+        b"\x00\x02\x02D\x01\x00;"
+    )
 
     def data(self, **overrides):
         return {
@@ -175,7 +182,8 @@ class LegacyActivityImportTests(TestCase):
             ({"beneficiaries_count": -1}, "beneficiaries_count"),
             ({"proposal_status": "BOGUS"}, "proposal_status"),
             ({"title": ""}, "title"),
-            ({"certificate_of_completion_file": SimpleUploadedFile("certificate.pdf", b"certificate")}, "certificate_of_completion_file"),
+            ({"terminal_report_file": SimpleUploadedFile("terminal.pdf", b"terminal")}, "terminal_report_file"),
+            ({"documentation_photos": [SimpleUploadedFile("action.gif", self.gif, content_type="image/gif")]}, "documentation_photos"),
         ]
         for overrides, field in cases:
             with self.subTest(field=field, overrides=overrides):
@@ -192,17 +200,13 @@ class LegacyActivityImportTests(TestCase):
         self.assertEqual(proposal.proponents.count(), 1)
 
     def test_import_carries_the_photo_documentation_into_the_gallery(self):
-        """A legacy activity has no terminal report here, so the import files
-        the photos the report would have carried (appendix E.13)."""
-        gif = (
-            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!"
-            b"\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00"
-            b"\x00\x02\x02D\x01\x00;"
-        )
+        """Photo documentation is filed with the terminal report (appendix
+        E.13), so a completed legacy activity brings its photos along."""
         proposal = self.create_activity(
+            activity_state="COMPLETED",
             documentation_photos=[
-                SimpleUploadedFile("action.gif", gif, content_type="image/gif"),
-                SimpleUploadedFile("crowd.gif", gif, content_type="image/gif"),
+                SimpleUploadedFile("action.gif", self.gif, content_type="image/gif"),
+                SimpleUploadedFile("crowd.gif", self.gif, content_type="image/gif"),
             ],
             documentation_caption="Farmers practising compost preparation",
         )
@@ -215,6 +219,61 @@ class LegacyActivityImportTests(TestCase):
         gallery = self.client.get(reverse("gallery_page"))
         self.assertContains(gallery, "Farmers practising compost preparation")
         self.assertContains(gallery, "Legacy upload")
+
+    def test_terminal_report_is_filed_where_the_system_keeps_terminal_reports(self):
+        """The import's "Terminal Report" is the same document the live
+        workflow files at Final Evaluation and Documentation."""
+        proposal = self.create_activity(
+            activity_state="COMPLETED",
+            terminal_report_file=SimpleUploadedFile("terminal-report.pdf", b"terminal report"),
+        )
+
+        terminal = proposal.final_documents.get(
+            document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL
+        )
+        self.assertTrue(terminal.is_current)
+        self.assertEqual(terminal.version, 1)
+        self.assertEqual(terminal.uploaded_by, self.admin)
+        self.assertTrue(terminal.is_verified)
+
+        tracker = self.director_client.get(reverse("proposal_implementation_tracker", args=[proposal.pk]))
+        self.assertContains(tracker, terminal.file.name)
+        self.assertContains(tracker, "Final Evaluation and Documentation")
+
+    def test_historical_terminal_report_records_implementation_as_complete(self):
+        proposal = self.create_activity(
+            activity_state="HISTORICAL",
+            proposal_status="APPROVED",
+            terminal_report_file=SimpleUploadedFile("terminal-report.pdf", b"terminal report"),
+        )
+        self.assertEqual(proposal.implementation_status, Proposal.ImplementationStatus.COMPLETED)
+        self.assertTrue(proposal.final_documents.filter(
+            document_type=ProposalFinalDocument.DocumentType.REPORT_FINAL
+        ).exists())
+
+    def test_document_section_names_the_approved_proposal_and_terminal_report(self):
+        response = self.admin_client.get(self.url)
+        self.assertContains(response, "Approved Proposal")
+        self.assertContains(response, "Terminal Report")
+        self.assertNotContains(response, "Completion certificate")
+        self.assertNotContains(response, 'name="certificate_of_completion_file"')
+        # Photo documentation is filed with the terminal report, so it stays
+        # closed until the admin records the activity as completed.
+        self.assertContains(response, 'id="photo-documentation-field" hidden')
+
+    def test_photo_documentation_opens_for_a_completed_activity(self):
+        response = self.admin_client.post(self.url, self.data(activity_state="COMPLETED", title=""))
+        self.assertContains(response, 'id="photo-documentation-field">')
+
+    def test_photo_documentation_is_refused_before_completion(self):
+        response = self.admin_client.post(self.url, self.data(
+            activity_state="ONGOING",
+            documentation_photos=[SimpleUploadedFile("action.gif", self.gif, content_type="image/gif")],
+        ))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("documentation_photos", response.context["form"].errors)
+        self.assertFalse(Proposal.objects.exists())
+        self.assertFalse(DocumentationPhoto.objects.exists())
 
     def test_import_records_what_the_programs_directory_publishes(self):
         proposal = self.create_activity(
@@ -345,7 +404,7 @@ class LegacyActivityImportTests(TestCase):
             ({"moa_stage": "NOT_REQUIRED"}, "moa_stage"),
             ({"moa_stage": "INVALID"}, "moa_stage"),
             ({"moa_draft_file": SimpleUploadedFile("draft.pdf", b"draft")}, "moa_draft_file"),
-            ({"certificate_of_completion_file": SimpleUploadedFile("certificate.pdf", b"certificate")}, "certificate_of_completion_file"),
+            ({"terminal_report_file": SimpleUploadedFile("terminal.pdf", b"terminal")}, "terminal_report_file"),
         ]:
             with self.subTest(field=field, changes=changes):
                 response = self.admin_client.post(self.url, self.data(activity_state="MOA_PENDING", **changes))

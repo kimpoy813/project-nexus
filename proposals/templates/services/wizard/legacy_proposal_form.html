@@ -140,24 +140,26 @@
 
         <section class="legacy-card" aria-labelledby="documents-heading">
           <div class="legacy-section-head"><span class="legacy-number" aria-hidden="true">04</span><div><h2 id="documents-heading">Supporting documents <span class="legacy-optional-label">Optional</span></h2><p>Add existing files now, or continue the workflow after import.</p></div></div>
-          <p class="legacy-notice" id="document-guidance">For historical proposals, an MOA file marks MOA complete, and a completion certificate marks Implementation complete. Choose the original proposal status carefully.</p>
+          <p class="legacy-notice" id="document-guidance">For historical proposals, an MOA file marks MOA complete, and a terminal report marks Implementation complete. Choose the original proposal status carefully.</p>
           <div class="legacy-grid legacy-files">
-            {% include "services/wizard/_legacy_field.html" with field=form.legacy_proposal_file label="Original proposal" help="Original PDF or Word document." %}
+            {% include "services/wizard/_legacy_field.html" with field=form.legacy_proposal_file label="Approved Proposal" help="The approved proposal document, PDF or Word." %}
             {% include "services/wizard/_legacy_field.html" with field=form.moa_draft_file label="MOA / agreement" wrapper_id="moa-file-field" help="Draft or signed document, matching the stage selected above." %}
-            {% include "services/wizard/_legacy_field.html" with field=form.certificate_of_completion_file label="Completion certificate" wrapper_id="completion-certificate-field" %}
+            {% include "services/wizard/_legacy_field.html" with field=form.terminal_report_file label="Terminal Report" wrapper_id="terminal-report-field" help="The terminal report the activity closed with, matching the stage selected above." %}
             <div class="legacy-field legacy-wide"><label for="id_attachments">Other supporting files</label><input type="file" id="id_attachments" name="attachments[]" multiple class="legacy-input"><p class="legacy-help">You can select multiple files, including interim reports and annexes.</p></div>
           </div>
 
-          <div class="legacy-divider"></div>
-          <div class="legacy-grid legacy-files">
-            <div class="legacy-field legacy-wide">
-              <label for="id_documentation_photos">Photo documentation <span class="legacy-optional-label">Optional</span></label>
-              <input type="file" id="id_documentation_photos" name="documentation_photos" multiple
-                     accept="image/jpeg,image/png,image/webp,image/gif" class="legacy-input">
-              <p class="legacy-help">Photos of the activity in action — the same documentation the terminal report requires (appendix E.13, “photo documentation in action with caption”). They appear on the public Gallery page. JPEG, PNG, WebP, or GIF, up to 12 MB each.</p>
-              {{ form.documentation_photos.errors }}
+          <div id="photo-documentation-field"{% if form.activity_state.value != 'COMPLETED' %} hidden{% endif %}>
+            <div class="legacy-divider"></div>
+            <div class="legacy-grid legacy-files">
+              <div class="legacy-field legacy-wide">
+                <label for="id_documentation_photos">Photo documentation <span class="legacy-optional-label">Optional</span></label>
+                <input type="file" id="id_documentation_photos" name="documentation_photos" multiple
+                       accept="image/jpeg,image/png,image/webp,image/gif" class="legacy-input">
+                <p class="legacy-help">Photos of the activity in action — the same documentation the terminal report requires (appendix E.13, “photo documentation in action with caption”). They appear on the public Gallery page. JPEG, PNG, WebP, or GIF, up to 12 MB each.</p>
+                {{ form.documentation_photos.errors }}
+              </div>
+              {% include "services/wizard/_legacy_field.html" with field=form.documentation_caption label="Caption for these photos" wide=True %}
             </div>
-            {% include "services/wizard/_legacy_field.html" with field=form.documentation_caption label="Caption for these photos" wide=True %}
           </div>
         </section>
       </div>
