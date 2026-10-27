@@ -11,11 +11,13 @@ public page reflects it — while nothing an admin has not published leaks out.
   * **Navigation**  - the site menu offers the new pages and none of the old
 """
 
+import re
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from accounts.models import Profile
+from accounts.models import Campus, Profile
 from details.content_sources import get_content_source
 from details.models import (
     ExtensionProgram,
@@ -80,6 +82,12 @@ def make_terminal_photo(proposal, caption="TERMINAL-PHOTO", **overrides):
     return TerminalReportPhoto.objects.create(**defaults)
 
 
+def hero_heading(response):
+    """The text inside the page's `<h1>`, whitespace collapsed."""
+    match = re.search(r"<h1[^>]*>(.*?)</h1>", response.content.decode(), re.S)
+    return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
+
+
 def make_photo(**overrides):
     defaults = {
         "image": SimpleUploadedFile("photo.gif", TINY_GIF, content_type="image/gif"),
@@ -98,28 +106,29 @@ class SeededPageTests(TestCase):
             {"home", "services", "programs", "gallery", "about"},
         )
 
-    def test_the_replaced_pages_keep_their_blocks(self):
-        """Renaming, rather than deleting, preserved the admin's sections.
+    def test_each_directory_page_holds_only_its_own_block(self):
+        """Programs is a directory, Gallery is a gallery — nothing else.
 
-        Reports used to hold the Targets block and Achievements the Activities
-        block; both must still be on the successor page, below the new block.
+        The Targets and Activities blocks that came with the replaced pages
+        showed "nothing here yet" on a system with no data, so they were
+        dropped rather than carried over.
         """
         programs = SitePage.get_for("programs")
         gallery = SitePage.get_for("gallery")
         self.assertEqual(
             list(programs.sections.values_list("layout", flat=True)),
-            ["PROGRAMS", "TARGETS"],
+            ["PROGRAMS"],
         )
         self.assertEqual(
             list(gallery.sections.values_list("layout", flat=True)),
-            ["GALLERY", "ACTIVITIES"],
+            ["GALLERY"],
         )
 
-    def test_about_has_its_first_sections(self):
+    def test_about_explains_the_office_its_campuses_and_how_to_work_with_it(self):
         page = SitePage.get_for("about")
         self.assertEqual(
             list(page.sections.values_list("layout", flat=True)),
-            ["RICH_TEXT", "CTA"],
+            ["RICH_TEXT", "CAMPUSES", "CTA"],
         )
 
     def test_the_new_pages_render(self):
@@ -238,7 +247,9 @@ class ProgramsPageTests(TestCase):
 
     def test_the_empty_state_is_explicit(self):
         response = self.client.get(self.programs_url)
-        self.assertContains(response, "No extension programs have been published yet.")
+        self.assertContains(response, "No extension programs are published yet.")
+        # It also says where programs come from, so an empty page is not a mystery.
+        self.assertContains(response, "This directory is not filled in by hand")
 
     def test_the_new_blocks_are_registered_content_sources(self):
         for key, template in (
@@ -825,3 +836,127 @@ class TerminalReportGalleryTests(TestCase):
         self.assertIn(response.status_code, DENIED)
         photo.refresh_from_db()
         self.assertTrue(photo.is_visible)
+
+
+class PageHeroTests(TestCase):
+    """The banner belongs to the page, so it follows the page's own title."""
+
+    def setUp(self):
+        self.admin = factories.make_user("hero_admin", Profile.ROLE_ADMIN)
+        self.client_admin = factories.make_client(self.admin)
+
+    def test_the_banner_shows_the_page_title_by_default(self):
+        page = SitePage.get_for("programs")
+        self.assertEqual(page.hero_title, "Programs")
+        self.assertEqual(hero_heading(self.client.get(reverse("programs_page"))), "Programs")
+
+    def test_a_seeded_page_does_not_keep_the_replaced_pages_wording(self):
+        """Programs used to announce itself as "Extension Reports"."""
+        html = self.client.get(reverse("programs_page")).content.decode()
+        self.assertNotIn("Extension reports and documentation", html)
+        self.assertNotIn("Extension Reports</p>", html)
+        self.assertNotIn("Extension Achievements", self.client.get(reverse("gallery_page")).content.decode())
+
+    def test_renaming_the_page_renames_the_banner(self):
+        page = SitePage.get_for("programs")
+        page.title = "Extension Portfolio"
+        page.save()
+        self.assertEqual(
+            hero_heading(self.client.get(reverse("programs_page"))),
+            "Extension Portfolio",
+        )
+
+    def test_an_explicit_hero_heading_still_wins(self):
+        page = SitePage.get_for("gallery")
+        page.hero_heading = "Photos from the field"
+        page.save()
+        self.assertEqual(
+            hero_heading(self.client.get(reverse("gallery_page"))),
+            "Photos from the field",
+        )
+
+    def test_saving_the_title_as_the_heading_keeps_it_following_the_title(self):
+        """Typing the title into the hero field must not freeze the banner."""
+        self.client_admin.post(
+            reverse("page_content_edit", args=["about"]),
+            {"title": "About us", "hero_heading": "about us", "is_published": "on"},
+        )
+        page = SitePage.get_for("about")
+        self.assertEqual(page.hero_heading, "")
+        self.assertEqual(page.hero_title, "About us")
+
+    def test_the_editor_explains_the_fallback(self):
+        response = self.client_admin.get(reverse("page_content_edit", args=["programs"]))
+        self.assertContains(response, "Leave blank to show the page title")
+
+
+class CampusesBlockTests(TestCase):
+    """The About page lists the campuses the institution actually records."""
+
+    def setUp(self):
+        Campus.objects.get_or_create(name="Main")
+        Campus.objects.get_or_create(name="Sta Maria")
+        Campus.objects.get_or_create(name="Candon")
+
+    def test_the_about_page_lists_every_campus(self):
+        response = self.client.get(reverse("about_page"))
+        for name in ("Main Campus", "Sta Maria Campus", "Candon Campus"):
+            with self.subTest(name=name):
+                self.assertContains(response, name)
+
+    def test_each_campus_shows_how_many_programs_it_has_run(self):
+        ExtensionProgram.objects.create(
+            title="STA-MARIA-PROGRAM", campus="Sta. Maria Campus", year=2025
+        )
+        data = resolve_section_data(
+            PageSection.objects.get(page__slug="about", layout=PageSection.Layout.CAMPUSES)
+        )
+        counts = {c["label"]: c["program_count"] for c in data["campuses"]}
+        # "Sta. Maria Campus" on the program matches the "Sta Maria" campus row.
+        self.assertEqual(counts["Sta Maria Campus"], 1)
+        self.assertEqual(counts["Main Campus"], 0)
+        # Every campus the institution records is listed, not just the seeded ones.
+        self.assertEqual(data["campus_count"], Campus.objects.count())
+
+    def test_a_campus_that_only_appears_in_a_program_is_still_listed(self):
+        ExtensionProgram.objects.create(
+            title="UNLISTED-CAMPUS", campus="Cervantes Campus", year=2025
+        )
+        data = resolve_section_data(
+            PageSection.objects.get(page__slug="about", layout=PageSection.Layout.CAMPUSES)
+        )
+        labels = {c["label"] for c in data["campuses"]}
+        self.assertIn("Cervantes Campus", labels)
+        self.assertEqual(data["program_count"], 1)
+
+    def test_campuses_is_a_registered_content_source(self):
+        source = get_content_source("CAMPUSES")
+        self.assertIsNotNone(source)
+        self.assertEqual(source.block_template, "details/blocks/campuses.html")
+
+
+class AboutPageTests(TestCase):
+    """About is a real page: what the office does, where, and how to reach it."""
+
+    def setUp(self):
+        self.about_url = reverse("about_page")
+
+    def test_it_explains_what_the_office_does(self):
+        response = self.client.get(self.about_url)
+        self.assertContains(response, "About the Extension Office")
+        self.assertContains(response, "Networked Extension Unified System")
+
+    def test_it_links_to_the_workflow_pages(self):
+        response = self.client.get(self.about_url)
+        self.assertContains(response, 'href="/programs/"')
+        self.assertContains(response, 'href="/gallery/"')
+        self.assertContains(response, 'href="/proposals/"')
+
+    def test_it_offers_a_way_to_contact_the_office(self):
+        self.assertContains(self.client.get(self.about_url), "mailto:")
+
+    def test_the_anchor_bar_only_appears_when_there_is_something_to_jump_between(self):
+        # About has three sections, so the bar is useful there.
+        self.assertContains(self.client.get(self.about_url), 'href="#about-the-office"')
+        # Programs has one; a bar repeating the banner would be noise.
+        self.assertNotContains(self.client.get(reverse("programs_page")), 'href="#all-programs"')

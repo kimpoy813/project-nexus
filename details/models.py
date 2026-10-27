@@ -1044,7 +1044,15 @@ class SitePage(models.Model):
 
     # Hero / masthead
     hero_eyebrow = models.CharField(max_length=120, blank=True, default="")
-    hero_heading = models.CharField(max_length=220, blank=True, default="")
+    hero_heading = models.CharField(
+        max_length=220,
+        blank=True,
+        default="",
+        help_text=(
+            "Optional. Leave blank and the banner shows the page title, so "
+            "renaming the page renames its banner too."
+        ),
+    )
     hero_subheading = models.TextField(blank=True, default="")
 
     # Browser <title> / SEO
@@ -1078,6 +1086,16 @@ class SitePage(models.Model):
         defaults = {"title": dict(cls.Slug.choices).get(slug, slug.title())}
         obj, _ = cls.objects.get_or_create(slug=slug, defaults=defaults)
         return obj
+
+    @property
+    def hero_title(self):
+        """The banner heading: an explicit override, else the page title.
+
+        The banner belongs to the page, so it follows the page's name unless an
+        editor deliberately wrote something else. That keeps a rename from
+        leaving yesterday's wording on screen.
+        """
+        return (self.hero_heading or "").strip() or self.title
 
     @property
     def visible_sections(self):
@@ -1124,6 +1142,7 @@ class PageSection(models.Model):
         TEMPLATES = "TEMPLATES", CONTENT_SOURCES["TEMPLATES"].label
         PROGRAMS = "PROGRAMS", CONTENT_SOURCES["PROGRAMS"].label
         GALLERY = "GALLERY", CONTENT_SOURCES["GALLERY"].label
+        CAMPUSES = "CAMPUSES", CONTENT_SOURCES["CAMPUSES"].label
 
     #: Layouts backed by a content source. Derived from the registry so a
     #: source can never be half-registered (declared but not renderable).

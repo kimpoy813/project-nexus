@@ -171,8 +171,27 @@ Context: section, data.programs, data.stats, data.facets
         </p>
     </div>
 {% else %}
-    <p class="py-10 text-center text-sm text-gray-400">
-        No extension programs have been published yet.
-    </p>
+    {# Empty is a real answer: the directory only ever mirrors the records. #}
+    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center nx-panel">
+        <p class="text-base font-semibold text-gray-900">No extension programs are published yet.</p>
+        <p class="mx-auto mt-2 max-w-xl text-sm text-gray-600">
+            This directory is not filled in by hand. A program appears as soon as a
+            proposal is approved, or as soon as the office files a legacy upload for
+            work that predates the system — so an empty list means the records have
+            not been added yet, not that this page is broken.
+        </p>
+        {% if user.is_authenticated and user.profile.role == 'ADMIN' %}
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
+                <a href="{% url 'admin_legacy_proposal_create' %}"
+                   class="inline-flex items-center rounded-lg bg-primary px-4 py-2 font-semibold text-white transition hover:bg-secondary nx-btn nx-btn--primary">
+                    Add a legacy upload
+                </a>
+                <a href="{% url 'programs_import' %}"
+                   class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
+                    Import a spreadsheet
+                </a>
+            </div>
+        {% endif %}
+    </div>
 {% endif %}
 </div>

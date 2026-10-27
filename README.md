@@ -180,6 +180,26 @@ without deleting it from the proposal's record. An existing spreadsheet can be
 loaded through **Programs → Import CSV** (column aliases live in
 `PROGRAM_CSV_COLUMNS` in `accounts/views/content.py`).
 
+### Public pages: banner, sections, and empty states
+
+Each public page is a `SitePage` with a banner and an ordered set of sections.
+
+* **The banner follows the page title.** `SitePage.hero_title` returns an
+  explicitly written `hero_heading`, else the page's `title`. Saving the title
+  into the hero field is treated as "no override" (`accounts/views/cms.py`), so
+  renaming a page renames its banner instead of leaving yesterday's wording.
+* **One job per page.** Programs holds only its directory and Gallery only its
+  gallery — the Targets and Activities blocks that came over from the replaced
+  pages were dropped in `details/migrations/0050_…`. The `#anchor` bar renders
+  only when a page has more than one section.
+* **About** combines an editable introduction, a **Campuses** block (the
+  institution's `accounts.Campus` rows, each with its count of published
+  programs, resolved by `_resolve_campuses`), and a closing call to action.
+* **Empty means empty.** Nothing is seeded into the public pages: the Programs
+  directory and the Gallery fill themselves from approved proposals, legacy
+  uploads, and terminal reports. When there are none, the block says so and
+  tells an admin where the records come from, rather than showing a bare list.
+
 ### Extension Process steps nest to any depth
 
 A step can sit under another step, to any depth. Both editors — the standalone

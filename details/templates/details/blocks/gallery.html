@@ -68,8 +68,20 @@ Context: section, data.photos, data.photo_count
         {% endfor %}
     </div>
 {% else %}
-    <p class="py-10 text-center text-sm text-gray-400">
-        No photos have been published in the gallery yet.
-    </p>
+    {# Photos arrive from the workflow; an empty gallery means nothing is filed yet. #}
+    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center nx-panel">
+        <p class="text-base font-semibold text-gray-900">No photos yet.</p>
+        <p class="mx-auto mt-2 max-w-xl text-sm text-gray-600">
+            The gallery is filled from the documentation photos proponents submit with
+            their terminal reports in the Implementation Tracker — the same photos the
+            office already requires at “Final Evaluation and Documentation”.
+        </p>
+        {% if user.is_authenticated and user.profile.role == 'ADMIN' %}
+            <a href="{% url 'gallery_photo_create' %}"
+               class="mt-6 inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
+                Add a photo for older work
+            </a>
+        {% endif %}
+    </div>
 {% endif %}
 </div>

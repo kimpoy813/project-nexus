@@ -651,27 +651,39 @@ class OtherPageInlineEditorTests(TestCase):
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
 
-    def test_the_programs_editor_nests_targets_inside_the_section(self):
+    def test_dropping_the_targets_block_onto_a_page_nests_its_editor(self):
+        """Programs no longer carries Targets, but the block still works anywhere.
+
+        The editors live inside their section, so the block has to be added to
+        the page before its inline CRUD exists.
+        """
         from details.models import Target
 
         target = Target.objects.create(
             year=2026, campus="Main Campus", metric="programs",
             target=8, actual_q1=3,
         )
+        PageSection.objects.create(
+            page=SitePage.get_for("programs"),
+            layout=PageSection.Layout.TARGETS,
+            heading="Extension Targets",
+            order=9,
+        )
         response = self.client_admin.get(reverse("page_content_edit", args=["programs"]))
         self.assertContains(response, "home-targets-inline")
         self.assertContains(response, reverse("home_inline_target_update", args=[target.id]))
-        self.assertFalse(
-            PageSection.objects.filter(
-                page__slug="programs", layout=PageSection.Layout.TARGETS, is_visible=False
-            ).exists()
-        )
 
-    def test_the_gallery_editor_nests_activities_inside_the_section(self):
+    def test_dropping_the_activities_block_onto_a_page_nests_its_editor(self):
         from details.models import Activity, ActivityDate
 
         activity = Activity.objects.create(title="PAGE-ACT-MARKER", description="d")
         ActivityDate.objects.create(activity=activity, date="2026-06-01")
+        PageSection.objects.create(
+            page=SitePage.get_for("gallery"),
+            layout=PageSection.Layout.ACTIVITIES,
+            heading="Extension Activities",
+            order=9,
+        )
         response = self.client_admin.get(reverse("page_content_edit", args=["gallery"]))
         self.assertContains(response, "home-activities-inline")
         self.assertContains(response, "PAGE-ACT-MARKER")

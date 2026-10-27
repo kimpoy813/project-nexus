@@ -218,7 +218,12 @@ def page_content_edit(request, slug):
         before = page.state()
         page.title = (request.POST.get("title") or "").strip() or page.title
         page.hero_eyebrow = (request.POST.get("hero_eyebrow") or "").strip()
-        page.hero_heading = (request.POST.get("hero_heading") or "").strip()
+        hero_heading = (request.POST.get("hero_heading") or "").strip()
+        # The banner follows the page title unless it was given its own words.
+        # Storing the title as an override would freeze the banner at its
+        # current name, so an entry that just repeats the title is treated as
+        # "no override" and keeps tracking future renames.
+        page.hero_heading = "" if hero_heading.casefold() == page.title.casefold() else hero_heading
         page.hero_subheading = (request.POST.get("hero_subheading") or "").strip()
         page.meta_title = (request.POST.get("meta_title") or "").strip()
         page.meta_description = (request.POST.get("meta_description") or "").strip()

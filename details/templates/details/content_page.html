@@ -22,7 +22,12 @@
 </div>
 {% endif %}
 
-<!-- HERO -->
+{% comment %}
+HERO — the banner is the page's identity, so its heading is the page title
+unless an editor deliberately set a different one (``SitePage.hero_title``).
+Renaming the page therefore renames its banner, instead of leaving yesterday's
+wording on screen.
+{% endcomment %}
 <section class="relative bg-primary text-white py-28 overflow-hidden">
     <div class="nx-page nx-page--measure text-center">
         {% if page.hero_eyebrow %}
@@ -32,7 +37,7 @@
         {% endif %}
 
         <h1 class="text-4xl md:text-5xl font-semibold leading-tight tracking-wide nx-page-title">
-            {{ page.hero_heading|default:page.title }}
+            {{ page.hero_title }}
         </h1>
 
         {% if page.hero_subheading %}
@@ -44,10 +49,12 @@
 </section>
 
 {% comment %}
-Anchor navigation, shown only when sections define anchors.
+Anchor navigation, shown only when at least two sections define anchors — a
+single-section page has nothing to jump between, and the bar would just repeat
+the heading below the banner.
 {% endcomment %}
 {% if sections %}
-    {% with anchored=sections %}
+    {% with anchored=sections %}{% if anchored|length > 1 %}
         <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
             <div class="nx-page py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
                 {% for section in anchored %}
@@ -57,7 +64,7 @@ Anchor navigation, shown only when sections define anchors.
                 {% endfor %}
             </div>
         </section>
-    {% endwith %}
+    {% endif %}{% endwith %}
 {% endif %}
 
 <!-- SECTIONS (shared block renderer - see details/_page_section.html) -->

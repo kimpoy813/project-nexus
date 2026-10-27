@@ -221,6 +221,65 @@ def _resolve_personnel(section):
     return {"personnel": qs}
 
 
+def _campus_key(value):
+    """Normalise a campus name so "Sta. Maria Campus" matches "Sta Maria"."""
+    text = (value or "").lower().replace("campus", "")
+    return "".join(character for character in text if character.isalnum())
+
+
+def _resolve_campuses(section):
+    """The campuses the office serves, with how many programs each has run.
+
+    Campus rows are the institution's own (``accounts.Campus``); the programme
+    counts come from the same directory the Programs page uses, so the two can
+    never disagree. A campus that only appears in a program record is still
+    listed, because it is genuinely being served.
+    """
+    from accounts.models import Campus
+
+    from .program_directory import build_program_entries
+
+    entries = build_program_entries()
+    counts = {}
+    for entry in entries:
+        key = _campus_key(entry.get("campus"))
+        if key:
+            counts[key] = counts.get(key, 0) + 1
+
+    campuses = []
+    seen = set()
+    for campus in Campus.objects.all():
+        key = _campus_key(campus.name)
+        seen.add(key)
+        campuses.append(
+            {
+                "name": campus.name,
+                "label": f"{campus.name} Campus",
+                "program_count": counts.get(key, 0),
+            }
+        )
+
+    for entry in entries:
+        key = _campus_key(entry.get("campus"))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        campuses.append(
+            {
+                "name": entry["campus"],
+                "label": entry["campus"],
+                "program_count": counts[key],
+            }
+        )
+
+    campuses.sort(key=lambda campus: campus["label"].lower())
+    return {
+        "campuses": campuses,
+        "campus_count": len(campuses),
+        "program_count": len(entries),
+    }
+
+
 def _facet(entries, field, choices=None):
     """``[{value, label, count, percent}, ...]`` for a Programs-block filter.
 
@@ -474,6 +533,14 @@ _SOURCES = (
         resolve=_resolve_programs,
         manager_url_name="programs_list",
         icon_path="M4 6h16M4 10h16M4 14h10M4 18h10M18 14l2 2 3-3",
+    ),
+    ContentSource(
+        key="CAMPUSES",
+        label="Campuses",
+        description="The institution's campuses, each with the number of programs it has run.",
+        block_template="details/blocks/campuses.html",
+        resolve=_resolve_campuses,
+        icon_path="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6",
     ),
     ContentSource(
         key="GALLERY",
