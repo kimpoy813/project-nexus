@@ -154,31 +154,38 @@ Program Gallery. Every source is declared once in
 
 ### Programs and Gallery
 
-The **Programs** page is the directory of every extension program, assembled by
-`details/program_directory.py` from the records that already hold them:
+A program is not a separate record. It is a **proposal** — approved work, or work
+the office imported through *Legacy Records Upload* — so the directory cannot
+drift away from the workflow that produces it. `details/program_directory.py`
+builds the entries:
 
 | Source | What it is | Document shown |
 | --- | --- | --- |
 | Approved `Proposal` | A proposal the office approved; it *is* the program once implemented | Its current `SIGNED_PROPOSAL` file |
-| Legacy `Proposal` (`is_legacy`) | Work the office imported from before the system | `legacy_proposal_file` |
-| `ExtensionProgram` | A record with no proposal at all | Its `document` upload (a legacy file) |
+| Legacy `Proposal` (`is_legacy`) | Work the office imported from before the system, via **Legacy Records Upload** | `legacy_proposal_file` |
 
-An `ExtensionProgram` may link to a proposal (`proposal` FK) to add photos or
-correct published details; it is then not listed twice. Each card's document
-button points at `/programs/document/<key>/` (`details.views.program_document`),
-which resolves only published entries — a draft's signed proposal is a 404, not
-a leaked file. The block renders the totals and the year/type/campus overview
-bars on the server and filters the cards in the browser, so the list still reads
-with JavaScript off.
+There is no add/edit/delete/import screen for programs: **Admin → Programs** is a
+read-only view of what has been published, and it points at the two places a
+program can come from. Each card's document button points at
+`/programs/document/<key>/` (`details.views.program_document`), which resolves
+only published entries — a draft's signed proposal is a 404, not a leaked file.
+The block renders the totals and the year/type/campus overview bars on the server
+and filters the cards in the browser, so the list still reads with JavaScript
+off.
 
-The **Gallery** block is fed by the terminal report: proponents upload
-documentation photos with the terminal report in the Implementation Tracker
-(`proposals.TerminalReportPhoto`), and those photos appear publicly. Photos the
-office arranged by hand (`GalleryPhoto`) follow, for work that predates the
-system. Both are managed from **Admin → Gallery**, where a photo can be hidden
-without deleting it from the proposal's record. An existing spreadsheet can be
-loaded through **Programs → Import CSV** (column aliases live in
-`PROGRAM_CSV_COLUMNS` in `accounts/views/content.py`).
+The **Gallery** has one source too: `proposals.DocumentationPhoto`, the photos
+filed with the activity.
+
+* A proponent files them on the last step of implementation — *Final Evaluation
+  and Documentation* — where the terminal report requires *photo documentation
+  in action with caption* (appendix E.13). Each photo carries its own caption,
+  which can be corrected afterwards.
+* The office files the same thing when importing a legacy activity, because the
+  activity has no terminal report in the system.
+
+Both land in **Admin → Gallery**, where a photo can be hidden from the public page
+without deleting it from the record. Nothing is uploaded on that page: a photo
+always belongs to the activity it documents.
 
 ### Public pages: banner, sections, and empty states
 

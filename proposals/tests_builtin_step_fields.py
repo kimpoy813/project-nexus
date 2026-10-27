@@ -186,6 +186,26 @@ class MirrorFieldSaveTests(TestCase):
         self.proposal.refresh_from_db()
         self.assertIn(4, self.proposal.completed_steps)
 
+    def test_step_5_records_the_participant_split(self):
+        """The terminal report needs students and faculty counted separately."""
+        response = self._post(
+            5,
+            {
+                "beneficiaries_count": "50",
+                "beneficiaries_who": "Barangay Sabangan farmers",
+                "student_participants": "5",
+                "faculty_participants": "13",
+                "research_staff_participants": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.proposal.refresh_from_db()
+        self.assertEqual(self.proposal.beneficiaries_count, 50)
+        self.assertEqual(self.proposal.student_participants, 5)
+        self.assertEqual(self.proposal.faculty_participants, 13)
+        # Left blank, not guessed: nobody from that group took part.
+        self.assertIsNone(self.proposal.research_staff_participants)
+
     def test_step_17_file_mirrors_save_native_uploads_without_shadow_answers(self):
         response = self.client_owner.post(
             reverse("proposal_wizard", args=[self.proposal.id, 17]),

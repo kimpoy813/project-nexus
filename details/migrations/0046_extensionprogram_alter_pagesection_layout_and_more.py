@@ -206,6 +206,13 @@ def unseed_new_pages(apps, schema_editor):
     _rename_pages(SitePage, {new: old for old, new in PAGE_RENAMES.items()})
 
 
+def _reporting_year():
+    """Default reporting year, kept here so this migration stays reproducible."""
+    from django.utils import timezone
+
+    return timezone.now().year
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -219,7 +226,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('title', models.CharField(max_length=255)),
                 ('campus', models.CharField(blank=True, default='', help_text='Campus that carried out the program, e.g. “Main Campus”.', max_length=100)),
-                ('year', models.PositiveSmallIntegerField(default=details.models._current_year, help_text='Reporting year used by the Programs page filter.')),
+                ('year', models.PositiveSmallIntegerField(default=_reporting_year, help_text='Reporting year used by the Programs page filter.')),
                 ('extension_type', models.CharField(choices=[('COMMUNITY_BASED', 'Community-based'), ('REQUEST_BASED', 'Request-based'), ('RESEARCH_BASED', 'Research-based')], default='COMMUNITY_BASED', max_length=20)),
                 ('research_basis', models.CharField(choices=[('FACULTY', 'Based on Faculty Research'), ('STUDENT', 'Based on Student Research'), ('OTHERS', 'Others')], default='OTHERS', max_length=20)),
                 ('led_by', models.CharField(choices=[('FACULTY', 'Faculty'), ('JOINT', 'Joint'), ('STUDENT', 'Student')], default='FACULTY', max_length=20, verbose_name='Led by')),

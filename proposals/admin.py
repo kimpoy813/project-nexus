@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import CustomProposalTemplate
 from .models import ProposalPhaseLog
 from .models import ProposalTemplateOverride
-from .models import TerminalReportPhoto
+from .models import DocumentationPhoto
 
 
 @admin.register(ProposalPhaseLog)
@@ -33,8 +33,8 @@ class CustomProposalTemplateAdmin(admin.ModelAdmin):
     ordering = ("title",)
 
 
-@admin.register(TerminalReportPhoto)
-class TerminalReportPhotoAdmin(admin.ModelAdmin):
+@admin.register(DocumentationPhoto)
+class DocumentationPhotoAdmin(admin.ModelAdmin):
     """Documentation photos that fill the public Gallery."""
 
     list_display = ("proposal", "caption", "is_visible", "uploaded_by", "uploaded_at")

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             name='TerminalReportPhoto',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(help_text='Photo of the activity, as submitted with the terminal report.', upload_to=proposals.models.terminal_photo_path)),
+                ('image', models.ImageField(help_text='Photo of the activity, as submitted with the terminal report.', upload_to=proposals.models.documentation_photo_path)),
                 ('caption', models.CharField(blank=True, default='', help_text='Optional caption shown in the public gallery.', max_length=200)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
                 ('is_visible', models.BooleanField(default=True, help_text='Uncheck to keep the photo on file but out of the public gallery.')),

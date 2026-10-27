@@ -20,8 +20,6 @@ from django.views.decorators.http import require_POST
 from details.models import Activity
 from details.models import DocumentTemplate
 from details.models import ExtensionProcess
-from details.models import ExtensionProgram
-from details.models import GalleryPhoto
 from details.models import Personnel
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
@@ -31,6 +29,7 @@ from details.models import SustainableDevelopmentGoal
 from details.models import Target
 from details.quarterly import open_requests_for_campus
 from proposals.models import MOASubmission
+from proposals.models import DocumentationPhoto
 from proposals.models import Proposal
 from proposals.models import ProposalCommentSummary
 from proposals.models import ProposalEvaluatorAssignment
@@ -1040,8 +1039,11 @@ def admin_dashboard(request):
         "admin_count": Profile.objects.filter(role=Profile.ROLE_ADMIN).count(),
         "personnel_count": Personnel.objects.count(),
         "activities_count": Activity.objects.count(),
-        "programs_count": ExtensionProgram.objects.count(),
-        "gallery_photo_count": GalleryPhoto.objects.count(),
+        # Programs and gallery photos are proposals now, not content rows.
+        "programs_count": Proposal.objects.filter(
+            proposal_status__in=["APPROVED", "COMPLETED"]
+        ).count(),
+        "gallery_photo_count": DocumentationPhoto.objects.filter(is_visible=True).count(),
         "processes_count": ExtensionProcess.objects.count(),
         "targets_count": Target.objects.count(),
         "signatories_count": Signatory.objects.count(),
@@ -1062,8 +1064,6 @@ def admin_dashboard(request):
         "total_content": (
             Personnel.objects.count()
             + Activity.objects.count()
-            + ExtensionProgram.objects.count()
-            + GalleryPhoto.objects.count()
             + ExtensionProcess.objects.count()
             + Target.objects.count()
             + Signatory.objects.count()

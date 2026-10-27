@@ -14,7 +14,7 @@ from ..models import Proposal
 from ..models import ProposalCommentSummary
 from ..models import ProposalFinalDocument
 from ..models import ProposalPhaseLog
-from ..models import TerminalReportPhoto
+from ..models import DocumentationPhoto
 from .permissions import _can_manage_phase, _can_view_proposal
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,31 @@ DOCUMENTATION_IMAGE_TYPES = {
     "image/jpeg", "image/png", "image/webp", "image/gif",
 }
 DOCUMENTATION_IMAGE_MAX_BYTES = 12 * 1024 * 1024
+
+#: Photo documentation is part of the terminal report ("Final Evaluation and
+#: Documentation", appendix E.13), so it opens once the report is being filed —
+#: at the progress-report stage and everything after it.
+DOCUMENTATION_STAGES = {
+    "TERMINAL_REPORT",
+    "MONITORING",
+    "REVISION",
+    "COMPLETED",
+}
+
+
+def documentation_is_open(proposal):
+    """Whether photo documentation can be filed yet.
+
+    Either the activity has reached the stage where the terminal report is
+    filed, or the report is already uploaded — an activity can sit at an
+    earlier stage and still have its report on file, and its photos belong
+    with the report.
+    """
+    if proposal.implementation_status in DOCUMENTATION_STAGES:
+        return True
+    return proposal.final_documents.filter(
+        document_type="REPORT_FINAL"
+    ).exists()
 
 
 @login_required
@@ -81,6 +106,7 @@ def proposal_implementation_tracker(request, proposal_id):
             "upload_certificate",
             "upload_documentation",
             "remove_documentation",
+            "save_documentation_caption",
         }:
             if not can_upload:
                 messages.error(request, "You do not have permission to upload documents here.")
@@ -117,16 +143,33 @@ def proposal_implementation_tracker(request, proposal_id):
                     messages.success(request, "Terminal report uploaded.")
 
             elif action == "upload_documentation":
-                # The documentation photos belong to the terminal report: the
-                # "Final Evaluation and Documentation" step. They are what the
-                # public Gallery shows, so the office uploads them once, here.
+                # Appendix E.13 of the terminal report: "photo documentation in
+                # action with caption". The proponent files the photos together
+                # with the report, and the public Gallery shows them.
+                if not documentation_is_open(proposal):
+                    messages.error(
+                        request,
+                        "Photo documentation is submitted with the terminal report, "
+                        "at the Final Evaluation and Documentation stage.",
+                    )
+                    return redirect("proposal_implementation_tracker", proposal_id=proposal.id)
+
                 photos = request.FILES.getlist("documentation_photos")
                 if not photos:
                     messages.error(request, "Please choose at least one photo to upload.")
                 else:
-                    caption = (request.POST.get("documentation_caption") or "").strip()
+                    # Alpine renders one caption box per chosen photo, so the
+                    # captions arrive as an ordered list matching ``photos``.
+                    # A single shared caption is also accepted — that is what
+                    # the legacy-import form sends for a whole batch — and
+                    # without JavaScript each photo is saved uncaptioned, to be
+                    # captioned afterwards in the list below.
+                    captions = request.POST.getlist("documentation_captions")
+                    shared = (request.POST.get("documentation_caption") or "").strip()
+                    if not captions and shared:
+                        captions = [shared] * len(photos)
                     saved = 0
-                    for photo_file in photos:
+                    for index, photo_file in enumerate(photos):
                         content_type = (getattr(photo_file, "content_type", "") or "").lower()
                         if content_type not in DOCUMENTATION_IMAGE_TYPES:
                             messages.error(
@@ -140,7 +183,8 @@ def proposal_implementation_tracker(request, proposal_id):
                                 f'"{photo_file.name}" is larger than 12 MB.',
                             )
                             continue
-                        TerminalReportPhoto.objects.create(
+                        caption = captions[index].strip()[:200] if index < len(captions) else ""
+                        DocumentationPhoto.objects.create(
                             proposal=proposal,
                             image=photo_file,
                             caption=caption,
@@ -154,12 +198,24 @@ def proposal_implementation_tracker(request, proposal_id):
                             "added. They appear in the public Gallery.",
                         )
 
+            elif action == "save_documentation_caption":
+                # Captions are part of the report, so they must stay editable
+                # after the upload (a wrong caption is a documentation error).
+                photo = get_object_or_404(
+                    DocumentationPhoto,
+                    pk=request.POST.get("photo_id"),
+                    proposal=proposal,
+                )
+                photo.caption = (request.POST.get("caption") or "").strip()[:200]
+                photo.save(update_fields=["caption"])
+                messages.success(request, "Caption saved.")
+
             elif action == "remove_documentation":
                 # ``can_upload`` already limited this to the proposal's own
                 # proponents and the staff who manage it, so a mistake (or a
                 # photo that should not be public) can be undone right here.
                 photo = get_object_or_404(
-                    TerminalReportPhoto,
+                    DocumentationPhoto,
                     pk=request.POST.get("photo_id"),
                     proposal=proposal,
                 )
@@ -249,6 +305,7 @@ def proposal_implementation_tracker(request, proposal_id):
         "terminal_versions": terminal_versions,
         "documentation_photos": documentation_photos,
         "documentation_photo_count": documentation_photos.count(),
+        "can_submit_documentation": can_upload and documentation_is_open(proposal),
         "logs": proposal.phase_logs.filter(phase=ProposalPhaseLog.Phase.IMPLEMENTATION),
         "is_first_stage": proposal.implementation_status in {
             Proposal.ImplementationStatus.NOT_STARTED,

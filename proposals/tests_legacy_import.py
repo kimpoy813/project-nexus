@@ -6,7 +6,13 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.tests import factories
-from .models import Proposal, ProposalAttachment, ProposalPhaseLog, ProposalProponent
+from .models import (
+    DocumentationPhoto,
+    Proposal,
+    ProposalAttachment,
+    ProposalPhaseLog,
+    ProposalProponent,
+)
 
 
 class LegacyActivityImportTests(TestCase):
@@ -184,6 +190,50 @@ class LegacyActivityImportTests(TestCase):
     def test_duplicate_accounts_are_linked_once(self):
         proposal = self.create_activity(assigned_proponents=[self.first.pk, self.first.pk])
         self.assertEqual(proposal.proponents.count(), 1)
+
+    def test_import_carries_the_photo_documentation_into_the_gallery(self):
+        """A legacy activity has no terminal report here, so the import files
+        the photos the report would have carried (appendix E.13)."""
+        gif = (
+            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!"
+            b"\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00"
+            b"\x00\x02\x02D\x01\x00;"
+        )
+        proposal = self.create_activity(
+            documentation_photos=[
+                SimpleUploadedFile("action.gif", gif, content_type="image/gif"),
+                SimpleUploadedFile("crowd.gif", gif, content_type="image/gif"),
+            ],
+            documentation_caption="Farmers practising compost preparation",
+        )
+
+        photos = proposal.documentation_photos.all()
+        self.assertEqual(photos.count(), 2)
+        self.assertEqual(photos.first().caption, "Farmers practising compost preparation")
+        self.assertEqual(photos.first().uploaded_by, self.admin)
+
+        gallery = self.client.get(reverse("gallery_page"))
+        self.assertContains(gallery, "Farmers practising compost preparation")
+        self.assertContains(gallery, "Legacy upload")
+
+    def test_import_records_what_the_programs_directory_publishes(self):
+        proposal = self.create_activity(
+            general_objective="Raise household income",
+            objectives_specific="Train 30 farmers\nSet up a demo plot",
+            student_participants="4",
+            faculty_participants="6",
+            research_staff_participants="1",
+            date_venue="May 7-9, 2025 · Barangay Sabangan",
+        )
+
+        self.assertEqual(proposal.general_objective, "Raise household income")
+        self.assertEqual(proposal.student_participants, 4)
+        self.assertEqual(proposal.faculty_participants, 6)
+        self.assertEqual(proposal.research_staff_participants, 1)
+
+        programs = self.client.get(reverse("programs_page"))
+        self.assertContains(programs, "Continuing community training")
+        self.assertContains(programs, "May 7-9, 2025")
 
     def test_only_admin_can_import(self):
         for client in [self.first_client, self.director_client]:

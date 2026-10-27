@@ -85,9 +85,12 @@
           <p class="legacy-help" id="unit-feedback" role="status"></p>
           <button type="button" id="unit-retry" class="legacy-filter" hidden>Retry loading units</button>
           {% include "services/wizard/_legacy_field.html" with field=form.implementing_agency label="Implementing agency / unit" %}
-          <details class="legacy-optional" {% if form.beneficiaries_count.errors or form.beneficiaries_who.errors or form.extension_venue.errors or form.estimated_month.errors or form.estimated_year.errors %}open{% endif %}>
+          <details class="legacy-optional" {% if form.beneficiaries_count.errors or form.beneficiaries_who.errors or form.extension_venue.errors or form.estimated_month.errors or form.estimated_year.errors or form.start_date.errors or form.end_date.errors or form.date_venue.errors %}open{% endif %}>
             <summary>Schedule, venue &amp; beneficiaries <span>Optional</span></summary>
             <div class="legacy-grid">
+              {% include "services/wizard/_legacy_field.html" with field=form.date_venue label="Schedule as published" wide=True help="Free text, shown on the Programs page when no exact dates are known." %}
+              {% include "services/wizard/_legacy_field.html" with field=form.start_date label="Start date" %}
+              {% include "services/wizard/_legacy_field.html" with field=form.end_date label="End date" %}
               {% include "services/wizard/_legacy_field.html" with field=form.extension_venue label="Venue / site" %}
               {% include "services/wizard/_legacy_field.html" with field=form.beneficiaries_count label="Estimated beneficiary count" %}
               {% include "services/wizard/_legacy_field.html" with field=form.beneficiaries_who label="Who are the beneficiaries?" wide=True %}
@@ -101,6 +104,19 @@
               {% include "services/wizard/_legacy_field.html" with field=form.estimated_year label="Estimated year" %}
             </div>
           </details>
+
+          <details class="legacy-optional" {% if form.general_objective.errors or form.objectives_specific.errors or form.student_participants.errors or form.faculty_participants.errors or form.research_staff_participants.errors %}open{% endif %}>
+            <summary>Objectives &amp; participants <span>Optional</span></summary>
+            <p class="legacy-help">These appear on the public Programs page, alongside the activity’s document.</p>
+            <div class="legacy-grid">
+              {% include "services/wizard/_legacy_field.html" with field=form.general_objective label="General objective" wide=True %}
+              {% include "services/wizard/_legacy_field.html" with field=form.objectives_specific label="Specific objectives" wide=True help="One objective per line." %}
+              {% include "services/wizard/_legacy_field.html" with field=form.student_participants label="ISPSC students involved" %}
+              {% include "services/wizard/_legacy_field.html" with field=form.faculty_participants label="Faculty involved" %}
+              {% include "services/wizard/_legacy_field.html" with field=form.research_staff_participants label="Research staff involved" %}
+            </div>
+          </details>
+
         </section>
 
         <section class="legacy-card" aria-labelledby="accounts-heading">
@@ -130,6 +146,18 @@
             {% include "services/wizard/_legacy_field.html" with field=form.moa_draft_file label="MOA / agreement" wrapper_id="moa-file-field" help="Draft or signed document, matching the stage selected above." %}
             {% include "services/wizard/_legacy_field.html" with field=form.certificate_of_completion_file label="Completion certificate" wrapper_id="completion-certificate-field" %}
             <div class="legacy-field legacy-wide"><label for="id_attachments">Other supporting files</label><input type="file" id="id_attachments" name="attachments[]" multiple class="legacy-input"><p class="legacy-help">You can select multiple files, including interim reports and annexes.</p></div>
+          </div>
+
+          <div class="legacy-divider"></div>
+          <div class="legacy-grid legacy-files">
+            <div class="legacy-field legacy-wide">
+              <label for="id_documentation_photos">Photo documentation <span class="legacy-optional-label">Optional</span></label>
+              <input type="file" id="id_documentation_photos" name="documentation_photos" multiple
+                     accept="image/jpeg,image/png,image/webp,image/gif" class="legacy-input">
+              <p class="legacy-help">Photos of the activity in action — the same documentation the terminal report requires (appendix E.13, “photo documentation in action with caption”). They appear on the public Gallery page. JPEG, PNG, WebP, or GIF, up to 12 MB each.</p>
+              {{ form.documentation_photos.errors }}
+            </div>
+            {% include "services/wizard/_legacy_field.html" with field=form.documentation_caption label="Caption for these photos" wide=True %}
           </div>
         </section>
       </div>

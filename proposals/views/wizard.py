@@ -860,7 +860,26 @@ def proposal_wizard(request, proposal_id, step):
         if proposal.beneficiaries_count == 0 and (raw_beneficiaries or "").strip() == "":
             proposal.beneficiaries_count = None
         proposal.beneficiaries_who = (request.POST.get("beneficiaries_who") or "").strip()
-        proposal.save(update_fields=["beneficiaries_count", "beneficiaries_who"])
+
+        # The terminal report asks for a matrix of the ISPSC students and
+        # faculty involved (separate from the community beneficiaries), and the
+        # Programs directory publishes the same split. Both are optional: an
+        # activity with no students simply leaves that box blank.
+        participant_fields = [
+            "student_participants",
+            "faculty_participants",
+            "research_staff_participants",
+        ]
+        for field in participant_fields:
+            raw_value = request.POST.get(field)
+            if raw_value is None:
+                continue
+            value = _to_int(raw_value, default=None)
+            setattr(proposal, field, None if value == 0 and not raw_value.strip() else value)
+
+        proposal.save(
+            update_fields=["beneficiaries_count", "beneficiaries_who", *participant_fields]
+        )
 
     elif step == 6:
         sdg_codes = request.POST.getlist("sdg_codes")

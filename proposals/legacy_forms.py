@@ -2,6 +2,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
+from accounts.forms import MultipleFileField, MultipleFileInput
 from .models import Proposal
 
 
@@ -49,6 +50,25 @@ class LegacyProposalForm(forms.ModelForm):
         initial=Proposal.ImplementationStatus.IMPLEMENTATION,
         required=False,
     )
+    documentation_photos = MultipleFileField(
+        label="Photo documentation",
+        required=False,
+        widget=MultipleFileInput(
+            attrs={"accept": "image/jpeg,image/png,image/webp,image/gif"}
+        ),
+        help_text=(
+            "Photos of the activity in action, each with a caption. They appear on "
+            "the public Gallery page. Legacy activities have no terminal report in "
+            "the system, so this is where their documentation is attached."
+        ),
+    )
+    documentation_caption = forms.CharField(
+        label="Caption for the photos",
+        required=False,
+        max_length=200,
+        help_text="Used for the photos above; the office can edit each caption later.",
+    )
+
     assigned_proponents = ProponentChoices(
         label="Assigned proponent accounts",
         queryset=get_user_model().objects.none(),
@@ -64,8 +84,24 @@ class LegacyProposalForm(forms.ModelForm):
             "implementing_agency", "beneficiaries_who", "beneficiaries_count",
             "estimated_month", "estimated_year", "extension_venue", "proposal_status",
             "legacy_proposal_file", "moa_draft_file", "certificate_of_completion_file",
+            # What the Programs directory publishes. An imported activity has no
+            # proposal wizard behind it, so these are the only chance to record
+            # them; leaving them blank simply shows less on the card.
+            "general_objective", "objectives_specific",
+            "student_participants", "faculty_participants",
+            "research_staff_participants",
+            "start_date", "end_date", "date_venue",
         ]
-        widgets = {"beneficiaries_who": forms.Textarea(attrs={"rows": 2})}
+        widgets = {
+            "beneficiaries_who": forms.Textarea(attrs={"rows": 2}),
+            "general_objective": forms.Textarea(attrs={"rows": 2}),
+            "objectives_specific": forms.Textarea(attrs={"rows": 3}),
+            "date_venue": forms.TextInput(
+                attrs={"placeholder": "e.g. May 7–9, 2025 · Barangay Sabangan"}
+            ),
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
