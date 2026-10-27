@@ -92,7 +92,7 @@ export const GlossaryScene = () => (
               index={i}
               // People words glow under segment 1, document words under 2.
               active={
-                i < PEOPLE_TERMS ? [14, 34, 158, 176] : [182, 202, 300, 322]
+                i < PEOPLE_TERMS ? [14, 34, 158, 176] : [180, 200, 300, 322]
               }
             />
           ))}

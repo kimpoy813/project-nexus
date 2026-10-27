@@ -45,7 +45,7 @@ export const NARRATION = [
         text: "A proponent owns the proposal; evaluators review it; coordinators endorse it.",
       },
       {
-        at: 174,
+        at: 172,
         text: "An MOA is the signed partnership agreement. A tracker shows its stage.",
       },
     ],
@@ -189,7 +189,7 @@ export const NARRATION = [
         at: 12,
         text: "The public website is edited without code, using reusable blocks.",
       },
-      { at: 150, text: "Every change is logged, with the editor named." },
+      { at: 144, text: "Every change is logged with the editor's name." },
     ],
   },
   // 18 Security — 210f
@@ -205,7 +205,7 @@ export const NARRATION = [
   {
     segments: [
       { at: 8, text: "That's nexus — one record, from idea to finish." },
-      { at: 125, text: "Log in and start your first proposal." },
+      { at: 129, text: "Log in and start your first proposal." },
     ],
   },
 ];
