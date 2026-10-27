@@ -212,15 +212,21 @@ def proposal_implementation_tracker(request, proposal_id):
 
             elif action == "remove_documentation":
                 # ``can_upload`` already limited this to the proposal's own
-                # proponents and the staff who manage it, so a mistake (or a
-                # photo that should not be public) can be undone right here.
+                # proponents and the staff who manage it. The row is snapshotted
+                # first, so the undo bar can put the photo (and its caption)
+                # back — that is why this needs no confirmation prompt.
+                from accounts import deletion
+
                 photo = get_object_or_404(
                     DocumentationPhoto,
                     pk=request.POST.get("photo_id"),
                     proposal=proposal,
                 )
+                token = deletion.remember(request, photo, f'Photo "{photo.display_title}"')
                 photo.delete()
-                messages.success(request, "Documentation photo removed.")
+                messages.success(
+                    request, f"Documentation photo removed.{deletion.undo_hint(token)}"
+                )
 
             elif action == "upload_certificate":
                 certificate_file = request.FILES.get("certificate_file")

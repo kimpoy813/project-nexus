@@ -88,7 +88,7 @@ Context:
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                     <button type="button" onclick="document.getElementById('edit-thrust-{{ thrust.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn nx-btn nx-btn--secondary nx-btn--compact">Edit</button>
-                    <form method="POST" action="{% url 'home_inline_thrust_delete' thrust.id %}" data-nx-confirm="Delete this thrust?">
+                    <form method="POST" action="{% url 'home_inline_thrust_delete' thrust.id %}">
                         {% csrf_token %}
                         {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
                         <button type="submit" class="pc-btn pc-btn--danger nx-btn nx-btn--danger nx-btn--compact">Delete</button>

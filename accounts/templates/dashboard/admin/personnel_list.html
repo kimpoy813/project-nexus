@@ -33,12 +33,18 @@
                      data-nx-tooltip="Edit personnel" aria-label="Edit personnel">
                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                   </a>
-                  <a href="{% url 'personnel_delete' p.id %}"
-                     class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
-                     data-nx-tooltip="Delete personnel" aria-label="Delete personnel"
-                     data-nx-confirm="Delete this personnel record? This cannot be undone.">
-                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
-                  </a>
+                  {% comment %}POST, not a link: deleting must not be
+                  reachable by a prefetch or a scanner. No confirmation prompt —
+                  the undo bar puts the record back (accounts/deletion.py).
+                  {% endcomment %}
+                  <form method="post" action="{% url 'personnel_delete' p.id %}" class="nx-action-form">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                            data-nx-tooltip="Delete personnel" aria-label="Delete personnel">
+                      <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                    </button>
+                  </form>
                 </div>
             </td>
             </tr>

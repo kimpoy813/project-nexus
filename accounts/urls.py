@@ -12,6 +12,11 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
     path("session/activity/", views.session_activity, name="session_activity"),
     path("logout-idle/", views.logout_idle_view, name="logout_idle"),
+
+    # Undo for an administrative deletion. POST-only and scoped to the
+    # caller's own session (see accounts/deletion.py).
+    path("undo/<str:token>/", views.undo_delete, name="undo_delete"),
+    path("undo/<str:token>/dismiss/", views.dismiss_undo, name="dismiss_undo"),
     path("debug-login/", views.debug_login_view, name="debug_login"),
 
     # Email verification

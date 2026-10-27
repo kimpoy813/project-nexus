@@ -51,8 +51,7 @@
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                     <a href="{% url 'home_thrust_edit' thrust.id %}" class="hs-btn nx-btn nx-btn--secondary">Edit</a>
-                    <form method="POST" action="{% url 'home_thrust_delete' thrust.id %}"
-                          data-nx-confirm="Delete this thrust? This cannot be undone.">
+                    <form method="POST" action="{% url 'home_thrust_delete' thrust.id %}">
                         {% csrf_token %}
                         <button type="submit" class="hs-btn hs-btn--danger nx-btn nx-btn--danger">Delete</button>
                     </form>

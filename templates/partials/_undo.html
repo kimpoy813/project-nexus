@@ -1,0 +1,48 @@
+{% comment %}
+The undo bar (see accounts/deletion.py).
+
+Appears under the page after a delete, with a live countdown: the record can be
+put back until it expires. It is a form, not a link, because undoing is a state
+change — a prefetching browser or a link scanner must not be able to trigger it.
+
+One bar per pending deletion, newest last; at most five, because more than that
+is a shopping list rather than an undo. `role="status"` means a screen reader
+announces it on arrival without stealing focus from whatever the user is doing.
+
+Dismissing is deliberately quiet: closing the bar throws the snapshot away, and
+the record stays deleted. That is the same choice the countdown makes for you.
+{% endcomment %}
+{% if undo_items %}
+<div class="nx-undo" data-nx-undo-stack aria-label="Recently deleted">
+    {% for item in undo_items %}
+    <div class="nx-undo__item"
+         data-nx-undo
+         data-nx-undo-seconds="{{ item.seconds_left }}"
+         data-nx-undo-token="{{ item.token }}">
+        {% comment %}The live region is the sentence, not the whole bar: a
+        button inside a live region gets re-announced on every update.{% endcomment %}
+        <span class="nx-undo__text" role="status">
+            <strong>{{ item.label }}</strong> deleted.
+            {% if item.count > 1 %}{{ item.count }} records were removed with it.{% endif %}
+            <span class="nx-undo__time">Undo available for <span data-nx-undo-remaining>{{ item.seconds_left }}</span>s.</span>
+        </span>
+
+        <form method="post" action="{% url 'undo_delete' item.token %}" class="nx-undo__actions">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="nx-btn nx-btn--primary nx-btn--compact"
+                    aria-label="Undo deleting {{ item.label }}">Undo</button>
+        </form>
+
+        <form method="post" action="{% url 'dismiss_undo' item.token %}" class="nx-undo__dismiss">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="nx-undo__close"
+                    aria-label="Dismiss undo for {{ item.label }} — it stays deleted">
+                <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-x"></use></svg>
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

@@ -43,12 +43,17 @@
                      data-nx-tooltip="Edit activity" aria-label="Edit activity">
                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                   </a>
-                  <a href="{% url 'activity_delete' a.id %}"
-                     class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
-                     data-nx-tooltip="Delete activity" aria-label="Delete activity"
-                     data-nx-confirm="Delete this activity? This cannot be undone.">
-                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
-                  </a>
+                  {% comment %}POST, not a link (see personnel_list.html).
+                  The activity's dates come back with it from the undo
+                  snapshot.{% endcomment %}
+                  <form method="post" action="{% url 'activity_delete' a.id %}" class="nx-action-form">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                            data-nx-tooltip="Delete activity" aria-label="Delete activity">
+                      <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                    </button>
+                  </form>
                 </div>
             </td>
             </tr>

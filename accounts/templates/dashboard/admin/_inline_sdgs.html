@@ -89,7 +89,7 @@ Context: inline_sdgs, editor_id, next_url
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                     <button type="button" onclick="document.getElementById('edit-sdg-{{ goal.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn nx-btn nx-btn--secondary nx-btn--compact">Edit</button>
-                    <form method="POST" action="{% url 'sdg_goal_delete' goal.id %}" data-nx-confirm="Delete this goal? Proposals that reference it keep their stored code.">
+                    <form method="POST" action="{% url 'sdg_goal_delete' goal.id %}">
                         {% csrf_token %}
                         {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
                         <button type="submit" class="pc-btn pc-btn--danger nx-btn nx-btn--danger nx-btn--compact">Delete</button>
