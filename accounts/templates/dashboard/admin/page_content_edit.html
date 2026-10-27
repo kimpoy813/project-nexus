@@ -220,7 +220,7 @@
                     <div class="flex shrink-0 items-center gap-2">
                         <a href="{% url 'page_section_edit' section.id %}" class="pc-btn nx-btn nx-btn--secondary">{% if section.content_source %}Edit heading{% else %}Edit{% endif %}</a>
                         <form method="POST" action="{% url 'page_section_delete' section.id %}"
-                              onsubmit="return confirm('Remove this block from the page? The builder\'s data is not deleted — only this block.');">
+                              data-nx-confirm="Remove this block from the page? The builder's data is not deleted — only this block.">
                             {% csrf_token %}
                             <button type="submit" class="pc-btn pc-btn--danger nx-btn nx-btn--danger">Remove</button>
                         </form>

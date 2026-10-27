@@ -12,23 +12,17 @@
             <img src="{% static 'images/nexus-logo-128.png' %}"
                  alt="NExUS logo"
                  class="h-16 w-16 object-contain mx-auto mb-3 rounded-2xl bg-white p-2 shadow">
-            <h2 class="text-3xl font-bold text-center">Create Account</h2>
+            <h2 class="text-3xl font-bold text-center">Create your account</h2>
             <p class="text-sm text-center text-white mt-1">
-                Register your NExUS account
+                One account for every stage, from draft to report.
             </p>
         </div>
 
         <div class="p-8">
 
-            {% if form.non_field_errors %}
-                <div class="mb-6 rounded-lg px-4 py-3 text-sm bg-red-50 text-red-700 border border-red-200">
-                    {% for error in form.non_field_errors %}
-                        <div>{{ error }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            {% include "accounts/_form_errors.html" with form=form %}
 
-            <form method="POST" class="space-y-5" data-nx-skeleton="auth">
+            <form method="POST" class="space-y-5" data-nx-skeleton="auth" data-nx-busy>
                 {% csrf_token %}
 
                 <div>
@@ -106,11 +100,11 @@
                         <p class="text-red-600 text-sm mt-1">{{ form.password.errors.0 }}</p>
                     {% endif %}
 
-                    <ul id="password-rules" class="text-sm mt-2 space-y-1">
-                        <li id="length" class="text-red-500">• At least 8 characters</li>
-                        <li id="number" class="text-red-500">• Contains a number</li>
-                        <li id="uppercase" class="text-red-500">• Contains uppercase letter</li>
-                    </ul>
+                    <noscript>
+                        <p class="text-xs text-gray-500 mt-1">
+                            At least 8 characters, including a number and an uppercase letter.
+                        </p>
+                    </noscript>
                 </div>
 
                 <div>
@@ -124,7 +118,7 @@
                 </div>
 
                 <button
-                    type="submit"
+                    type="submit" data-nx-busy-label="Creating your account…"
                     class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:opacity-90 transition nx-btn nx-btn--primary"
                 >
                     Register
@@ -142,30 +136,4 @@
 </section>
 
 {% include "accounts/_organization_fields.html" %}
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const passwordInput = document.getElementById("id_password");
-    if (passwordInput) {
-        passwordInput.addEventListener("input", function () {
-            const value = passwordInput.value;
-
-            const lengthEl = document.getElementById("length");
-            const numberEl = document.getElementById("number");
-            const uppercaseEl = document.getElementById("uppercase");
-
-            if (lengthEl) {
-                lengthEl.className = value.length >= 8 ? "text-green-500" : "text-red-500";
-            }
-
-            if (numberEl) {
-                numberEl.className = /\d/.test(value) ? "text-green-500" : "text-red-500";
-            }
-
-            if (uppercaseEl) {
-                uppercaseEl.className = /[A-Z]/.test(value) ? "text-green-500" : "text-red-500";
-            }
-        });
-    }
-});
-</script>
 {% endblock %}

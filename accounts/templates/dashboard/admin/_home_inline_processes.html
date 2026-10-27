@@ -65,7 +65,7 @@ Shift+Tab. Context: home_processes, editor_id, next_url
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                     <button type="button" onclick="document.getElementById('edit-process-{{ proc.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn nx-btn nx-btn--secondary nx-btn--compact">Edit</button>
-                    <form method="POST" action="{% url 'home_inline_process_delete' proc.id %}" onsubmit="return confirm('Delete this process and all its steps?');">
+                    <form method="POST" action="{% url 'home_inline_process_delete' proc.id %}" data-nx-confirm="Delete this process and all its steps?">
                         {% csrf_token %}
                         {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
                         <button type="submit" class="pc-btn pc-btn--danger nx-btn nx-btn--danger nx-btn--compact">Delete</button>

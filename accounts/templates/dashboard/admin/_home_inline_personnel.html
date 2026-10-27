@@ -58,7 +58,7 @@ Context: home_personnel, editor_id, next_url
                 </div>
                 <div class="flex shrink-0 items-center gap-2">
                     <button type="button" onclick="document.getElementById('edit-person-{{ p.id }}-{{ eid }}').classList.toggle('hidden')" class="pc-btn nx-btn nx-btn--secondary nx-btn--compact">Edit</button>
-                    <form method="POST" action="{% url 'home_inline_personnel_delete' p.id %}" onsubmit="return confirm('Delete this person?');">
+                    <form method="POST" action="{% url 'home_inline_personnel_delete' p.id %}" data-nx-confirm="Delete this person?">
                         {% csrf_token %}
                         {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
                         <button type="submit" class="pc-btn pc-btn--danger nx-btn nx-btn--danger nx-btn--compact">Delete</button>

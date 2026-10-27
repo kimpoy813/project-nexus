@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% comment %}
+Help & how NExUS works — heuristic 10 ("help and documentation") given a home.
+
+This page is written in the template, not stored in the CMS, for one reason: it
+describes the system's own rules (statuses, roles, password requirements), which
+are facts in the code. If a rule changes in `proposals/models.py`, this text is
+wrong and has to be edited in the same commit — a database row would silently
+keep saying the old thing. Institutional copy (who to contact, opening hours)
+still comes from Site Configuration, so it stays editable.
+
+Keep every claim here true: the statuses below mirror ProposalStatus, and the
+role lines mirror Profile.is_reviewer / is_staff_or_higher.
+{% endcomment %}
+
+{% block title %}Help · {{ site_control.site_name|default:"NExUS" }}{% endblock %}
+
+{% block extra_head %}
+    <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<section class="relative bg-primary text-white py-24 overflow-hidden">
+    <div class="nx-page nx-page--measure text-center">
+        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
+            Help &amp; documentation
+        </p>
+        <h1 class="text-4xl md:text-5xl font-semibold leading-tight tracking-wide nx-page-title">
+            How NExUS works
+        </h1>
+        <p class="mt-6 text-lg text-white nx-measure mx-auto leading-relaxed">
+            What each screen expects from you, what the statuses mean, and who to ask when
+            something does not go to plan.
+        </p>
+    </div>
+</section>
+
+<section class="bg-white border-b border-gray-100 sticky top-20 z-40">
+    <div class="nx-page py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
+        <a href="#start" class="hover:text-primary transition">Getting in</a>
+        <a href="#proposal" class="hover:text-primary transition">A proposal's life</a>
+        <a href="#documents" class="hover:text-primary transition">Documents &amp; photos</a>
+        <a href="#account" class="hover:text-primary transition">Your account</a>
+        <a href="#stuck" class="hover:text-primary transition">If something is wrong</a>
+    </div>
+</section>
+
+<div class="nx-page nx-page--measure py-16 space-y-16">
+
+    <section id="start" class="scroll-mt-32">
+        <h2 class="text-2xl font-semibold text-gray-900">Getting in</h2>
+        <ol class="mt-6 space-y-4 text-gray-700 leading-relaxed list-decimal list-inside">
+            <li>
+                <strong>Register</strong> with your institutional email, campus, and — where you
+                have one — your college and department. Your campus and department decide which
+                proposals and reviews you can see, so pick them carefully; an admin can correct
+                them later.
+            </li>
+            <li>
+                <strong>Verify your email.</strong> The link in the message expires, and an
+                unverified account cannot sign in. If it has expired, the sign-in page tells you
+                so and you can request a new one.
+            </li>
+            <li>
+                <strong>Sign in</strong> with either your username or your email. You land on the
+                dashboard for your role.
+            </li>
+        </ol>
+        <p class="mt-4 text-sm text-gray-600">
+            Signed in and stepped away? Idle sessions end on their own and say so on the sign-in
+            page, rather than dropping you on a blank screen.
+        </p>
+    </section>
+
+    <section id="proposal" class="scroll-mt-32">
+        <h2 class="text-2xl font-semibold text-gray-900">A proposal's life</h2>
+        <p class="mt-3 text-gray-700 leading-relaxed">
+            A proposal moves through these statuses in order. Most of the time the screen you are
+            on names the next step; the tracker shows the same list as a progress rail.
+        </p>
+
+        <div class="mt-6 overflow-x-auto">
+            <table class="w-full text-sm text-left border border-gray-200 rounded-xl overflow-hidden">
+                <thead class="bg-gray-50 text-gray-700">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold">Status</th>
+                        <th scope="col" class="px-4 py-3 text-left font-semibold">What it means</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-gray-700">
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Drafting</th>
+                        <td class="px-4 py-3 text-left">
+                            Still yours to write. You and your named collaborators can edit it;
+                            nobody else can see it.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Submitted for Review</th>
+                        <td class="px-4 py-3 text-left">
+                            Handed over. Editing locks at this point because reviewers are reading
+                            the version you submitted.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">In Review</th>
+                        <td class="px-4 py-3 text-left">
+                            Coordinators, the Director, and assigned evaluators are scoring and
+                            commenting.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Review Summary Issued</th>
+                        <td class="px-4 py-3 text-left">
+                            The comments are compiled. Read the summary before the next status.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">For Revision</th>
+                        <td class="px-4 py-3 text-left">
+                            Returned to you with comments to answer. Editing reopens, and you
+                            resubmit when the comments are addressed.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Ready to Print</th>
+                        <td class="px-4 py-3 text-left">
+                            Accepted. Generate the document in the required format and print it.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Submission &amp; Uploading</th>
+                        <td class="px-4 py-3 text-left">
+                            Submit the signed copies and upload the scanned set. Staff receive it
+                            from here.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Approved / Claiming</th>
+                        <td class="px-4 py-3 text-left">
+                            Documents are released; the proponent claims them.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Proposal Completed</th>
+                        <td class="px-4 py-3 text-left">
+                            Done. From here the work continues as a MOA and an implementation
+                            tracker.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="mt-4 text-sm text-gray-600">
+            After approval, two shorter trackers follow the same idea: the <strong>MOA</strong>
+            tracker (or “not required”), then the <strong>implementation</strong> tracker, which
+            ends with the terminal report and its photo documentation.
+        </p>
+    </section>
+
+    <section id="documents" class="scroll-mt-32">
+        <h2 class="text-2xl font-semibold text-gray-900">Documents &amp; photos</h2>
+        <ul class="mt-6 space-y-4 text-gray-700 leading-relaxed list-disc list-inside">
+            <li>
+                <strong>The Programs page</strong> lists only what is actually behind it: approved
+                proposals, plus programs entered by an admin as <em>legacy uploads</em> with their
+                own supporting document. There is no manual “add a program” screen, so nothing on
+                that page can drift away from a real record.
+            </li>
+            <li>
+                <strong>The Gallery</strong> shows photos uploaded with a terminal report's
+                documentation appendix, each with the caption the proponent wrote. If no report
+                has been filed yet, the gallery says so instead of showing placeholders.
+            </li>
+            <li>
+                <strong>Signed documents</strong> are uploaded by the proponent and released by
+                staff; the proposal's document screen lists every version it holds.
+            </li>
+        </ul>
+    </section>
+
+    <section id="account" class="scroll-mt-32">
+        <h2 class="text-2xl font-semibold text-gray-900">Your account</h2>
+        <ul class="mt-6 space-y-4 text-gray-700 leading-relaxed list-disc list-inside">
+            <li>
+                A password needs at least eight characters, one number, and one uppercase letter.
+                The field shows which rules are already met as you type, and the eye button beside
+                it reveals what you have written and hides it again.
+            </li>
+            <li>
+                <strong>Forgot your password?</strong> The sign-in page has the link. The reset
+                message goes to the address on your account; the form will not say whether an
+                address is registered, which is deliberate.
+            </li>
+            <li>
+                <strong>Locked out after failed attempts?</strong> Sign-in pauses for a while after
+                too many wrong passwords. The page says when that has happened and tells you to
+                try again later.
+            </li>
+            <li>
+                <strong>Wrong campus or role?</strong> Those are set by an admin, not by you —
+                ask the Extension Office to correct them.
+            </li>
+        </ul>
+    </section>
+
+    <section id="stuck" class="scroll-mt-32">
+        <h2 class="text-2xl font-semibold text-gray-900">If something is wrong</h2>
+        <ol class="mt-6 space-y-4 text-gray-700 leading-relaxed list-decimal list-inside">
+            <li>
+                Read the message at the top of the form. Errors are listed there first, in the same
+                order as the fields, and each one is a link to the field it belongs to.
+            </li>
+            <li>
+                If a page says it could not save, your entries stay in the form — nothing is lost by
+                trying again.
+            </li>
+            <li>
+                Still stuck, or something looks wrong? Send the page address and what you expected
+                to happen to the Extension Office.
+            </li>
+        </ol>
+
+        <div class="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-xl">
+            <h3 class="font-semibold text-gray-900">Extension Office</h3>
+            {% if site_control.contact_email or site_control.facebook_url %}
+                <ul class="mt-3 space-y-2 text-sm text-gray-700">
+                    {% if site_control.contact_email %}
+                        <li>
+                            Email:
+                            <a href="mailto:{{ site_control.contact_email }}"
+                               class="text-primary font-medium hover:text-secondary transition">
+                                {{ site_control.contact_email }}
+                            </a>
+                        </li>
+                    {% endif %}
+                    {% if site_control.facebook_url %}
+                        <li>
+                            <a href="{{ site_control.facebook_url }}" target="_blank"
+                               rel="noopener noreferrer"
+                               class="text-primary font-medium hover:text-secondary transition">
+                                Facebook Page
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            {% else %}
+                <p class="mt-3 text-sm text-gray-600">
+                    Contact details have not been published yet. They appear here as soon as an
+                    administrator adds them in Site Control.
+                </p>
+            {% endif %}
+        </div>
+    </section>
+
+</div>
+{% endblock %}

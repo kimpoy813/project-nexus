@@ -14,20 +14,28 @@
                 <img src="{% static 'images/nexus-logo-128.png' %}"
                      alt="NExUS logo"
                      class="h-16 w-16 object-contain mx-auto mb-3 rounded-2xl bg-white p-2 shadow">
-                <h2 class="text-2xl font-bold">Welcome Back</h2>
-                <p class="text-sm text-white">Sign in to continue</p>
+                {% comment %}The side panel already says "Sign in to
+                continue"; repeating it here was two headings for one
+                sentence.{% endcomment %}
+                <h2 class="text-2xl font-bold">Welcome back</h2>
             </div>
 
             <!-- Body -->
             <div class="p-8">
 
                 {% if error %}
-                <div class="bg-secondary/10 border border-secondary text-secondary p-3 rounded-lg mb-6 text-sm">
+                {% comment %}The summary takes focus on load
+                (js/nexus-forms.js), so a keyboard or screen reader user is told
+                what went wrong and where the form starts — not left at the
+                button they just pressed.{% endcomment %}
+                <div role="alert" tabindex="-1" data-nx-error-summary
+                     class="bg-secondary/10 border border-secondary text-secondary p-3 rounded-lg mb-6 text-sm">
                     {{ error }}
                 </div>
                 {% endif %}
 
-                <form method="POST" class="space-y-6" data-nx-skeleton="dashboard">
+                <form method="POST" class="space-y-6" data-nx-skeleton="dashboard"
+                      data-nx-busy>
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% firstof request.POST.next request.GET.next "" %}">
 
@@ -35,7 +43,9 @@
                         <label for="login-username" class="block text-sm font-medium text-gray-700 mb-2">
                             Username/Email
                         </label>
-                        <input id="login-username" name="username" autocomplete="username" value="{{ request.POST.username }}" required
+                        <input id="login-username" name="username" autocomplete="username"
+                            value="{{ request.POST.username }}" required autofocus
+                            autocapitalize="none" spellcheck="false"
                             class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
                     </div>
 
@@ -43,7 +53,9 @@
                         <label for="login-password" class="block text-sm font-medium text-gray-700 mb-2">
                             Password
                         </label>
-                        <input id="login-password" type="password" name="password" autocomplete="current-password" required
+                        <input id="login-password" type="password" name="password"
+                            autocomplete="current-password" required
+                            autocapitalize="none" spellcheck="false"
                             class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none">
                     </div>
 
@@ -55,9 +67,9 @@
                         </a>
                     </div>
 
-                    <button type="submit"
+                    <button type="submit" data-nx-busy-label="Signing in…"
                         class="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary transition font-semibold nx-btn nx-btn--primary">
-                        Login
+                        Sign in
                     </button>
                 </form>
 

@@ -126,7 +126,7 @@ _SKELETON_BY_URL_NAME.update(dict.fromkeys(
     # Public landing pages and CMS-driven content pages.
     (
         "details_page", "programs_page", "gallery_page", "about_page",
-        "services_home",
+        "services_home", "help_page",
         # Legacy URLs that permanently redirect to Programs / Gallery.
         "reports_page_legacy", "achievements_page_legacy",
     ),

@@ -276,3 +276,81 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 .nx-step-navigation__current { display: block; margin-top: .25rem; color: var(--nx-component-muted); font-size: .8125rem; font-weight: 400; }
 @media (min-width: 1024px) { .nx-step-navigation__summary { display: none; } }
 @media (max-width: 1023px) { .nx-step-navigation #wizard-stepper-scroll { max-height: 50vh; } }
+
+/* Password fields: reveal toggle, live rules, Caps Lock and match hints.
+   ────────────────────────────────────────────────────────────────────────
+   The markup is built by js/nexus-password.js, so a password input without
+   JavaScript keeps its native behaviour — the toggle is an addition, never a
+   replacement. Everything here is sized to the shared control height so the
+   eye never enlarges the field it sits in. */
+.nx-password {
+  position: relative;
+  display: block;
+}
+.nx-password > input {
+  /* Keep long passwords (and the reveal state) clear of the button. */
+  padding-right: 2.875rem;
+}
+.nx-password__toggle {
+  position: absolute;
+  top: 50%;
+  right: .375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: .625rem;
+  background: transparent;
+  color: var(--nx-component-muted, #64748b);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: color .15s ease, background-color .15s ease;
+}
+.nx-password__toggle:hover { color: var(--nexus-primary); background-color: rgb(var(--nexus-primary-rgb) / .08); }
+.nx-password__toggle:focus-visible {
+  outline: 2px solid var(--nexus-primary);
+  outline-offset: 1px;
+}
+.nx-password__toggle svg { width: 1.25rem; height: 1.25rem; display: block; pointer-events: none; }
+/* One icon at a time: the crossed eye means "hide what is shown". */
+.nx-password__toggle .nx-password__icon--hide { display: none; }
+.nx-password__toggle[aria-pressed="true"] .nx-password__icon--show { display: none; }
+.nx-password__toggle[aria-pressed="true"] .nx-password__icon--hide { display: block; }
+
+.nx-password__hint,
+.nx-password__rules {
+  margin-top: .375rem;
+  font-size: .8125rem;
+  line-height: 1.5;
+  color: var(--nx-component-muted, #64748b);
+}
+.nx-password__hint[hidden] { display: none; }
+.nx-password__hint[data-state="warning"] { color: #92400e; }
+.nx-password__hint[data-state="ok"] { color: #15803d; }
+.nx-password__hint[data-state="bad"] { color: #b91c1c; }
+
+.nx-password__rules { padding: 0; list-style: none; }
+.nx-password__rules li {
+  display: flex;
+  align-items: baseline;
+  gap: .375rem;
+}
+.nx-password__rules .nx-password__rule-mark {
+  width: 1rem;
+  flex: none;
+  text-align: center;
+  color: var(--nx-component-muted, #64748b);
+}
+.nx-password__rules li[data-met="true"] { color: #15803d; }
+.nx-password__rules li[data-met="true"] .nx-password__rule-mark { color: #15803d; }
+
+/* A button that is sending its form. It stays in the layout at the same size,
+   so nothing jumps under the pointer while the request is in flight. */
+.nx-btn.is-busy,
+button.is-busy {
+  cursor: progress;
+  opacity: .7;
+}

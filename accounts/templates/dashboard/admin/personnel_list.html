@@ -36,7 +36,7 @@
                   <a href="{% url 'personnel_delete' p.id %}"
                      class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
                      data-nx-tooltip="Delete personnel" aria-label="Delete personnel"
-                     onclick="return confirm('Delete this personnel record? This cannot be undone.');">
+                     data-nx-confirm="Delete this personnel record? This cannot be undone.">
                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
                   </a>
                 </div>

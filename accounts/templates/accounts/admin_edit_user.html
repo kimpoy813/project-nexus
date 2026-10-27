@@ -7,14 +7,9 @@
       <h1 class="text-xl font-semibold text-gray-900 nx-page-title">Edit User Account</h1>
       <p class="mt-1 text-sm text-gray-600 nx-page-description">Update account and profile information.</p>
     </div>
-    <form method="post" class="p-6 space-y-6" data-nx-skeleton="dashboard">
+    <form method="post" class="p-6 space-y-6" data-nx-skeleton="dashboard" data-nx-busy>
       {% csrf_token %}
-      {% if form.errors %}
-      <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-        Please correct the errors below. No account changes have been saved.
-        {{ form.non_field_errors }}
-      </div>
-      {% endif %}
+      {% include "accounts/_form_errors.html" with form=form %}
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {% for field in form %}
           {% include "accounts/_form_field.html" %}
@@ -22,7 +17,7 @@
       </div>
       <div class="flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-4">
         <a href="{% url 'admin_dashboard' %}" class="rounded-xl border border-gray-300 px-4 py-2.5 text-sm nx-btn nx-btn--secondary" data-nx-skeleton="dashboard">Cancel</a>
-        <button type="submit" class="nexus-btn-primary rounded-xl px-4 py-2.5 text-sm nx-btn nx-btn--primary">Save Changes</button>
+        <button type="submit" data-nx-busy-label="Saving…" class="nexus-btn-primary rounded-xl px-4 py-2.5 text-sm nx-btn nx-btn--primary">Save Changes</button>
       </div>
     </form>
   </div>

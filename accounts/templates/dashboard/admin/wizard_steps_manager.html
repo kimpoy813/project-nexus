@@ -55,7 +55,7 @@
                    data-nx-tooltip="Edit step" aria-label="Edit step">
                   <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                 </a>
-                <form method="post" action="{% url 'wizard_step_delete' step.step_no %}" onsubmit="return confirm('Are you sure you want to delete Step {{ step.step_no }}? This action cannot be undone.');" class="inline">
+                <form method="post" action="{% url 'wizard_step_delete' step.step_no %}" data-nx-confirm="Are you sure you want to delete Step {{ step.step_no }}? This action cannot be undone." class="inline">
                   {% csrf_token %}
                   <button type="submit"
                           class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"

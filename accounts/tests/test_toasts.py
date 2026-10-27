@@ -21,7 +21,7 @@ content of every page in the system). ``{% comment %}`` is the multi-line form.
 import re
 from pathlib import Path
 
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import SiteConfiguration
@@ -166,8 +166,13 @@ class ToastMountTests(TestCase):
                 self.assertToasterMounted(client.get("/dashboard/", follow=True),
                                           context=f"for {factory.__name__}")
 
+    @override_settings(DEBUG=True)
     def test_the_debug_sign_in_mounts_the_toaster(self):
         self.assertToasterMounted(self.client.get(reverse("debug_login")))
+
+    def test_the_debug_sign_in_is_absent_when_debug_is_off(self):
+        """The CSRF diagnostics page must not be reachable on the live site."""
+        self.assertEqual(self.client.get(reverse("debug_login")).status_code, 404)
 
     def test_the_maintenance_page_mounts_the_toaster(self):
         config = SiteConfiguration.get_solo()

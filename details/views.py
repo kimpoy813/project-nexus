@@ -28,6 +28,15 @@ def details_page(request):
     return render(request, 'details/details_page.html', context)
 
 
+def help_page(request):
+    """The written help: how the workflow, documents and account rules work.
+
+    Deliberately a template, with the institutional contact details read from
+    Site Configuration — see the note at the top of ``details/help.html``.
+    """
+    return render(request, "details/help.html")
+
+
 def _render_content_page(request, slug, template="details/content_page.html"):
     """Render a fully admin-managed public page.
 
