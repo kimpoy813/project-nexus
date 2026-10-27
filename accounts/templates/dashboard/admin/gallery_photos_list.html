@@ -1,0 +1,67 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Gallery - NExUS{% endblock %}
+{% block content %}
+<div class="nx-page py-6">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-page-header">
+        <div>
+            <h1 class="text-2xl font-bold nx-page-title">Gallery</h1>
+            <p class="mt-1 text-sm text-gray-600 nx-page-description">
+                Photographs of extension programs. The order here is the order
+                visitors see on the Gallery page. A program with no gallery photo
+                here shows its own cover photo automatically.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'page_content_edit' 'gallery' %}" class="nx-btn nx-btn--secondary">Page layout</a>
+            <a href="{% url 'gallery_photo_create' %}"
+               class="nx-btn nx-btn--primary nx-btn--icon"
+               data-nx-tooltip="Add photo" aria-label="Add photo">
+                <svg class="nx-icon nx-icon--lg" aria-hidden="true"><use href="#nx-icon-plus"></use></svg>
+            </a>
+        </div>
+    </div>
+
+    {% if photos %}
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for photo in photos %}
+            <article class="overflow-hidden rounded-xl border bg-white nx-panel">
+                <img src="{{ photo.image.url }}" alt="{{ photo.display_title }}" class="h-40 w-full object-cover">
+                <div class="p-4">
+                    <p class="text-sm font-semibold text-gray-900">{{ photo.display_title }}</p>
+                    <p class="mt-1 text-xs text-gray-500">
+                        {% if photo.program_title %}{{ photo.program_title }}{% endif %}
+                        {% if photo.campus_label %}{% if photo.program_title %} · {% endif %}{{ photo.campus_label }}{% endif %}
+                        {% if not photo.program_title and not photo.campus_label %}Standalone photo{% endif %}
+                    </p>
+                    <div class="mt-3 flex items-center justify-between gap-2">
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold
+                            {% if photo.is_visible %}bg-green-50 text-green-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                            {% if photo.is_visible %}Published{% else %}Hidden{% endif %}
+                        </span>
+                        <div class="nx-actions nx-actions--end">
+                            <a href="{% url 'gallery_photo_edit' photo.id %}"
+                               class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                               data-nx-tooltip="Edit photo" aria-label="Edit photo">
+                                <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                            </a>
+                            <form method="post" action="{% url 'gallery_photo_delete' photo.id %}" class="inline"
+                                  onsubmit="return confirm('Delete this photo? This cannot be undone.');">
+                                {% csrf_token %}
+                                <button type="submit" class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                        data-nx-tooltip="Delete photo" aria-label="Delete photo">
+                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="rounded-xl border border-dashed bg-white p-10 text-center nx-panel">
+            <p class="text-sm text-gray-500">No photos yet. Add the first one with the + button.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

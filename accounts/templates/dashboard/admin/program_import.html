@@ -1,0 +1,80 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Import programs - NExUS{% endblock %}
+{% block content %}
+<div class="nx-page py-6">
+    <div class="mb-6 nx-page-header">
+        <a href="{% url 'programs_list' %}" class="text-xs font-medium text-slate-500 hover:text-primary">← All programs</a>
+        <h1 class="mt-1 text-2xl font-bold nx-page-title">Import Programs from CSV</h1>
+        <p class="mt-1 text-sm text-gray-600 nx-page-description">
+            Upload the office's spreadsheet export instead of retyping the inventory.
+            A row whose title already exists is updated, not duplicated.
+        </p>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 nx-panel">
+            {% csrf_token %}
+            <label for="program-csv" class="block text-sm font-medium mb-2">CSV file</label>
+            <input id="program-csv" type="file" name="file" accept=".csv,text/csv" required
+                   class="block w-full rounded-lg border border-gray-300 p-2 text-sm">
+            <p class="mt-2 text-xs text-gray-500">
+                UTF-8 is expected; Excel exports work. The first row must be a header row.
+            </p>
+            <div class="mt-5 flex gap-3">
+                <button type="submit" class="px-4 py-2 rounded-lg bg-primary text-white nx-btn nx-btn--primary">Import</button>
+                <a href="{% url 'programs_list' %}" class="px-4 py-2 rounded-lg border nx-btn nx-btn--secondary">Cancel</a>
+            </div>
+        </form>
+
+        <div class="bg-white border rounded-xl p-6 text-sm nx-panel">
+            <h2 class="text-base font-semibold text-gray-900">Accepted columns</h2>
+            <p class="mt-1 text-xs text-gray-500">
+                Header names are matched loosely (case, spaces, and punctuation are ignored),
+                so an export of the standard program inventory imports as-is. Unknown columns
+                are ignored.
+            </p>
+
+            <dl class="mt-4 space-y-2">
+                <div>
+                    <dt class="font-medium text-gray-800">Program title <span class="text-red-600">*</span></dt>
+                    <dd class="text-xs text-gray-500">“Program title”, “Title”, “Program”. A row without one is skipped.</dd>
+                </div>
+                <div>
+                    <dt class="font-medium text-gray-800">Campus, Year</dt>
+                    <dd class="text-xs text-gray-500">“Campus”, “Year”. A missing year uses the current year.</dd>
+                </div>
+                <div>
+                    <dt class="font-medium text-gray-800">Classification</dt>
+                    <dd class="text-xs text-gray-500">
+                        “Extension type”:
+                        {% for value, label in extension_types %}{{ label }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+                        “Research basis”:
+                        {% for value, label in research_bases %}{{ label }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+                        “Led by”:
+                        {% for value, label in proponents %}{{ label }}{% if not forloop.last %}, {% endif %}{% endfor %}.
+                    </dd>
+                </div>
+                <div>
+                    <dt class="font-medium text-gray-800">Community &amp; schedule</dt>
+                    <dd class="text-xs text-gray-500">“Target community / beneficiaries”, “Duration &amp; frequency”.</dd>
+                </div>
+                <div>
+                    <dt class="font-medium text-gray-800">Objectives</dt>
+                    <dd class="text-xs text-gray-500">“Objectives”. Line breaks are kept.</dd>
+                </div>
+                <div>
+                    <dt class="font-medium text-gray-800">Participants</dt>
+                    <dd class="text-xs text-gray-500">“Students”, “Faculty”, “Research staff”, “Beneficiaries”. Commas are fine.</dd>
+                </div>
+                <div>
+                    <dt class="font-medium text-gray-800">Link</dt>
+                    <dd class="text-xs text-gray-500">“Document link”. Only http/https links are kept.</dd>
+                </div>
+            </dl>
+
+            <h3 class="mt-5 text-sm font-semibold text-gray-900">Example header</h3>
+            <pre class="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-3 text-[11px] leading-5 text-gray-600">Year,Campus,Program title,Extension type,Research basis,Led by,Target community / beneficiaries,Duration &amp; frequency,Objectives,Students,Faculty,Research staff,Beneficiaries,Document link</pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -139,7 +139,8 @@ it to the package's `__init__.py` too** — otherwise the URLconf raises
 
 A **content source** is a body of admin-managed data that has its own no-code
 builder: Extension Thrust cards, Personnel, Activities, Processes, Targets, the
-SDGs, the Template Library, the Form Builder. Every source is declared once in
+SDGs, the Template Library, the Form Builder, Extension Programs, and the
+Program Gallery. Every source is declared once in
 **`details/content_sources.py`**, and everything else reads from that registry:
 
 | Reads the registry | For |
@@ -150,6 +151,21 @@ SDGs, the Template Library, the Form Builder. Every source is declared once in
 | `details/blocks/<source>.html` | the public markup |
 | the nested editor | in-place CRUD inside the section |
 | `content_source_reorder` | drag-to-order the items in a source |
+
+### Programs and Gallery
+
+The **Programs** page is the directory of every published `ExtensionProgram`:
+campus, year, type of extension, research basis, who led it, the partner
+community, schedule, objectives, and the four participant counts. The block
+renders the totals and the year/type/campus overview bars on the server and
+filters the cards in the browser, so the list still reads with JavaScript off.
+
+The **Gallery** block shows arranged `GalleryPhoto` rows, then the cover photo
+of any published program that has no gallery photo of its own — one upload can
+serve both pages. Both record types are managed from **Admin → Content &
+Builders**, and an existing spreadsheet can be loaded through **Programs →
+Import CSV** (column aliases live in `PROGRAM_CSV_COLUMNS` in
+`accounts/views/content.py`).
 
 ### Extension Process steps nest to any depth
 

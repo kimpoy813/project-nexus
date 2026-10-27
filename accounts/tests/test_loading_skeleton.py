@@ -193,7 +193,7 @@ class PageSkeletonVariantTests(SkeletonVariantAssertions, TestCase):
 
     def test_public_pages_use_the_marketing_layout(self):
         """Landing/CMS pages: full-bleed hero over stacked content sections."""
-        urls = ("/", reverse("services_home"), reverse("reports_page"), reverse("achievements_page"))
+        urls = ("/", reverse("services_home"), reverse("programs_page"), reverse("gallery_page"))
         for url in urls:
             with self.subTest(page=url):
                 self.assertSkeletonVariant(self.client.get(url), "marketing", where=url)

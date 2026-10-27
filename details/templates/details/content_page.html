@@ -3,10 +3,13 @@
 
 {% block title %}{{ page.meta_title|default:page.title }} - {{ site_control.short_name|default:"NExUS" }}{% endblock %}
 
+{% block body_class %}{{ page.slug }}-page-body{% endblock %}
+
 {% block extra_head %}
     {% if page.meta_description %}
         <meta name="description" content="{{ page.meta_description }}">
     {% endif %}
+    <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}

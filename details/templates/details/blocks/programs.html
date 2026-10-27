@@ -1,0 +1,170 @@
+{% comment %}
+Block: Extension Programs directory (source key PROGRAMS).
+
+Renders every published ``ExtensionProgram`` as a card, with server-rendered
+totals and client-side filters by campus, year, type, research basis, and the
+group that led it. Filtering is progressive: with JavaScript disabled the
+full list is still readable, and the count line simply keeps its server value.
+
+Context: section, data.programs, data.stats, data.facets
+{% endcomment %}
+{% load humanize %}
+{% include "details/blocks/_heading.html" %}
+
+<div class="mt-10">
+{% if data.programs %}
+    <div x-data="{
+            campus: '', year: '', type: '', basis: '', led: '', query: '',
+            total: {{ data.stats.program_count }},
+            shown: {{ data.stats.program_count }},
+            apply() {
+                const needle = this.query.trim().toLowerCase();
+                let shown = 0;
+                for (const card of this.$el.querySelectorAll('[data-program]')) {
+                    const d = card.dataset;
+                    const matches = (!this.campus || d.campus === this.campus)
+                        && (!this.year || d.year === this.year)
+                        && (!this.type || d.type === this.type)
+                        && (!this.basis || d.basis === this.basis)
+                        && (!this.led || d.led === this.led)
+                        && (!needle || (d.search || '').includes(needle));
+                    card.style.display = matches ? '' : 'none';
+                    if (matches) shown += 1;
+                }
+                this.shown = shown;
+            },
+            reset() {
+                this.campus = ''; this.year = ''; this.type = '';
+                this.basis = ''; this.led = ''; this.query = '';
+                this.apply();
+            }
+         }"
+         x-init="apply()">
+
+        <!-- Program totals -->
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div class="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums">{{ data.stats.program_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">Programs</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums">{{ data.stats.campus_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">Campuses reached</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums">{{ data.stats.beneficiaries|intcomma }}</p>
+                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">Beneficiaries</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums">{{ data.stats.students|intcomma }}</p>
+                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">Students</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums">{{ data.stats.faculty|intcomma }}</p>
+                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">Faculty</p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums">{{ data.stats.research_staff|intcomma }}</p>
+                <p class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500">Research staff</p>
+            </div>
+        </div>
+
+        {% include "details/blocks/_program_overview.html" %}
+
+        {% include "details/blocks/_program_filters.html" %}
+
+        <!-- Program cards -->
+        <div class="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {% for program in data.programs %}
+            <article data-program
+                     data-campus="{{ program.campus }}"
+                     data-year="{{ program.year }}"
+                     data-type="{{ program.extension_type }}"
+                     data-basis="{{ program.research_basis }}"
+                     data-led="{{ program.led_by }}"
+                     data-search="{{ program.title|lower }} {{ program.campus|lower }} {{ program.target_community|lower }}"
+                     class="flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:border-primary/40 nx-panel">
+                {% if program.cover_image %}
+                    <img src="{{ program.cover_image.url }}" alt="{{ program.title }}"
+                         class="h-48 w-full object-cover" loading="lazy">
+                {% endif %}
+
+                <div class="flex flex-1 flex-col p-5">
+                    <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide">
+                        <span class="rounded-full bg-primary/10 px-2 py-0.5 text-primary">{{ program.year }}</span>
+                        {% if program.campus %}
+                            <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">{{ program.campus }}</span>
+                        {% endif %}
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{{ program.get_extension_type_display }}</span>
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">{{ program.get_research_basis_display }}</span>
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">Led by {{ program.get_led_by_display }}</span>
+                    </div>
+
+                    <h3 class="mt-3 text-lg font-semibold leading-snug text-gray-900">{{ program.title }}</h3>
+
+                    {% if program.target_community %}
+                        <p class="mt-2 text-sm text-gray-600">
+                            <span class="font-medium text-gray-700">Community:</span> {{ program.target_community }}
+                        </p>
+                    {% endif %}
+                    {% if program.duration %}
+                        <p class="mt-1 text-sm text-gray-600">
+                            <span class="font-medium text-gray-700">Schedule:</span> {{ program.duration }}
+                        </p>
+                    {% endif %}
+
+                    <dl class="mt-4 grid grid-cols-4 gap-2 rounded-xl bg-gray-50 p-3 text-center">
+                        <div>
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Students</dt>
+                            <dd class="text-sm font-bold text-gray-900 tabular-nums">{% if program.student_participants %}{{ program.student_participants|intcomma }}{% else %}—{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Faculty</dt>
+                            <dd class="text-sm font-bold text-gray-900 tabular-nums">{% if program.faculty_participants %}{{ program.faculty_participants|intcomma }}{% else %}—{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Research</dt>
+                            <dd class="text-sm font-bold text-gray-900 tabular-nums">{% if program.research_staff_participants %}{{ program.research_staff_participants|intcomma }}{% else %}—{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Beneficiaries</dt>
+                            <dd class="text-sm font-bold text-gray-900 tabular-nums">{% if program.beneficiaries %}{{ program.beneficiaries|intcomma }}{% else %}—{% endif %}</dd>
+                        </div>
+                    </dl>
+
+                    {% if program.objectives %}
+                        <details class="group mt-4 text-sm">
+                            <summary class="cursor-pointer list-none font-medium text-primary marker:content-none [&::-webkit-details-marker]:hidden">
+                                Full details <span class="text-gray-400 group-open:hidden">＋</span><span class="hidden text-gray-400 group-open:inline">−</span>
+                            </summary>
+                            <div class="mt-2 whitespace-pre-line text-gray-600">{{ program.objectives }}</div>
+                        </details>
+                    {% endif %}
+
+                    {% if program.safe_document_url %}
+                        <div class="mt-auto pt-4">
+                            <a href="{{ program.safe_document_url }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                                View document
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5h5m0 0v5m0-5L10 14M5 7v12h12" />
+                                </svg>
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+
+        <p x-show="shown === 0 && total > 0" x-cloak
+           class="mt-8 rounded-xl border border-dashed border-gray-300 p-10 text-center text-sm text-gray-500">
+            No programs match these filters. Try resetting them.
+        </p>
+    </div>
+{% else %}
+    <p class="py-10 text-center text-sm text-gray-400">
+        No extension programs have been published yet.
+    </p>
+{% endif %}
+</div>

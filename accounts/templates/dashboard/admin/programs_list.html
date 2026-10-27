@@ -1,0 +1,93 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}Extension Programs - NExUS{% endblock %}
+{% block content %}
+<div class="nx-page py-6">
+    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between nx-page-header">
+        <div>
+            <h1 class="text-2xl font-bold nx-page-title">Extension Programs</h1>
+            <p class="mt-1 text-sm text-gray-600 nx-page-description">
+                {{ total_count }} program{{ total_count|pluralize }} · {{ visible_count }} published.
+                These records feed the Programs page directory and the Gallery.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'page_content_edit' 'programs' %}" class="nx-btn nx-btn--secondary">Page layout</a>
+            <a href="{% url 'programs_import' %}" class="nx-btn nx-btn--secondary">Import CSV</a>
+            <a href="{% url 'program_create' %}"
+               class="nx-btn nx-btn--primary nx-btn--icon"
+               data-nx-tooltip="Add program" aria-label="Add program">
+                <svg class="nx-icon nx-icon--lg" aria-hidden="true"><use href="#nx-icon-plus"></use></svg>
+            </a>
+        </div>
+    </div>
+
+    <form method="get" class="mb-4 flex flex-wrap items-center gap-2">
+        <label for="program-search" class="sr-only">Search programs</label>
+        <input id="program-search" type="search" name="q" value="{{ query }}"
+               placeholder="Search title, campus, or community"
+               class="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+        <button type="submit" class="nx-btn nx-btn--secondary">Search</button>
+        {% if query %}
+            <a href="{% url 'programs_list' %}" class="text-sm font-medium text-primary hover:underline">Clear</a>
+        {% endif %}
+    </form>
+
+    <div class="bg-white border rounded-xl overflow-hidden nx-panel">
+        <table class="min-w-full nx-table">
+        <thead class="bg-gray-50">
+            <tr>
+            <th class="text-left p-3">Program</th>
+            <th class="text-left p-3">Campus</th>
+            <th class="text-left p-3">Year</th>
+            <th class="text-left p-3">Type</th>
+            <th class="text-left p-3">Beneficiaries</th>
+            <th class="text-left p-3">Published</th>
+            <th class="text-right p-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for program in programs %}
+            <tr class="border-t align-top">
+            <td class="p-3">
+                <p class="font-medium text-gray-900">{{ program.title }}</p>
+                <p class="text-xs text-gray-500">{{ program.get_research_basis_display }} · Led by {{ program.get_led_by_display }}</p>
+            </td>
+            <td class="p-3">{{ program.campus|default:"—" }}</td>
+            <td class="p-3 tabular-nums">{{ program.year }}</td>
+            <td class="p-3">{{ program.get_extension_type_display }}</td>
+            <td class="p-3 tabular-nums">{{ program.beneficiaries }}</td>
+            <td class="p-3">
+                {% if program.is_visible %}
+                    <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-semibold text-green-700">Published</span>
+                {% else %}
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">Hidden</span>
+                {% endif %}
+            </td>
+            <td class="p-3 text-right">
+                <div class="nx-actions nx-actions--end">
+                  <a href="{% url 'program_edit' program.id %}"
+                     class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
+                     data-nx-tooltip="Edit program" aria-label="Edit program">
+                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                  </a>
+                  <form method="post" action="{% url 'program_delete' program.id %}" class="inline"
+                        onsubmit="return confirm('Delete this program? This cannot be undone.');">
+                    {% csrf_token %}
+                    <button type="submit" class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                            data-nx-tooltip="Delete program" aria-label="Delete program">
+                        <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                    </button>
+                  </form>
+                </div>
+            </td>
+            </tr>
+            {% empty %}
+            <tr><td class="p-6 text-gray-500" colspan="7">
+                {% if query %}No programs match “{{ query }}”.{% else %}No programs yet. Add the first one with the + button.{% endif %}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

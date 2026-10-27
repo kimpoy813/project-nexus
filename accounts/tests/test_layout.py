@@ -61,10 +61,10 @@ class FluidContainerAssertions:
 
 
 class PublicPageLayoutTests(FluidContainerAssertions, TestCase):
-    """Anonymous pages: home, services, reports, achievements."""
+    """Anonymous pages: home, services, programs, gallery, about."""
 
     def test_public_pages_use_the_fluid_container(self):
-        urls = ("/", reverse("services_home"), reverse("reports_page"), reverse("achievements_page"))
+        urls = ("/", reverse("services_home"), reverse("programs_page"), reverse("gallery_page"))
         for url in urls:
             with self.subTest(url=url):
                 self.assertFluidPage(self.client.get(url))
@@ -410,8 +410,8 @@ class SiteWideHeaderOffsetTests(TestCase):
         return html
 
     def test_public_and_auth_pages_clear_the_header(self):
-        for url in ("/", reverse("services_home"), reverse("reports_page"),
-                    reverse("achievements_page"), reverse("login"),
+        for url in ("/", reverse("services_home"), reverse("programs_page"),
+                    reverse("gallery_page"), reverse("login"),
                     reverse("register"), reverse("password_reset")):
             with self.subTest(page=url):
                 self.assertClearsTheHeader(self.client, url)

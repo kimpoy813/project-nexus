@@ -25,11 +25,11 @@ class SitePageModelTests(TestCase):
         self.assertEqual(page.slug, "home")
 
     def test_get_for_creates_a_page_that_is_somehow_missing(self):
-        SitePage.objects.filter(slug="reports").delete()
+        SitePage.objects.filter(slug="programs").delete()
 
-        page = SitePage.get_for(SitePage.Slug.REPORTS)
-        self.assertEqual(page.slug, "reports")
-        self.assertTrue(SitePage.objects.filter(slug="reports").exists())
+        page = SitePage.get_for(SitePage.Slug.PROGRAMS)
+        self.assertEqual(page.slug, "programs")
+        self.assertTrue(SitePage.objects.filter(slug="programs").exists())
 
     def test_visible_sections_excludes_hidden_ones(self):
         page = SitePage.get_for(SitePage.Slug.HOME)
@@ -43,7 +43,7 @@ class SitePageModelTests(TestCase):
 
 class PageSectionModelTests(TestCase):
     def setUp(self):
-        self.page = SitePage.get_for(SitePage.Slug.ACHIEVEMENTS)
+        self.page = SitePage.get_for(SitePage.Slug.GALLERY)
         # Pages ship with seeded blocks; these tests are about ordering the
         # sections they create themselves.
         self.page.sections.all().delete()

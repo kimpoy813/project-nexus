@@ -8,7 +8,7 @@ def build_visible_blocks(page):
     """``(section, data)`` pairs for every visible section of ``page``.
 
     Data-driven blocks carry their resolved data; text blocks carry ``None``.
-    Shared by the four public pages so they all render from the same
+    Shared by the public pages so they all render from the same
     block partial with the same data lookups.
     """
     blocks = []
@@ -16,7 +16,6 @@ def build_visible_blocks(page):
         data = resolve_section_data(section) if section.is_data_layout else None
         blocks.append((section, data))
     return blocks
-
 
 
 def details_page(request):
@@ -56,9 +55,16 @@ def _render_content_page(request, slug, template="details/content_page.html"):
     )
 
 
-def reports_page(request):
-    return _render_content_page(request, SitePage.Slug.REPORTS)
+def programs_page(request):
+    """Every published extension program, as a filterable directory."""
+    return _render_content_page(request, SitePage.Slug.PROGRAMS)
 
 
-def achievements_page(request):
-    return _render_content_page(request, SitePage.Slug.ACHIEVEMENTS)
+def gallery_page(request):
+    """Photographs of extension programs."""
+    return _render_content_page(request, SitePage.Slug.GALLERY)
+
+
+def about_page(request):
+    """The Extension Office's story, contacts, and mandate."""
+    return _render_content_page(request, SitePage.Slug.ABOUT)

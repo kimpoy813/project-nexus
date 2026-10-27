@@ -672,7 +672,7 @@ class TableAlignmentTests(SimpleTestCase):
                         if len(row) != width or row[index]['colspan'] > 1:
                             continue
                         self.assertEqual(self._alignment(row[index], header=False), 'right')
-        self.assertEqual(seen, 30, 'every Actions column in the app is covered')
+        self.assertEqual(seen, 31, 'every Actions column in the app is covered')
 
     def test_row_cells_share_one_vertical_alignment(self):
         css = (settings.BASE_DIR / 'static/css/nexus-components.css').read_text()

@@ -859,3 +859,432 @@ def department_delete(request, pk):
         logger.exception("Failed to delete department %s.", pk)
         messages.error(request, "Could not delete department.")
     return redirect("departments_list")
+
+
+# ==============================================================
+# EXTENSION PROGRAMS — the Programs page directory
+# ==============================================================
+
+@login_required
+@admin_required
+def programs_list(request):
+    """Every program, newest year first, with the filters an admin needs."""
+    from django.db.models import Q
+
+    from details.models import ExtensionProgram
+
+    programs = ExtensionProgram.objects.all().order_by("-year", "title")
+    query = (request.GET.get("q") or "").strip()
+    if query:
+        programs = programs.filter(
+            Q(title__icontains=query)
+            | Q(campus__icontains=query)
+            | Q(target_community__icontains=query)
+        )
+
+    return render(
+        request,
+        "dashboard/admin/programs_list.html",
+        {
+            "programs": programs,
+            "query": query,
+            "total_count": ExtensionProgram.objects.count(),
+            "visible_count": ExtensionProgram.objects.filter(is_visible=True).count(),
+        },
+    )
+
+
+@login_required
+@admin_required
+def program_create(request):
+    from ..forms import ExtensionProgramForm
+
+    form = ExtensionProgramForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        program = form.save()
+        messages.success(request, f'Program "{program.title}" added successfully!')
+        return redirect("programs_list")
+
+    return render(
+        request,
+        "dashboard/admin/program_form.html",
+        {"form": form, "program": None},
+    )
+
+
+@login_required
+@admin_required
+def program_edit(request, pk):
+    from details.models import ExtensionProgram
+    from ..forms import ExtensionProgramForm
+
+    program = get_object_or_404(ExtensionProgram, pk=pk)
+    form = ExtensionProgramForm(
+        request.POST or None, request.FILES or None, instance=program
+    )
+    if request.method == "POST" and form.is_valid():
+        program = form.save()
+        messages.success(request, f'"{program.title}" updated successfully!')
+        return redirect("programs_list")
+
+    return render(
+        request,
+        "dashboard/admin/program_form.html",
+        {"form": form, "program": program},
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def program_delete(request, pk):
+    from details.models import ExtensionProgram
+
+    program = get_object_or_404(ExtensionProgram, pk=pk)
+    title = program.title
+    program.delete()
+    messages.success(request, f'"{title}" deleted successfully!')
+    return redirect("programs_list")
+
+
+# ==============================================================
+# GALLERY — photographs of extension programs
+# ==============================================================
+
+@login_required
+@admin_required
+def gallery_photos_list(request):
+    from details.models import GalleryPhoto
+
+    photos = (
+        GalleryPhoto.objects.select_related("program")
+        .order_by("order", "id")
+    )
+    return render(
+        request,
+        "dashboard/admin/gallery_photos_list.html",
+        {"photos": photos},
+    )
+
+
+@login_required
+@admin_required
+def gallery_photo_create(request):
+    from ..forms import GalleryPhotoForm
+
+    form = GalleryPhotoForm(
+        request.POST or None,
+        request.FILES or None,
+        initial={"program": request.GET.get("program") or None},
+    )
+    if request.method == "POST" and form.is_valid():
+        photo = form.save()
+        messages.success(request, f'Photo "{photo.display_title}" added successfully!')
+        return redirect("gallery_photos_list")
+
+    return render(
+        request,
+        "dashboard/admin/gallery_photo_form.html",
+        {"form": form, "photo": None},
+    )
+
+
+@login_required
+@admin_required
+def gallery_photo_edit(request, pk):
+    from details.models import GalleryPhoto
+    from ..forms import GalleryPhotoForm
+
+    photo = get_object_or_404(GalleryPhoto, pk=pk)
+    form = GalleryPhotoForm(
+        request.POST or None, request.FILES or None, instance=photo
+    )
+    if request.method == "POST" and form.is_valid():
+        photo = form.save()
+        messages.success(request, f'Photo "{photo.display_title}" updated successfully!')
+        return redirect("gallery_photos_list")
+
+    return render(
+        request,
+        "dashboard/admin/gallery_photo_form.html",
+        {"form": form, "photo": photo},
+    )
+
+
+@login_required
+@admin_required
+@require_POST
+def gallery_photo_delete(request, pk):
+    from details.models import GalleryPhoto
+
+    photo = get_object_or_404(GalleryPhoto, pk=pk)
+    title = photo.display_title
+    photo.delete()
+    messages.success(request, f'Photo "{title}" deleted successfully!')
+    return redirect("gallery_photos_list")
+
+
+# ==============================================================
+# PROGRAM CSV IMPORT
+# ==============================================================
+#
+# The office already keeps its program inventory in a spreadsheet (the same
+# columns the CHED Form U8 report uses). Retyping a hundred rows into the
+# builder is the kind of work that never gets finished, so the Programs list
+# accepts a CSV export directly.
+
+#: Field -> accepted CSV header names, after :func:`_csv_key` normalisation.
+PROGRAM_CSV_COLUMNS = {
+    "title": (
+        "title", "program_title", "program", "title_of_the_program",
+        "program_title_of_the_program_project_activity",
+    ),
+    "campus": ("campus", "campus_name"),
+    "year": ("year", "reporting_year"),
+    "extension_type": ("extension_type", "type", "type_of_extension"),
+    "research_basis": ("research_basis", "based_on", "basis", "research_basis_of_the_program"),
+    "led_by": ("led_by", "proponent", "proponents", "led_by_proponent"),
+    "target_community": (
+        "target_community", "target_community_beneficiaries", "community",
+        "beneficiaries_description",
+    ),
+    "duration": ("duration", "duration_frequency", "duration_and_frequency", "schedule"),
+    "objectives": ("objectives", "objective"),
+    "student_participants": ("student_participants", "students", "student"),
+    "faculty_participants": ("faculty_participants", "faculty"),
+    "research_staff_participants": (
+        "research_staff_participants", "research_staff", "research", "research_participants",
+    ),
+    "beneficiaries": ("beneficiaries", "beneficiary_participants", "community_beneficiaries"),
+    "document_url": ("document_url", "document_link", "document", "link"),
+    "is_visible": ("is_visible", "published", "visible"),
+}
+
+#: Labels that do not match a choice label verbatim (e.g. the spreadsheet's
+#: short "Faculty Research" against the field's "Based on Faculty Research").
+_PROGRAM_CHOICE_ALIASES = {
+    "extension_type": {
+        "communitybased": "COMMUNITY_BASED",
+        "community": "COMMUNITY_BASED",
+        "requestbased": "REQUEST_BASED",
+        "request": "REQUEST_BASED",
+        "researchbased": "RESEARCH_BASED",
+        "research": "RESEARCH_BASED",
+    },
+    "research_basis": {
+        "faculty": "FACULTY",
+        "facultyresearch": "FACULTY",
+        "student": "STUDENT",
+        "studentresearch": "STUDENT",
+        "others": "OTHERS",
+        "other": "OTHERS",
+        "none": "OTHERS",
+        "n_a": "OTHERS",
+    },
+    "led_by": {
+        "faculty": "FACULTY",
+        "joint": "JOINT",
+        "student": "STUDENT",
+    },
+}
+
+
+def _csv_key(value):
+    """Normalise a CSV header to ``lower_snake_case`` (or ``""``)."""
+    import re
+
+    return re.sub(r"[^a-z0-9]+", "_", (value or "").strip().lower()).strip("_")
+
+
+def _program_csv_field(row, field):
+    """The first value in ``row`` whose header maps to ``field``."""
+    for header in PROGRAM_CSV_COLUMNS[field]:
+        if header in row and row[header] != "":
+            return row[header]
+    return ""
+
+
+def _program_choice(field, raw, choices):
+    """Map a spreadsheet label back onto a choice value, or ``None``."""
+    import re
+
+    key = re.sub(r"[^a-z0-9]+", "", (raw or "").strip().lower())
+    if not key:
+        return None
+    if key in _PROGRAM_CHOICE_ALIASES.get(field, {}):
+        return _PROGRAM_CHOICE_ALIASES[field][key]
+    for value, label in choices:
+        if key in {re.sub(r"[^a-z0-9]+", "", value.lower()),
+                   re.sub(r"[^a-z0-9]+", "", str(label).lower())}:
+            return value
+    return None
+
+
+def _program_number(raw):
+    """``'1,024'`` -> ``1024``; anything unparseable counts as zero."""
+    digits = "".join(ch for ch in str(raw or "") if ch.isdigit())
+    return int(digits) if digits else 0
+
+
+def _program_bool(raw, default=True):
+    key = _csv_key(raw)
+    if not key:
+        return default
+    return key not in {"0", "no", "n", "false", "hidden", "unpublished", "draft"}
+
+
+def _parse_program_csv(upload):
+    """``(rows, errors)`` from an uploaded CSV.
+
+    Rows are dictionaries of clean model field values. A row without a title
+    is skipped with a message naming its line, so a mis-aligned spreadsheet
+    reports itself instead of importing blank programs.
+    """
+    import csv
+    import io
+
+    from details.models import ExtensionProgram
+
+    raw = upload.read()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("latin-1", errors="replace")
+
+    reader = csv.DictReader(io.StringIO(text))
+    if not reader.fieldnames:
+        return [], ["The file has no header row."]
+
+    rows, errors = [], []
+    for line_number, source in enumerate(reader, start=2):
+        row = {
+            _csv_key(header): (value or "").strip()
+            for header, value in source.items()
+            if header
+        }
+        title = _program_csv_field(row, "title")
+        if not title:
+            if any(row.values()):
+                errors.append(f"Line {line_number}: no program title.")
+            continue
+
+        year_raw = _program_csv_field(row, "year")
+        year = _program_number(year_raw) or timezone.now().year
+
+        document_url = _program_csv_field(row, "document_url")[:200]
+        if document_url:
+            from django.core.exceptions import ValidationError
+            from django.core.validators import URLValidator
+
+            try:
+                URLValidator(schemes=["http", "https"])(document_url)
+            except ValidationError:
+                errors.append(
+                    f"Line {line_number}: document link ignored "
+                    "(only http/https links are accepted)."
+                )
+                document_url = ""
+
+        rows.append(
+            {
+                "title": title[:255],
+                "campus": _program_csv_field(row, "campus")[:100],
+                "year": year if 2000 <= year <= 2100 else timezone.now().year,
+                "extension_type": _program_choice(
+                    "extension_type",
+                    _program_csv_field(row, "extension_type"),
+                    ExtensionProgram.ExtensionType.choices,
+                )
+                or ExtensionProgram.ExtensionType.COMMUNITY_BASED,
+                "research_basis": _program_choice(
+                    "research_basis",
+                    _program_csv_field(row, "research_basis"),
+                    ExtensionProgram.ResearchBasis.choices,
+                )
+                or ExtensionProgram.ResearchBasis.OTHERS,
+                "led_by": _program_choice(
+                    "led_by",
+                    _program_csv_field(row, "led_by"),
+                    ExtensionProgram.Proponent.choices,
+                )
+                or ExtensionProgram.Proponent.FACULTY,
+                "target_community": _program_csv_field(row, "target_community")[:255],
+                "duration": _program_csv_field(row, "duration")[:150],
+                "objectives": _program_csv_field(row, "objectives"),
+                "student_participants": _program_number(
+                    _program_csv_field(row, "student_participants")
+                ),
+                "faculty_participants": _program_number(
+                    _program_csv_field(row, "faculty_participants")
+                ),
+                "research_staff_participants": _program_number(
+                    _program_csv_field(row, "research_staff_participants")
+                ),
+                "beneficiaries": _program_number(
+                    _program_csv_field(row, "beneficiaries")
+                ),
+                "document_url": document_url,
+                "is_visible": _program_bool(_program_csv_field(row, "is_visible")),
+            }
+        )
+
+    return rows, errors
+
+
+@login_required
+@admin_required
+def programs_import(request):
+    """Import programs from the office's spreadsheet export."""
+    from details.models import ExtensionProgram
+
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if upload is None:
+            messages.error(request, "Choose a CSV file to import.")
+            return redirect("programs_import")
+
+        rows, errors = _parse_program_csv(upload)
+        if not rows:
+            messages.error(
+                request,
+                errors[0] if errors else "That file has no data rows.",
+            )
+            return redirect("programs_import")
+
+        created = updated = skipped = 0
+        for row in rows:
+            existing = ExtensionProgram.objects.filter(
+                title__iexact=row["title"]
+            ).first()
+            if existing is None:
+                ExtensionProgram.objects.create(**row)
+                created += 1
+                continue
+            for field, value in row.items():
+                setattr(existing, field, value)
+            existing.save()
+            updated += 1
+
+        skipped = len(errors)
+        messages.success(
+            request,
+            f"Import finished: {created} added, {updated} updated, "
+            f"{skipped} row{'s' if skipped != 1 else ''} skipped.",
+        )
+        if errors:
+            preview = "; ".join(errors[:5])
+            if len(errors) > 5:
+                preview += f"; and {len(errors) - 5} more"
+            messages.warning(request, preview)
+        return redirect("programs_list")
+
+    return render(
+        request,
+        "dashboard/admin/program_import.html",
+        {
+            "columns": PROGRAM_CSV_COLUMNS,
+            "extension_types": ExtensionProgram.ExtensionType.choices,
+            "research_bases": ExtensionProgram.ResearchBasis.choices,
+            "proponents": ExtensionProgram.Proponent.choices,
+        },
+    )

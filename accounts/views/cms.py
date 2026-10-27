@@ -50,8 +50,9 @@ from .target_helpers import _parse_target_numbers
 PAGE_PUBLIC_URL_NAMES = {
     "home": "details_page",
     "services": "services_home",
-    "reports": "reports_page",
-    "achievements": "achievements_page",
+    "programs": "programs_page",
+    "gallery": "gallery_page",
+    "about": "about_page",
 }
 
 

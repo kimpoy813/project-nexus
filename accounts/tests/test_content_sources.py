@@ -244,36 +244,36 @@ class BlockPaletteTests(TestCase):
         self.client_admin = factories.make_client(self.admin)
 
     def test_the_editor_offers_every_registered_builder(self):
-        response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
+        response = self.client_admin.get(reverse("page_content_edit", args=["programs"]))
         for source in all_content_sources():
             with self.subTest(source=source.key):
                 self.assertContains(response, source.label)
 
     def test_dropping_a_builder_creates_a_section_bound_to_it(self):
         self.client_admin.post(
-            reverse("page_section_add_source", args=["reports"]), {"source": "THRUST"}
+            reverse("page_section_add_source", args=["programs"]), {"source": "THRUST"}
         )
-        section = PageSection.objects.get(page__slug="reports", layout="THRUST")
+        section = PageSection.objects.get(page__slug="programs", layout="THRUST")
         self.assertEqual(section.heading, CONTENT_SOURCES["THRUST"].label)
         self.assertTrue(section.is_visible)
 
     def test_a_dropped_block_publishes_the_builders_rows(self):
         HomeThrust.objects.create(title="DROPPED-THRUST-MARKER", is_visible=True)
         self.client_admin.post(
-            reverse("page_section_add_source", args=["reports"]), {"source": "THRUST"}
+            reverse("page_section_add_source", args=["programs"]), {"source": "THRUST"}
         )
-        self.assertContains(self.client.get(reverse("reports_page")), "DROPPED-THRUST-MARKER")
+        self.assertContains(self.client.get(reverse("programs_page")), "DROPPED-THRUST-MARKER")
 
     def test_the_same_builder_can_be_published_on_two_pages(self):
         """One body of data, two pages — not a copy."""
         HomeThrust.objects.create(title="SHARED-THRUST-MARKER", is_visible=True)
-        for slug in ("reports", "achievements"):
+        for slug in ("programs", "gallery"):
             self.client_admin.post(
                 reverse("page_section_add_source", args=[slug]), {"source": "THRUST"}
             )
 
-        self.assertContains(self.client.get(reverse("reports_page")), "SHARED-THRUST-MARKER")
-        self.assertContains(self.client.get(reverse("achievements_page")), "SHARED-THRUST-MARKER")
+        self.assertContains(self.client.get(reverse("programs_page")), "SHARED-THRUST-MARKER")
+        self.assertContains(self.client.get(reverse("gallery_page")), "SHARED-THRUST-MARKER")
         self.assertEqual(HomeThrust.objects.filter(title="SHARED-THRUST-MARKER").count(), 1)
 
     def test_the_palette_is_a_rail_on_the_right_of_the_section_list(self):
@@ -304,29 +304,29 @@ class BlockPaletteTests(TestCase):
 
     def test_a_block_dropped_at_a_position_lands_there(self):
         self.client_admin.post(
-            reverse("page_section_add_source", args=["reports"]),
+            reverse("page_section_add_source", args=["programs"]),
             {"source": "THRUST", "position": "1"},
         )
-        first = PageSection.objects.filter(page__slug="reports").order_by("order", "id").first()
+        first = PageSection.objects.filter(page__slug="programs").order_by("order", "id").first()
         self.assertEqual(first.layout, "THRUST")
 
     def test_an_unknown_source_is_rejected(self):
-        before = PageSection.objects.filter(page__slug="reports").count()
+        before = PageSection.objects.filter(page__slug="programs").count()
         self.client_admin.post(
-            reverse("page_section_add_source", args=["reports"]), {"source": "NOPE"}
+            reverse("page_section_add_source", args=["programs"]), {"source": "NOPE"}
         )
-        self.assertEqual(PageSection.objects.filter(page__slug="reports").count(), before)
+        self.assertEqual(PageSection.objects.filter(page__slug="programs").count(), before)
 
     def test_adding_a_block_requires_post(self):
         self.assertEqual(
-            self.client_admin.get(reverse("page_section_add_source", args=["reports"])).status_code,
+            self.client_admin.get(reverse("page_section_add_source", args=["programs"])).status_code,
             405,
         )
 
     def test_non_admins_cannot_add_a_block(self):
         client = factories.make_client(self.faculty)
         status = client.post(
-            reverse("page_section_add_source", args=["reports"]), {"source": "THRUST"}
+            reverse("page_section_add_source", args=["programs"]), {"source": "THRUST"}
         ).status_code
         self.assertIn(status, DENIED)
 
@@ -341,7 +341,7 @@ class SectionDragOrderTests(TestCase):
 
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
-        self.page = SitePage.get_for("achievements")
+        self.page = SitePage.get_for("gallery")
         self.page.sections.all().delete()
         self.a = PageSection.objects.create(page=self.page, heading="A", order=1)
         self.b = PageSection.objects.create(page=self.page, heading="B", order=2)
@@ -349,7 +349,7 @@ class SectionDragOrderTests(TestCase):
 
     def _reorder(self, ids, client=None):
         return (client or self.client_admin).post(
-            reverse("page_sections_reorder", args=["achievements"]),
+            reverse("page_sections_reorder", args=["gallery"]),
             data=json.dumps({"section_ids": ids}),
             content_type="application/json",
         )
@@ -365,7 +365,7 @@ class SectionDragOrderTests(TestCase):
 
     def test_the_new_order_shows_on_the_public_page(self):
         self._reorder([self.c.id, self.b.id, self.a.id])
-        html = self.client.get(reverse("achievements_page")).content.decode()
+        html = self.client.get(reverse("gallery_page")).content.decode()
         self.assertLess(html.index(">C<"), html.index(">B<"))
         self.assertLess(html.index(">B<"), html.index(">A<"))
 
@@ -375,14 +375,14 @@ class SectionDragOrderTests(TestCase):
         self.assertEqual(self._headings(), ["A", "B", "C"])
 
     def test_a_section_from_another_page_is_refused(self):
-        other = PageSection.objects.create(page=SitePage.get_for("reports"), heading="X")
+        other = PageSection.objects.create(page=SitePage.get_for("programs"), heading="X")
         response = self._reorder([self.a.id, self.b.id, other.id])
         self.assertEqual(response.status_code, 400)
         self.assertEqual(self._headings(), ["A", "B", "C"])
 
     def test_malformed_json_is_refused(self):
         response = self.client_admin.post(
-            reverse("page_sections_reorder", args=["achievements"]),
+            reverse("page_sections_reorder", args=["gallery"]),
             data="not json",
             content_type="application/json",
         )
@@ -394,7 +394,7 @@ class SectionDragOrderTests(TestCase):
         self._reorder([self.b.id, self.a.id, self.c.id])
         self.assertTrue(
             PageContentLog.objects.filter(
-                page_slug="achievements", action=PageContentLog.Action.MOVE_SECTION
+                page_slug="gallery", action=PageContentLog.Action.MOVE_SECTION
             ).exists()
         )
 
@@ -428,7 +428,7 @@ class SectionCanvasTests(TestCase):
 
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
-        self.page = SitePage.get_for("achievements")
+        self.page = SitePage.get_for("gallery")
         self.page.sections.all().delete()
         self.section = PageSection.objects.create(
             page=self.page, heading="Canvas Row", subheading="Sub line", order=1
@@ -436,7 +436,7 @@ class SectionCanvasTests(TestCase):
 
     def _editor_html(self):
         return self.client_admin.get(
-            reverse("page_content_edit", args=["achievements"])
+            reverse("page_content_edit", args=["gallery"])
         ).content.decode()
 
     def test_each_section_row_can_be_collapsed(self):
@@ -478,7 +478,7 @@ class SectionCanvasTests(TestCase):
         for key in ("THRUST", "PROCESSES", "SDG"):
             with self.subTest(source=key):
                 self.client_admin.post(
-                    reverse("page_section_add_source", args=["achievements"]),
+                    reverse("page_section_add_source", args=["gallery"]),
                     {"source": key},
                 )
                 html = self._editor_html()
@@ -587,10 +587,10 @@ class SourceItemDragOrderTests(TestCase):
         """The same editor inside a page's section drags; it has no arrows."""
         thrust = HomeThrust.objects.order_by("order").first()
         self.client_admin.post(
-            reverse("page_section_add_source", args=["achievements"]), {"source": "THRUST"}
+            reverse("page_section_add_source", args=["gallery"]), {"source": "THRUST"}
         )
         html = self.client_admin.get(
-            reverse("page_content_edit", args=["achievements"])
+            reverse("page_content_edit", args=["gallery"])
         ).content.decode()
         self.assertIn("js-item-handle", html)
         self.assertNotIn("↑", html)

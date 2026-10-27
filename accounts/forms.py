@@ -770,3 +770,104 @@ class AdminEditUserForm(AdminCreateUserForm):
                     for message in errors:
                         self.add_error(key, message)
         return cleaned
+
+
+class ExtensionProgramForm(StyledFormMixin, forms.ModelForm):
+    """Admin form for one Extension Program record.
+
+    ``year`` is bounded so a typo (e.g. 20255) cannot push the program out of
+    every filter on the public directory, and ``document_url`` is only allowed
+    to be http(s) so a pasted "javascript:" link can never reach the page.
+    """
+
+    class Meta:
+        from details.models import ExtensionProgram as _ExtensionProgram
+
+        model = _ExtensionProgram
+        fields = [
+            "title",
+            "campus",
+            "year",
+            "extension_type",
+            "research_basis",
+            "led_by",
+            "target_community",
+            "duration",
+            "objectives",
+            "student_participants",
+            "faculty_participants",
+            "research_staff_participants",
+            "beneficiaries",
+            "cover_image",
+            "document_url",
+            "is_visible",
+        ]
+        widgets = {
+            "objectives": forms.Textarea(attrs={"rows": 5}),
+            "target_community": forms.TextInput(
+                attrs={"placeholder": "e.g. Dili National High School"}
+            ),
+            "duration": forms.TextInput(
+                attrs={"placeholder": "e.g. September 2025 – February 2026"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["year"].widget.attrs.update({"min": 2000, "max": 2100})
+        self.apply_styled_widgets()
+
+    def clean_year(self):
+        year = self.cleaned_data["year"]
+        if not 2000 <= year <= 2100:
+            raise ValidationError("Enter a year between 2000 and 2100.")
+        return year
+
+    def clean_document_url(self):
+        url = (self.cleaned_data.get("document_url") or "").strip()
+        if not url:
+            return ""
+        from django.core.validators import URLValidator
+
+        URLValidator(schemes=["http", "https"])(url)
+        return url
+
+
+class GalleryPhotoForm(StyledFormMixin, forms.ModelForm):
+    """Admin form for one Gallery photo."""
+
+    class Meta:
+        from details.models import GalleryPhoto as _GalleryPhoto
+
+        model = _GalleryPhoto
+        fields = ["program", "title", "caption", "image", "campus", "taken_on", "is_visible"]
+        widgets = {
+            "title": forms.TextInput(
+                attrs={"placeholder": "e.g. Seedling distribution in Sta. Maria"}
+            ),
+            "caption": forms.Textarea(attrs={"rows": 3}),
+            "taken_on": forms.DateInput(attrs={"type": "date"}),
+            "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from details.models import ExtensionProgram
+
+        self.fields["program"].queryset = ExtensionProgram.objects.order_by(
+            "-year", "title"
+        )
+        self.fields["program"].empty_label = "No program (standalone photo)"
+        self.apply_styled_widgets()
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("program") and not cleaned.get("campus"):
+            # A photo with neither still renders, but naming where it was taken
+            # is what makes the gallery useful, so ask for at least one.
+            if not cleaned.get("title"):
+                self.add_error(
+                    "title",
+                    "Give the photo a caption, or attach it to a program.",
+                )
+        return cleaned

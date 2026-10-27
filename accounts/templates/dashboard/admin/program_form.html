@@ -1,0 +1,133 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% block title %}{% if program %}Edit program{% else %}Add program{% endif %} - NExUS{% endblock %}
+{% block content %}
+<div class="nx-page py-6">
+    <div class="mb-6 flex items-center justify-between gap-3 nx-page-header">
+        <div>
+            <a href="{% url 'programs_list' %}" class="text-xs font-medium text-slate-500 hover:text-primary">← All programs</a>
+            <h1 class="mt-1 text-2xl font-bold nx-page-title">{% if program %}Edit{% else %}Add{% endif %} Extension Program</h1>
+            <p class="mt-1 text-sm text-gray-600 nx-page-description">
+                Published programs appear on the Programs page and can be picked in the Gallery.
+            </p>
+        </div>
+    </div>
+
+    {% if form.errors %}
+        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            Please correct the highlighted fields and save again.
+        </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white border rounded-xl p-6 nx-form-grid nx-panel">
+        {% csrf_token %}
+
+        <div class="nx-full">
+            <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium mb-1">Program title</label>
+            {{ form.title }}
+            {% if form.title.errors %}<p class="mt-1 text-xs text-red-600">{{ form.title.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.campus.id_for_label }}" class="block text-sm font-medium mb-1">Campus</label>
+            {{ form.campus }}
+            {% if form.campus.errors %}<p class="mt-1 text-xs text-red-600">{{ form.campus.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.year.id_for_label }}" class="block text-sm font-medium mb-1">Year</label>
+            {{ form.year }}
+            {% if form.year.errors %}<p class="mt-1 text-xs text-red-600">{{ form.year.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.extension_type.id_for_label }}" class="block text-sm font-medium mb-1">Type of extension</label>
+            {{ form.extension_type }}
+            {% if form.extension_type.errors %}<p class="mt-1 text-xs text-red-600">{{ form.extension_type.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.research_basis.id_for_label }}" class="block text-sm font-medium mb-1">Research basis</label>
+            {{ form.research_basis }}
+            {% if form.research_basis.errors %}<p class="mt-1 text-xs text-red-600">{{ form.research_basis.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.led_by.id_for_label }}" class="block text-sm font-medium mb-1">Led by</label>
+            {{ form.led_by }}
+            {% if form.led_by.errors %}<p class="mt-1 text-xs text-red-600">{{ form.led_by.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.duration.id_for_label }}" class="block text-sm font-medium mb-1">Duration</label>
+            {{ form.duration }}
+            {% if form.duration.errors %}<p class="mt-1 text-xs text-red-600">{{ form.duration.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div class="nx-full">
+            <label for="{{ form.target_community.id_for_label }}" class="block text-sm font-medium mb-1">Target community / beneficiaries</label>
+            {{ form.target_community }}
+            {% if form.target_community.errors %}<p class="mt-1 text-xs text-red-600">{{ form.target_community.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div class="nx-full">
+            <label for="{{ form.objectives.id_for_label }}" class="block text-sm font-medium mb-1">Objectives</label>
+            {{ form.objectives }}
+            <p class="mt-1 text-xs text-gray-500">One objective per line. Shown when a visitor opens “Full details”.</p>
+            {% if form.objectives.errors %}<p class="mt-1 text-xs text-red-600">{{ form.objectives.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.student_participants.id_for_label }}" class="block text-sm font-medium mb-1">Student participants</label>
+            {{ form.student_participants }}
+            {% if form.student_participants.errors %}<p class="mt-1 text-xs text-red-600">{{ form.student_participants.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.faculty_participants.id_for_label }}" class="block text-sm font-medium mb-1">Faculty participants</label>
+            {{ form.faculty_participants }}
+            {% if form.faculty_participants.errors %}<p class="mt-1 text-xs text-red-600">{{ form.faculty_participants.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.research_staff_participants.id_for_label }}" class="block text-sm font-medium mb-1">Research staff participants</label>
+            {{ form.research_staff_participants }}
+            {% if form.research_staff_participants.errors %}<p class="mt-1 text-xs text-red-600">{{ form.research_staff_participants.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.beneficiaries.id_for_label }}" class="block text-sm font-medium mb-1">Community beneficiaries</label>
+            {{ form.beneficiaries }}
+            {% if form.beneficiaries.errors %}<p class="mt-1 text-xs text-red-600">{{ form.beneficiaries.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.cover_image.id_for_label }}" class="block text-sm font-medium mb-1">Cover photo</label>
+            {{ form.cover_image }}
+            {% if program and program.cover_image %}
+                <p class="mt-1 text-xs text-gray-500">Current: <a class="text-primary hover:underline" href="{{ program.cover_image.url }}" target="_blank" rel="noopener">{{ program.cover_image.name }}</a></p>
+            {% endif %}
+            {% if form.cover_image.errors %}<p class="mt-1 text-xs text-red-600">{{ form.cover_image.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div>
+            <label for="{{ form.document_url.id_for_label }}" class="block text-sm font-medium mb-1">Document link</label>
+            {{ form.document_url }}
+            <p class="mt-1 text-xs text-gray-500">Full https:// link, e.g. a Google Drive file.</p>
+            {% if form.document_url.errors %}<p class="mt-1 text-xs text-red-600">{{ form.document_url.errors|join:" " }}</p>{% endif %}
+        </div>
+
+        <div class="flex items-center gap-2">
+            {{ form.is_visible }}
+            <label for="{{ form.is_visible.id_for_label }}" class="text-sm font-semibold text-gray-700">Published on the Programs page</label>
+        </div>
+
+        <div class="nx-full flex gap-3">
+            <button class="bg-primary text-white px-4 py-2 rounded-lg nx-btn nx-btn--primary" type="submit">Save</button>
+            <a class="px-4 py-2 rounded-lg border nx-btn nx-btn--secondary" href="{% url 'programs_list' %}">Cancel</a>
+            {% if program %}
+                <a class="ml-auto px-4 py-2 rounded-lg border nx-btn nx-btn--secondary" href="{% url 'gallery_photo_create' %}?program={{ program.id }}">Add a gallery photo</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}

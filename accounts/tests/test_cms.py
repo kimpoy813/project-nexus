@@ -31,9 +31,11 @@ DENIED = (302, 403)
 class SeedDataTests(TestCase):
     """Migrations seed the previously hardcoded copy verbatim."""
 
-    def test_all_four_editable_pages_exist(self):
+    def test_all_five_editable_pages_exist(self):
         slugs = set(SitePage.objects.values_list("slug", flat=True))
-        self.assertEqual(slugs, {"home", "services", "reports", "achievements"})
+        self.assertEqual(
+            slugs, {"home", "services", "programs", "gallery", "about"}
+        )
 
     def test_home_thrust_cards_are_seeded(self):
         self.assertEqual(HomeThrust.objects.count(), 8)
@@ -63,14 +65,14 @@ class PublicPageTests(TestCase):
     """The four public pages render, including the two that used to 404."""
 
     def test_every_public_page_returns_200(self):
-        for url in ["/", "/reports/", "/achievements/", "/proposals/"]:
+        for url in ["/", "/programs/", "/gallery/", "/about/", "/proposals/"]:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
-    def test_reports_and_achievements_are_routed(self):
+    def test_programs_and_gallery_are_routed(self):
         """Regression guard: these were linked in the navbar but had no routes."""
-        self.assertEqual(self.client.get(reverse("reports_page")).status_code, 200)
-        self.assertEqual(self.client.get(reverse("achievements_page")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("programs_page")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("gallery_page")).status_code, 200)
 
     def test_home_renders_the_seeded_thrust_cards(self):
         response = self.client.get("/")
@@ -93,7 +95,7 @@ class PageContentEditorTests(TestCase):
 
     def test_editing_the_hero_updates_the_public_page(self):
         self.client_admin.post(
-            reverse("page_content_edit", args=["reports"]),
+            reverse("page_content_edit", args=["programs"]),
             {
                 "title": "Reports",
                 "hero_eyebrow": "EYEBROW-MARKER",
@@ -103,30 +105,30 @@ class PageContentEditorTests(TestCase):
             },
         )
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "EYEBROW-MARKER")
         self.assertContains(response, "HEADING-MARKER")
         self.assertContains(response, "SUBHEADING-MARKER")
 
     def test_hero_text_is_escaped(self):
         self.client_admin.post(
-            reverse("page_content_edit", args=["reports"]),
+            reverse("page_content_edit", args=["programs"]),
             {"title": "Reports", "hero_heading": "<script>alert(1)</script>", "is_published": "on"},
         )
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertNotContains(response, "<script>alert(1)</script>", html=False)
         self.assertContains(response, "&lt;script&gt;")
 
     def test_unpublished_pages_are_hidden_from_visitors_but_visible_to_admins(self):
         self.client_admin.post(
-            reverse("page_content_edit", args=["achievements"]),
+            reverse("page_content_edit", args=["gallery"]),
             {"title": "Achievements", "hero_heading": "Draft"},  # no is_published
         )
 
-        self.assertEqual(self.client.get(reverse("achievements_page")).status_code, 404)
+        self.assertEqual(self.client.get(reverse("gallery_page")).status_code, 404)
 
-        admin_response = self.client_admin.get(reverse("achievements_page"))
+        admin_response = self.client_admin.get(reverse("gallery_page"))
         self.assertEqual(admin_response.status_code, 200)
         self.assertContains(admin_response, "Draft preview")
 
@@ -146,7 +148,7 @@ class PageSectionTests(TestCase):
         self.client_admin = factories.make_client(self.admin)
         # Achievements ships with a seeded Activities block. These tests are
         # about sections the test itself creates, so start from a bare page.
-        PageSection.objects.filter(page__slug="achievements").delete()
+        PageSection.objects.filter(page__slug="gallery").delete()
 
     def _create(self, **overrides):
         payload = {
@@ -159,13 +161,13 @@ class PageSectionTests(TestCase):
         }
         payload.update(overrides)
         return self.client_admin.post(
-            reverse("page_section_create", args=["achievements"]), payload
+            reverse("page_section_create", args=["gallery"]), payload
         )
 
     def test_a_section_can_be_created_and_appears_publicly(self):
         self._create(heading="SECTION-MARKER", body="<p>Hello <strong>world</strong></p>")
 
-        response = self.client.get(reverse("achievements_page"))
+        response = self.client.get(reverse("gallery_page"))
         self.assertContains(response, "SECTION-MARKER")
         self.assertContains(response, "<strong>world</strong>", html=False)
 
@@ -192,7 +194,7 @@ class PageSectionTests(TestCase):
             {"heading": "HIDDEN-MARKER", "body": "<p>x</p>", "layout": "RICH_TEXT"},
         )
 
-        self.assertNotContains(self.client.get(reverse("achievements_page")), "HIDDEN-MARKER")
+        self.assertNotContains(self.client.get(reverse("gallery_page")), "HIDDEN-MARKER")
 
     def test_sections_can_be_reordered(self):
         self._create(heading="First")
@@ -204,7 +206,7 @@ class PageSectionTests(TestCase):
         )
 
         order = list(
-            PageSection.objects.filter(page__slug="achievements")
+            PageSection.objects.filter(page__slug="gallery")
             .order_by("order", "id")
             .values_list("heading", flat=True)
         )
@@ -220,7 +222,7 @@ class PageSectionTests(TestCase):
         )
 
         order = list(
-            PageSection.objects.filter(page__slug="achievements")
+            PageSection.objects.filter(page__slug="gallery")
             .order_by("order", "id")
             .values_list("heading", flat=True)
         )
@@ -649,28 +651,28 @@ class OtherPageInlineEditorTests(TestCase):
     def setUp(self):
         self.client_admin = factories.make_client(self.admin)
 
-    def test_the_reports_editor_nests_targets_inside_the_section(self):
+    def test_the_programs_editor_nests_targets_inside_the_section(self):
         from details.models import Target
 
         target = Target.objects.create(
             year=2026, campus="Main Campus", metric="programs",
             target=8, actual_q1=3,
         )
-        response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
+        response = self.client_admin.get(reverse("page_content_edit", args=["programs"]))
         self.assertContains(response, "home-targets-inline")
         self.assertContains(response, reverse("home_inline_target_update", args=[target.id]))
         self.assertFalse(
             PageSection.objects.filter(
-                page__slug="reports", layout=PageSection.Layout.TARGETS, is_visible=False
+                page__slug="programs", layout=PageSection.Layout.TARGETS, is_visible=False
             ).exists()
         )
 
-    def test_the_achievements_editor_nests_activities_inside_the_section(self):
+    def test_the_gallery_editor_nests_activities_inside_the_section(self):
         from details.models import Activity, ActivityDate
 
         activity = Activity.objects.create(title="PAGE-ACT-MARKER", description="d")
         ActivityDate.objects.create(activity=activity, date="2026-06-01")
-        response = self.client_admin.get(reverse("page_content_edit", args=["achievements"]))
+        response = self.client_admin.get(reverse("page_content_edit", args=["gallery"]))
         self.assertContains(response, "home-activities-inline")
         self.assertContains(response, "PAGE-ACT-MARKER")
         self.assertContains(response, reverse("home_inline_activity_update", args=[activity.id]))
@@ -696,14 +698,14 @@ class OtherPageInlineEditorTests(TestCase):
         self.assertNotContains(response, "Linked Data on This Page")
         self.assertContains(response, reverse("processes_list"))
 
-    def test_inline_target_update_returns_to_the_reports_editor_when_next_is_set(self):
+    def test_inline_target_update_returns_to_the_programs_editor_when_next_is_set(self):
         from details.models import Target
 
         target = Target.objects.create(
             year=2026, campus="Sta. Maria", metric="partners",
             target=2, actual_q1=1,
         )
-        next_url = reverse("page_content_edit", args=["reports"])
+        next_url = reverse("page_content_edit", args=["programs"])
         response = self.client_admin.post(
             reverse("home_inline_target_update", args=[target.id]),
             {
@@ -899,9 +901,9 @@ class PageBlockTests(TestCase):
         )
         ActivityDate.objects.create(activity=activity, date="2026-08-15")
 
-        self._add_block("reports", "ACTIVITIES")
+        self._add_block("programs", "ACTIVITIES")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "BLOCK-ACTIVITY-MARKER")
 
     def test_activities_block_respects_limit_count(self):
@@ -916,17 +918,17 @@ class PageBlockTests(TestCase):
             activity = Activity.objects.create(title=name, description="d")
             ActivityDate.objects.create(activity=activity, date=date)
 
-        self._add_block("reports", "ACTIVITIES", limit_count="2")
+        self._add_block("programs", "ACTIVITIES", limit_count="2")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "FIRST-ACT")
         self.assertContains(response, "SECOND-ACT")
         self.assertNotContains(response, "THIRD-ACT")
 
     def test_activities_block_shows_an_empty_state(self):
-        self._add_block("reports", "ACTIVITIES")
+        self._add_block("programs", "ACTIVITIES")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "No activities to show yet.")
 
     def test_targets_block_defaults_to_the_latest_year_with_data(self):
@@ -941,9 +943,9 @@ class PageBlockTests(TestCase):
             target=20, actual_q1=11,
         )
 
-        self._add_block("reports", "TARGETS")
+        self._add_block("programs", "TARGETS")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "2026 targets")
         self.assertContains(response, "55% of target")
         # Every year with data is rendered for the client-side year filter,
@@ -962,9 +964,9 @@ class PageBlockTests(TestCase):
             target=20, actual_q1=11,
         )
 
-        self._add_block("reports", "TARGETS", target_year="2025")
+        self._add_block("programs", "TARGETS", target_year="2025")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "2025 targets")
         self.assertContains(response, "90% of target")
         # The configured year is the one the block opens on.
@@ -982,9 +984,9 @@ class PageBlockTests(TestCase):
             target=20, actual_q1=11,
         )
 
-        self._add_block("reports", "TARGETS")
+        self._add_block("programs", "TARGETS")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
 
         # The filter group offers every year that has data, styled as pills
         # like the campus filter.
@@ -1000,9 +1002,9 @@ class PageBlockTests(TestCase):
             target=10, actual_q1=9,
         )
 
-        self._add_block("reports", "TARGETS")
+        self._add_block("programs", "TARGETS")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertNotContains(response, 'aria-label="Filter targets by year"')
         self.assertContains(response, "2026 targets")
 
@@ -1014,9 +1016,9 @@ class PageBlockTests(TestCase):
             target=200, actual_q1=50,
         )
 
-        self._add_block("reports", "TARGETS")
+        self._add_block("programs", "TARGETS")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, "25%")
 
     def test_targets_block_renders_a_campus_filter(self):
@@ -1031,9 +1033,9 @@ class PageBlockTests(TestCase):
             target=20, actual_q1=11,
         )
 
-        self._add_block("reports", "TARGETS")
+        self._add_block("programs", "TARGETS")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
 
         # The filter group offers every campus plus an "all" reset, and every
         # campus keeps its own table so the filter has something to toggle.
@@ -1050,9 +1052,9 @@ class PageBlockTests(TestCase):
             target=100, actual_q1=75,
         )
 
-        self._add_block("reports", "TARGETS")
+        self._add_block("programs", "TARGETS")
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, 'role="progressbar"')
         self.assertContains(response, 'aria-valuenow="75"')
         self.assertContains(response, "75% of target")
@@ -1092,27 +1094,27 @@ class PageBlockTests(TestCase):
 
         Personnel.objects.create(name="Rosa Villanueva", position="Director")
 
-        self._add_block("achievements", "PERSONNEL")
+        self._add_block("gallery", "PERSONNEL")
 
-        response = self.client.get(reverse("achievements_page"))
+        response = self.client.get(reverse("gallery_page"))
         self.assertContains(response, "Rosa Villanueva")
         self.assertContains(response, "Director")
 
     def test_cta_block_renders_its_button(self):
         self._add_block(
-            "reports", "CTA",
+            "programs", "CTA",
             heading="Ready to start?",
             cta_label="Start a proposal",
             cta_url="/proposals/",
         )
 
-        response = self.client.get(reverse("reports_page"))
+        response = self.client.get(reverse("programs_page"))
         self.assertContains(response, 'href="/proposals/"')
         self.assertContains(response, "Start a proposal")
 
     def test_cta_url_must_be_a_site_path_or_https_url(self):
         self._add_block(
-            "reports", "CTA",
+            "programs", "CTA",
             heading="Bad CTA",
             cta_label="Click",
             cta_url="javascript:alert(1)",
@@ -1120,7 +1122,7 @@ class PageBlockTests(TestCase):
 
         self.assertFalse(PageSection.objects.filter(heading="Bad CTA").exists())
         self.assertNotContains(
-            self.client.get(reverse("reports_page")), "javascript:alert(1)", html=False
+            self.client.get(reverse("programs_page")), "javascript:alert(1)", html=False
         )
 
     def test_a_data_block_needs_no_heading_of_its_own(self):
@@ -1130,14 +1132,14 @@ class PageBlockTests(TestCase):
         Text sections still need a heading or a body - see
         ``test_a_section_with_no_heading_and_no_body_is_rejected``.
         """
-        PageSection.objects.filter(page__slug="reports").delete()
+        PageSection.objects.filter(page__slug="programs").delete()
         before = PageSection.objects.count()
-        self._append_block("reports", "ACTIVITIES", heading="", body="")
+        self._append_block("programs", "ACTIVITIES", heading="", body="")
 
         self.assertEqual(PageSection.objects.count(), before + 1)
         self.assertTrue(
             PageSection.objects.filter(
-                page__slug="reports", layout=PageSection.Layout.ACTIVITIES
+                page__slug="programs", layout=PageSection.Layout.ACTIVITIES
             ).exists()
         )
 
@@ -1155,7 +1157,7 @@ class PageContentLogTests(TestCase):
 
     def test_editing_the_hero_writes_an_audit_log(self):
         self.client_admin.post(
-            reverse("page_content_edit", args=["reports"]),
+            reverse("page_content_edit", args=["programs"]),
             {
                 "title": "Reports",
                 "hero_heading": "OLD-HEADING",
@@ -1163,7 +1165,7 @@ class PageContentLogTests(TestCase):
             },
         )
         self.client_admin.post(
-            reverse("page_content_edit", args=["reports"]),
+            reverse("page_content_edit", args=["programs"]),
             {
                 "title": "Reports",
                 "hero_heading": "NEW-HEADING",
@@ -1174,7 +1176,7 @@ class PageContentLogTests(TestCase):
         from details.models import PageContentLog
 
         log = PageContentLog.objects.filter(
-            action=PageContentLog.Action.UPDATE_PAGE, page_slug="reports"
+            action=PageContentLog.Action.UPDATE_PAGE, page_slug="programs"
         ).latest("created_at", "id")
         self.assertEqual(log.before["hero_heading"], "OLD-HEADING")
         self.assertEqual(log.after["hero_heading"], "NEW-HEADING")
@@ -1184,12 +1186,12 @@ class PageContentLogTests(TestCase):
         from details.models import PageContentLog
 
         self.client_admin.post(
-            reverse("page_section_create", args=["achievements"]),
+            reverse("page_section_create", args=["gallery"]),
             {"heading": "Lifecycle", "body": "<p>v1</p>", "layout": "RICH_TEXT"},
         )
         # A second section so the move has a neighbour to swap with.
         self.client_admin.post(
-            reverse("page_section_create", args=["achievements"]),
+            reverse("page_section_create", args=["gallery"]),
             {"heading": "Lifecycle-Second", "body": "<p>x</p>", "layout": "RICH_TEXT"},
         )
         section = PageSection.objects.get(heading="Lifecycle")
@@ -1204,7 +1206,7 @@ class PageContentLogTests(TestCase):
         self.client_admin.post(reverse("page_section_delete", args=[section.id]))
 
         actions = list(
-            PageContentLog.objects.filter(page_slug="achievements")
+            PageContentLog.objects.filter(page_slug="gallery")
             .order_by("created_at", "id")
             .values_list("action", flat=True)
         )
@@ -1235,23 +1237,23 @@ class PageContentLogTests(TestCase):
 
     def test_the_logs_view_filters_by_page(self):
         self.client_admin.post(
-            reverse("page_section_create", args=["reports"]),
+            reverse("page_section_create", args=["programs"]),
             {"heading": "On-Reports", "body": "<p>x</p>", "layout": "RICH_TEXT"},
         )
         self.client_admin.post(
-            reverse("page_section_create", args=["achievements"]),
+            reverse("page_section_create", args=["gallery"]),
             {"heading": "On-Achievements", "body": "<p>x</p>", "layout": "RICH_TEXT"},
         )
 
         response = self.client_admin.get(
-            reverse("page_content_logs"), {"page": "reports"}
+            reverse("page_content_logs"), {"page": "programs"}
         )
         self.assertContains(response, "On-Reports")
         self.assertNotContains(response, "On-Achievements")
 
     def test_the_logs_view_shows_before_and_after(self):
         self.client_admin.post(
-            reverse("page_content_edit", args=["reports"]),
+            reverse("page_content_edit", args=["programs"]),
             {"title": "Reports", "hero_heading": "OLD-VALUE", "is_published": "on"},
         )
 
@@ -1272,7 +1274,7 @@ class PagePreviewTests(TestCase):
         self.client_admin = factories.make_client(self.admin)
 
     def test_the_page_editor_has_direct_link_to_live_page(self):
-        response = self.client_admin.get(reverse("page_content_edit", args=["reports"]))
+        response = self.client_admin.get(reverse("page_content_edit", args=["programs"]))
         self.assertContains(response, "View live page")
         self.assertNotContains(response, "Live Preview")
         self.assertNotContains(response, "nx-page-preview")
@@ -1286,7 +1288,7 @@ class PagePreviewTests(TestCase):
         ActivityDate.objects.create(activity=activity, date="2026-09-01")
 
         response = self.client_admin.get(
-            reverse("page_section_create", args=["reports"]),
+            reverse("page_section_create", args=["programs"]),
             {"layout": "ACTIVITIES", "heading": "Latest"},
         )
         self.assertContains(response, "Preview")

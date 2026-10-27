@@ -774,9 +774,234 @@ class AccomplishmentTargetEntry(models.Model):
 # EDITABLE PAGE CONTENT (ADMIN MANAGED CMS)
 # ==============================
 
+def _current_year():
+    """Default reporting year for a new extension program."""
+    from django.utils import timezone
+
+    return timezone.now().year
+
+
+class ExtensionProgram(models.Model):
+    """One extension program, as published in the Programs directory.
+
+    This is the record behind the Programs page: the searchable, filterable
+    list of every extension program the institution has carried out. It is a
+    first-class builder (like Activities or Personnel) so the office can add,
+    edit, hide, and retire programs without a developer — and so the Gallery
+    can hang photographs off the same record.
+
+    The fields mirror how the office already reports programs (the CHED Form
+    U8 style row): campus, year, type of extension, research basis, who led
+    it, the partner community, the schedule, the objectives, and the four
+    participant counts.
+    """
+
+    class ExtensionType(models.TextChoices):
+        COMMUNITY_BASED = "COMMUNITY_BASED", "Community-based"
+        REQUEST_BASED = "REQUEST_BASED", "Request-based"
+        RESEARCH_BASED = "RESEARCH_BASED", "Research-based"
+
+    class ResearchBasis(models.TextChoices):
+        FACULTY = "FACULTY", "Based on Faculty Research"
+        STUDENT = "STUDENT", "Based on Student Research"
+        OTHERS = "OTHERS", "Others"
+
+    class Proponent(models.TextChoices):
+        FACULTY = "FACULTY", "Faculty"
+        JOINT = "JOINT", "Joint"
+        STUDENT = "STUDENT", "Student"
+
+    title = models.CharField(max_length=255)
+    campus = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Campus that carried out the program, e.g. “Main Campus”.",
+    )
+    year = models.PositiveSmallIntegerField(
+        default=_current_year,
+        help_text="Reporting year used by the Programs page filter.",
+    )
+
+    extension_type = models.CharField(
+        max_length=20,
+        choices=ExtensionType.choices,
+        default=ExtensionType.COMMUNITY_BASED,
+    )
+    research_basis = models.CharField(
+        max_length=20,
+        choices=ResearchBasis.choices,
+        default=ResearchBasis.OTHERS,
+    )
+    led_by = models.CharField(
+        max_length=20,
+        choices=Proponent.choices,
+        default=Proponent.FACULTY,
+        verbose_name="Led by",
+    )
+
+    target_community = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Partner school, barangay, LGU, or group served.",
+    )
+    duration = models.CharField(
+        max_length=150,
+        blank=True,
+        default="",
+        help_text="Schedule as it should be published, e.g. “January–October 2025”.",
+    )
+    objectives = models.TextField(
+        blank=True,
+        default="",
+        help_text="One objective per line; shown when a visitor opens Full details.",
+    )
+
+    student_participants = models.PositiveIntegerField(default=0)
+    faculty_participants = models.PositiveIntegerField(default=0)
+    research_staff_participants = models.PositiveIntegerField(default=0)
+    beneficiaries = models.PositiveIntegerField(
+        default=0,
+        help_text="Community members served.",
+    )
+
+    cover_image = models.ImageField(
+        upload_to="programs/",
+        blank=True,
+        null=True,
+        help_text="Optional photo shown on the program card.",
+    )
+    document_url = models.URLField(
+        blank=True,
+        default="",
+        help_text="Link to the full document, e.g. a Google Drive file.",
+    )
+
+    is_visible = models.BooleanField(
+        default=True,
+        help_text="Uncheck to hide this program from the public Programs page.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-year", "title"]
+        verbose_name = "Extension Program"
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def safe_document_url(self):
+        """``document_url`` only when it is an http(s) link.
+
+        The admin form and the CSV importer both refuse other schemes, but a
+        record saved from the Django admin (or a future import) could still
+        hold one; the template reads this instead so a ``javascript:`` value
+        can never reach an ``href``.
+        """
+        url = (self.document_url or "").strip()
+        if url.lower().startswith(("http://", "https://")):
+            return url
+        return ""
+
+    @property
+    def participant_total(self):
+        """Students, faculty, and research staff — beneficiaries excluded.
+
+        Beneficiaries are community members served, not participants of the
+        implementing institution, so they are counted separately everywhere.
+        """
+        return (
+            self.student_participants
+            + self.faculty_participants
+            + self.research_staff_participants
+        )
+
+
+class GalleryPhoto(models.Model):
+    """A photograph of an extension program, shown in the Gallery.
+
+    A photo can stand on its own (``program`` empty) or be attached to an
+    ``ExtensionProgram`` so the gallery card can name the program, campus, and
+    year it belongs to without the office retyping them.
+    """
+
+    program = models.ForeignKey(
+        ExtensionProgram,
+        related_name="photos",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Optional program this photo belongs to.",
+    )
+    title = models.CharField(
+        max_length=180,
+        blank=True,
+        default="",
+        help_text="Short caption, e.g. “Seedling distribution in Sta. Maria”.",
+    )
+    caption = models.TextField(
+        blank=True,
+        default="",
+        help_text="Optional longer description shown in the lightbox.",
+    )
+    image = models.ImageField(upload_to="gallery/")
+    campus = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Only needed when the photo is not attached to a program.",
+    )
+    taken_on = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Optional date the photo was taken.",
+    )
+
+    is_visible = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Gallery Photo"
+
+    def __str__(self):
+        return self.title or (self.program.title if self.program else f"Photo {self.pk}")
+
+    def save(self, *args, **kwargs):
+        if self.order is None or self.order == 0:
+            last = GalleryPhoto.objects.aggregate(Max("order"))["order__max"]
+            self.order = (last or 0) + 1
+        super().save(*args, **kwargs)
+
+    @property
+    def display_title(self):
+        """Caption used on the tile and in the lightbox."""
+        if self.title:
+            return self.title
+        if self.program_id:
+            return self.program.title
+        return "Extension program photo"
+
+    @property
+    def campus_label(self):
+        if self.campus:
+            return self.campus
+        return self.program.campus if self.program_id else ""
+
+    @property
+    def program_title(self):
+        return self.program.title if self.program_id else ""
+
+
 class SitePage(models.Model):
     """
-    An admin-editable public page (Home, Services, Reports, Achievements).
+    An admin-editable public page (Home, Services, Programs, Gallery, About).
 
     Rows are seeded by migration for the four known pages and are looked up by
     ``slug``. Each page owns an ordered set of :class:`PageSection` records that
@@ -786,8 +1011,9 @@ class SitePage(models.Model):
     class Slug(models.TextChoices):
         HOME = "home", "Home"
         SERVICES = "services", "Services"
-        REPORTS = "reports", "Reports"
-        ACHIEVEMENTS = "achievements", "Achievements"
+        PROGRAMS = "programs", "Programs"
+        GALLERY = "gallery", "Gallery"
+        ABOUT = "about", "About"
 
     slug = models.SlugField(max_length=40, unique=True, choices=Slug.choices)
     title = models.CharField(max_length=150)
@@ -872,6 +1098,8 @@ class PageSection(models.Model):
         SDG = "SDG", CONTENT_SOURCES["SDG"].label
         ACTIVITIES = "ACTIVITIES", CONTENT_SOURCES["ACTIVITIES"].label
         TEMPLATES = "TEMPLATES", CONTENT_SOURCES["TEMPLATES"].label
+        PROGRAMS = "PROGRAMS", CONTENT_SOURCES["PROGRAMS"].label
+        GALLERY = "GALLERY", CONTENT_SOURCES["GALLERY"].label
 
     #: Layouts backed by a content source. Derived from the registry so a
     #: source can never be half-registered (declared but not renderable).

@@ -221,6 +221,152 @@ def _resolve_personnel(section):
     return {"personnel": qs}
 
 
+def _facet(rows, field, choices=None):
+    """``[{value, label, count, percent}, ...]`` for a Programs-block filter.
+
+    Counts are of the *published* rows only, so a filter never offers a value
+    the visitor can select and then see nothing. ``percent`` is the share of
+    the directory, which drives the overview bars. Choice fields keep the
+    declared order (``choices``); free-text fields such as campus are sorted
+    alphabetically.
+    """
+    counts = {}
+    labels = {}
+    for row in rows:
+        value = getattr(row, field) or ""
+        if not value:
+            continue
+        counts[value] = counts.get(value, 0) + 1
+        if choices and value in dict(choices):
+            labels[value] = str(dict(choices)[value])
+
+    if choices:
+        ordered = [value for value, _label in choices if value in counts]
+    else:
+        ordered = sorted(counts, key=str.lower)
+
+    total = len(rows)
+    return [
+        {
+            "value": value,
+            "label": labels.get(value, value),
+            "count": counts[value],
+            "percent": round(100 * counts[value] / total) if total else 0,
+        }
+        for value in ordered
+    ]
+
+
+def _resolve_programs(section):
+    """The Programs directory: published programs, their facets, and totals."""
+    from .models import ExtensionProgram
+
+    programs = list(
+        ExtensionProgram.objects.filter(is_visible=True).order_by("-year", "title")
+    )
+
+    year_counts = {}
+    for program in programs:
+        if program.year:
+            year_counts[program.year] = year_counts.get(program.year, 0) + 1
+
+    stats = {
+        "program_count": len(programs),
+        "campus_count": len({p.campus for p in programs if p.campus}),
+        "beneficiaries": sum(p.beneficiaries for p in programs),
+        "students": sum(p.student_participants for p in programs),
+        "faculty": sum(p.faculty_participants for p in programs),
+        "research_staff": sum(p.research_staff_participants for p in programs),
+    }
+
+    return {
+        "programs": programs,
+        "stats": stats,
+        "facets": {
+            "campuses": _facet(programs, "campus"),
+            "years": [
+                {
+                    "value": year,
+                    "label": str(year),
+                    "count": year_counts[year],
+                    "percent": (
+                        round(100 * year_counts[year] / len(programs))
+                        if programs
+                        else 0
+                    ),
+                }
+                for year in sorted(year_counts, reverse=True)
+            ],
+            "extension_types": _facet(
+                programs, "extension_type", ExtensionProgram.ExtensionType.choices
+            ),
+            "research_bases": _facet(
+                programs, "research_basis", ExtensionProgram.ResearchBasis.choices
+            ),
+            "proponents": _facet(
+                programs, "led_by", ExtensionProgram.Proponent.choices
+            ),
+        },
+    }
+
+
+def _resolve_gallery(section):
+    """Photos published in the Gallery block.
+
+    Gallery photos come first, in the order the office arranged them. A
+    program's own cover photo is then added for any published program that has
+    no gallery photo yet, so the gallery fills itself from the Programs
+    directory instead of asking for the same upload twice. Adding a real
+    gallery photo for that program retires the automatic cover.
+
+    Every entry is a plain dict, so the block template does not have to know
+    which of the two sources an image came from.
+    """
+    from .models import ExtensionProgram, GalleryPhoto
+
+    photos = list(
+        GalleryPhoto.objects.filter(is_visible=True)
+        .select_related("program")
+        .order_by("order", "id")
+    )
+    entries = [
+        {
+            "image_url": photo.image.url,
+            "title": photo.display_title,
+            "caption": photo.caption,
+            "subtitle": (
+                photo.program_title
+                if photo.program_title and photo.program_title != photo.display_title
+                else ""
+            ),
+            "campus": photo.campus_label,
+            "taken_on": photo.taken_on,
+        }
+        for photo in photos
+    ]
+
+    covered_programs = {photo.program_id for photo in photos if photo.program_id}
+    covers = (
+        ExtensionProgram.objects.filter(is_visible=True, cover_image__isnull=False)
+        .exclude(cover_image="")
+        .exclude(pk__in=covered_programs)
+        .order_by("-year", "title")
+    )
+    for program in covers:
+        entries.append(
+            {
+                "image_url": program.cover_image.url,
+                "title": program.title,
+                "caption": "",
+                "subtitle": "",
+                "campus": program.campus,
+                "taken_on": None,
+            }
+        )
+
+    return {"photos": entries, "photo_count": len(entries)}
+
+
 # ==============================================================
 # THE REGISTRY
 # ==============================================================
@@ -301,6 +447,24 @@ _SOURCES = (
         manager_url_name="document_templates_list",
         editor_template="dashboard/admin/_inline_document_templates.html",
         icon_path="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2",
+    ),
+    ContentSource(
+        key="PROGRAMS",
+        label="Extension Programs",
+        description="The searchable directory of extension programs, with live filters and totals.",
+        block_template="details/blocks/programs.html",
+        resolve=_resolve_programs,
+        manager_url_name="programs_list",
+        icon_path="M4 6h16M4 10h16M4 14h10M4 18h10M18 14l2 2 3-3",
+    ),
+    ContentSource(
+        key="GALLERY",
+        label="Program Gallery",
+        description="A photo grid of extension programs, with a lightbox view.",
+        block_template="details/blocks/gallery.html",
+        resolve=_resolve_gallery,
+        manager_url_name="gallery_photos_list",
+        icon_path="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z",
     ),
 )
 

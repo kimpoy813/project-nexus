@@ -106,7 +106,7 @@ def _workflow_phase_shares():
 
 #: Layout names the overlay in ``templates/base.html`` knows how to paint.
 SKELETON_VARIANTS = (
-    "marketing",  # hero band + stacked content sections (home, reports, services)
+    "marketing",  # hero band + stacked content sections (home, programs, gallery, services)
     "auth",       # brand panel + form card (login, register, password reset)
     "dashboard",  # title bar + 240px nav rail + KPI/queue body
     "wizard",     # stepper rail | form column | context rail
@@ -124,7 +124,12 @@ SKELETON_DEFAULT = "record"
 _SKELETON_BY_URL_NAME = {}
 _SKELETON_BY_URL_NAME.update(dict.fromkeys(
     # Public landing pages and CMS-driven content pages.
-    ("details_page", "reports_page", "achievements_page", "services_home"),
+    (
+        "details_page", "programs_page", "gallery_page", "about_page",
+        "services_home",
+        # Legacy URLs that permanently redirect to Programs / Gallery.
+        "reports_page_legacy", "achievements_page_legacy",
+    ),
     "marketing",
 ))
 _SKELETON_BY_URL_NAME.update(dict.fromkeys(
