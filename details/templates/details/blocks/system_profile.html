@@ -1,0 +1,52 @@
+{% comment %}
+Block: System profile (source key SYSTEM_PROFILE).
+
+Answers "what is this system, and who built it". The values come from
+``details.system_profile`` so the developer credit, the office, and the stack
+are written once — updating that module updates every page that shows this
+block.
+
+The site footer already carries the copyright line, so this block does not
+repeat it; it names the office the system was built for instead.
+
+Context: section, data.profile
+{% endcomment %}
+{% include "details/blocks/_heading.html" %}
+
+<div class="mt-10">
+    <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Developed by</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ data.profile.developer.name }}</dd>
+            <dd class="mt-1 text-sm text-gray-600">{{ data.profile.developer.role }}</dd>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Built for</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ data.profile.office }}</dd>
+            <dd class="mt-1 text-sm text-gray-600">{{ data.profile.institution }}</dd>
+        </div>
+
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel sm:col-span-2">
+            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Built with</dt>
+            <dd class="mt-2">
+                <ul class="space-y-1 text-sm text-gray-600">
+                    {% for item in data.profile.stack %}
+                    <li>
+                        <span class="font-medium text-gray-800">{{ item.label }}:</span> {{ item.value }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </dd>
+        </div>
+    </dl>
+
+    {% if data.profile.contact_email %}
+    <p class="mt-6 text-center text-sm text-gray-600">
+        Questions about the system or how to get an account?
+        <a href="mailto:{{ data.profile.contact_email }}"
+           class="font-semibold text-primary hover:underline">{{ data.profile.contact_email }}</a>
+    </p>
+    {% endif %}
+
+</div>

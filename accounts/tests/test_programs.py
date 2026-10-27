@@ -124,11 +124,11 @@ class SeededPageTests(TestCase):
             ["GALLERY"],
         )
 
-    def test_about_explains_the_office_its_campuses_and_how_to_work_with_it(self):
+    def test_about_is_about_the_system(self):
         page = SitePage.get_for("about")
         self.assertEqual(
             list(page.sections.values_list("layout", flat=True)),
-            ["RICH_TEXT", "CAMPUSES", "CTA"],
+            ["RICH_TEXT", "SYSTEM_PROFILE", "RICH_TEXT", "CTA"],
         )
 
     def test_the_new_pages_render(self):
@@ -891,14 +891,25 @@ class PageHeroTests(TestCase):
 
 
 class CampusesBlockTests(TestCase):
-    """The About page lists the campuses the institution actually records."""
+    """The Campuses block lists the campuses the institution actually records.
+
+    It no longer ships on About (that page is about the system), but it stays a
+    registered builder the office can drop onto any page.
+    """
 
     def setUp(self):
         Campus.objects.get_or_create(name="Main")
         Campus.objects.get_or_create(name="Sta Maria")
         Campus.objects.get_or_create(name="Candon")
+        # Place the block the way an admin would, from the page palette.
+        self.section = PageSection.objects.create(
+            page=SitePage.get_for("about"),
+            layout=PageSection.Layout.CAMPUSES,
+            heading="Campuses we serve",
+            order=9,
+        )
 
-    def test_the_about_page_lists_every_campus(self):
+    def test_the_page_lists_every_campus(self):
         response = self.client.get(reverse("about_page"))
         for name in ("Main Campus", "Sta Maria Campus", "Candon Campus"):
             with self.subTest(name=name):
@@ -908,9 +919,7 @@ class CampusesBlockTests(TestCase):
         ExtensionProgram.objects.create(
             title="STA-MARIA-PROGRAM", campus="Sta. Maria Campus", year=2025
         )
-        data = resolve_section_data(
-            PageSection.objects.get(page__slug="about", layout=PageSection.Layout.CAMPUSES)
-        )
+        data = resolve_section_data(self.section)
         counts = {c["label"]: c["program_count"] for c in data["campuses"]}
         # "Sta. Maria Campus" on the program matches the "Sta Maria" campus row.
         self.assertEqual(counts["Sta Maria Campus"], 1)
@@ -922,9 +931,7 @@ class CampusesBlockTests(TestCase):
         ExtensionProgram.objects.create(
             title="UNLISTED-CAMPUS", campus="Cervantes Campus", year=2025
         )
-        data = resolve_section_data(
-            PageSection.objects.get(page__slug="about", layout=PageSection.Layout.CAMPUSES)
-        )
+        data = resolve_section_data(self.section)
         labels = {c["label"] for c in data["campuses"]}
         self.assertIn("Cervantes Campus", labels)
         self.assertEqual(data["program_count"], 1)
@@ -971,7 +978,67 @@ class AboutPageTests(TestCase):
         self.assertContains(self.client.get(self.about_url), "mailto:")
 
     def test_the_anchor_bar_only_appears_when_there_is_something_to_jump_between(self):
-        # About has three sections, so the bar is useful there.
-        self.assertContains(self.client.get(self.about_url), 'href="#about-the-office"')
+        # About has four sections, so the bar is useful there.
+        self.assertContains(self.client.get(self.about_url), 'href="#about-nexus"')
         # Programs has one; a bar repeating the banner would be noise.
         self.assertNotContains(self.client.get(reverse("programs_page")), 'href="#all-programs"')
+
+
+class SystemProfileTests(TestCase):
+    """About answers "what is this system, and who built it"."""
+
+    def setUp(self):
+        self.about_url = reverse("about_page")
+
+    def test_it_names_the_developer(self):
+        from details.system_profile import DEVELOPER
+
+        self.assertTrue(DEVELOPER["name"])
+        self.assertContains(self.client.get(self.about_url), DEVELOPER["name"])
+
+    def test_it_says_who_the_system_was_built_for(self):
+        from details.system_profile import INSTITUTION, OFFICE
+
+        response = self.client.get(self.about_url)
+        self.assertContains(response, OFFICE)
+        self.assertContains(response, INSTITUTION)
+
+    def test_it_lists_the_technology_it_runs_on(self):
+        from details.system_profile import STACK
+
+        response = self.client.get(self.about_url)
+        self.assertContains(response, "Built with")
+        for _label, value in STACK:
+            with self.subTest(value=value):
+                # The first token is enough to prove the row rendered.
+                self.assertContains(response, value.split("(")[0].strip().split(" ")[0])
+
+    def test_it_describes_the_capabilities_without_promising_future_work(self):
+        response = self.client.get(self.about_url)
+        self.assertContains(response, "What NExUS does")
+        for phrase in ("Proposal writing", "Review and approval", "Implementation tracking",
+                       "Accomplishment reporting", "Public pages"):
+            with self.subTest(phrase=phrase):
+                self.assertContains(response, phrase)
+        self.assertNotIn("coming soon", response.content.decode().lower())
+
+    def test_the_contact_address_comes_from_the_site_configuration(self):
+        from accounts.models import SiteConfiguration
+
+        config = SiteConfiguration.get_solo()
+        config.contact_email = "helpdesk@example.edu"
+        config.save()
+        self.assertContains(self.client.get(self.about_url), "helpdesk@example.edu")
+
+    def test_the_profile_block_is_a_registered_content_source(self):
+        source = get_content_source("SYSTEM_PROFILE")
+        self.assertIsNotNone(source)
+        self.assertEqual(source.block_template, "details/blocks/system_profile.html")
+
+    def test_the_campuses_block_is_still_available_to_the_page_editor(self):
+        source = get_content_source("CAMPUSES")
+        self.assertIsNotNone(source)
+        self.assertNotIn(
+            "CAMPUSES",
+            list(SitePage.get_for("about").sections.values_list("layout", flat=True)),
+        )

@@ -221,6 +221,18 @@ def _resolve_personnel(section):
     return {"personnel": qs}
 
 
+def _resolve_system_profile(section):
+    """Facts about the system itself, for the About page.
+
+    The copy lives in ``details.system_profile`` so the developer credit, the
+    office, and the stack are defined once instead of drifting between the
+    template, the README, and the deployment config.
+    """
+    from .system_profile import profile
+
+    return {"profile": profile()}
+
+
 def _campus_key(value):
     """Normalise a campus name so "Sta. Maria Campus" matches "Sta Maria"."""
     text = (value or "").lower().replace("campus", "")
@@ -533,6 +545,14 @@ _SOURCES = (
         resolve=_resolve_programs,
         manager_url_name="programs_list",
         icon_path="M4 6h16M4 10h16M4 14h10M4 18h10M18 14l2 2 3-3",
+    ),
+    ContentSource(
+        key="SYSTEM_PROFILE",
+        label="System profile",
+        description="Who developed NExUS, who it was built for, and what it runs on.",
+        block_template="details/blocks/system_profile.html",
+        resolve=_resolve_system_profile,
+        icon_path="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
     ),
     ContentSource(
         key="CAMPUSES",
