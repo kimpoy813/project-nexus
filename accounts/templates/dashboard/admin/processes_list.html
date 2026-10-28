@@ -51,12 +51,17 @@
                                    data-nx-tooltip="Edit process" aria-label="Edit process">
                                     <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                                 </a>
-                                <a class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
-                                   href="{% url 'process_delete' p.id %}"
-                                   data-nx-tooltip="Delete process" aria-label="Delete process"
-                                   data-nx-confirm="Delete this process? This cannot be undone.">
-                                    <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
-                                </a>
+                                {% comment %}POST, not a link (see
+                                personnel_list.html). Undo restores the process
+                                and every step.{% endcomment %}
+                                <form method="post" action="{% url 'process_delete' p.id %}" class="nx-action-form">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
+                                            data-nx-tooltip="Delete process" aria-label="Delete process">
+                                        <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

@@ -19,6 +19,7 @@ from django.shortcuts import redirect
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.views.decorators.http import require_http_methods
+from .. import deletion
 from details.content_sources import (
     DATA_LAYOUT_KEYS,
     all_content_sources,
@@ -507,6 +508,9 @@ def page_section_delete(request, pk):
     section = get_object_or_404(PageSection.objects.select_related("page"), pk=pk)
     page_slug = section.page.slug
     before = section.state()
+    section_id = section.pk
+    label = f'"{section.heading or "untitled"}" section'
+    token = deletion.remember(request, section, label)
     section.delete()
     _log_content_change(
         request,
@@ -514,10 +518,12 @@ def page_section_delete(request, pk):
         PageContentLog.Action.DELETE_SECTION,
         f'Deleted "{section.heading or "untitled"}" section ({section.get_layout_display()})',
         before=before,
-        section_id=section.pk,
+        # ``section.pk`` is None once the row is gone; the id was captured
+        # before the delete so the log entry points at something real.
+        section_id=section_id,
         target_label=section.heading,
     )
-    messages.success(request, "Section deleted.")
+    messages.success(request, f"Section deleted.{deletion.undo_hint(token)}")
     return redirect("page_content_edit", slug=page_slug)
 
 
@@ -628,8 +634,9 @@ def sdg_goal_update(request, pk):
 def sdg_goal_delete(request, pk):
     goal = get_object_or_404(SustainableDevelopmentGoal, pk=pk)
     label = f"SDG {goal.code}"
+    token = deletion.remember(request, goal, label)
     goal.delete()
-    messages.success(request, f"{label} deleted.")
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return _home_inline_redirect(request)
 
 
@@ -701,9 +708,10 @@ def home_thrust_edit(request, pk):
 @require_POST
 def home_thrust_delete(request, pk):
     thrust = get_object_or_404(HomeThrust, pk=pk)
-    title = thrust.title
+    label = f'Thrust "{thrust.title}"'
+    token = deletion.remember(request, thrust, label)
     thrust.delete()
-    messages.success(request, f'Thrust "{title}" deleted.')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return redirect("page_content_edit", slug=section.page.slug)
 
 
@@ -795,9 +803,10 @@ def home_inline_thrust_update(request, pk):
 @require_POST
 def home_inline_thrust_delete(request, pk):
     thrust = get_object_or_404(HomeThrust, pk=pk)
-    title = thrust.title
+    label = f'Thrust "{thrust.title}"'
+    token = deletion.remember(request, thrust, label)
     thrust.delete()
-    messages.success(request, f'Thrust \"{title}\" deleted.')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return _home_inline_redirect(request)
 
 
@@ -871,9 +880,10 @@ def home_inline_personnel_update(request, pk):
 @require_POST
 def home_inline_personnel_delete(request, pk):
     person = get_object_or_404(Personnel, pk=pk)
-    name = person.name
+    label = f'"{person.name}"'
+    token = deletion.remember(request, person, label)
     person.delete()
-    messages.success(request, f'\"{name}\" deleted.')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return _home_inline_redirect(request)
 
 
@@ -939,9 +949,10 @@ def home_inline_activity_update(request, pk):
 @require_POST
 def home_inline_activity_delete(request, pk):
     activity = get_object_or_404(Activity, pk=pk)
-    title = activity.title
+    label = f'"{activity.title}"'
+    token = deletion.remember(request, activity, label)
     activity.delete()
-    messages.success(request, f'\"{title}\" deleted.')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return _home_inline_redirect(request)
 
 
@@ -1000,9 +1011,10 @@ def home_inline_process_update(request, pk):
 @require_POST
 def home_inline_process_delete(request, pk):
     process = get_object_or_404(ExtensionProcess, pk=pk)
-    title = process.title
+    label = f'Process "{process.title}"'
+    token = deletion.remember(request, process, label)
     process.delete()
-    messages.success(request, f'Process \"{title}\" deleted.')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return _home_inline_redirect(request)
 
 
@@ -1068,8 +1080,9 @@ def home_inline_target_update(request, pk):
 def home_inline_target_delete(request, pk):
     target = get_object_or_404(Target, pk=pk)
     label = f"{target.campus} - {target.get_metric_display()} ({target.year})"
+    token = deletion.remember(request, target, f"{label} target")
     target.delete()
-    messages.success(request, f"Target deleted: {label}")
+    messages.success(request, f"Target deleted: {label}.{deletion.undo_hint(token)}")
     return _home_inline_redirect(request)
 
 

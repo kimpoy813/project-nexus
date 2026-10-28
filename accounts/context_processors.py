@@ -282,3 +282,26 @@ def _resolve_capabilities(request):
     except Exception:
         logger.exception("Unexpected error resolving role capabilities.")
         return set()
+
+
+def undo_bar(request):
+    """Pending deletions the current session can still undo.
+
+    Cheap in the common case: with nothing pending this reads one session key
+    and leaves it untouched, so no session write happens on an ordinary page
+    load. Rendered by ``templates/partials/_undo.html``, which the base template
+    includes once, above the toaster.
+    """
+    user = getattr(request, "user", None)
+    if user is None or not getattr(user, "is_authenticated", False):
+        return {"undo_items": ()}
+
+    from . import deletion
+
+    try:
+        items = deletion.pending(request)
+    except Exception:  # noqa: BLE001 - never break a page over a safety net
+        logger.exception("Could not read pending undo entries.")
+        return {"undo_items": ()}
+
+    return {"undo_items": items, "undo_lifetime": deletion.UNDO_LIFETIME}

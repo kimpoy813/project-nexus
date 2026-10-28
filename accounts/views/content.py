@@ -25,6 +25,7 @@ from details.models import Target
 from ..campus_data import get_campus_choices
 from ..campus_data import get_college_choices
 from ..campus_data import get_department_choices
+from .. import deletion
 from ..decorators import admin_required
 from ..models import Profile
 from .process_steps import _sync_process_steps
@@ -229,9 +230,10 @@ def signatory_edit(request, pk):
 @require_POST
 def signatory_delete(request, pk):
     signatory = get_object_or_404(Signatory, pk=pk)
-    name = signatory.display_name
+    label = f'Signatory "{signatory.display_name}"'
+    token = deletion.remember(request, signatory, label)
     signatory.delete()
-    messages.success(request, f'Signatory "{name}" deleted successfully.')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return redirect("signatories_list")
 
 
@@ -281,11 +283,14 @@ def personnel_edit(request, pk):
 
 @login_required
 @admin_required
+@require_POST
 def personnel_delete(request, pk):
+    """POST only: a delete that a prefetching browser can trigger is a bug."""
     person = get_object_or_404(Personnel, pk=pk)
-    name = person.name
+    label = f'"{person.name}"'
+    token = deletion.remember(request, person, label)
     person.delete()
-    messages.success(request, f'"{name}" deleted successfully!')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return redirect("personnel_list")
 
 
@@ -353,11 +358,14 @@ def activity_edit(request, pk):
 
 @login_required
 @admin_required
+@require_POST
 def activity_delete(request, pk):
+    """POST only: the dates attached to the activity come back with it."""
     activity = get_object_or_404(Activity, pk=pk)
-    title = activity.title
+    label = f'"{activity.title}"'
+    token = deletion.remember(request, activity, label)
     activity.delete()
-    messages.success(request, f'"{title}" deleted successfully!')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return redirect("activities_list")
 
 
@@ -422,11 +430,14 @@ def process_edit(request, pk):
 
 @login_required
 @admin_required
+@require_POST
 def process_delete(request, pk):
+    """POST only. The snapshot keeps every step, so undo restores the tree."""
     process = get_object_or_404(ExtensionProcess, pk=pk)
-    title = process.title
+    label = f'Process "{process.title}"'
+    token = deletion.remember(request, process, label)
     process.delete()
-    messages.success(request, f'Process "{title}" deleted successfully!')
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return redirect("processes_list")
 
 
@@ -624,9 +635,13 @@ def target_delete(request, pk):
     campus = target.campus
     metric = target.get_metric_display()
     year = target.year
+    token = deletion.remember(request, target, f"{campus} - {metric} ({year}) target")
     target.delete()
 
-    messages.success(request, f"Target deleted: {campus} - {metric} ({year})")
+    messages.success(
+        request,
+        f"Target deleted: {campus} - {metric} ({year}).{deletion.undo_hint(token)}",
+    )
     return redirect(f"{reverse('targets_list')}?{urlencode({'year': year})}")
 
 
@@ -685,9 +700,14 @@ def campus_edit(request, pk):
 def campus_delete(request, pk):
     campus = get_object_or_404(Campus, pk=pk)
     name = campus.name
+    # Snapshot before the delete: its colleges and departments go with it, and
+    # undo has to bring them back too.
+    token = deletion.remember(request, campus, f'Campus "{name}"')
     try:
         campus.delete()
-        messages.success(request, f'Campus "{name}" deleted successfully.')
+        messages.success(
+            request, f'Campus "{name}" deleted successfully.{deletion.undo_hint(token)}'
+        )
     except Exception:
         logger.exception("Failed to delete campus %s.", pk)
         messages.error(request, "Could not delete campus (it may have related colleges or departments).")
@@ -758,9 +778,12 @@ def college_edit(request, pk):
 def college_delete(request, pk):
     college = get_object_or_404(College, pk=pk)
     name = college.name
+    token = deletion.remember(request, college, f'College "{name}"')
     try:
         college.delete()
-        messages.success(request, f'College "{name}" deleted successfully.')
+        messages.success(
+            request, f'College "{name}" deleted successfully.{deletion.undo_hint(token)}'
+        )
     except Exception:
         logger.exception("Failed to delete college %s.", pk)
         messages.error(request, "Could not delete college.")
@@ -852,9 +875,12 @@ def department_edit(request, pk):
 def department_delete(request, pk):
     department = get_object_or_404(Department, pk=pk)
     name = department.name
+    token = deletion.remember(request, department, f'Department "{name}"')
     try:
         department.delete()
-        messages.success(request, f'Department "{name}" deleted successfully.')
+        messages.success(
+            request, f'Department "{name}" deleted successfully.{deletion.undo_hint(token)}'
+        )
     except Exception:
         logger.exception("Failed to delete department %s.", pk)
         messages.error(request, "Could not delete department.")
@@ -964,6 +990,8 @@ def documentation_photo_delete(request, pk):
     from proposals.models import DocumentationPhoto
 
     photo = get_object_or_404(DocumentationPhoto, pk=pk)
+    label = f'Photo "{photo.display_title}"'
+    token = deletion.remember(request, photo, label)
     photo.delete()
-    messages.success(request, "Documentation photo deleted.")
+    messages.success(request, f"{label} deleted.{deletion.undo_hint(token)}")
     return redirect("gallery_photos_list")

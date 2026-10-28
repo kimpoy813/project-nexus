@@ -64,8 +64,7 @@
                         </form>
                         <a href="{% url 'proposal_storage' photo.proposal_id %}"
                            class="text-[11px] font-medium text-primary hover:underline">Open activity</a>
-                        <form method="post" action="{% url 'documentation_photo_delete' photo.id %}"
-                              data-nx-confirm="Delete this photo? It is removed from the record and the gallery.">
+                        <form method="post" action="{% url 'documentation_photo_delete' photo.id %}">
                             {% csrf_token %}
                             <button type="submit" class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
                                     data-nx-tooltip="Delete photo" aria-label="Delete photo">

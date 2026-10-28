@@ -866,6 +866,8 @@
     <script src="{% static 'js/nexus-password.js' %}" defer></script>
     {# Form feedback: error summary focus and "sending" buttons. #}
     <script src="{% static 'js/nexus-forms.js' %}" defer></script>
+    {# Undo bar: the countdown on a deleted record. #}
+    <script src="{% static 'js/nexus-undo.js' %}" defer></script>
     {% block extra_scripts %}{% endblock %}
 
     {% comment %}
@@ -873,6 +875,9 @@
         Kept in one partial so the maintenance page, the debug sign-in and the
         Django admin mount the exact same toaster (see partials/_toaster.html).
     {% endcomment %}
+    {# Undo sits above the toaster: it is the record's only way back, a toast is not. #}
+    {% include "partials/_undo.html" %}
+
     {% include "partials/_toaster.html" %}
 </body>
 </html>

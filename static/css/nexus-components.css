@@ -156,6 +156,9 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 .nx-icon--lg { width: 1.25rem; height: 1.25rem; }
 .nexus-shell .nx-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; line-height: 1; }
 .nexus-shell .nx-actions--end { justify-content: flex-end; }
+/* A one-button form standing where a delete link used to be: it must not add a
+   box of its own inside a row of actions. */
+form.nx-action-form { display: inline-flex; margin: 0; }
 .nexus-shell .nx-actions form { display: inline-flex; margin: 0; }
 /* Keep the 44px touch target on phones/tablets even though row actions are
    visually compact on pointer devices. */
@@ -353,4 +356,87 @@ body:not([data-nx-page-kind="marketing"]):not([data-nx-page-kind="auth"]) .nexus
 button.is-busy {
   cursor: progress;
   opacity: .7;
+}
+
+/* ── Undo bar ────────────────────────────────────────────────────────────────
+   Fixed above the footer so it is in the same place on every screen, whatever
+   the page did to get here. It is not a toast: a toast may be missed, and this
+   one is the only way back from a delete. One row per pending deletion, and the
+   stack is capped at five in accounts/deletion.py. */
+.nx-undo {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: min(38rem, calc(100vw - 2rem));
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  pointer-events: none;
+}
+
+.nx-undo__item {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border-radius: .875rem;
+  background: #1f2937;
+  color: #f9fafb;
+  box-shadow: 0 10px 30px rgb(15 23 42 / .28);
+  font-size: .875rem;
+  line-height: 1.4;
+  animation: nx-undo-in .18s ease-out;
+}
+
+.nx-undo__item[hidden] { display: none; }
+
+.nx-undo__text { flex: 1 1 auto; min-width: 0; }
+.nx-undo__text strong { font-weight: 600; }
+.nx-undo__time { display: block; margin-top: .125rem; font-size: .75rem; color: #cbd5e1; }
+
+.nx-undo__actions,
+.nx-undo__dismiss { flex: none; display: flex; align-items: center; }
+
+.nx-undo__actions .nx-btn {
+  --nx-btn-min-height: 2rem;
+  min-height: 2rem;
+  padding: 0 .875rem;
+  font-size: .8125rem;
+}
+
+.nx-undo__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-left: .25rem;
+  border-radius: .5rem;
+  background: transparent;
+  color: #cbd5e1;
+  border: 0;
+  cursor: pointer;
+}
+.nx-undo__close:hover { background: rgb(255 255 255 / .12); color: #fff; }
+.nx-undo__close:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+
+@keyframes nx-undo-in {
+  from { opacity: 0; transform: translateY(.5rem); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-undo__item { animation: none; }
+}
+
+/* Small screens: the bar becomes a full-width strip and the buttons stay at
+   thumb size instead of shrinking to fit. */
+@media (max-width: 40rem) {
+  .nx-undo { bottom: .75rem; width: calc(100vw - 1rem); }
+  .nx-undo__item { flex-wrap: wrap; padding: .75rem; }
+  .nx-undo__text { flex: 1 1 100%; }
+  .nx-undo__actions .nx-btn { min-height: 2.5rem; }
 }

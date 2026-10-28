@@ -215,6 +215,11 @@ from .cms import (  # noqa: F401
     _valid_thrust_color,
 )
 
+from .undo import (  # noqa: F401
+    dismiss_undo,
+    undo_delete,
+)
+
 __all__ = [
     "ACCOMPLISHMENT_REPORT_ROLES",
     "ACCOMPLISHMENT_SUBMIT_ROLES",
@@ -348,6 +353,8 @@ __all__ = [
     "target_edit",
     "targets_list",
     "user_has_capability",
+    "undo_delete",
+    "dismiss_undo",
     "verify_email",
     "wizard_step_create",
     "wizard_step_delete",

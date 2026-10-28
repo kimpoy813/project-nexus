@@ -106,7 +106,7 @@ Context: home_targets, home_campus_choices, home_metric_choices, editor_id, next
                                     data-nx-tooltip="Edit target" aria-label="Edit target">
                                 <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
                             </button>
-                            <form method="POST" action="{% url 'home_inline_target_delete' t.id %}" data-nx-confirm="Delete this target?">
+                            <form method="POST" action="{% url 'home_inline_target_delete' t.id %}">
                                 {% csrf_token %}
                                 {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
                                 <button type="submit"

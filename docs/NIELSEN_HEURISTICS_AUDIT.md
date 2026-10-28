@@ -1,6 +1,7 @@
 # NExUS usability review — Nielsen's ten heuristics
 
-Date: 2026-10-27. Branch: `arena/8a745538-project-nexus`.
+Date: 2026-10-27. Branches: `arena/8a745538-project-nexus` (initial pass),
+`arena/489156e3-project-nexus` (POST-only deletes and undo).
 
 ## What this document is
 
@@ -57,16 +58,25 @@ Done in this round:
   second competing pattern.
 - Cancel links sit next to Save on the admin forms rather than only in the
   browser's back button.
-
-Remaining gaps, stated plainly:
-
-- Six admin "delete" endpoints are still reached by a **GET link**
-  (`activity_delete`, `personnel_delete`, `process_delete`, `home_thrust_delete`,
-  `page_section_delete`, `documentation_photo_delete`). They are confirmed, but a
-  GET that destroys data can be triggered by a prefetching browser or a link
-  scanner. This needs a POST-only route and a small form on each list page; it is
-  not done.
-- There is no undo. Deletion is confirmed and then final.
+- **A deletion can be undone.** Every administrative delete snapshots the record
+  — and everything a cascade would take with it — into the user's session before
+  the row goes (`accounts/deletion.py`). A bar at the bottom of the page then
+  offers **Undo** for fifteen minutes, with a live countdown: a campus comes back
+  with its colleges and departments, a process with its steps, an activity with
+  its dates. The snapshot is written back with the original primary keys and
+  timestamps, so nothing is left pointing at a record that no longer exists and
+  the restored row does not claim to have been edited today.
+- **Deleting is a POST, never a link.** `activity_delete`, `personnel_delete` and
+  `process_delete` were the last three reached by an `<a href>`; they are
+  `@require_POST` now and their list screens submit a small form instead. A
+  prefetching browser or a link scanner can no longer delete anything. The undo
+  and dismiss endpoints are POST-only too — an undo URL is not a bookmark.
+- **The confirmation prompt is now reserved for deletions that cannot be undone**:
+  campus/college/department cascades that may exceed the snapshot limit, template
+  files (the file itself is not restored), and wizard steps. Everything the undo
+  bar covers drops the prompt, so the common case is one click instead of two.
+- An undo belongs to the session that made it: another admin, or the same admin
+  after signing out, cannot use the token.
 
 ## 4. Consistency and standards
 
@@ -202,15 +212,27 @@ Held down by tests rather than by this document:
   and the confirmation rules: asks before submitting, cancellation leaves the
   button untouched, links and outside buttons ask too, an empty message still
   asks, and a second `enhance()` does not double-ask.
+- `accounts/tests/test_deletion_undo.py` (20 tests) — GET is refused on the three
+  converted deletes, a restored row keeps its primary key, cascade and ordering,
+  created/updated timestamps are put back, the bar names what was deleted,
+  dismissing keeps it deleted, a token is scoped to its own session, expiry and
+  the five-entry cap hold, and an oversized cascade is deleted without pretending
+  it can be undone.
+- `tests/nexus-undo.test.cjs` (8 tests) — the countdown, self-removal at zero,
+  Escape, and a missing deadline being left alone.
 - This document is itself checked: the test fails if any of the ten sections
   disappears.
 
 ## Known remaining gaps
 
-1. GET-based deletes (six of them, listed under heuristic 3).
-2. No undo for deletion.
-3. The delete-draft dialog does not move focus into itself or trap it; Escape
+1. The delete-draft dialog does not move focus into itself or trap it; Escape
    closes it, and the buttons are reachable, but focus order is the page's.
-4. Long wizard steps show only the save button, not a step-level progress state.
+2. Long wizard steps show only the save button, not a step-level progress state.
+3. Undo does not survive signing out, and it is not a retention policy: the
+   snapshot lives in the session for fifteen minutes and then goes. A record
+   deleted and left alone is gone — this is a safety net for a mis-click, not a
+   recycle bin (that trade-off is written up in `accounts/deletion.py`).
+4. Template files are not restored by undo (the object-storage file is not
+   snapshotted), which is why those deletes still ask first.
 5. The dashboard's dense tables were not re-cut for the ten heuristics in this
    round — only their confirmations and empty states were touched.
