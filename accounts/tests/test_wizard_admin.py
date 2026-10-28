@@ -28,10 +28,6 @@ class WizardAdminTests(TestCase):
             "funding_download_label": step_config.funding_download_label,
             "is_visible": "on" if step_config.is_visible else "",
             "is_required": "on" if step_config.is_required else "",
-            "repeater_label": form_obj.repeater_label,
-            "repeater_min_rows": form_obj.repeater_min_rows,
-            "repeater_max_rows": form_obj.repeater_max_rows,
-            "row_store": form_obj.row_store,
         }
         fields = list(form_obj.fields.order_by("order", "id"))
         for name in (
@@ -375,3 +371,104 @@ class WizardAdminTests(TestCase):
         created = ProposalWizardStepConfig.objects.get(step_no=100)
         self.assertEqual(created.display_order, highest + 1)
         self.assertEqual(self._ordered_step_nos()[-1], 100)
+
+    def test_step_19_and_20_editor_mirrors_match_wizard_requirements(self):
+        from accounts.models import Profile
+        from proposals.models import Proposal
+        from proposals.views.wizard import is_step_complete
+
+        payload_19, fields_19 = self._step_editor_payload(19)
+        self.assertEqual(
+            [f.field_key for f in fields_19],
+            ["research_abstract_file", "complete_research_file"],
+        )
+        # Admin marks Complete Research optional (unchecks Req. on second row).
+        payload_19["field_required[]"] = [str(fields_19[0].id)]
+        resp_19 = self.admin_client.post(
+            reverse("wizard_step_edit", args=[19]), payload_19
+        )
+        self.assertEqual(resp_19.status_code, 302)
+
+        owner = factories.make_user("admin_step19_owner", Profile.ROLE_FACULTY)
+        proposal = Proposal.objects.create(
+            created_by=owner,
+            extension_type=Proposal.ExtensionType.RESEARCH_STUDENT,
+        )
+        # Without research_abstract_file, Step 19 is still incomplete; once
+        # abstract is present, optional complete_research_file does not block.
+        self.assertFalse(is_step_complete(proposal, 19))
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        proposal.research_abstract_file = SimpleUploadedFile("abs.pdf", b"%PDF-1.4")
+        proposal.save(update_fields=["research_abstract_file"])
+        self.assertTrue(is_step_complete(proposal, 19))
+
+        wizard_19 = factories.make_client(owner).get(
+            reverse("proposal_wizard", args=[proposal.pk, 19])
+        )
+        self.assertContains(wizard_19, "(Optional)")
+
+        # Step 20 editor seeds certificate_of_completion_file for RESEARCH_FACULTY only.
+        _payload_20, fields_20 = self._step_editor_payload(20)
+        self.assertEqual(
+            [f.field_key for f in fields_20],
+            ["certificate_of_completion_file"],
+        )
+        self.assertEqual(fields_20[0].depends_on_value, "RESEARCH_FACULTY")
+
+    def test_wizard_step_editor_uses_multi_row_aligned_field_cards(self):
+        # Step 1 contains both SELECT (extension_type) and TEXTfields, while
+        # Step 17 renders the Template Download Section and Step 19 renders FILE mirrors.
+        resp_1 = self.admin_client.get(reverse("wizard_step_edit", args=[1]))
+        self.assertEqual(resp_1.status_code, 200)
+        html_1 = resp_1.content.decode()
+
+        # Field rows are never crammed 6-across into md:col-span-2 cells.
+        self.assertNotIn("md:col-span-2 flex items-end justify-end", html_1)
+        self.assertNotIn("md:grid-cols-2 xl:grid-cols-3", html_1)
+        self.assertIn("data-field-badge", html_1)
+        self.assertIn("data-field-conditions-grid", html_1)
+        self.assertIn("nx-btn--icon nx-btn--compact", html_1)
+        self.assertNotIn("Repeatable group", html_1)
+        # SELECT fields display their dropdown choices box; non-SELECT fields hide it.
+        self.assertIn('class="choices-cell "', html_1)
+        self.assertIn('class="choices-cell hidden"', html_1)
+        # Dynamic builder script stays synchronized with server-rendered field rows.
+        self.assertIn("function renumberFieldRows()", html_1)
+        self.assertIn("function syncFieldChoices(", html_1)
+
+        resp_17 = self.admin_client.get(reverse("wizard_step_edit", args=[17]))
+        self.assertEqual(resp_17.status_code, 200)
+        html_17 = resp_17.content.decode()
+        self.assertIn("lg:grid-cols-3", html_17)
+        self.assertIn('name="template_download_instructions"', html_17)
+
+        resp_create = self.admin_client.get(reverse("wizard_step_create"))
+        self.assertEqual(resp_create.status_code, 200)
+        html_create = resp_create.content.decode()
+        self.assertNotIn("md:grid-cols-3 xl:grid-cols-4", html_create)
+        self.assertIn("nx-page-header", html_create)
+
+    def test_multiple_new_fields_preserve_independent_required_flags(self):
+        payload, _fields = self._step_editor_payload(2)
+        payload["field_id[]"] = ["", ""]
+        payload["field_label[]"] = ["Optional Subtitle", "Mandatory Tagline"]
+        payload["field_key[]"] = ["optional_subtitle", "mandatory_tagline"]
+        payload["field_type[]"] = ["TEXT", "TEXT"]
+        payload["field_placeholder[]"] = ["", ""]
+        payload["field_help_text[]"] = ["", ""]
+        payload["field_choices[]"] = ["", ""]
+        payload["field_depends_on_key[]"] = ["", ""]
+        payload["field_depends_on_value[]"] = ["", ""]
+        payload["field_maps_to[]"] = ["", ""]
+        payload["field_required[]"] = ["new_1"]
+
+        resp = self.admin_client.post(reverse("wizard_step_edit", args=[2]), payload)
+        self.assertEqual(resp.status_code, 302)
+
+        form = DynamicFormTemplate.objects.get(proposal_wizard_step=2)
+        created = list(form.fields.order_by("order"))
+        self.assertEqual(
+            [(f.field_key, f.required) for f in created],
+            [("optional_subtitle", False), ("mandatory_tagline", True)],
+        )

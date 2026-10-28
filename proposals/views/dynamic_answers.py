@@ -11,13 +11,23 @@ Repeatable groups are the exception: their rows are not ``DynamicFormAnswer``
 records, so they are delegated to ``proposals.views.repeaters``.
 """
 
-from details.models import DynamicFormAnswer, DynamicFormField, DynamicFormResponse, DynamicFormTemplate
+from django.db.models import Q
+
+from details.models import (
+    DynamicFormAnswer,
+    DynamicFormField,
+    DynamicFormResponse,
+    DynamicFormTemplate,
+    ProposalWizardStepConfig,
+)
 
 from .dynamic_fields import (
     dependency_parent_value as _dependency_parent_value,
     dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
     dynamic_parent_values_from_post as _dynamic_parent_values_from_post,
     dynamic_parent_values_from_saved as _dynamic_parent_values_from_saved,
+    foreign_native_keys_for_step,
+    native_field_applies_to_proposal,
     native_keys_for_step,
     native_post_name,
     native_saved_value,
@@ -69,12 +79,19 @@ def _is_dynamic_step_complete(proposal, step):
         _dynamic_parent_values_from_saved(proposal), proposal, step
     )
     native_keys = native_keys_for_step(step)
+    foreign_keys = foreign_native_keys_for_step(step)
 
     def _blocking_field_without_value(form, field, answer):
+        if field.field_key in foreign_keys:
+            return False
         parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)
         if not _dynamic_field_blocks_submission(form, field, parent_value):
             return False
         if field.field_key in native_keys:
+            if not native_field_applies_to_proposal(
+                proposal, step, field.field_key, mirror_field=field
+            ):
+                return False
             # Mirror of a built-in input: the value is stored on the Proposal
             # record by the step's own save handler.
             return not native_saved_value(proposal, step, field.field_key)
@@ -159,9 +176,12 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
         ).prefetch_related("answers", "answers__field")
     }
 
+    foreign_keys = foreign_native_keys_for_step(step)
     step_fields = {}
     for form in forms:
         for field in form.fields.all():
+            if field.field_key in foreign_keys:
+                continue
             # The primary step form owns the built-in field customisations.
             # A separately attached form may reuse a key for dependencies, but
             # it must not silently replace what the Wizard Step editor saved.
@@ -169,11 +189,12 @@ def _attach_dynamic_forms_to_context(ctx, proposal, step):
 
     ctx["step_fields"] = step_fields
 
-    # Fields that mirror this step's built-in inputs (see NATIVE_STEP_FIELDS).
-    # They exist so the admin can relabel the hardcoded inputs from the step
-    # editor; the step template renders them through ``step_fields``, so they
-    # must not be printed a second time in the extra-fields section.
-    exclude_keys = native_keys_for_step(step)
+    # Fields that mirror built-in inputs (see NATIVE_STEP_FIELDS).
+    # Same-step mirrors exist so the admin can relabel the hardcoded inputs
+    # from the step editor; foreign-step mirrors are redundant copies of other
+    # steps' hardcoded Proposal fields. Neither may be printed in the extra
+    # fields section.
+    exclude_keys = native_keys_for_step(step) | foreign_keys
 
     for form in forms:
         response = responses.get(form.id)
@@ -219,6 +240,7 @@ def _save_dynamic_form_answers(proposal, step, user, request):
     missing = []
     post_values = _dynamic_parent_values_from_post(forms, request)
     native_keys = native_keys_for_step(step)
+    foreign_keys = foreign_native_keys_for_step(step)
 
     # Mirror fields post under their native input names (extension_type,
     # title, ...), not under dynamic_field_<id>, so dependency parents must
@@ -241,11 +263,18 @@ def _save_dynamic_form_answers(proposal, step, user, request):
         for field in form.fields.all():
             input_name = f"dynamic_field_{field.id}"
 
+            if field.field_key in foreign_keys:
+                continue
+
             if field.field_key in native_keys:
                 # Mirror of a built-in input. The step's own save handler has
                 # already validated and stored the value on the Proposal
                 # record; don't create a shadow DynamicFormAnswer, and don't
                 # report it missing here - the native step logic owns it.
+                if not native_field_applies_to_proposal(
+                    proposal, step, field.field_key, mirror_field=field
+                ):
+                    continue
                 parent_value = _dependency_parent_value(
                     proposal, field.depends_on_key, post_values=post_values
                 )
@@ -330,9 +359,17 @@ def _proposal_dynamic_requirements_missing(proposal):
     for form in forms:
         _overlay_native_values(saved_values, proposal, form.proposal_wizard_step)
 
+    non_blocking_steps = set(
+        ProposalWizardStepConfig.objects.filter(
+            Q(is_visible=False) | Q(is_required=False)
+        ).values_list("step_no", flat=True)
+    )
+
     missing = []
     for form in forms:
         step_no = form.proposal_wizard_step
+        if step_no in non_blocking_steps:
+            continue
         step_label = f"Step {step_no}" if step_no else "Proposal wizard"
 
         if form.is_repeater:
@@ -347,14 +384,19 @@ def _proposal_dynamic_requirements_missing(proposal):
             answer_map = {answer.field_id: answer for answer in response.answers.all()}
 
         native_keys = native_keys_for_step(step_no)
+        foreign_keys = foreign_native_keys_for_step(step_no)
 
         for field in form.fields.all():
-            if not field.required:
+            if not field.required or field.field_key in foreign_keys:
                 continue
             parent_value = _dependency_parent_value(proposal, field.depends_on_key, saved_values=saved_values)
             if not _dynamic_field_blocks_submission(form, field, parent_value):
                 continue
             if field.field_key in native_keys:
+                if not native_field_applies_to_proposal(
+                    proposal, step_no, field.field_key, mirror_field=field
+                ):
+                    continue
                 # Mirror of a built-in input: read the proposal's own field.
                 if not native_saved_value(proposal, step_no, field.field_key):
                     missing.append(f"{step_label} — {field.label}")

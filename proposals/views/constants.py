@@ -27,8 +27,8 @@ INITIAL_STEP_LABELS = [
     {"no": 16, "title": "Output / Outcome", "desc": "Expected outputs and outcomes"},
     {"no": 17, "title": "Details of Activities", "desc": "Work plan, Gantt chart, and related files"},
     {"no": 18, "title": "Funding Strategy", "desc": "Funding strategy template and related supporting files"},
-    {"no": 19, "title": "Research Abstract Upload", "desc": "Required for research-based proposals"},
-    {"no": 20, "title": "Certificate of Completion Upload", "desc": "Required for research-based proposals"},
+    {"no": 19, "title": "Research Abstract Upload", "desc": "Research abstract and complete research (required for research-based proposals)"},
+    {"no": 20, "title": "Certificate of Completion Upload", "desc": "Required for Research-based (Faculty) proposals"},
 ]
 
 #: Step number of the Utility Model section, and the last built-in step. The
