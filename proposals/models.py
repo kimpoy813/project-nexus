@@ -267,6 +267,11 @@ class Proposal(models.Model):
         blank=True,
         null=True,
     )
+    complete_research_file = models.FileField(
+        upload_to="proposal_files/complete_research/",
+        blank=True,
+        null=True,
+    )
     certificate_of_completion_file = models.FileField(
         upload_to="proposal_files/certificates_of_completion/",
         blank=True,

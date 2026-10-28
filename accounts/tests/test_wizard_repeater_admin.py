@@ -1,13 +1,14 @@
 """
-The no-code builder's "repeatable group" settings.
+Automatic proponent repeatable-group behavior in the wizard step editor.
 
-Step 3 (Proponents) is the first consumer: the office defines which fields each
-proponent row shows and which proponent record column each field fills in. The
-panel lives in the wizard step editor, which is exercised here.
+Step 3 (Proponents) is automatically configured as a proponent-storing
+repeatable group without exposing a manual "Repeatable group" panel in the
+step editor UI. Admins can still rename, reorder, add, or map fields on Step 3
+while every other step keeps a clean non-repeater editor.
 """
 
-from django.urls import reverse
 from django.test import TestCase
+from django.urls import reverse
 
 from details.models import DynamicFormField, DynamicFormTemplate
 
@@ -46,7 +47,9 @@ def payload_from_rows(rows, **extra):
         "field_depends_on_value[]": [row["depends_on_value"] for row in rows],
         "field_maps_to[]": [row["maps_to"] for row in rows],
         "field_required[]": [
-            row["field_id"] or "new" for row in rows if row["required"]
+            row["field_id"] or f"new_{idx}"
+            for idx, row in enumerate(rows)
+            if row["required"]
         ],
     }
     payload.update(extra)
@@ -56,7 +59,7 @@ def payload_from_rows(rows, **extra):
 class StepEditorRepeaterTests(TestCase):
     def setUp(self):
         self.admin_user, self.admin_client = factories.admin()
-        # Opening the editor is what creates/seeds the step's form.
+        # Opening the editor creates/seeds the step's form.
         self._open_step(3)
 
     def _open_step(self, step_no):
@@ -64,6 +67,24 @@ class StepEditorRepeaterTests(TestCase):
 
     def _form(self, step_no=3):
         return DynamicFormTemplate.objects.filter(proposal_wizard_step=step_no).first()
+
+    def test_step_editor_removes_repeatable_group_panel_everywhere(self):
+        for url in (
+            reverse("wizard_step_edit", args=[1]),
+            reverse("wizard_step_edit", args=[3]),
+            reverse("wizard_step_edit", args=[19]),
+            reverse("wizard_step_create"),
+        ):
+            with self.subTest(url=url):
+                response = self.admin_client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertNotContains(response, "Repeatable group")
+                self.assertNotContains(response, "Repeat these fields")
+                self.assertNotContains(response, 'name="is_repeater"')
+                self.assertNotContains(response, 'name="repeater_label"')
+                self.assertNotContains(response, 'name="repeater_min_rows"')
+                self.assertNotContains(response, 'name="repeater_max_rows"')
+                self.assertNotContains(response, 'name="row_store"')
 
     def test_the_step_three_editor_shows_the_default_proponent_fields(self):
         form = self._form()
@@ -75,13 +96,13 @@ class StepEditorRepeaterTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Position / Designation")
-        self.assertContains(response, "Repeatable group")
         self.assertContains(response, 'name="field_maps_to[]"')
-        self.assertContains(response, "Proponents of the proposal")
+        self.assertContains(response, 'data-proponent-step="true"')
 
-    def test_saving_the_step_persists_the_group_settings(self):
+    def test_saving_step_three_preserves_automatic_proponent_repeater_and_mappings(self):
         form = self._form()
         rows = [field_row(field) for field in form.fields.order_by("order")]
+        rows[1]["label"] = "Academic Rank / Designation"
 
         response = self.admin_client.post(
             reverse("wizard_step_edit", args=[3]),
@@ -92,68 +113,32 @@ class StepEditorRepeaterTests(TestCase):
                 instructions="",
                 is_visible="on",
                 is_required="on",
-                is_repeater="on",
-                repeater_label="Project staff",
-                repeater_min_rows="2",
-                repeater_max_rows="5",
-                row_store="PROPONENT",
             ),
         )
         self.assertEqual(response.status_code, 302)
 
         form.refresh_from_db()
         self.assertTrue(form.is_repeater)
-        self.assertEqual(form.repeater_label, "Project staff")
-        self.assertEqual(form.repeater_min_rows, 2)
-        self.assertEqual(form.repeater_max_rows, 5)
         self.assertEqual(form.row_store, DynamicFormTemplate.RowStore.PROPONENT)
-
-    def test_an_impossible_row_window_is_clamped(self):
-        form = self._form()
-        rows = [field_row(field) for field in form.fields.order_by("order")]
-
-        self.admin_client.post(
-            reverse("wizard_step_edit", args=[3]),
-            payload_from_rows(
-                rows,
-                title="Proponents",
-                is_repeater="on",
-                repeater_min_rows="9",
-                repeater_max_rows="3",
-                row_store="PROPONENT",
-            ),
+        self.assertEqual(form.repeater_label, "Proponent")
+        self.assertEqual(
+            form.fields.get(field_key="designation").label,
+            "Academic Rank / Designation",
         )
+        self.assertEqual(form.fields.exclude(maps_to="").count(), 6)
 
-        form.refresh_from_db()
-        self.assertEqual(form.repeater_max_rows, 3)
-        self.assertEqual(form.repeater_min_rows, 3)
-
-    def test_turning_the_group_off_clears_the_proponent_mapping(self):
-        form = self._form()
-        rows = [field_row(field) for field in form.fields.order_by("order")]
+    def test_non_proponent_steps_cannot_claim_proponent_columns(self):
+        self._open_step(2)
+        form = self._form(2)
+        rows = [field_row(field, maps_to="full_name") for field in form.fields.order_by("order")]
 
         self.admin_client.post(
-            reverse("wizard_step_edit", args=[3]),
-            payload_from_rows(rows, title="Proponents", row_store="PROPONENT"),
+            reverse("wizard_step_edit", args=[2]),
+            payload_from_rows(rows, title="Title", is_visible="on", is_required="on"),
         )
 
         form.refresh_from_db()
         self.assertFalse(form.is_repeater)
-        self.assertEqual(form.fields.exclude(maps_to="").count(), 0)
-
-    def test_free_standing_rows_cannot_claim_proponent_columns(self):
-        form = self._form()
-        rows = [field_row(field) for field in form.fields.order_by("order")]
-
-        self.admin_client.post(
-            reverse("wizard_step_edit", args=[3]),
-            payload_from_rows(
-                rows, title="Proponents", is_repeater="on", row_store="GENERIC"
-            ),
-        )
-
-        form.refresh_from_db()
-        self.assertEqual(form.row_store, DynamicFormTemplate.RowStore.GENERIC)
         self.assertEqual(form.fields.exclude(maps_to="").count(), 0)
 
     def test_two_fields_cannot_map_to_the_same_column(self):
@@ -163,9 +148,7 @@ class StepEditorRepeaterTests(TestCase):
 
         self.admin_client.post(
             reverse("wizard_step_edit", args=[3]),
-            payload_from_rows(
-                rows, title="Proponents", is_repeater="on", row_store="PROPONENT"
-            ),
+            payload_from_rows(rows, title="Proponents", is_visible="on", is_required="on"),
         )
 
         self.assertEqual(
@@ -184,6 +167,7 @@ class StepEditorRepeaterTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(self._form().is_repeater)
+        self.assertEqual(self._form().fields.exclude(maps_to="").count(), 0)
 
 
 class DefaultFieldSeederTests(TestCase):

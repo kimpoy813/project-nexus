@@ -22,11 +22,19 @@ from django.shortcuts import render
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from details.models import DocumentTemplate
+from details.models import DynamicFormAnswer
 from details.models import DynamicFormField
+from details.models import DynamicFormResponse
 from details.models import DynamicFormTemplate
 from details.models import ProposalWizardStepConfig
 from details.models import RoleCapability
-from details.proponent_fields import PROPONENT_STEP_NO, ensure_proponent_repeater_form
+from details.proponent_fields import (
+    PROPONENT_ROW_LABEL,
+    PROPONENT_STEP_NO,
+    ensure_proponent_repeater_form,
+    is_proponents_step,
+)
+from proposals.views.dynamic_fields import foreign_native_keys_for_step
 from ..decorators import admin_required
 from ..forms import CustomProposalTemplateForm
 from ..forms import CustomProposalTemplateUploadForm
@@ -146,19 +154,47 @@ DEFAULT_STEP_FIELDS = {
                 "help_text": "Upload the completed editable Excel funding workbook.",
             },
         ],
+        19: [
+            {
+                "key": "research_abstract_file",
+                "label": "Research Abstract File",
+                "type": "FILE",
+                "help_text": "This file is required for research-based proposals.",
+                "depends_on_key": "extension_type",
+                "depends_on_value": "RESEARCH_FACULTY,RESEARCH_STUDENT",
+            },
+            {
+                "key": "complete_research_file",
+                "label": "Complete Research File",
+                "type": "FILE",
+                "help_text": "Upload the complete research so reviewers can check its content.",
+                "depends_on_key": "extension_type",
+                "depends_on_value": "RESEARCH_FACULTY,RESEARCH_STUDENT",
+            },
+        ],
+        20: [
+            {
+                "key": "certificate_of_completion_file",
+                "label": "Certificate of Completion File",
+                "type": "FILE",
+                "help_text": "This file is required for Research-based (Faculty) proposals.",
+                "depends_on_key": "extension_type",
+                "depends_on_value": "RESEARCH_FACULTY",
+            },
+        ],
 }
 
 
 def _seed_step_fields(form_obj, step_no):
     """Seed built-in mirror rows without overwriting office-built fields.
 
-    For steps 17 and 18 the native file upload mirrors are also appended to an
-    existing form, if missing, so admins can relabel built-in uploads even on
-    installations where the step form was customized before these mirrors were
-    introduced.
+    For steps 17-20 the native file upload mirrors are also appended to an
+    existing form, if missing, so admins can relabel and configure built-in
+    uploads even on installations where the step form was customized before
+    these mirrors were introduced.
     """
     existing_fields = form_obj.fields.exists()
-    if existing_fields and step_no not in {17, 18}:
+    if existing_fields and step_no not in {17, 18, 19, 20}:
         return
 
     next_order = (form_obj.fields.order_by("-order").values_list("order", flat=True).first() or 0)
@@ -829,36 +865,29 @@ def _unique_dynamic_form_slug(name, existing=None):
     return candidate
 
 
-def _save_repeater_settings(form_obj, post_data):
-    """Read the "repeatable group" panel of the wizard step editor.
+def _sync_proponent_repeater(form_obj, step_no):
+    """Keep Step 3's proponent repeater automatic without a manual UI panel.
 
-    Kept separate from the field rows because it describes the *group*, not its
-    fields. ``maps_to`` only means something for a proponent-storing group, so
-    switching the group to free-standing rows clears any stale mapping rather
-    than leaving fields pointing at a record that no longer receives them.
+    When ``step_no`` is the Proponents step, its dynamic form remains a
+    proponent-storing repeatable group so admin field edits preserve
+    ``ProposalProponent`` column mappings. Repurposing the step (or saving any
+    non-proponent step) clears proponent mappings automatically.
     """
-    form_obj.is_repeater = post_data.get("is_repeater") == "on"
-    form_obj.repeater_label = (post_data.get("repeater_label") or "").strip()[:80]
+    if step_no == PROPONENT_STEP_NO and is_proponents_step(step_no):
+        form_obj.is_repeater = True
+        form_obj.row_store = DynamicFormTemplate.RowStore.PROPONENT
+        form_obj.repeater_label = form_obj.repeater_label or PROPONENT_ROW_LABEL
+        form_obj.save(
+            update_fields=["is_repeater", "row_store", "repeater_label", "updated_at"]
+        )
+        return
 
-    minimum = _safe_int(post_data.get("repeater_min_rows"), 0) or 0
-    maximum = _safe_int(post_data.get("repeater_max_rows"), 0) or 0
-    minimum = max(0, minimum)
-    maximum = max(0, maximum)
-    if maximum and minimum > maximum:
-        # A window that cannot be satisfied is a typo, not a request: keep the
-        # cap the admin typed and pull the floor down to it.
-        minimum = maximum
-    form_obj.repeater_min_rows = minimum
-    form_obj.repeater_max_rows = maximum
-
-    allowed_stores = {choice[0] for choice in DynamicFormTemplate.RowStore.choices}
-    row_store = (post_data.get("row_store") or "").strip()
-    form_obj.row_store = row_store if row_store in allowed_stores else DynamicFormTemplate.RowStore.GENERIC
-
-    if not form_obj.is_repeater or form_obj.row_store != DynamicFormTemplate.RowStore.PROPONENT:
+    if form_obj.row_store == DynamicFormTemplate.RowStore.PROPONENT:
+        form_obj.is_repeater = False
+        form_obj.row_store = DynamicFormTemplate.RowStore.GENERIC
+        form_obj.save(update_fields=["is_repeater", "row_store", "updated_at"])
+    if not form_obj.is_proponent_repeater:
         form_obj.fields.update(maps_to="")
-
-    form_obj.save()
 
 
 def _save_dynamic_form_fields(form_obj, post_data):
@@ -993,19 +1022,75 @@ def wizard_steps_reorder(request):
 
 
 def _builder_context(form_obj=None, **extra):
-    """Template context for the wizard step editor screens.
-
-    The create and edit screens render the same field rows and the same
-    "repeatable group" panel, so the choices they need are assembled here.
-    """
+    """Template context for the wizard step editor screens."""
     ctx = {
         "form_obj": form_obj,
         "field_type_choices": DynamicFormField.FieldType.choices,
-        "repeater_store_choices": DynamicFormTemplate.RowStore.choices,
         "proponent_map_choices": DynamicFormField.MapsTo.choices,
     }
     ctx.update(extra)
     return ctx
+
+
+def _consolidate_step_forms(form_obj, step_no):
+    """Ensure the step editor owns every non-repeater field attached to ``step_no``.
+
+    Drops mirror fields that belong to other steps' hardcoded inputs, and folds
+    any extra non-repeater ``DynamicFormTemplate`` rows on ``step_no`` into
+    ``form_obj`` so admins can see and remove every field on the step.
+    """
+    if form_obj is None or form_obj.is_repeater:
+        return
+
+    foreign_keys = foreign_native_keys_for_step(step_no)
+    if foreign_keys:
+        form_obj.fields.filter(field_key__in=foreign_keys).delete()
+
+    extra_forms = list(
+        DynamicFormTemplate.objects.filter(
+            proposal_wizard_step=step_no,
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            is_repeater=False,
+        )
+        .exclude(pk=form_obj.pk)
+        .order_by("id")
+    )
+    if not extra_forms:
+        return
+
+    existing_keys = set(form_obj.fields.values_list("field_key", flat=True))
+    next_order = (
+        form_obj.fields.order_by("-order").values_list("order", flat=True).first() or 0
+    )
+
+    for extra in extra_forms:
+        if foreign_keys:
+            extra.fields.filter(field_key__in=foreign_keys).delete()
+
+        for field in list(extra.fields.order_by("order", "id")):
+            if field.field_key in existing_keys:
+                continue
+            answers = list(
+                DynamicFormAnswer.objects.filter(field=field).select_related("response")
+            )
+            next_order += 1
+            field.form = form_obj
+            field.order = next_order
+            field.save(update_fields=["form", "order"])
+            existing_keys.add(field.field_key)
+
+            for answer in answers:
+                old_resp = answer.response
+                target_resp, _ = DynamicFormResponse.objects.get_or_create(
+                    form=form_obj,
+                    proposal_id=old_resp.proposal_id,
+                    defaults={"submitted_by_id": old_resp.submitted_by_id},
+                )
+                if answer.response_id != target_resp.id:
+                    answer.response = target_resp
+                    answer.save(update_fields=["response"])
+
+        extra.delete()
 
 
 @login_required
@@ -1033,6 +1118,8 @@ def wizard_step_edit(request, step_no):
             is_active=True,
             blocks_proposal_submission=True,
         )
+
+    _consolidate_step_forms(form_obj, step_no)
 
     # Show the built-in inputs of a hardcoded step as editable rows instead of
     # an empty builder, so the admin edits the *existing* fields rather than
@@ -1077,11 +1164,17 @@ def wizard_step_edit(request, step_no):
         step_config.is_required = request.POST.get("is_required") == "on"
         step_config.save()
 
-        # Update the dynamic form template name just in case the title changed
+        # Keep the step's dynamic form synced with step visibility/requiredness.
         form_obj.name = f"Fields for Step {step_no}: {step_config.title}"
-        form_obj.save(update_fields=["name"])
+        form_obj.is_active = step_config.is_visible
+        form_obj.blocks_proposal_submission = bool(
+            step_config.is_visible and step_config.is_required
+        )
+        form_obj.save(
+            update_fields=["name", "is_active", "blocks_proposal_submission"]
+        )
 
-        _save_repeater_settings(form_obj, request.POST)
+        _sync_proponent_repeater(form_obj, step_no)
         _save_dynamic_form_fields(form_obj, request.POST)
 
         messages.success(request, f"Wizard Step {step_config.step_no} and its fields updated.")
@@ -1137,10 +1230,10 @@ def wizard_step_create(request):
                 slug=slug,
                 applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
                 proposal_wizard_step=step_no,
-                is_active=True,
-                blocks_proposal_submission=True,
+                is_active=is_visible,
+                blocks_proposal_submission=bool(is_visible and is_required),
             )
-            _save_repeater_settings(form_obj, request.POST)
+            _sync_proponent_repeater(form_obj, step_no)
             _save_dynamic_form_fields(form_obj, request.POST)
 
             messages.success(request, f"Wizard Step {step_no} and its fields created successfully.")

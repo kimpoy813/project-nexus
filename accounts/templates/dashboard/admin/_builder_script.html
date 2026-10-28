@@ -6,85 +6,131 @@ Shared script for the no-code wizard step editor.
   * field row reordering: rows are read back in DOM order, and the server
     stores "order" from that position, so moving the element is the whole
     feature.
-  * the repeatable-group panel toggles the Maps-to cells that only make sense
-    when rows are stored as proponents.
+  * Step 3 (Proponents) automatically enables the Maps-to cells via
+    data-proponent-step on #fieldRows.
 {% endcomment %}
 <script>
 const fieldTypes = `{% for value,label in field_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
 const mapsToOptions = `{% for value,label in proponent_map_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
 
+function renumberFieldRows() {
+    const rows = document.querySelectorAll('#fieldRows .field-row');
+    rows.forEach(function (row, idx) {
+        const badge = row.querySelector('[data-field-badge]');
+        if (badge) badge.textContent = 'Field ' + (idx + 1);
+
+        const idInput = row.querySelector('input[name="field_id[]"]');
+        const reqInput = row.querySelector('input[name="field_required[]"]');
+        if (reqInput && (!idInput || !idInput.value)) {
+            reqInput.value = 'new_' + idx;
+        }
+    });
+}
+
+function syncFieldChoices(root) {
+    const scope = root || document;
+    const rows = scope.classList && scope.classList.contains('field-row')
+        ? [scope]
+        : scope.querySelectorAll('.field-row');
+    rows.forEach(function (row) {
+        const typeSelect = row.querySelector('select[name="field_type[]"]');
+        const choicesCell = row.querySelector('.choices-cell');
+        if (typeSelect && choicesCell) {
+            choicesCell.classList.toggle('hidden', typeSelect.value !== 'SELECT');
+        }
+    });
+}
+
 function addFieldRow() {
     const wrap = document.getElementById('fieldRows');
     const div = document.createElement('div');
-    div.className = 'field-row rounded-2xl border border-gray-200 bg-gray-50/60 p-4';
+    div.className = 'field-row rounded-2xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5 space-y-4';
     div.innerHTML = `
         <input type="hidden" name="field_id[]" value="">
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div class="md:col-span-2">
-              <label class="text-xs font-bold text-gray-600">Label</label>
-              <input name="field_label[]" required class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="Field label">
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs font-bold text-gray-600">Key</label>
-              <input name="field_key[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm" placeholder="auto if blank">
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs font-bold text-gray-600">Type</label>
-              <select name="field_type[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">${fieldTypes}</select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs font-bold text-gray-600">Placeholder</label>
-              <input name="field_placeholder[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-xs font-bold text-gray-600">Help Text</label>
-              <input name="field_help_text[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm">
-            </div>
-            <div class="md:col-span-2 flex items-end justify-end gap-2">
-              <label class="relative inline-flex items-center cursor-pointer select-none mb-1" title="Required">
-                <input type="checkbox" name="field_required[]" value="new" class="sr-only peer">
-                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                <span class="ml-2 text-xs font-bold text-gray-700">Req.</span>
-              </label>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3">
+          <span class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-black uppercase tracking-wider text-primary" data-field-badge>
+            Field
+          </span>
+
+          <div class="flex flex-wrap items-center gap-3 ml-auto">
+            <label class="relative inline-flex items-center gap-2 cursor-pointer select-none" title="Required">
+              <input type="checkbox" name="field_required[]" value="new" class="sr-only peer">
+              <div class="relative w-9 h-5 shrink-0 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              <span class="text-xs font-bold text-gray-700">Required</span>
+            </label>
+            <span class="hidden sm:block h-5 w-px bg-gray-200" aria-hidden="true"></span>
+            <div class="nx-actions">
               <button type="button" data-field-move="up"
-                      class="nx-btn nx-btn--secondary nx-btn--icon"
+                      class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                       data-nx-tooltip="Move field up" aria-label="Move field up">
                 <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chevron-up"></use></svg>
               </button>
               <button type="button" data-field-move="down"
-                      class="nx-btn nx-btn--secondary nx-btn--icon"
+                      class="nx-btn nx-btn--secondary nx-btn--icon nx-btn--compact"
                       data-nx-tooltip="Move field down" aria-label="Move field down">
                 <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-chevron-down"></use></svg>
               </button>
               <button type="button" data-field-remove
-                      class="nx-btn nx-btn--danger nx-btn--icon"
+                      class="nx-btn nx-btn--danger nx-btn--icon nx-btn--compact"
                       data-nx-tooltip="Remove field" aria-label="Remove field">
                 <svg class="nx-icon" aria-hidden="true"><use href="#nx-icon-trash"></use></svg>
               </button>
             </div>
-            <div class="md:col-span-12">
-              <label class="text-xs font-bold text-gray-600">Choices for dropdown fields (one option per line)</label>
-              <textarea name="field_choices[]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm"></textarea>
-            </div>
-            <div class="md:col-span-12 mt-2 pt-2 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div class="maps-to-cell hidden">
-                <label class="text-xs font-bold text-gray-500">Stores in proponent record</label>
-                <select name="field_maps_to[]" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
-                  <option value="">Keep as an extra detail</option>
-                  ${mapsToOptions}
-                </select>
-              </div>
-              <div>
-                <label class="text-xs font-bold text-gray-500">Depends On Field Key</label>
-                <input name="field_depends_on_key[]" placeholder="e.g. extension_type" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
-              </div>
-              <div>
-                <label class="text-xs font-bold text-gray-500">Depends On Value(s) (comma-separated)</label>
-                <input name="field_depends_on_value[]" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="mt-1 w-full rounded-xl border border-gray-300 px-3 py-1.5 text-xs bg-white">
-              </div>
-            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+          <div class="md:col-span-2 lg:col-span-5 flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Label</label>
+            <input type="text" name="field_label[]" required placeholder="Field label" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+          </div>
+          <div class="lg:col-span-4 flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Key</label>
+            <input type="text" name="field_key[]" placeholder="auto if blank" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+          </div>
+          <div class="lg:col-span-3 flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Type</label>
+            <select name="field_type[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">${fieldTypes}</select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Placeholder</label>
+            <input type="text" name="field_placeholder[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+          </div>
+          <div class="flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Help Text</label>
+            <input type="text" name="field_help_text[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+          </div>
+        </div>
+
+        <div class="choices-cell hidden">
+          <label class="block text-xs font-bold text-gray-600 mb-1.5">Choices for dropdown fields (one option per line)</label>
+          <textarea name="field_choices[]" rows="3" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4" data-field-conditions-grid>
+          <div class="maps-to-cell hidden md:col-span-2 lg:col-span-1 flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Stores in proponent record</label>
+            <select name="field_maps_to[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+              <option value="">Keep as an extra detail</option>
+              ${mapsToOptions}
+            </select>
+          </div>
+          <div class="flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Depends On Field Key</label>
+            <input type="text" name="field_depends_on_key[]" placeholder="e.g. extension_type" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+          </div>
+          <div class="flex flex-col">
+            <label class="block text-xs font-bold text-gray-600 mb-1.5">Depends On Value(s) (comma-separated)</label>
+            <input type="text" name="field_depends_on_value[]" placeholder="e.g. RESEARCH_FACULTY,RESEARCH_STUDENT" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
+          </div>
         </div>`;
     wrap.appendChild(div);
+    renumberFieldRows();
+    syncFieldChoices(div);
     syncMapsToCells();
     return div;
 }
@@ -101,19 +147,20 @@ function moveFieldRow(button, direction) {
     } else {
         row.parentNode.insertBefore(sibling, row);
     }
+    renumberFieldRows();
 }
 
 function syncMapsToCells() {
-    const toggle = document.querySelector('[data-repeater-toggle]');
-    const store = document.querySelector('[data-repeater-store]');
-    const enabled = toggle && toggle.checked && store && store.value === 'PROPONENT';
+    const wrap = document.getElementById('fieldRows');
+    const enabled = Boolean(wrap && wrap.dataset.proponentStep === 'true');
 
     document.querySelectorAll('.maps-to-cell').forEach(function (cell) {
         cell.classList.toggle('hidden', !enabled);
     });
 
-    const panel = document.querySelector('[data-repeater-fields]');
-    if (panel) panel.classList.toggle('opacity-50', !(toggle && toggle.checked));
+    document.querySelectorAll('[data-field-conditions-grid]').forEach(function (grid) {
+        grid.classList.toggle('lg:grid-cols-3', enabled);
+    });
 }
 
 document.addEventListener('click', function (event) {
@@ -126,15 +173,23 @@ document.addEventListener('click', function (event) {
     const removeButton = event.target.closest('[data-field-remove]');
     if (removeButton) {
         const row = removeButton.closest('.field-row');
-        if (row) row.remove();
+        if (row) {
+            row.remove();
+            renumberFieldRows();
+        }
     }
 });
 
 document.addEventListener('change', function (event) {
-    if (event.target.closest('[data-repeater-toggle], [data-repeater-store]')) {
-        syncMapsToCells();
+    const typeSelect = event.target.closest('select[name="field_type[]"]');
+    if (typeSelect) {
+        syncFieldChoices(typeSelect.closest('.field-row'));
     }
 });
 
-document.addEventListener('DOMContentLoaded', syncMapsToCells);
+document.addEventListener('DOMContentLoaded', function () {
+    renumberFieldRows();
+    syncFieldChoices();
+    syncMapsToCells();
+});
 </script>

@@ -505,3 +505,408 @@ class StepEditorWithoutExplanationsTests(TestCase):
         # Still one Title input: the mirror edits the built-in one, no duplicate.
         self.assertEqual(html.count('name="title"'), 1)
 
+
+class ResearchAbstractStepRedundantFieldTests(TestCase):
+    """Step 19 (Research Abstract Upload) must never show redundant step fields."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = factories.make_user("abstract_owner", Profile.ROLE_FACULTY)
+
+    def setUp(self):
+        seed_default_steps()
+        self.proposal = Proposal.objects.create(
+            created_by=self.owner,
+            extension_type=Proposal.ExtensionType.RESEARCH_FACULTY,
+            scope_type=Proposal.ScopeType.PROJECT,
+            research_title="Rice Straw Biocomposite",
+        )
+        self.client_owner = factories.make_client(self.owner)
+
+    def _pile_displaced_forms_onto_step_19(self):
+        """Reproduce the production pile left by 0023's ascending renumber."""
+        displaced = [
+            (7, "step-7-fields", "Fields for Step 7", [("budgetary_requirement", "Budgetary Requirement", "TEXTAREA")]),
+            (
+                10,
+                "step-10-fields",
+                "Fields for Step 10",
+                [
+                    ("extension_venue", "Extension Venue / Site", "TEXT"),
+                    ("estimated_month", "Estimated Month", "SELECT"),
+                    ("estimated_year", "Estimated Year", "NUMBER"),
+                ],
+            ),
+            (11, "step-11-fields", "Fields for Step 11", [("rationale_background", "Rationale / Background", "TEXTAREA")]),
+            (12, "step-12-fields", "Fields for Step 12", [("significance", "Significance", "TEXTAREA")]),
+            (13, "step-13-fields", "Fields for Step 13", [("general_objective", "General Objective", "TEXTAREA")]),
+        ]
+        # Remove the cleanly seeded 8/11/12/13/14/19/20 forms first and give
+        # Step 7 the "-2" slug 0027 assigned when step-7-fields sat on 19.
+        DynamicFormTemplate.objects.filter(
+            proposal_wizard_step__in=[8, 11, 12, 13, 14, 19, 20]
+        ).delete()
+        DynamicFormTemplate.objects.filter(
+            proposal_wizard_step=7, slug="step-7-fields"
+        ).update(slug="step-7-fields-2")
+
+        created_forms = []
+        for _old_no, slug, name, fields in displaced:
+            form = DynamicFormTemplate.objects.create(
+                name=name,
+                slug=slug,
+                applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+                proposal_wizard_step=19,
+                is_active=True,
+                blocks_proposal_submission=True,
+            )
+            resp = form.responses.create(proposal=self.proposal, submitted_by=self.owner)
+            for order, (key, label, ftype) in enumerate(fields, start=1):
+                field = form.fields.create(
+                    field_key=key,
+                    label=label,
+                    field_type=ftype,
+                    required=True,
+                    order=order,
+                )
+                DynamicFormAnswer.objects.create(response=resp, field=field, value="")
+            created_forms.append(form)
+        return created_forms
+
+    def test_step_19_renders_abstract_and_complete_research_uploads_once(self):
+        for ext_type in (
+            Proposal.ExtensionType.RESEARCH_FACULTY,
+            Proposal.ExtensionType.RESEARCH_STUDENT,
+        ):
+            self.proposal.extension_type = ext_type
+            self.proposal.save(update_fields=["extension_type"])
+            response = self.client_owner.get(
+                reverse("proposal_wizard", args=[self.proposal.id, 19])
+            )
+            self.assertEqual(response.status_code, 200)
+            html = response.content.decode()
+            self.assertEqual(html.count('name="research_abstract_file"'), 1)
+            self.assertEqual(html.count('name="complete_research_file"'), 1)
+            self.assertNotIn("dynamic_field_", html)
+
+    def test_step_19_requires_both_abstract_and_complete_research_and_previews_both(self):
+        self.proposal.extension_type = Proposal.ExtensionType.RESEARCH_STUDENT
+        self.proposal.save(update_fields=["extension_type"])
+
+        # Uploading only the abstract must block Save & Next until Complete Research is uploaded.
+        partial = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 19]),
+            {
+                "action": "next",
+                "research_abstract_file": SimpleUploadedFile("abstract.pdf", b"%PDF-abstract"),
+            },
+            follow=True,
+        )
+        self.assertContains(
+            partial, "Please complete the required field(s): Complete Research File"
+        )
+        self.proposal.refresh_from_db()
+        self.assertTrue(self.proposal.research_abstract_file)
+        self.assertNotIn(19, self.proposal.completed_steps)
+
+        # Uploading Complete Research completes Step 19 and exposes preview.
+        complete_resp = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 19]),
+            {
+                "action": "next",
+                "complete_research_file": SimpleUploadedFile("thesis.pdf", b"%PDF-full"),
+            },
+        )
+        self.assertRedirects(
+            complete_resp,
+            reverse("proposal_wizard", args=[self.proposal.id, 20]),
+            fetch_redirect_response=False,
+        )
+        self.proposal.refresh_from_db()
+        self.assertIn(19, self.proposal.completed_steps)
+        preview = self.client_owner.get(
+            reverse("proposal_file_preview", args=[self.proposal.id, "complete_research"])
+        )
+        self.assertEqual(preview.status_code, 200)
+
+    def test_certificate_of_completion_is_required_only_for_faculty_not_student(self):
+        # Faculty research requires Certificate of Completion on Step 20.
+        self.proposal.extension_type = Proposal.ExtensionType.RESEARCH_FACULTY
+        self.proposal.save(update_fields=["extension_type"])
+
+        step_20_faculty = self.client_owner.get(
+            reverse("proposal_wizard", args=[self.proposal.id, 20])
+        )
+        self.assertContains(step_20_faculty, 'name="certificate_of_completion_file"', count=1)
+
+        blocked = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 20]),
+            {"action": "next"},
+            follow=True,
+        )
+        self.assertContains(
+            blocked,
+            "Please complete the required field(s): Certificate of Completion File",
+        )
+        self.proposal.refresh_from_db()
+        self.assertNotIn(20, self.proposal.completed_steps)
+        self.assertFalse(is_step_complete(self.proposal, 20))
+
+        # Student research does NOT require Certificate of Completion on Step 20.
+        self.proposal.extension_type = Proposal.ExtensionType.RESEARCH_STUDENT
+        self.proposal.save(update_fields=["extension_type"])
+
+        step_20_student = self.client_owner.get(
+            reverse("proposal_wizard", args=[self.proposal.id, 20])
+        )
+        self.assertNotContains(step_20_student, 'name="certificate_of_completion_file"')
+        self.assertContains(step_20_student, "Not required for your proposal type")
+        self.assertContains(step_20_student, "Research-based (Faculty)")
+        self.assertTrue(is_step_complete(self.proposal, 20))
+        self.assertTrue(_is_dynamic_step_complete(self.proposal, 20))
+        missing = _proposal_dynamic_requirements_missing(self.proposal)
+        self.assertFalse(any("Step 20" in item for item in missing), missing)
+
+        saved = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 20]),
+            {"action": "next"},
+        )
+        self.assertRedirects(
+            saved,
+            reverse("proposal_submit", args=[self.proposal.id]),
+            fetch_redirect_response=False,
+        )
+        self.proposal.refresh_from_db()
+        self.assertIn(20, self.proposal.completed_steps)
+
+    def test_foreign_builtin_mirrors_stranded_on_step_19_do_not_render_or_block(self):
+        self._pile_displaced_forms_onto_step_19()
+
+        response = self.client_owner.get(
+            reverse("proposal_wizard", args=[self.proposal.id, 19])
+        )
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        main_start = html.index('<section class="nx-wizard-main')
+        main_html = html[main_start:html.index("</section>", main_start)]
+        for redundant_label in (
+            "Budgetary Requirement",
+            "Extension Venue / Site",
+            "Estimated Month",
+            "Estimated Year",
+            "Rationale / Background",
+            "Significance",
+            "General Objective",
+        ):
+            self.assertNotIn(redundant_label, main_html)
+        self.assertNotIn("dynamic_field_", main_html)
+
+        post_resp = self.client_owner.post(
+            reverse("proposal_wizard", args=[self.proposal.id, 19]),
+            {
+                "action": "next",
+                "research_abstract_file": SimpleUploadedFile("abstract.pdf", b"%PDF-1.4"),
+                "complete_research_file": SimpleUploadedFile("complete.pdf", b"%PDF-1.4"),
+            },
+        )
+        self.assertRedirects(
+            post_resp,
+            reverse("proposal_wizard", args=[self.proposal.id, 20]),
+            fetch_redirect_response=False,
+        )
+        self.proposal.refresh_from_db()
+        self.assertIn(19, self.proposal.completed_steps)
+        self.assertTrue(_is_dynamic_step_complete(self.proposal, 19))
+        missing = _proposal_dynamic_requirements_missing(self.proposal)
+        self.assertFalse(any("Step 19" in item for item in missing), missing)
+
+    def test_admin_step_19_and_20_edits_sync_labels_required_and_depends_on(self):
+        _admin_user, admin_client = factories.admin("step19_20_sync_admin")
+
+        # Step 19 editor shows both built-in upload mirrors.
+        editor_19 = admin_client.get(reverse("wizard_step_edit", args=[19]))
+        self.assertEqual(editor_19.status_code, 200)
+        form_19 = DynamicFormTemplate.objects.get(proposal_wizard_step=19)
+        fields_19 = list(form_19.fields.order_by("order", "id"))
+        self.assertEqual(
+            [f.field_key for f in fields_19],
+            ["research_abstract_file", "complete_research_file"],
+        )
+
+        # Admin customises Complete Research label & restricts it to RESEARCH_STUDENT.
+        post_19 = admin_client.post(
+            reverse("wizard_step_edit", args=[19]),
+            {
+                "title": "Research Abstract Upload",
+                "description": "Abstract and manuscript",
+                "instructions": "",
+                "is_visible": "on",
+                "is_required": "on",
+                "field_id[]": [str(f.id) for f in fields_19],
+                "field_label[]": ["Approved Abstract PDF", "Full Thesis / Manuscript"],
+                "field_key[]": [f.field_key for f in fields_19],
+                "field_type[]": [f.field_type for f in fields_19],
+                "field_placeholder[]": [f.placeholder for f in fields_19],
+                "field_help_text[]": ["Upload signed abstract.", "Upload full student research."],
+                "field_choices[]": [f.choices_text for f in fields_19],
+                "field_depends_on_key[]": ["extension_type", "extension_type"],
+                "field_depends_on_value[]": [
+                    "RESEARCH_FACULTY,RESEARCH_STUDENT",
+                    "RESEARCH_STUDENT",
+                ],
+                "field_maps_to[]": ["", ""],
+                "field_required[]": [str(f.id) for f in fields_19],
+            },
+        )
+        self.assertEqual(post_19.status_code, 302)
+
+        # Faculty proposal now sees only Approved Abstract PDF on Step 19; Student sees both.
+        faculty_view = self.client_owner.get(
+            reverse("proposal_wizard", args=[self.proposal.id, 19])
+        )
+        self.assertContains(faculty_view, "Approved Abstract PDF")
+        self.assertContains(faculty_view, 'name="research_abstract_file"', count=1)
+        self.assertNotContains(faculty_view, 'name="complete_research_file"')
+
+        self.proposal.extension_type = Proposal.ExtensionType.RESEARCH_STUDENT
+        self.proposal.save(update_fields=["extension_type"])
+        student_view = self.client_owner.get(
+            reverse("proposal_wizard", args=[self.proposal.id, 19])
+        )
+        self.assertContains(student_view, "Approved Abstract PDF")
+        self.assertContains(student_view, "Full Thesis / Manuscript")
+        self.assertContains(student_view, 'name="complete_research_file"', count=1)
+
+        # Step 20 editor defaults Certificate of Completion to RESEARCH_FACULTY only.
+        editor_20 = admin_client.get(reverse("wizard_step_edit", args=[20]))
+        self.assertEqual(editor_20.status_code, 200)
+        form_20 = DynamicFormTemplate.objects.get(proposal_wizard_step=20)
+        cert_field = form_20.fields.get(field_key="certificate_of_completion_file")
+        self.assertEqual(cert_field.depends_on_key, "extension_type")
+        self.assertEqual(cert_field.depends_on_value, "RESEARCH_FACULTY")
+
+        # Community-based proposals do not require either step's uploads.
+        self.proposal.extension_type = Proposal.ExtensionType.COMMUNITY_BASED
+        self.proposal.save(update_fields=["extension_type"])
+        self.assertTrue(_is_dynamic_step_complete(self.proposal, 19))
+        self.assertTrue(_is_dynamic_step_complete(self.proposal, 20))
+        missing = _proposal_dynamic_requirements_missing(self.proposal)
+        self.assertFalse(any("Step 19" in item or "Step 20" in item for item in missing), missing)
+
+    def test_migration_0054_unpiles_displaced_forms_from_step_19(self):
+        import importlib
+        from django.apps import apps
+
+        migration = importlib.import_module(
+            "details.migrations.0054_clean_research_abstract_step_fields"
+        )
+        self._pile_displaced_forms_onto_step_19()
+
+        migration.clean_research_abstract_step(apps, None)
+        # Running a second time must be a clean no-op.
+        migration.clean_research_abstract_step(apps, None)
+
+        step_19_form = DynamicFormTemplate.objects.get(proposal_wizard_step=19)
+        self.assertEqual(
+            list(step_19_form.fields.order_by("order").values_list("field_key", flat=True)),
+            ["research_abstract_file", "complete_research_file"],
+        )
+        step_20_form = DynamicFormTemplate.objects.get(proposal_wizard_step=20)
+        cert_field = step_20_form.fields.get(field_key="certificate_of_completion_file")
+        self.assertEqual(cert_field.depends_on_value, "RESEARCH_FACULTY")
+
+        restored = dict(
+            DynamicFormTemplate.objects.filter(
+                slug__in=[
+                    "step-7-fields",
+                    "step-10-fields",
+                    "step-11-fields",
+                    "step-12-fields",
+                    "step-13-fields",
+                ]
+            ).values_list("slug", "proposal_wizard_step")
+        )
+        self.assertEqual(
+            restored,
+            {
+                "step-7-fields": 8,
+                "step-10-fields": 11,
+                "step-11-fields": 12,
+                "step-12-fields": 13,
+                "step-13-fields": 14,
+            },
+        )
+        # Bogus Step-19 shadow answers on native mirror fields are gone.
+        self.assertFalse(
+            DynamicFormAnswer.objects.filter(
+                field__form__slug__in=list(restored.keys())
+            ).exists()
+        )
+
+    def test_migration_0054_cleans_admin_emptied_pile_and_preserves_custom_step_19_fields(self):
+        import importlib
+        from django.apps import apps
+
+        migration = importlib.import_module(
+            "details.migrations.0054_clean_research_abstract_step_fields"
+        )
+        forms = self._pile_displaced_forms_onto_step_19()
+        # Simulate an admin who edited Step 19, which renamed the first piled
+        # form and added a genuine Step-19 custom field alongside the foreign mirror.
+        first_form = forms[0]
+        first_form.name = "Fields for Step 19: Research Abstract Upload"
+        first_form.save(update_fields=["name"])
+        first_form.fields.create(
+            field_key="abstract_keywords",
+            label="Abstract Keywords",
+            field_type="TEXT",
+            required=False,
+            order=99,
+        )
+
+        migration.clean_research_abstract_step(apps, None)
+
+        step_19_forms = list(
+            DynamicFormTemplate.objects.filter(proposal_wizard_step=19)
+        )
+        self.assertEqual(len(step_19_forms), 1)
+        self.assertEqual(
+            list(step_19_forms[0].fields.order_by("order").values_list("field_key", flat=True)),
+            ["abstract_keywords", "research_abstract_file", "complete_research_file"],
+        )
+        # Step 8 still receives its default budgetary_requirement mirror.
+        step_8_form = DynamicFormTemplate.objects.get(proposal_wizard_step=8)
+        self.assertEqual(
+            list(step_8_form.fields.values_list("field_key", flat=True)),
+            ["budgetary_requirement"],
+        )
+
+    def test_step_editor_consolidates_extra_forms_and_drops_foreign_mirrors(self):
+        _admin_user, admin_client = factories.admin("step19_editor_admin")
+        self._pile_displaced_forms_onto_step_19()
+        extra = DynamicFormTemplate.objects.create(
+            name="Extra Step 19 Note",
+            slug="extra-step-19-note",
+            applies_to=DynamicFormTemplate.AppliesTo.PROPOSAL,
+            proposal_wizard_step=19,
+        )
+        extra.fields.create(
+            field_key="ethics_clearance_no",
+            label="Ethics Clearance Number",
+            field_type="TEXT",
+            required=False,
+            order=1,
+        )
+
+        response = admin_client.get(reverse("wizard_step_edit", args=[19]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ethics Clearance Number")
+        self.assertContains(response, "Research Abstract File")
+        self.assertContains(response, "Complete Research File")
+        self.assertNotContains(response, "Budgetary Requirement")
+        self.assertNotContains(response, "Rationale / Background")
+        self.assertEqual(
+            DynamicFormTemplate.objects.filter(proposal_wizard_step=19).count(),
+            1,
+        )
+

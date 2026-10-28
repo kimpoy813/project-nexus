@@ -425,6 +425,8 @@ def proposal_file_preview(request, proposal_id, file_type, attachment_id=None):
         file_field = proposal.funding_file
     elif file_type == "research_abstract":
         file_field = proposal.research_abstract_file
+    elif file_type == "complete_research":
+        file_field = proposal.complete_research_file
     elif file_type == "certificate":
         file_field = proposal.certificate_of_completion_file
     elif file_type == "attachment":

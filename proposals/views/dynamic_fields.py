@@ -7,11 +7,16 @@ hides non-matching fields, and these helpers let the server reach the same
 conclusion so a *hidden* required field never blocks submission.
 """
 
-from details.models import DynamicFormResponse
+from details.models import (
+    DynamicFormField,
+    DynamicFormResponse,
+    ProposalWizardStepConfig,
+)
 
 
 # Sentinel returned when a dependency's parent field cannot be located.
 DEPENDENCY_PARENT_NOT_FOUND = object()
+_UNSET = object()
 
 
 #: Built-in wizard inputs that the admin's "Fields for Step N" rows *mirror*.
@@ -59,12 +64,114 @@ NATIVE_STEP_FIELDS = {
         "gantt_chart_file": "gantt_chart_file",
     },
     18: {"funding_file": "funding_file"},
+    19: {
+        "research_abstract_file": "research_abstract_file",
+        "complete_research_file": "complete_research_file",
+    },
+    20: {"certificate_of_completion_file": "certificate_of_completion_file"},
+}
+
+RESEARCH_EXTENSION_TYPES = {"RESEARCH_FACULTY", "RESEARCH_STUDENT"}
+
+NATIVE_UPLOAD_DEFAULTS = {
+    (19, "research_abstract_file"): {
+        "extension_types": RESEARCH_EXTENSION_TYPES,
+        "required": True,
+    },
+    (19, "complete_research_file"): {
+        "extension_types": RESEARCH_EXTENSION_TYPES,
+        "required": True,
+    },
+    (20, "certificate_of_completion_file"): {
+        "extension_types": {"RESEARCH_FACULTY"},
+        "required": True,
+    },
 }
 
 
 def native_keys_for_step(step):
     """The set of field keys that mirror built-in inputs on ``step``."""
     return set(NATIVE_STEP_FIELDS.get(step) or {})
+
+
+def foreign_native_keys_for_step(step):
+    """Built-in input keys owned by *other* wizard steps.
+
+    A field whose key mirrors another step's hardcoded ``Proposal`` input (for
+    example ``budgetary_requirement`` or ``rationale_background`` stranded on
+    Step 19 by the ``0023`` step-form cascade) is already collected natively on
+    its home step and must never render or block a second time on ``step``.
+    """
+    own = native_keys_for_step(step)
+    foreign = set()
+    for other_step, mapping in NATIVE_STEP_FIELDS.items():
+        if other_step != step:
+            foreign.update(mapping.keys())
+    return foreign - own
+
+
+def native_upload_status(proposal, step, field_key, mirror_field=_UNSET):
+    """Return ``(visible, required)`` for a conditional native file upload.
+
+    When a mirror ``DynamicFormField`` exists on ``step`` (seeded by default or
+    edited in Admin -> Wizard Steps), its ``depends_on`` and ``required``
+    settings drive both visibility and requiredness so the wizard matches the
+    step editor. When no mirror row exists yet, falls back to
+    ``NATIVE_UPLOAD_DEFAULTS``.
+    """
+    if mirror_field is _UNSET:
+        mirror_field = (
+            DynamicFormField.objects.select_related("form")
+            .filter(
+                form__is_active=True,
+                form__applies_to="PROPOSAL",
+                form__proposal_wizard_step=step,
+                field_key=field_key,
+            )
+            .order_by("form_id", "id")
+            .first()
+        )
+
+    step_cfg = (
+        ProposalWizardStepConfig.objects.filter(step_no=step)
+        .values("is_visible", "is_required")
+        .first()
+    )
+    step_blocks = True
+    if step_cfg is not None and (
+        not step_cfg["is_visible"] or not step_cfg["is_required"]
+    ):
+        step_blocks = False
+
+    if mirror_field is not None:
+        parent_value = dependency_parent_value(proposal, mirror_field.depends_on_key)
+        visible = dependency_is_satisfied(mirror_field, parent_value)
+        required = bool(
+            visible
+            and step_blocks
+            and mirror_field.required
+            and mirror_field.form.is_active
+            and mirror_field.form.blocks_proposal_submission
+        )
+        return visible, required
+
+    spec = NATIVE_UPLOAD_DEFAULTS.get((step, field_key))
+    if spec is None:
+        return True, step_blocks
+    ext = (getattr(proposal, "extension_type", "") or "").strip()
+    visible = ext in spec["extension_types"]
+    required = bool(visible and step_blocks and spec["required"])
+    return visible, required
+
+
+def native_field_applies_to_proposal(proposal, step, field_key, mirror_field=_UNSET):
+    """Return True when a native mirror field applies to ``proposal``."""
+    if (step, field_key) in NATIVE_UPLOAD_DEFAULTS:
+        visible, _required = native_upload_status(
+            proposal, step, field_key, mirror_field=mirror_field
+        )
+        return visible
+    return True
 
 
 def native_post_name(step, field_key):

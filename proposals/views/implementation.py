@@ -407,6 +407,11 @@ def proposal_storage(request, proposal_id):
             "file_url": field_url("research_abstract_file"),
         },
         {
+            "label": "Complete Research (optional)",
+            "filename": file_name_from_path(field_url("complete_research_file")),
+            "file_url": field_url("complete_research_file"),
+        },
+        {
             "label": "Certificate of Completion (optional)",
             "filename": file_name_from_path(field_url("certificate_of_completion_file")),
             "file_url": field_url("certificate_of_completion_file"),

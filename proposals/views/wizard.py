@@ -48,6 +48,7 @@ from .dynamic_fields import (
     dynamic_field_blocks_submission as _dynamic_field_blocks_submission,
     dynamic_parent_values_from_post as _dynamic_parent_values_from_post,
     dynamic_parent_values_from_saved as _dynamic_parent_values_from_saved,
+    native_upload_status as _native_upload_status,
 )
 from .dynamic_answers import (
     _attach_dynamic_forms_to_context,
@@ -291,14 +292,19 @@ def is_step_complete(proposal, step):
         return bool(proposal.funding_file)
 
     if step == 19:
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            return bool(proposal.research_abstract_file)
-        return True
+        for key in ("research_abstract_file", "complete_research_file"):
+            _visible, required = _native_upload_status(proposal, 19, key)
+            if required and not getattr(proposal, key):
+                return False
+        return _is_dynamic_step_complete(proposal, 19)
 
     if step == 20:
-        if proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]:
-            return bool(proposal.certificate_of_completion_file)
-        return True
+        _visible, required = _native_upload_status(
+            proposal, 20, "certificate_of_completion_file"
+        )
+        if required and not proposal.certificate_of_completion_file:
+            return False
+        return _is_dynamic_step_complete(proposal, 20)
 
     return _is_dynamic_step_complete(proposal, step)
 
@@ -550,10 +556,35 @@ def _add_step_context_for_get(ctx, proposal, step):
         ).order_by("id")
 
     if step == 19:
-        ctx["requires_abstract"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
+        step_fields = ctx.get("step_fields") or {}
+        show_abstract, abstract_required = _native_upload_status(
+            proposal,
+            19,
+            "research_abstract_file",
+            step_fields.get("research_abstract_file"),
+        )
+        show_complete, complete_required = _native_upload_status(
+            proposal,
+            19,
+            "complete_research_file",
+            step_fields.get("complete_research_file"),
+        )
+        ctx["show_research_abstract"] = show_abstract
+        ctx["research_abstract_required"] = abstract_required
+        ctx["show_complete_research"] = show_complete
+        ctx["complete_research_required"] = complete_required
+        ctx["requires_abstract"] = show_abstract or show_complete
 
     if step == 20:
-        ctx["requires_certificate"] = proposal.extension_type in ["RESEARCH_FACULTY", "RESEARCH_STUDENT"]
+        step_fields = ctx.get("step_fields") or {}
+        show_cert, cert_required = _native_upload_status(
+            proposal,
+            20,
+            "certificate_of_completion_file",
+            step_fields.get("certificate_of_completion_file"),
+        )
+        ctx["requires_certificate"] = show_cert
+        ctx["certificate_required"] = cert_required
     return ctx
 
 def _handle_save_comment(request, proposal, step, current_round, reviewer_role):
@@ -779,6 +810,11 @@ def proposal_wizard(request, proposal_id, step):
             return redirect("proposal_wizard", proposal_id=proposal.id, step=1)
 
         proposal.save(update_fields=["extension_type", "proposal_format", "scope_type", "research_title"])
+        for conditional_step in (19, 20):
+            if conditional_step in (proposal.completed_steps or []) and not is_step_complete(
+                proposal, conditional_step
+            ):
+                unmark_step_completed(proposal, conditional_step)
         _update_creator_role(proposal)
 
     elif step == 2:
@@ -1035,14 +1071,36 @@ def proposal_wizard(request, proposal_id, step):
             proposal.save(update_fields=["funding_file"])
 
     elif step == 19:
+        changed_fields = []
         if request.FILES.get("research_abstract_file"):
             proposal.research_abstract_file = request.FILES["research_abstract_file"]
-            proposal.save(update_fields=["research_abstract_file"])
+            changed_fields.append("research_abstract_file")
+        if request.FILES.get("complete_research_file"):
+            proposal.complete_research_file = request.FILES["complete_research_file"]
+            changed_fields.append("complete_research_file")
+        if changed_fields:
+            proposal.save(update_fields=changed_fields)
+        for field_key, default_label in (
+            ("research_abstract_file", "Research Abstract File"),
+            ("complete_research_file", "Complete Research File"),
+        ):
+            mirror = ctx["step_fields"].get(field_key)
+            if mirror is None:
+                _vis, req = _native_upload_status(proposal, 19, field_key, None)
+                if req and not getattr(proposal, field_key):
+                    step_missing.append(default_label)
 
     elif step == 20:
         if request.FILES.get("certificate_of_completion_file"):
             proposal.certificate_of_completion_file = request.FILES["certificate_of_completion_file"]
             proposal.save(update_fields=["certificate_of_completion_file"])
+        mirror = ctx["step_fields"].get("certificate_of_completion_file")
+        if mirror is None:
+            _vis, req = _native_upload_status(
+                proposal, 20, "certificate_of_completion_file", None
+            )
+            if req and not proposal.certificate_of_completion_file:
+                step_missing.append("Certificate of Completion File")
 
     step_missing.extend(_save_step_repeaters(proposal, step, request, request.user))
     dynamic_missing = step_missing + _save_dynamic_form_answers(proposal, step, request.user, request)
@@ -1061,8 +1119,12 @@ def proposal_wizard(request, proposal_id, step):
     if action == "skip":
         mark_step_skipped(proposal, step)
         proposal.save(update_fields=["completed_steps", "skipped_steps"])
+        next_step = next_visible_wizard_step(step)
+        if not next_step and is_step_complete(proposal, step):
+            messages.info(request, "Skipped.")
+            return redirect("proposal_submit", proposal_id=proposal.id)
         messages.info(request, "Skipped.")
-        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_visible_wizard_step(step) or step)
+        return redirect("proposal_wizard", proposal_id=proposal.id, step=next_step or step)
 
     if is_step_complete(proposal, step):
         mark_step_completed(proposal, step)
@@ -1099,8 +1161,14 @@ def proposal_submit(request, proposal_id):
 
     all_required_steps = set(get_required_wizard_step_numbers())
     completed_steps = set(proposal.completed_steps or [])
+    skipped_steps = set(proposal.skipped_steps or [])
+    satisfied_steps = {
+        s for s in completed_steps if s not in (19, 20) or is_step_complete(proposal, s)
+    } | {
+        s for s in (19, 20) if s in skipped_steps and is_step_complete(proposal, s)
+    }
 
-    if not all_required_steps.issubset(completed_steps):
+    if not all_required_steps.issubset(satisfied_steps):
         messages.error(request, "Please complete all required steps before submitting.")
         return redirect("proposal_wizard", proposal_id=proposal.id, step=proposal.current_step)
 

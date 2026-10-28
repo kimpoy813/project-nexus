@@ -70,13 +70,16 @@
     <form method="POST" enctype="multipart/form-data" class="px-6 pb-6 pt-4 space-y-8">
         {% csrf_token %}
 
-        {% if requires_certificate %}
+        {% if requires_certificate or not is_edit_mode and proposal.certificate_of_completion_file %}
         <div class="rounded-2xl border border-gray-200 p-5">
             <label for="certificate_of_completion_file" class="block text-sm font-semibold text-gray-900 mb-2">
-                Certificate of Completion File
+                {{ step_fields.certificate_of_completion_file.label|default:"Certificate of Completion File" }}
+                {% if is_edit_mode and not certificate_required %}
+                <span class="text-xs font-normal text-gray-500">(Optional)</span>
+                {% endif %}
             </label>
             <p class="text-xs text-gray-500 mb-3">
-                This file is required for research-based proposals.
+                {{ step_fields.certificate_of_completion_file.help_text|default:"This file is required for Research-based (Faculty) proposals." }}
             </p>
 
             {% if is_edit_mode %}
@@ -90,10 +93,7 @@
             {% if proposal.certificate_of_completion_file %}
             <div class="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
                 <p class="text-xs text-gray-500">
-
-    {% include "services/wizard/_dynamic_fields.html" %}
-
-{% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
+                    {% if is_edit_mode %}Uploaded file{% else %}Preview file{% endif %}
                 </p>
                 <a href="{% url 'proposal_file_preview' proposal.id 'certificate' %}" target="_blank" class="mt-1 block text-sm text-primary underline break-all">
                     {{ proposal.certificate_of_completion_file.name|cut:"proposal_files/certificates_of_completion/" }}
@@ -111,11 +111,13 @@
                 Not required for your proposal type
             </p>
             <p class="text-sm text-blue-700 mt-1">
-                This step is only required for Research-based proposals.
-                You may skip it using the button below.
+                This step is only required for Research-based (Faculty) proposals.
+                You may skip or continue using the buttons below.
             </p>
         </div>
         {% endif %}
+
+        {% include "services/wizard/_dynamic_fields.html" %}
 
         {% if is_edit_mode %}
         <div class="flex flex-col sm:flex-row gap-2 pt-2">
