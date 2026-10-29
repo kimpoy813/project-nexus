@@ -885,39 +885,18 @@ class SystemProfileTests(TestCase):
             list(SitePage.get_for("about").sections.values_list("layout", flat=True)),
         )
 
-    def test_about_page_renders_architecture_lifecycle_and_role_visualizations(self):
-        import html as html_lib
-        from details.system_profile import (
-            ARCHITECTURE_LAYERS,
-            LIFECYCLE_PIPELINE,
-            ROLE_ECOSYSTEM,
-        )
+    def test_about_uses_shared_public_page_layout_and_workflow_rings(self):
+        from details.system_profile import workflow_phases_overview
 
         response = self.client.get(self.about_url)
-        html = html_lib.unescape(response.content.decode())
-        self.assertIn('id="lifecycle-visual"', html)
-        self.assertIn('id="architecture"', html)
-        self.assertIn('id="roles-ecosystem"', html)
-        self.assertIn("nx-weight-bar", html)
-        self.assertGreaterEqual(html.count("<svg"), 4)
+        self.assertTemplateUsed(response, "details/content_page.html")
+        html = response.content.decode()
+        self.assertIn("nx-page nx-page--measure", html)
+        self.assertIn("nx-ring", html)
 
-        for layer in ARCHITECTURE_LAYERS:
-            with self.subTest(layer=layer["name"]):
-                self.assertIn(layer["name"], html)
-        for node in LIFECYCLE_PIPELINE:
-            with self.subTest(pipeline_step=node["title"]):
-                self.assertIn(node["title"], html)
-        for role in ROLE_ECOSYSTEM:
-            with self.subTest(role=role["name"]):
-                self.assertIn(role["name"], html)
-
-    def test_about_page_live_metrics_reflect_published_programs(self):
-        make_proposal(title="LIVE-METRIC-PROGRAM")
-        from details.system_profile import live_metrics
-
-        metrics = live_metrics()
-        self.assertGreaterEqual(metrics["published_programs"], 1)
-        self.assertEqual(metrics["roles_count"], 7)
-        response = self.client.get(self.about_url)
-        self.assertContains(response, "Directory programs")
+        phases, _ = workflow_phases_overview()
+        for phase in phases:
+            with self.subTest(phase=phase["key"]):
+                self.assertIn(phase["label"], html)
+                self.assertIn(f"nx-ring--{phase['key']}", html)
 

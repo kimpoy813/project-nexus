@@ -219,15 +219,16 @@ class HelpPageTests(TestCase):
             with self.subTest(implementation_status=value):
                 self.assertIn(label.split(" & ")[0], html)
 
-    def test_the_help_page_includes_visual_diagrams_conditional_uploads_and_searchable_faq(self):
+    def test_the_help_page_includes_workflow_rings_conditional_uploads_and_faq(self):
         import html as html_lib
         from details.system_profile import CONDITIONAL_UPLOAD_MATRIX, HELP_FAQS
 
         html = html_lib.unescape(self.client.get(reverse("help_page")).content.decode())
+        self.assertIn("nx-page nx-page--measure", html)
+        self.assertIn("sticky top-20 z-40", html)
+        self.assertIn("nx-ring", html)
         self.assertIn('id="faq"', html)
-        self.assertIn('id="help-faq-search"', html)
         self.assertIn("data-faq-item", html)
-        self.assertGreaterEqual(html.count("<svg"), 3)
 
         # Conditional research upload rules match wizard behavior.
         for row in CONDITIONAL_UPLOAD_MATRIX:
@@ -236,7 +237,7 @@ class HelpPageTests(TestCase):
         self.assertIn("Complete Research", html)
         self.assertIn("Certificate of Completion", html)
 
-        # Every FAQ question is rendered as a disclosure item.
+        # Every FAQ question is rendered as a minimalist disclosure item.
         for item in HELP_FAQS:
             with self.subTest(faq=item["id"]):
                 self.assertIn(f'id="{item["id"]}"', html)

@@ -79,15 +79,8 @@ def gallery_page(request):
 
 
 def about_page(request):
-    """The Extension Office's story, system architecture, contacts, and mandate."""
-    from . import system_profile
-
-    return _render_content_page(
-        request,
-        SitePage.Slug.ABOUT,
-        template="details/about.html",
-        extra_context=system_profile.about_context(),
-    )
+    """The Extension Office's story, contacts, and mandate."""
+    return _render_content_page(request, SitePage.Slug.ABOUT)
 
 
 def program_document(request, key):
