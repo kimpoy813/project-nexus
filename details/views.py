@@ -18,11 +18,24 @@ def build_visible_blocks(page):
     return blocks
 
 
+def build_subnav_items(visible_blocks):
+    """``{"anchor": ..., "label": ...}`` dicts for anchored visible sections."""
+    return [
+        {"anchor": section.anchor, "label": section.heading}
+        for section, _data in visible_blocks
+        if section.anchor and section.heading
+    ]
+
+
 def details_page(request):
     page = SitePage.get_for(SitePage.Slug.HOME)
+    visible_blocks = build_visible_blocks(page)
+    anchored = build_subnav_items(visible_blocks)
     context = {
         'page': page,
-        'visible_blocks': build_visible_blocks(page),
+        'visible_blocks': visible_blocks,
+        'subnav_items': anchored if len(anchored) > 1 else [],
+        'subnav_aria_label': 'Home sections',
     }
 
     return render(request, 'details/details_page.html', context)
@@ -45,10 +58,30 @@ def _render_content_page(
         if not is_admin:
             raise Http404("This page is not available.")
 
+    visible_blocks = build_visible_blocks(page)
+    anchored = build_subnav_items(visible_blocks)
+    subnav_items = anchored if len(anchored) > 1 else []
+
+    if (
+        not subnav_items
+        and slug == SitePage.Slug.PROGRAMS
+        and len(visible_blocks) == 1
+        and visible_blocks[0][0].layout == "PROGRAMS"
+        and (visible_blocks[0][1] or {}).get("programs")
+    ):
+        subnav_items = [
+            {"anchor": "program-summary", "label": "Summary"},
+            {"anchor": "program-overview", "label": "Overview"},
+            {"anchor": "program-filters", "label": "Filters"},
+            {"anchor": "program-directory", "label": "Directory"},
+        ]
+
     context = {
         "page": page,
         "sections": page.visible_sections,
-        "visible_blocks": build_visible_blocks(page),
+        "visible_blocks": visible_blocks,
+        "subnav_items": subnav_items,
+        "subnav_aria_label": f"{page.title} sections",
         "is_preview": not page.is_published,
     }
     if extra_context:

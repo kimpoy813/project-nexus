@@ -5,7 +5,7 @@ Public-facing Services page.
 from django.shortcuts import render
 from details.models import SitePage
 from details.models import WorkflowPhase
-from details.views import build_visible_blocks
+from details.views import build_subnav_items, build_visible_blocks
 from ..models import Proposal
 from .constants import STEP_LABELS, TOTAL_STEPS
 
@@ -56,12 +56,23 @@ def services_home(request):
         })
 
     page = SitePage.get_for(SitePage.Slug.SERVICES)
+    visible_blocks = build_visible_blocks(page)
+
+    subnav_items = []
+    if workflow_phases:
+        subnav_items.append({"anchor": "workflow", "label": "Workflow"})
+    subnav_items.extend(build_subnav_items(visible_blocks))
+    subnav_items.append({"anchor": "proposal-wizard", "label": "Proposal checklist"})
+    subnav_items.append({"anchor": "status-lifecycle", "label": "Status tracking"})
+
     context = {
         "workflow_phases": workflow_phases,
         "workflow_weight_total": weight_total,
         "wizard_steps": STEP_LABELS,
         "total_wizard_steps": TOTAL_STEPS,
         "page": page,
-        "visible_blocks": build_visible_blocks(page),
+        "visible_blocks": visible_blocks,
+        "subnav_items": subnav_items,
+        "subnav_aria_label": "Services sections",
     }
     return render(request, "services/services_home.html", context)

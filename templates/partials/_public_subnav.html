@@ -1,0 +1,16 @@
+{% comment %}
+Shared sticky horizontal section sub-menu for public pages (Home, Services,
+Programs, Gallery).
+
+Expects ``subnav_items``: a list of ``{"anchor": "...", "label": "..."}`` dicts.
+{% endcomment %}
+{% if subnav_items %}
+<section class="nx-public-subnav bg-white border-b border-gray-100 sticky top-20 z-40">
+    <nav aria-label="{{ subnav_aria_label|default:'Page sections' }}"
+         class="nx-page py-4 flex justify-center gap-8 sm:gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
+        {% for item in subnav_items %}
+            <a href="#{{ item.anchor }}" class="hover:text-primary transition whitespace-nowrap">{{ item.label }}</a>
+        {% endfor %}
+    </nav>
+</section>
+{% endif %}

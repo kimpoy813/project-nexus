@@ -31,8 +31,8 @@ body.gallery-page-body .nexus-footer {
   border-top: 0;
 }
 
-.home-page .home-section-nav {
-  border-top: 0;
+.nx-public-subnav {
+  border-top: 0 !important;
   box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
 }
 
@@ -96,22 +96,6 @@ body.gallery-page-body .nexus-footer {
   max-width: 44ch;
   margin-inline: auto;
   font-size: 1rem;
-}
-
-.services-page .services-jump-links {
-  background: #f8faf7;
-}
-
-.services-page .services-jump-link {
-  min-height: 3.5rem;
-  border-color: rgba(15, 23, 42, .10) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
-}
-
-.services-page .services-jump-link:hover,
-.services-page .services-jump-link:focus-visible {
-  border-color: rgb(var(--nexus-primary-rgb) / .26) !important;
-  color: var(--nexus-primary);
 }
 
 .services-page .services-section {

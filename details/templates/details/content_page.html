@@ -49,23 +49,10 @@ wording on screen.
 </section>
 
 {% comment %}
-Anchor navigation, shown only when at least two sections define anchors — a
-single-section page has nothing to jump between, and the bar would just repeat
-the heading below the banner.
+Shared sticky section sub-menu — shown when the page has multiple sections (or
+in-page subsections on Programs) to jump between.
 {% endcomment %}
-{% if sections %}
-    {% with anchored=sections %}{% if anchored|length > 1 %}
-        <section class="bg-white border-b border-gray-100 sticky top-20 z-40">
-            <div class="nx-page py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
-                {% for section in anchored %}
-                    {% if section.anchor and section.heading %}
-                        <a href="#{{ section.anchor }}" class="hover:text-primary transition whitespace-nowrap">{{ section.heading }}</a>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </section>
-    {% endif %}{% endwith %}
-{% endif %}
+{% include "partials/_public_subnav.html" %}
 
 <!-- SECTIONS (shared block renderer - see details/_page_section.html) -->
 {% for section, data in visible_blocks %}

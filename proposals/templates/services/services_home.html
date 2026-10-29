@@ -48,9 +48,12 @@
         </div>
     </section>
 
+    <!-- SHARED STICKY SECTION SUB-MENU -->
+    {% include "partials/_public_subnav.html" %}
+
     <!-- WORKFLOW AT A GLANCE -->
     {% if workflow_phases %}
-    <section class="services-workflow bg-white py-12">
+    <section id="workflow" class="services-workflow scroll-mt-32 bg-white py-12">
         <div class="nx-page">
             <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
@@ -84,32 +87,6 @@
     </section>
     {% endif %}
 
-    <!-- PAGE JUMP LINKS -->
-    {% comment %}
-    Derived from the page's own blocks, so removing or reordering a block in
-    the Page Content editor moves its jump link with it. The last two entries
-    are the built-in sections below, which are not admin-managed.
-    {% endcomment %}
-    <section class="services-jump-links border-y border-gray-200">
-        <div class="nx-page py-6">
-            <nav aria-label="Services sections" class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                {% for section, data in visible_blocks %}
-                    {% if section.anchor and section.heading %}
-                    <a href="#{{ section.anchor }}" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition nx-btn nx-btn--secondary">
-                        <span class="text-xs font-bold text-primary">{{ forloop.counter|stringformat:"02d" }}</span> {{ section.heading }}
-                    </a>
-                    {% endif %}
-                {% endfor %}
-                <a href="#proposal-wizard" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition nx-btn nx-btn--secondary">
-                    <span class="text-xs font-bold text-primary">→</span> Proposal checklist
-                </a>
-                <a href="#status-lifecycle" class="services-jump-link flex items-center gap-3 rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition nx-btn nx-btn--secondary">
-                    <span class="text-xs font-bold text-primary">→</span> Status tracking
-                </a>
-            </nav>
-        </div>
-    </section>
-
     {% comment %}
     Admin-composed blocks, rendered by the shared block renderer. The process
     accordion, the Template Library, and the office forms used to be hardcoded
@@ -118,7 +95,7 @@
     {% endcomment %}
     {% for section, data in visible_blocks %}
         <section {% if section.anchor %}id="{{ section.anchor }}"{% endif %}
-                 class="services-section scroll-mt-32 py-14 {% cycle 'bg-white' 'bg-gray-50' %}">
+                 class="services-section scroll-mt-32 py-14 {% cycle 'bg-gray-50' 'bg-white' %}">
             <div class="nx-page">
                 {% include "details/_page_section.html" %}
             </div>
@@ -126,7 +103,7 @@
     {% endfor %}
 
     <!-- PROPOSAL CHECKLIST -->
-    <section id="proposal-wizard" class="services-section bg-gray-50 py-14 scroll-mt-28">
+    <section id="proposal-wizard" class="services-section bg-gray-50 py-14 scroll-mt-32">
         <div class="nx-page">
             <div class="services-section__intro">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Proposal checklist</p>
@@ -148,7 +125,7 @@
     </section>
 
     <!-- STATUS LIFECYCLE -->
-    <section id="status-lifecycle" class="services-section bg-white py-14 scroll-mt-28">
+    <section id="status-lifecycle" class="services-section bg-white py-14 scroll-mt-32">
         <div class="nx-page">
             <div class="services-section__intro">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Status tracking</p>
