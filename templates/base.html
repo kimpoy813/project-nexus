@@ -609,8 +609,6 @@
                 <a href="{% url 'services_home' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Services</a>
                 <a href="{% url 'programs_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Programs</a>
                 <a href="{% url 'gallery_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Gallery</a>
-                <a href="{% url 'about_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">About</a>
-                <a href="{% url 'help_page' %}" class="nexus-menu-link" data-nx-skeleton="marketing">Help</a>
 
                 {% if user.is_authenticated %}
                     <a href="{% url 'dashboard_redirect' %}"
@@ -747,8 +745,6 @@
                 <a href="{% url 'services_home' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Services</a>
                 <a href="{% url 'programs_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Programs</a>
                 <a href="{% url 'gallery_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Gallery</a>
-                <a href="{% url 'about_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">About</a>
-                <a href="{% url 'help_page' %}" class="nexus-menu-link w-full" data-nx-skeleton="marketing">Help</a>
                 {% if user.is_authenticated %}
                     <a href="{% url 'dashboard_redirect' %}"
                        class="nexus-menu-link is-strong w-full" data-nx-skeleton="dashboard">Dashboard</a>
@@ -816,8 +812,6 @@
                     <li><a href="{% url 'services_home' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Services</a></li>
                     <li><a href="{% url 'programs_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Programs</a></li>
                     <li><a href="{% url 'gallery_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Gallery</a></li>
-                    <li><a href="{% url 'about_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">About</a></li>
-                    <li><a href="{% url 'help_page' %}" class="hover:text-white transition" data-nx-skeleton="marketing">Help</a></li>
                     {% if user.is_authenticated %}
                         <li><a href="{% url 'dashboard_redirect' %}" class="hover:text-white transition" data-nx-skeleton="dashboard">Dashboard</a></li>
                     {% else %}

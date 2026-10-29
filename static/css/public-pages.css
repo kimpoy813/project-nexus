@@ -1,21 +1,19 @@
 /* Public page refinements.
    Keep the public entry pages calm: one institutional accent, neutral
    surfaces, and copy that is easy to scan before a user opens the detail.
-   The same treatment now covers Programs, Gallery, and About. */
+   The same treatment now covers Programs and Gallery. */
 
 body.home-page-body,
 body.services-page-body,
 body.programs-page-body,
-body.gallery-page-body,
-body.about-page-body {
+body.gallery-page-body {
   background: #f6f8f3 !important;
 }
 
 body.home-page-body .nexus-footer,
 body.services-page-body .nexus-footer,
 body.programs-page-body .nexus-footer,
-body.gallery-page-body .nexus-footer,
-body.about-page-body .nexus-footer {
+body.gallery-page-body .nexus-footer {
   background: var(--nexus-primary) !important;
 }
 
@@ -33,8 +31,8 @@ body.about-page-body .nexus-footer {
   border-top: 0;
 }
 
-.home-page .home-section-nav {
-  border-top: 0;
+.nx-public-subnav {
+  border-top: 0 !important;
   box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
 }
 
@@ -100,22 +98,6 @@ body.about-page-body .nexus-footer {
   font-size: 1rem;
 }
 
-.services-page .services-jump-links {
-  background: #f8faf7;
-}
-
-.services-page .services-jump-link {
-  min-height: 3.5rem;
-  border-color: rgba(15, 23, 42, .10) !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
-}
-
-.services-page .services-jump-link:hover,
-.services-page .services-jump-link:focus-visible {
-  border-color: rgb(var(--nexus-primary-rgb) / .26) !important;
-  color: var(--nexus-primary);
-}
-
 .services-page .services-section {
   border-top: 1px solid rgba(15, 23, 42, .07);
 }
@@ -144,13 +126,5 @@ body.about-page-body .nexus-footer {
   .services-page .services-hero__heading {
     max-width: 15ch;
   }
-}
-
-.nx-faq-item > summary::-webkit-details-marker {
-  display: none;
-}
-
-.nx-faq-item > summary::marker {
-  content: "";
 }
 

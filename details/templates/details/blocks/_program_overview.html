@@ -12,7 +12,7 @@ has no form controls and is included by the directory block.
 Context: data.facets, data.stats
 {% endcomment %}
 {% if data.stats.program_count %}
-<div class="mt-6 grid gap-4 lg:grid-cols-3">
+<div id="program-overview" class="scroll-mt-32 mt-6 grid gap-4 lg:grid-cols-3">
 
     <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-year-{{ section.id }}">
         <h3 id="programs-by-year-{{ section.id }}" class="text-sm font-semibold text-gray-900">Programs per year</h3>

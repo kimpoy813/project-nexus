@@ -53,7 +53,6 @@ PAGE_PUBLIC_URL_NAMES = {
     "services": "services_home",
     "programs": "programs_page",
     "gallery": "gallery_page",
-    "about": "about_page",
 }
 
 

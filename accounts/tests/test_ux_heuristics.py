@@ -176,72 +176,27 @@ class HeuristicsDocumentationTests(TestCase):
         self.assertIn("test_ux_heuristics.py", text)
 
 
-class HelpPageTests(TestCase):
-    """Heuristic 10: the documentation is a page, not a promise."""
+class InlineGuidanceTests(TestCase):
+    """Heuristic 10: inline guidance stays available while standalone Help/About are retired."""
 
-    def test_anyone_can_read_the_help_page(self):
-        response = self.client.get(reverse("help_page"))
-        self.assertEqual(response.status_code, 200)
+    def test_standalone_about_and_help_pages_are_retired(self):
+        self.assertEqual(self.client.get("/about/").status_code, 404)
+        self.assertEqual(self.client.get("/help/").status_code, 404)
 
-    def test_the_help_page_answers_what_the_statuses_mean(self):
-        html = self.client.get(reverse("help_page")).content.decode()
-        # One row per status a proposal can be in; the page is only useful if it
-        # agrees with the model.
-        from proposals.models import Proposal
-
-        for value, label in Proposal.ProposalStatus.choices:
-            with self.subTest(status=value):
-                self.assertIn(label.split(" / ")[0].split(" & ")[0], html)
-
-    def test_the_help_page_is_reachable_from_the_chrome(self):
+    def test_chrome_omits_retired_about_and_help_links(self):
         html = self.client.get(reverse("details_page")).content.decode()
-        self.assertIn(reverse("help_page"), html)
+        self.assertNotIn('href="/about/"', html)
+        self.assertNotIn('href="/help/"', html)
 
-    def test_the_help_page_does_not_invent_contact_details(self):
+    def test_footer_does_not_invent_contact_details(self):
         config = SiteConfiguration.get_solo()
         config.contact_email = ""
         config.facebook_url = ""
         config.save()
 
-        html = self.client.get(reverse("help_page")).content.decode()
-        # With nothing published, the page says so instead of guessing.
-        self.assertIn("have not been published", html)
+        html = self.client.get(reverse("details_page")).content.decode()
+        self.assertIn("has not been published", html)
         self.assertNotIn("mailto:@", html)
-
-    def test_the_help_page_covers_moa_and_implementation_trackers(self):
-        from proposals.models import Proposal
-
-        html = self.client.get(reverse("help_page")).content.decode()
-        for value, label in Proposal.MOAStatus.choices:
-            with self.subTest(moa_status=value):
-                self.assertIn(label.split(" & ")[0], html)
-        for value, label in Proposal.ImplementationStatus.choices:
-            with self.subTest(implementation_status=value):
-                self.assertIn(label.split(" & ")[0], html)
-
-    def test_the_help_page_includes_workflow_rings_conditional_uploads_and_faq(self):
-        import html as html_lib
-        from details.system_profile import CONDITIONAL_UPLOAD_MATRIX, HELP_FAQS
-
-        html = html_lib.unescape(self.client.get(reverse("help_page")).content.decode())
-        self.assertIn("nx-page nx-page--measure", html)
-        self.assertIn("sticky top-20 z-40", html)
-        self.assertIn("nx-ring", html)
-        self.assertIn('id="faq"', html)
-        self.assertIn("data-faq-item", html)
-
-        # Conditional research upload rules match wizard behavior.
-        for row in CONDITIONAL_UPLOAD_MATRIX:
-            with self.subTest(classification=row["code"]):
-                self.assertIn(row["classification"], html)
-        self.assertIn("Complete Research", html)
-        self.assertIn("Certificate of Completion", html)
-
-        # Every FAQ question is rendered as a minimalist disclosure item.
-        for item in HELP_FAQS:
-            with self.subTest(faq=item["id"]):
-                self.assertIn(f'id="{item["id"]}"', html)
-                self.assertIn(item["question"], html)
 
 
 class AccessibilityBasicsTests(TestCase):

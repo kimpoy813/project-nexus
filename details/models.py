@@ -788,7 +788,6 @@ class SitePage(models.Model):
         SERVICES = "services", "Services"
         PROGRAMS = "programs", "Programs"
         GALLERY = "gallery", "Gallery"
-        ABOUT = "about", "About"
 
     slug = models.SlugField(max_length=40, unique=True, choices=Slug.choices)
     title = models.CharField(max_length=150)

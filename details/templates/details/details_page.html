@@ -29,18 +29,8 @@
     </div>
 </section>
 
-<!-- Section Navigation (derived dynamically from visible anchored sections) -->
-{% if visible_blocks %}
-<section class="home-section-nav bg-white border-b border-gray-100 sticky top-20 z-40">
-    <div class="nx-page py-4 flex justify-center gap-10 text-sm font-medium text-gray-600 overflow-x-auto">
-        {% for section, data in visible_blocks %}
-            {% if section.anchor and section.heading %}
-                <a href="#{{ section.anchor }}" class="hover:text-primary transition whitespace-nowrap">{{ section.heading }}</a>
-            {% endif %}
-        {% endfor %}
-    </div>
-</section>
-{% endif %}
+<!-- Section Navigation (shared sticky bar across public pages) -->
+{% include "partials/_public_subnav.html" %}
 
 <!-- SECTIONS (fully admin-managed via Page Content) -->
 {% for section, data in visible_blocks %}
