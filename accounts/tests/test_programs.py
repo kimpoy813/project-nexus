@@ -110,12 +110,12 @@ def hero_heading(response):
 
 
 class SeededPageTests(TestCase):
-    """The migration replaces Reports/Achievements with the three new pages."""
+    """The migration replaces Reports/Achievements with Programs and Gallery."""
 
-    def test_the_five_public_pages_are_seeded(self):
+    def test_the_four_public_pages_are_seeded(self):
         self.assertEqual(
             set(SitePage.objects.values_list("slug", flat=True)),
-            {"home", "services", "programs", "gallery", "about"},
+            {"home", "services", "programs", "gallery"},
         )
 
     def test_each_directory_page_holds_only_its_own_block(self):
@@ -136,15 +136,8 @@ class SeededPageTests(TestCase):
             ["GALLERY"],
         )
 
-    def test_about_is_about_the_system(self):
-        page = SitePage.get_for("about")
-        self.assertEqual(
-            list(page.sections.values_list("layout", flat=True)),
-            ["RICH_TEXT", "SYSTEM_PROFILE", "RICH_TEXT", "CTA"],
-        )
-
     def test_the_new_pages_render(self):
-        for name in ("programs_page", "gallery_page", "about_page"):
+        for name in ("programs_page", "gallery_page"):
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 200)
 
@@ -157,14 +150,14 @@ class SeededPageTests(TestCase):
         )
 
     def test_unpublished_pages_stay_hidden_from_visitors(self):
-        page = SitePage.get_for("about")
+        page = SitePage.get_for("gallery")
         page.is_published = False
         page.save()
 
-        self.assertEqual(self.client.get(reverse("about_page")).status_code, 404)
+        self.assertEqual(self.client.get(reverse("gallery_page")).status_code, 404)
 
-        admin = factories.make_user("about_admin", Profile.ROLE_ADMIN)
-        response = factories.make_client(admin).get(reverse("about_page"))
+        admin = factories.make_user("gallery_admin", Profile.ROLE_ADMIN)
+        response = factories.make_client(admin).get(reverse("gallery_page"))
         self.assertEqual(response.status_code, 200)
 
 
@@ -418,20 +411,22 @@ class GalleryTests(TestCase):
 
 
 class NavigationTests(TestCase):
-    """The public menu offers the new pages and no longer the old ones."""
+    """The public menu offers the active pages and omits retired ones."""
 
     def test_the_navbar_links_to_the_new_pages(self):
         html = self.client.get("/").content.decode()
-        for name in ("programs_page", "gallery_page", "about_page"):
+        for name in ("programs_page", "gallery_page"):
             with self.subTest(name=name):
                 self.assertIn(reverse(name), html)
 
-    def test_the_old_pages_are_no_longer_linked(self):
+    def test_the_old_and_retired_pages_are_no_longer_linked(self):
         html = self.client.get("/").content.decode()
         self.assertNotIn(">Reports</a>", html)
         self.assertNotIn(">Achievements</a>", html)
         self.assertNotIn('href="/reports/"', html)
         self.assertNotIn('href="/achievements/"', html)
+        self.assertNotIn('href="/about/"', html)
+        self.assertNotIn('href="/help/"', html)
 
     def test_the_admin_dashboard_offers_the_new_builders(self):
         admin = factories.make_user("nav_admin", Profile.ROLE_ADMIN)
@@ -439,10 +434,11 @@ class NavigationTests(TestCase):
         for name in ("programs_list", "gallery_photos_list"):
             with self.subTest(name=name):
                 self.assertContains(response, reverse(name))
-        # The five editable pages are all offered.
-        for slug in ("home", "services", "programs", "gallery", "about"):
+        # The four active editable pages are offered, without About.
+        for slug in ("home", "services", "programs", "gallery"):
             with self.subTest(slug=slug):
                 self.assertContains(response, reverse("page_content_edit", args=[slug]))
+        self.assertNotContains(response, "/dashboard/admin/pages/about/")
 
 
 class ProgramsCmsTests(TestCase):
@@ -473,11 +469,11 @@ class ProgramsCmsTests(TestCase):
 
     def test_the_directory_can_be_dropped_onto_another_page(self):
         self.client_admin.post(
-            reverse("page_section_add_source", args=["about"]), {"source": "PROGRAMS"}
+            reverse("page_section_add_source", args=["gallery"]), {"source": "PROGRAMS"}
         )
         make_proposal(title="CROSS-PAGE-MARKER")
         self.assertContains(
-            self.client.get(reverse("about_page")), "CROSS-PAGE-MARKER"
+            self.client.get(reverse("gallery_page")), "CROSS-PAGE-MARKER"
         )
 
 
@@ -724,12 +720,12 @@ class PageHeroTests(TestCase):
     def test_saving_the_title_as_the_heading_keeps_it_following_the_title(self):
         """Typing the title into the hero field must not freeze the banner."""
         self.client_admin.post(
-            reverse("page_content_edit", args=["about"]),
-            {"title": "About us", "hero_heading": "about us", "is_published": "on"},
+            reverse("page_content_edit", args=["gallery"]),
+            {"title": "Program Gallery", "hero_heading": "program gallery", "is_published": "on"},
         )
-        page = SitePage.get_for("about")
+        page = SitePage.get_for("gallery")
         self.assertEqual(page.hero_heading, "")
-        self.assertEqual(page.hero_title, "About us")
+        self.assertEqual(page.hero_title, "Program Gallery")
 
     def test_the_editor_explains_the_fallback(self):
         response = self.client_admin.get(reverse("page_content_edit", args=["programs"]))
@@ -737,11 +733,7 @@ class PageHeroTests(TestCase):
 
 
 class CampusesBlockTests(TestCase):
-    """The Campuses block lists the campuses the institution actually records.
-
-    It no longer ships on About (that page is about the system), but it stays a
-    registered builder the office can drop onto any page.
-    """
+    """The Campuses block lists the campuses the institution actually records."""
 
     def setUp(self):
         Campus.objects.get_or_create(name="Main")
@@ -749,14 +741,14 @@ class CampusesBlockTests(TestCase):
         Campus.objects.get_or_create(name="Candon")
         # Place the block the way an admin would, from the page palette.
         self.section = PageSection.objects.create(
-            page=SitePage.get_for("about"),
+            page=SitePage.get_for("gallery"),
             layout=PageSection.Layout.CAMPUSES,
             heading="Campuses we serve",
             order=9,
         )
 
     def test_the_page_lists_every_campus(self):
-        response = self.client.get(reverse("about_page"))
+        response = self.client.get(reverse("gallery_page"))
         for name in ("Main Campus", "Sta Maria Campus", "Candon Campus"):
             with self.subTest(name=name):
                 self.assertContains(response, name)
@@ -784,119 +776,30 @@ class CampusesBlockTests(TestCase):
         self.assertEqual(source.block_template, "details/blocks/campuses.html")
 
 
-class AboutPageTests(TestCase):
-    """About is a real page: what the office does, where, and how to reach it."""
+class RetiredAboutAndHelpTests(TestCase):
+    """About and Help are retired for now; content sources remain intact."""
 
-    def setUp(self):
-        self.about_url = reverse("about_page")
-
-    def test_it_explains_what_the_office_does(self):
-        response = self.client.get(self.about_url)
-        self.assertContains(response, "About the Extension Office")
-        self.assertContains(response, "Networked Extension Unified System")
-
-    def test_it_links_to_the_workflow_pages(self):
-        response = self.client.get(self.about_url)
-        self.assertContains(response, 'href="/programs/"')
-        self.assertContains(response, 'href="/gallery/"')
-        self.assertContains(response, 'href="/proposals/"')
-
-    def test_every_internal_link_on_the_page_resolves(self):
-        """A hand-written link in About copy must not point at a dead URL."""
-        html = self.client.get(self.about_url).content.decode()
-        internal = {
-            href
-            for href in re.findall(r'href="([^"]+)"', html)
-            if href.startswith("/")
-            and not href.startswith("//")
-            and not href.startswith("/static/")
-        }
-        self.assertTrue(internal)
-        for href in sorted(internal):
-            with self.subTest(href=href):
-                self.assertEqual(self.client.get(href).status_code, 200)
-
-    def test_it_offers_a_way_to_contact_the_office(self):
-        self.assertContains(self.client.get(self.about_url), "mailto:")
+    def test_about_and_help_urls_return_404(self):
+        self.assertEqual(self.client.get("/about/").status_code, 404)
+        self.assertEqual(self.client.get("/help/").status_code, 404)
 
     def test_the_anchor_bar_only_appears_when_there_is_something_to_jump_between(self):
-        # About has four sections, so the bar is useful there.
-        self.assertContains(self.client.get(self.about_url), 'href="#about-nexus"')
+        gallery = SitePage.get_for("gallery")
+        PageSection.objects.create(
+            page=gallery,
+            layout=PageSection.Layout.RICH_TEXT,
+            heading="Field notes",
+            anchor="field-notes",
+            body="<p>Notes</p>",
+            order=9,
+        )
+        # Gallery with two sections renders the anchor bar.
+        self.assertContains(self.client.get(reverse("gallery_page")), 'href="#field-notes"')
         # Programs has one; a bar repeating the banner would be noise.
         self.assertNotContains(self.client.get(reverse("programs_page")), 'href="#all-programs"')
 
-
-class SystemProfileTests(TestCase):
-    """About answers "what is this system, and who built it"."""
-
-    def setUp(self):
-        self.about_url = reverse("about_page")
-
-    def test_it_names_the_developer(self):
-        from details.system_profile import DEVELOPER
-
-        self.assertTrue(DEVELOPER["name"])
-        self.assertContains(self.client.get(self.about_url), DEVELOPER["name"])
-
-    def test_it_says_who_the_system_was_built_for(self):
-        from details.system_profile import INSTITUTION, OFFICE
-
-        response = self.client.get(self.about_url)
-        self.assertContains(response, OFFICE)
-        self.assertContains(response, INSTITUTION)
-
-    def test_it_lists_the_technology_it_runs_on(self):
-        from details.system_profile import STACK
-
-        response = self.client.get(self.about_url)
-        self.assertContains(response, "Built with")
-        for _label, value in STACK:
-            with self.subTest(value=value):
-                # The first token is enough to prove the row rendered.
-                self.assertContains(response, value.split("(")[0].strip().split(" ")[0])
-
-    def test_it_describes_the_capabilities_without_promising_future_work(self):
-        response = self.client.get(self.about_url)
-        self.assertContains(response, "What NExUS does")
-        for phrase in ("Proposal writing", "Review and approval", "Implementation tracking",
-                       "Accomplishment reporting", "Public pages"):
-            with self.subTest(phrase=phrase):
-                self.assertContains(response, phrase)
-        self.assertNotIn("coming soon", response.content.decode().lower())
-
-    def test_the_contact_address_comes_from_the_site_configuration(self):
-        from accounts.models import SiteConfiguration
-
-        config = SiteConfiguration.get_solo()
-        config.contact_email = "helpdesk@example.edu"
-        config.save()
-        self.assertContains(self.client.get(self.about_url), "helpdesk@example.edu")
-
-    def test_the_profile_block_is_a_registered_content_source(self):
+    def test_the_profile_block_stays_a_registered_content_source(self):
         source = get_content_source("SYSTEM_PROFILE")
         self.assertIsNotNone(source)
         self.assertEqual(source.block_template, "details/blocks/system_profile.html")
-
-    def test_the_campuses_block_is_still_available_to_the_page_editor(self):
-        source = get_content_source("CAMPUSES")
-        self.assertIsNotNone(source)
-        self.assertNotIn(
-            "CAMPUSES",
-            list(SitePage.get_for("about").sections.values_list("layout", flat=True)),
-        )
-
-    def test_about_uses_shared_public_page_layout_and_workflow_rings(self):
-        from details.system_profile import workflow_phases_overview
-
-        response = self.client.get(self.about_url)
-        self.assertTemplateUsed(response, "details/content_page.html")
-        html = response.content.decode()
-        self.assertIn("nx-page nx-page--measure", html)
-        self.assertIn("nx-ring", html)
-
-        phases, _ = workflow_phases_overview()
-        for phase in phases:
-            with self.subTest(phase=phase["key"]):
-                self.assertIn(phase["label"], html)
-                self.assertIn(f"nx-ring--{phase['key']}", html)
 

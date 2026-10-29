@@ -36,7 +36,7 @@ the rail shows position, but a step that takes a while shows only the button.
 | Was | Now |
 |---|---|
 | The database's words surfaced on screen: "Status: SUBMITTED_FOR_REVIEW" style labels, approval codes, and record IDs next to human titles. | List and detail screens use the label, not the code (`get_status_display()` and friends); the wizard, trackers and review screens address the user in the vocabulary the Extension Office uses — proposal, MOA, terminal report, monitoring. |
-| The new Help page describes the workflow in the order work actually happens. | `/help/` walks through Drafting → Submitted for Review → … → Completed in plain sentences and says who acts at each step. It mirrors `ProposalStatus`, so a status rename has to update the page in the same commit. |
+| Workflow overview pages used internal jargon without matching actual sequence. | Services presents the three workflow phases (Proposal, MOA, Implementation) and wizard steps in plain sentences in the exact order work happens. |
 | "Login" / "Logout" | "Sign in" / "Sign out" — the words on the button now match the words in the page title and the side panel, which already said "Sign in". |
 
 ## 3. User control and freedom
@@ -158,8 +158,6 @@ Not done: no keyboard shortcuts, no saved views.
   (its own `<ul id="password-rules">` and its own inline script) is gone;
   there is one rules list, rendered by the shared script, and a `<noscript>`
   line states the rules when JavaScript is off.
-- Help content lives on `/help/`, linked from the header and footer, rather than
-  as paragraphs competing with the form.
 
 ## 9. Help users recognise, diagnose and recover from errors
 
@@ -177,24 +175,19 @@ Not done: no keyboard shortcuts, no saved views.
 - Failure to send a reset email says so on the page and suggests trying again,
   rather than failing silently.
 - Sign-in failures never disclose whether an address exists — "Invalid
-  username/email or password" is deliberate. The Help page explains why the reset
-  form behaves the same way.
+  username/email or password" is deliberate.
 
 ## 10. Help and documentation
 
 *Even though it is better if the system needs no documentation, it may be necessary to provide help.*
 
-- **`/help/` is new.** It answers, in this order: how to get in, what every
-  proposal status means, where Programs and Gallery content comes from, what the
-  password rules are, and what to do when something is wrong. It is linked from
-  the header (desktop and mobile) and the footer.
-- It is written in the template, not stored in the CMS, on purpose: it describes
-  the system's own rules, which live in code. Site Configuration still supplies
-  the contact details, and when none are published the page says so rather than
-  inventing an address.
-- The form that needs it most links to the rules it enforces, and the password
-  field shows them inline — the help is where the question arises, not only on a
-  separate page.
+- Guidance is embedded directly where questions arise rather than behind separate
+  `/about/` or `/help/` pages: Services outlines the extension workflow phases
+  and wizard steps, registration and password forms display inline rule
+  checklists, and Site Configuration controls published contact details without
+  inventing addresses when none are set.
+- Every wizard step and form field carries concise contextual help text right
+  beside the input it governs.
 
 ## Verification
 
@@ -203,9 +196,9 @@ Held down by tests rather than by this document:
 - `accounts/tests/test_ux_heuristics.py` — the reveal toggle is loaded on every
   page, password widgets carry the rules/match attributes, no template keeps its
   own rules list, failed sign-in and registration render a focusable summary
-  with linked entries, forms declare their busy state, `/help/` exists and
-  documents all ten heuristics, the skip link and brand label work, and the
-  debug sign-in page is 404.
+  with linked entries, forms declare their busy state, this audit documents all
+  ten heuristics, the skip link and brand label work, and the debug sign-in page
+  is 404.
 - `tests/nexus-password.test.cjs` (9 tests) — the toggle, the rules checklist,
   the match hint and Caps Lock behaviour.
 - `tests/nexus-forms.test.cjs` (15 tests) — error-summary focus, busy buttons,

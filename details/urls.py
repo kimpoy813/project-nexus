@@ -2,10 +2,8 @@ from django.urls import path
 from django.views.generic import RedirectView
 
 from .views import (
-    about_page,
     details_page,
     gallery_page,
-    help_page,
     program_document,
     programs_page,
 )
@@ -14,8 +12,6 @@ urlpatterns = [
     path('', details_page, name='details_page'),
     path('programs/', programs_page, name='programs_page'),
     path('gallery/', gallery_page, name='gallery_page'),
-    path('about/', about_page, name='about_page'),
-    path('help/', help_page, name='help_page'),
     # The document behind a Programs directory entry (approved proposal or
     # legacy upload). Opaque key, resolved by details.program_directory.
     path(

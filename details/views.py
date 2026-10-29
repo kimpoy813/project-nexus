@@ -28,17 +28,6 @@ def details_page(request):
     return render(request, 'details/details_page.html', context)
 
 
-def help_page(request):
-    """The written help: how the workflow, documents, account rules, and FAQs work.
-
-    Deliberately a template backed by live model choices and institutional
-    contact details from Site Configuration — see ``details/system_profile.py``.
-    """
-    from . import system_profile
-
-    return render(request, "details/help.html", system_profile.help_context())
-
-
 def _render_content_page(
     request, slug, template="details/content_page.html", extra_context=None
 ):
@@ -78,11 +67,6 @@ def gallery_page(request):
     return _render_content_page(request, SitePage.Slug.GALLERY)
 
 
-def about_page(request):
-    """The Extension Office's story, contacts, and mandate."""
-    return _render_content_page(request, SitePage.Slug.ABOUT)
-
-
 def program_document(request, key):
     """Serve the document behind one Programs directory entry.
 
@@ -91,7 +75,7 @@ def program_document(request, key):
     directory links here instead of asking the office to re-upload it.
 
     ``key`` is an opaque entry id (see ``details.program_directory``), not a
-    storage path, and only entries the directory publishes resolve at all: a
+    storage path, and only entries the directory publishes at all resolve: a
     draft's signed document 404s. Files are streamed through Django so the
     active storage backend (local media or Supabase) behaves the same.
     """

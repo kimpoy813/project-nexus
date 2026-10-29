@@ -31,10 +31,10 @@ DENIED = (302, 403)
 class SeedDataTests(TestCase):
     """Migrations seed the previously hardcoded copy verbatim."""
 
-    def test_all_five_editable_pages_exist(self):
+    def test_all_four_editable_pages_exist(self):
         slugs = set(SitePage.objects.values_list("slug", flat=True))
         self.assertEqual(
-            slugs, {"home", "services", "programs", "gallery", "about"}
+            slugs, {"home", "services", "programs", "gallery"}
         )
 
     def test_home_thrust_cards_are_seeded(self):
@@ -65,9 +65,14 @@ class PublicPageTests(TestCase):
     """The four public pages render, including the two that used to 404."""
 
     def test_every_public_page_returns_200(self):
-        for url in ["/", "/programs/", "/gallery/", "/about/", "/proposals/"]:
+        for url in ["/", "/programs/", "/gallery/", "/proposals/"]:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_retired_about_and_help_pages_return_404(self):
+        for url in ["/about/", "/help/"]:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 404)
 
     def test_programs_and_gallery_are_routed(self):
         """Regression guard: these were linked in the navbar but had no routes."""

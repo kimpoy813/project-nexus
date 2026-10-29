@@ -1,21 +1,19 @@
 /* Public page refinements.
    Keep the public entry pages calm: one institutional accent, neutral
    surfaces, and copy that is easy to scan before a user opens the detail.
-   The same treatment now covers Programs, Gallery, and About. */
+   The same treatment now covers Programs and Gallery. */
 
 body.home-page-body,
 body.services-page-body,
 body.programs-page-body,
-body.gallery-page-body,
-body.about-page-body {
+body.gallery-page-body {
   background: #f6f8f3 !important;
 }
 
 body.home-page-body .nexus-footer,
 body.services-page-body .nexus-footer,
 body.programs-page-body .nexus-footer,
-body.gallery-page-body .nexus-footer,
-body.about-page-body .nexus-footer {
+body.gallery-page-body .nexus-footer {
   background: var(--nexus-primary) !important;
 }
 
@@ -144,13 +142,5 @@ body.about-page-body .nexus-footer {
   .services-page .services-hero__heading {
     max-width: 15ch;
   }
-}
-
-.nx-faq-item > summary::-webkit-details-marker {
-  display: none;
-}
-
-.nx-faq-item > summary::marker {
-  content: "";
 }
 

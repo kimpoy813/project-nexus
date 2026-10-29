@@ -61,7 +61,7 @@ class FluidContainerAssertions:
 
 
 class PublicPageLayoutTests(FluidContainerAssertions, TestCase):
-    """Anonymous pages: home, services, programs, gallery, about."""
+    """Anonymous pages: home, services, programs, gallery."""
 
     def test_public_pages_use_the_fluid_container(self):
         urls = ("/", reverse("services_home"), reverse("programs_page"), reverse("gallery_page"))

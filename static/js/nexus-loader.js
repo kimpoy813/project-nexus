@@ -145,7 +145,7 @@
         if (p === "/logout" || p === "/logout-idle") return "auth";
 
         if (
-            p === "/" || p === "/programs" || p === "/gallery" || p === "/about" || p === "/help"
+            p === "/" || p === "/programs" || p === "/gallery"
             || p === "/reports" || p === "/achievements" || p === "/proposals"
         ) {
             return "marketing";
