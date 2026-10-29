@@ -208,6 +208,40 @@ class HelpPageTests(TestCase):
         self.assertIn("have not been published", html)
         self.assertNotIn("mailto:@", html)
 
+    def test_the_help_page_covers_moa_and_implementation_trackers(self):
+        from proposals.models import Proposal
+
+        html = self.client.get(reverse("help_page")).content.decode()
+        for value, label in Proposal.MOAStatus.choices:
+            with self.subTest(moa_status=value):
+                self.assertIn(label.split(" & ")[0], html)
+        for value, label in Proposal.ImplementationStatus.choices:
+            with self.subTest(implementation_status=value):
+                self.assertIn(label.split(" & ")[0], html)
+
+    def test_the_help_page_includes_visual_diagrams_conditional_uploads_and_searchable_faq(self):
+        import html as html_lib
+        from details.system_profile import CONDITIONAL_UPLOAD_MATRIX, HELP_FAQS
+
+        html = html_lib.unescape(self.client.get(reverse("help_page")).content.decode())
+        self.assertIn('id="faq"', html)
+        self.assertIn('id="help-faq-search"', html)
+        self.assertIn("data-faq-item", html)
+        self.assertGreaterEqual(html.count("<svg"), 3)
+
+        # Conditional research upload rules match wizard behavior.
+        for row in CONDITIONAL_UPLOAD_MATRIX:
+            with self.subTest(classification=row["code"]):
+                self.assertIn(row["classification"], html)
+        self.assertIn("Complete Research", html)
+        self.assertIn("Certificate of Completion", html)
+
+        # Every FAQ question is rendered as a disclosure item.
+        for item in HELP_FAQS:
+            with self.subTest(faq=item["id"]):
+                self.assertIn(f'id="{item["id"]}"', html)
+                self.assertIn(item["question"], html)
+
 
 class AccessibilityBasicsTests(TestCase):
     """Cross-cutting checks that support several heuristics at once."""

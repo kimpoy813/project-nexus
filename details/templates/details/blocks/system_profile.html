@@ -1,52 +1,178 @@
 {% comment %}
 Block: System profile (source key SYSTEM_PROFILE).
 
-Answers "what is this system, and who built it". The values come from
-``details.system_profile`` so the developer credit, the office, and the stack
-are written once — updating that module updates every page that shows this
-block.
-
-The site footer already carries the copyright line, so this block does not
-repeat it; it names the office the system was built for instead.
+Answers "what is this system, and who built it" with live platform footprint
+metrics, system identity & authorship, institutional mandate, and the full
+technology stack matrix.
 
 Context: section, data.profile
 {% endcomment %}
 {% include "details/blocks/_heading.html" %}
 
-<div class="mt-10">
-    <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Developed by</dt>
-            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ data.profile.developer.name }}</dd>
-            <dd class="mt-1 text-sm text-gray-600">{{ data.profile.developer.role }}</dd>
+{% with p=data.profile|default:data %}
+<div class="mt-8 space-y-6">
+    {# Live platform footprint strip #}
+    {% if p.metrics %}
+    <div class="nx-sys-metric-strip" role="list" aria-label="Platform figures at a glance">
+        <div class="nx-sys-metric-tile" role="listitem">
+            <span class="nx-sys-metric-icon" aria-hidden="true">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </span>
+            <div>
+                <p class="nx-sys-metric-value">{{ p.metrics.wizard_steps }}</p>
+                <p class="nx-sys-metric-label">Guided wizard steps</p>
+            </div>
         </div>
-
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Built for</dt>
-            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ data.profile.office }}</dd>
-            <dd class="mt-1 text-sm text-gray-600">{{ data.profile.institution }}</dd>
+        <div class="nx-sys-metric-tile" role="listitem">
+            <span class="nx-sys-metric-icon nx-sys-metric-icon--maroon" aria-hidden="true">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h4v4H4V6zm6 6h4v4h-4v-4zm6 6h4v4h-4v-4zM8 8h4v4m2 2h4v4"/></svg>
+            </span>
+            <div>
+                <p class="nx-sys-metric-value">{{ p.metrics.phases_count }}</p>
+                <p class="nx-sys-metric-label">Weighted trackers</p>
+            </div>
         </div>
-
-        <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel sm:col-span-2">
-            <dt class="text-xs font-semibold uppercase tracking-wide text-gray-400">Built with</dt>
-            <dd class="mt-2">
-                <ul class="space-y-1 text-sm text-gray-600">
-                    {% for item in data.profile.stack %}
-                    <li>
-                        <span class="font-medium text-gray-800">{{ item.label }}:</span> {{ item.value }}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </dd>
+        <div class="nx-sys-metric-tile" role="listitem">
+            <span class="nx-sys-metric-icon nx-sys-metric-icon--gold" aria-hidden="true">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </span>
+            <div>
+                <p class="nx-sys-metric-value">{{ p.metrics.roles_count }}</p>
+                <p class="nx-sys-metric-label">Institutional roles</p>
+            </div>
         </div>
-    </dl>
-
-    {% if data.profile.contact_email %}
-    <p class="mt-6 text-center text-sm text-gray-600">
-        Questions about the system or how to get an account?
-        <a href="mailto:{{ data.profile.contact_email }}"
-           class="font-semibold text-primary hover:underline">{{ data.profile.contact_email }}</a>
-    </p>
+        <div class="nx-sys-metric-tile" role="listitem">
+            <span class="nx-sys-metric-icon" aria-hidden="true">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+            </span>
+            <div>
+                <p class="nx-sys-metric-value">{{ p.metrics.campuses_count }}</p>
+                <p class="nx-sys-metric-label">Configured campuses</p>
+            </div>
+        </div>
+        <div class="nx-sys-metric-tile" role="listitem">
+            <span class="nx-sys-metric-icon nx-sys-metric-icon--maroon" aria-hidden="true">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            </span>
+            <div>
+                <p class="nx-sys-metric-value">{{ p.metrics.published_programs }}</p>
+                <p class="nx-sys-metric-label">Directory programs</p>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
+    {# System Identity + Institutional Mandate two-column cards #}
+    <div class="grid gap-5 lg:grid-cols-2">
+        <div class="rounded-xl border border-gray-200 bg-white p-6">
+            <div class="flex items-start gap-4">
+                <div class="shrink-0" aria-hidden="true">
+                    <svg viewBox="0 0 56 56" class="h-14 w-14" fill="none">
+                        <rect x="2" y="2" width="52" height="52" rx="14" fill="#103b07"/>
+                        <circle cx="28" cy="16" r="5" fill="#f5e587"/>
+                        <circle cx="16" cy="37" r="5" fill="#ffffff"/>
+                        <circle cx="40" cy="37" r="5" fill="#e8c31e"/>
+                        <path d="M25.5 20.3L18.5 32.7M30.5 20.3L37.5 32.7M21 37H35" stroke="#f5e587" stroke-width="2.2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-primary">System Identity &amp; Authorship</p>
+                    <h3 class="mt-1 text-lg font-bold text-gray-900">{{ p.system_name|default:p.name }} &mdash; {{ p.system_long_name|default:p.long_name }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ p.tagline }}</p>
+                </div>
+            </div>
+
+            <dl class="mt-5 grid gap-3 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                <div class="rounded-lg bg-gray-50 px-3.5 py-3">
+                    <dt class="text-xs font-semibold uppercase tracking-wider text-gray-500">Developed by</dt>
+                    <dd class="mt-1 text-sm font-bold text-gray-900">
+                        {% if p.developer.url %}
+                        <a href="{{ p.developer.url }}" target="_blank" rel="noopener noreferrer"
+                           class="text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary">
+                            {{ p.developer.name }}
+                        </a>
+                        {% else %}
+                        {{ p.developer.name }}
+                        {% endif %}
+                    </dd>
+                    {% if p.developer.role %}
+                    <dd class="mt-0.5 text-xs text-gray-600">{{ p.developer.role }}</dd>
+                    {% endif %}
+                </div>
+                <div class="rounded-lg bg-gray-50 px-3.5 py-3">
+                    <dt class="text-xs font-semibold uppercase tracking-wider text-gray-500">Architecture model</dt>
+                    <dd class="mt-1 text-sm font-bold text-gray-900">Unified Web Portal</dd>
+                    <dd class="mt-0.5 text-xs text-gray-600">Single record from proposal intake to public directory</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="rounded-xl border border-gray-200 bg-white p-6">
+            <div class="flex items-start gap-4">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary/10 text-secondary" aria-hidden="true">
+                    <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18M4 10h16M6 10v8m4-8v8m4-8v8m4-8v8M12 3l9 5H3l9-5z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-secondary">Built for &middot; About the Extension Office</p>
+                    <h3 class="mt-1 text-lg font-bold text-gray-900">{{ p.office }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ p.institution }}</p>
+                </div>
+            </div>
+
+            <div class="mt-5 border-t border-gray-100 pt-4">
+                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">Official Office Channels</p>
+                {% if p.contact_email or site_control.contact_email or site_control.facebook_url %}
+                <div class="mt-2.5 flex flex-wrap gap-2.5">
+                    {% with email=p.contact_email|default:site_control.contact_email %}
+                    {% if email %}
+                    <a href="mailto:{{ email }}"
+                       class="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3.5 py-2 text-xs font-semibold text-primary hover:bg-primary/10">
+                        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        <span>{{ email }}</span>
+                    </a>
+                    {% endif %}
+                    {% endwith %}
+                    {% if site_control.facebook_url %}
+                    <a href="{{ site_control.facebook_url }}" target="_blank" rel="noopener noreferrer"
+                       class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2 text-xs font-semibold text-gray-800 hover:border-primary/30 hover:text-primary">
+                        <svg class="h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21h3z"/></svg>
+                        <span>{{ site_control.facebook_label|default:"Official Facebook Page" }}</span>
+                        <span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="mt-2 text-xs text-gray-600">Contact channels are managed through the Admin Site Configuration panel.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Visual Technology Stack Matrix #}
+    <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-6">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wider text-primary">Technical Foundation</p>
+                <h3 class="mt-0.5 text-base font-bold text-gray-900">Built with</h3>
+            </div>
+            <p class="text-xs text-gray-500">Production stack verified from active application configuration</p>
+        </div>
+
+        <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {% for item in p.stack %}
+            <div class="rounded-lg border border-gray-200/90 bg-white p-4 shadow-sm">
+                <dt class="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                    {{ item.label }}
+                </dt>
+                <dd class="mt-2 text-sm font-bold text-gray-900">{{ item.value }}</dd>
+                {% if item.note %}
+                <dd class="mt-1 text-xs leading-relaxed text-gray-600">{{ item.note }}</dd>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </dl>
+    </div>
 </div>
+{% endwith %}

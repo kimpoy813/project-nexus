@@ -1,260 +1,764 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
-{% comment %}
-Help & how NExUS works — heuristic 10 ("help and documentation") given a home.
+{# Written help, workflow visual guide, and interactive FAQ. Kept as a code-backed #}
+{# template fed by details.system_profile.help_context so every status label,      #}
+{# phase weight, upload rule, and role capability stays synchronized with models.  #}
 
-This page is written in the template, not stored in the CMS, for one reason: it
-describes the system's own rules (statuses, roles, password requirements), which
-are facts in the code. If a rule changes in `proposals/models.py`, this text is
-wrong and has to be edited in the same commit — a database row would silently
-keep saying the old thing. Institutional copy (who to contact, opening hours)
-still comes from Site Configuration, so it stays editable.
-
-Keep every claim here true: the statuses below mirror ProposalStatus, and the
-role lines mirror Profile.is_reviewer / is_staff_or_higher.
-{% endcomment %}
-
-{% block title %}Help · {{ site_control.site_name|default:"NExUS" }}{% endblock %}
+{% block title %}Help &amp; FAQ | {{ site_control.short_name|default:"NExUS" }}{% endblock %}
 
 {% block extra_head %}
-    <link href="{% static 'css/public-pages.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/public-pages.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="relative bg-primary text-white py-24 overflow-hidden">
-    <div class="nx-page nx-page--measure text-center">
-        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 mb-4">
-            Help &amp; documentation
-        </p>
-        <h1 class="text-4xl md:text-5xl font-semibold leading-tight tracking-wide nx-page-title">
-            How NExUS works
-        </h1>
-        <p class="mt-6 text-lg text-white nx-measure mx-auto leading-relaxed">
-            What each screen expects from you, what the statuses mean, and who to ask when
-            something does not go to plan.
-        </p>
+{# Hero Banner with 3-Phase Workflow & Revision Loop SVG #}
+<section class="relative overflow-hidden bg-primary text-white border-b-4 border-gold">
+    <div class="nx-hero-grid-bg pointer-events-none absolute inset-0 opacity-25" aria-hidden="true"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div class="grid gap-10 lg:grid-cols-12 lg:items-center">
+            <div class="lg:col-span-7">
+                <p class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-accent">
+                    <span class="h-2 w-2 rounded-full bg-gold" aria-hidden="true"></span>
+                    <span>Help, Workflow Guide &amp; FAQ</span>
+                </p>
+                <h1 class="mt-4 text-3xl sm:text-4xl lg:text-[2.6rem] font-extrabold tracking-tight leading-tight">
+                    How {{ site_control.short_name|default:"NExUS" }} works
+                </h1>
+                <p class="mt-4 max-w-2xl text-base sm:text-lg text-white/85 leading-relaxed">
+                    Complete reference for creating accounts, collaborating in the {{ metrics.wizard_steps }}-step Proposal Wizard, navigating review rounds, generating Memoranda of Agreement, tracking implementation, and answering common questions.
+                </p>
+                <div class="mt-7 flex flex-wrap items-center gap-3">
+                    <a href="#faq"
+                       class="inline-flex items-center gap-2 rounded-lg bg-gold px-4 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:bg-accent transition">
+                        <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                        <span>Browse &amp; Search FAQ ({{ faqs|length }})</span>
+                    </a>
+                    <a href="#proposal-life"
+                       class="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition">
+                        <span>All 3 Phase Trackers</span>
+                    </a>
+                    <a href="#documents"
+                       class="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3.5 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10 transition">
+                        <span>Upload Rules</span>
+                    </a>
+                </div>
+            </div>
+
+            {# Visual Lifecycle & Revision Loop Schematic SVG #}
+            <div class="lg:col-span-5">
+                <div class="rounded-2xl border border-white/15 bg-black/20 p-4 sm:p-5 backdrop-blur-sm">
+                    <svg viewBox="0 0 420 250" class="w-full h-auto" role="img"
+                         aria-label="Three-phase extension workflow diagram showing Proposal, MOA, and Implementation feeding the 100 percent completion gauge, with a revision feedback loop during review">
+                        {# Top caption #}
+                        <text x="18" y="22" font-size="9.5" font-weight="700" letter-spacing="1" fill="#f5e587">END-TO-END EXTENSION TRACKER</text>
+
+                        {# Phase 01 Box #}
+                        <rect x="16" y="38" width="116" height="84" rx="12" fill="#164d0b" stroke="#f5e587" stroke-width="1.5"/>
+                        <text x="28" y="58" font-size="9" font-weight="800" fill="#f5e587">PHASE 01</text>
+                        <text x="28" y="75" font-size="12" font-weight="800" fill="#ffffff">Proposal</text>
+                        <text x="28" y="92" font-size="9" fill="rgba(255,255,255,0.82)">{{ metrics.wizard_steps }}-step wizard</text>
+                        <text x="28" y="106" font-size="9" fill="rgba(255,255,255,0.82)">Review &amp; signing</text>
+
+                        {# Arrow 1 -> 2 #}
+                        <path d="M132 80H150" stroke="#f5e587" stroke-width="2.2" stroke-linecap="round"/>
+                        <polygon points="152,80 145,76 145,84" fill="#f5e587"/>
+
+                        {# Phase 02 Box #}
+                        <rect x="152" y="38" width="116" height="84" rx="12" fill="#5a1113" stroke="rgba(245,229,135,0.75)" stroke-width="1.5"/>
+                        <text x="164" y="58" font-size="9" font-weight="800" fill="#f5e587">PHASE 02</text>
+                        <text x="164" y="75" font-size="12" font-weight="800" fill="#ffffff">MOA</text>
+                        <text x="164" y="92" font-size="9" fill="rgba(255,255,255,0.82)">Guided .docx</text>
+                        <text x="164" y="106" font-size="9" fill="rgba(255,255,255,0.82)">or Not Required</text>
+
+                        {# Arrow 2 -> 3 #}
+                        <path d="M268 80H286" stroke="#f5e587" stroke-width="2.2" stroke-linecap="round"/>
+                        <polygon points="288,80 281,76 281,84" fill="#f5e587"/>
+
+                        {# Phase 03 Box #}
+                        <rect x="288" y="38" width="116" height="84" rx="12" fill="#164d0b" stroke="#e8c31e" stroke-width="1.5"/>
+                        <text x="300" y="58" font-size="9" font-weight="800" fill="#f5e587">PHASE 03</text>
+                        <text x="300" y="75" font-size="11.5" font-weight="800" fill="#ffffff">Implementation</text>
+                        <text x="300" y="92" font-size="9" fill="rgba(255,255,255,0.82)">Field delivery</text>
+                        <text x="300" y="106" font-size="9" fill="rgba(255,255,255,0.82)">Reports &amp; photos</text>
+
+                        {# Revision loop callout under Phase 01 #}
+                        <path d="M98 122 V154 H46 V126" stroke="#f5e587" stroke-width="1.6" stroke-dasharray="3 3" fill="none"/>
+                        <polygon points="46,123 42,130 50,130" fill="#f5e587"/>
+                        <rect x="16" y="160" width="186" height="72" rx="10" fill="rgba(255,255,255,0.09)" stroke="rgba(255,255,255,0.2)"/>
+                        <text x="28" y="180" font-size="9.5" font-weight="700" fill="#f5e587">Controlled Revision Loop</text>
+                        <text x="28" y="196" font-size="8.8" fill="rgba(255,255,255,0.85)">Locked while In Review &rarr;</text>
+                        <text x="28" y="210" font-size="8.8" fill="rgba(255,255,255,0.85)">Reopens on For Revision &rarr;</text>
+                        <text x="28" y="223" font-size="8.8" fill="rgba(255,255,255,0.85)">Resubmit keeps round history</text>
+
+                        {# Public output card under Phase 03 #}
+                        <path d="M346 122 V156" stroke="#e8c31e" stroke-width="2"/>
+                        <polygon points="346,159 342,152 350,152" fill="#e8c31e"/>
+                        <rect x="216" y="160" width="188" height="72" rx="10" fill="#e8c31e"/>
+                        <text x="230" y="181" font-size="10" font-weight="800" fill="#103b07">Automatic Public Sync</text>
+                        <text x="230" y="197" font-size="9" font-weight="600" fill="#1f2937">&bull; Approved &rarr; Programs Directory</text>
+                        <text x="230" y="212" font-size="9" font-weight="600" fill="#1f2937">&bull; Terminal Photos &rarr; Gallery</text>
+                        <text x="230" y="225" font-size="8.5" fill="#374151">Zero duplicate re-encoding</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
-<section class="bg-white border-b border-gray-100 sticky top-20 z-40">
-    <div class="nx-page py-4 flex justify-center gap-8 text-sm font-medium text-gray-600 overflow-x-auto">
-        <a href="#start" class="hover:text-primary transition">Getting in</a>
-        <a href="#proposal" class="hover:text-primary transition">A proposal's life</a>
-        <a href="#documents" class="hover:text-primary transition">Documents &amp; photos</a>
-        <a href="#account" class="hover:text-primary transition">Your account</a>
-        <a href="#stuck" class="hover:text-primary transition">If something is wrong</a>
+{# Sticky Section Jump Bar #}
+<nav aria-label="On this page" class="bg-white border-b border-gray-200 sticky top-16 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 overflow-x-auto py-2.5 text-xs font-medium text-gray-600">
+        <a href="#getting-in" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Getting in</a>
+        <a href="#proposal-life" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Lifecycle &amp; statuses</a>
+        <a href="#wizard-guide" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Wizard &amp; collaboration</a>
+        <a href="#documents" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Uploads &amp; documents</a>
+        <a href="#roles-dashboards" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Roles &amp; dashboards</a>
+        <a href="#accomplishments" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Quarterly reports</a>
+        <a href="#account" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Your account</a>
+        <a href="#faq" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">FAQ</a>
+        <a href="#trouble" class="px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-primary/10 hover:text-primary transition">Troubleshooting</a>
     </div>
-</section>
+</nav>
 
-<div class="nx-page nx-page--measure py-16 space-y-16">
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
 
-    <section id="start" class="scroll-mt-32">
-        <h2 class="text-2xl font-semibold text-gray-900">Getting in</h2>
-        <ol class="mt-6 space-y-4 text-gray-700 leading-relaxed list-decimal list-inside">
-            <li>
-                <strong>Register</strong> with your institutional email, campus, and — where you
-                have one — your college and department. Your campus and department decide which
-                proposals and reviews you can see, so pick them carefully; an admin can correct
-                them later.
+    {# SECTION 1: GETTING IN (Visual 4-Step Onboarding Journey) #}
+    <section id="getting-in" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-6">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-primary">Onboarding</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Getting in</h2>
+            <p class="mt-1.5 text-sm text-gray-600">
+                Public pages (<a href="{% url 'services_home' %}" class="font-medium text-primary underline">Services</a>, <a href="{% url 'programs_page' %}" class="font-medium text-primary underline">Programs</a>, <a href="{% url 'gallery_page' %}" class="font-medium text-primary underline">Gallery</a>, and <a href="{% url 'about_page' %}" class="font-medium text-primary underline">About</a>) are open to everyone. Drafting, reviewing, or managing extension records requires a verified account.
+            </p>
+        </header>
+
+        <ol class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Account onboarding steps">
+            <li class="rounded-xl border border-gray-200 bg-gray-50/70 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-extrabold text-white">01</span>
+                        <svg class="h-5 w-5 text-primary/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg>
+                    </div>
+                    <h3 class="mt-3 text-sm font-bold text-gray-900">Register an account</h3>
+                    <p class="mt-1.5 text-xs leading-relaxed text-gray-600">
+                        Open <a href="{% url 'register' %}" class="font-semibold text-primary underline">Create Account</a> and enter your name, institutional email, and password. New accounts start as <strong>Faculty</strong> so proponents can draft right away.
+                    </p>
+                </div>
+                <span class="mt-4 inline-block text-[11px] font-semibold text-gray-500">Default role: Faculty</span>
             </li>
-            <li>
-                <strong>Verify your email.</strong> The link in the message expires, and an
-                unverified account cannot sign in. If it has expired, the sign-in page tells you
-                so and you can request a new one.
+
+            <li class="rounded-xl border border-gray-200 bg-gray-50/70 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-extrabold text-white">02</span>
+                        <svg class="h-5 w-5 text-primary/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    </div>
+                    <h3 class="mt-3 text-sm font-bold text-gray-900">Verify your email</h3>
+                    <p class="mt-1.5 text-xs leading-relaxed text-gray-600">
+                        Click the one-time verification link sent to your inbox before signing in. Links expire for security; if yours expires, request a fresh one from the sign-in screen.
+                    </p>
+                </div>
+                <span class="mt-4 inline-block text-[11px] font-semibold text-gray-500">Required before first login</span>
             </li>
-            <li>
-                <strong>Sign in</strong> with either your username or your email. You land on the
-                dashboard for your role.
+
+            <li class="rounded-xl border border-gray-200 bg-gray-50/70 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-extrabold text-white">03</span>
+                        <svg class="h-5 w-5 text-primary/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15l3.5-3.5M4.93 19.07a10 10 0 1114.14 0"/></svg>
+                    </div>
+                    <h3 class="mt-3 text-sm font-bold text-gray-900">Open your workspace</h3>
+                    <p class="mt-1.5 text-xs leading-relaxed text-gray-600">
+                        <a href="{% url 'login' %}" class="font-semibold text-primary underline">Sign in</a> to land automatically on the dashboard matching your role (Faculty, Coordinator, Evaluator, Staff, Director, or Admin).
+                    </p>
+                </div>
+                <span class="mt-4 inline-block text-[11px] font-semibold text-gray-500">Role-routed dashboard</span>
+            </li>
+
+            <li class="rounded-xl border border-gray-200 bg-gray-50/70 p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-xs font-extrabold text-white">04</span>
+                        <svg class="h-5 w-5 text-secondary/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </div>
+                    <h3 class="mt-3 text-sm font-bold text-gray-900">Start or review work</h3>
+                    <p class="mt-1.5 text-xs leading-relaxed text-gray-600">
+                        Launch a new proposal from your dashboard or <a href="{% url 'services_home' %}" class="font-semibold text-primary underline">Services</a>, join a colleague's draft as co-proponent, or open assigned reviews.
+                    </p>
+                </div>
+                <span class="mt-4 inline-block text-[11px] font-semibold text-gray-500">Autosaved progress</span>
             </li>
         </ol>
-        <p class="mt-4 text-sm text-gray-600">
-            Signed in and stepped away? Idle sessions end on their own and say so on the sign-in
-            page, rather than dropping you on a blank screen.
-        </p>
     </section>
 
-    <section id="proposal" class="scroll-mt-32">
-        <h2 class="text-2xl font-semibold text-gray-900">A proposal's life</h2>
-        <p class="mt-3 text-gray-700 leading-relaxed">
-            A proposal moves through these statuses in order. Most of the time the screen you are
-            on names the next step; the tracker shows the same list as a progress rail.
-        </p>
+    {# SECTION 2: A PROPOSAL'S LIFE (All 3 Trackers + Rings + Editability Badges) #}
+    <section id="proposal-life" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-8"
+             x-data="{ activePhase: 'proposal' }">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-primary">Workflow Reference</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">A proposal's life across all three phases</h2>
+            <p class="mt-1.5 text-sm text-gray-600">
+                Every extension initiative moves through three weighted trackers: <strong>Proposal</strong>, <strong>Memorandum of Agreement (MOA)</strong>, and <strong>Implementation</strong>. Your dashboard's speedometer gauge combines the highest milestone reached in each phase.
+            </p>
+        </header>
 
-        <div class="mt-6 overflow-x-auto">
-            <table class="w-full text-sm text-left border border-gray-200 rounded-xl overflow-hidden">
-                <thead class="bg-gray-50 text-gray-700">
-                    <tr>
-                        <th scope="col" class="px-4 py-3 text-left font-semibold">Status</th>
-                        <th scope="col" class="px-4 py-3 text-left font-semibold">What it means</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 text-gray-700">
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Drafting</th>
-                        <td class="px-4 py-3 text-left">
-                            Still yours to write. You and your named collaborators can edit it;
-                            nobody else can see it.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Submitted for Review</th>
-                        <td class="px-4 py-3 text-left">
-                            Handed over. Editing locks at this point because reviewers are reading
-                            the version you submitted.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">In Review</th>
-                        <td class="px-4 py-3 text-left">
-                            Coordinators, the Director, and assigned evaluators are scoring and
-                            commenting.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Review Summary Issued</th>
-                        <td class="px-4 py-3 text-left">
-                            The comments are compiled. Read the summary before the next status.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">For Revision</th>
-                        <td class="px-4 py-3 text-left">
-                            Returned to you with comments to answer. Editing reopens, and you
-                            resubmit when the comments are addressed.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Ready to Print</th>
-                        <td class="px-4 py-3 text-left">
-                            Accepted. Generate the document in the required format and print it.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Submission &amp; Uploading</th>
-                        <td class="px-4 py-3 text-left">
-                            Submit the signed copies and upload the scanned set. Staff receive it
-                            from here.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Approved / Claiming</th>
-                        <td class="px-4 py-3 text-left">
-                            Documents are released; the proponent claims them.
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row" class="px-4 py-3 text-left font-medium whitespace-nowrap">Proposal Completed</th>
-                        <td class="px-4 py-3 text-left">
-                            Done. From here the work continues as a MOA and an implementation
-                            tracker.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        {# Interactive Phase Selector Cards with SVG Progress Rings #}
+        {% if workflow_phases %}
+        <div class="grid gap-4 md:grid-cols-3" role="tablist" aria-label="Select workflow phase">
+            {% for phase in workflow_phases %}
+            <button type="button"
+                    role="tab"
+                    :aria-selected="activePhase === '{{ phase.key }}'"
+                    @click="activePhase = '{{ phase.key }}'"
+                    :class="activePhase === '{{ phase.key }}' ? 'border-primary ring-2 ring-primary/15 bg-primary/5' : 'border-gray-200 bg-white hover:border-primary/40'"
+                    class="rounded-xl border p-4 text-left flex items-center gap-4 transition cursor-pointer">
+                {% include "services/_progress_ring.html" with percent=phase.weight_percent size=64 stroke=6 label=phase.ring_label variant="phase" %}
+                <div class="min-w-0 flex-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-primary">Phase 0{{ forloop.counter }}</span>
+                    <p class="text-base font-bold text-gray-900">{{ phase.label }}</p>
+                    <p class="mt-0.5 text-xs text-gray-600">{{ phase.weight_percent }}% weight &middot; {{ phase.statuses|length }} stages</p>
+                </div>
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# Edit vs Lock visual callout strip #}
+        <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3.5 flex items-start gap-3">
+                <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white" aria-hidden="true">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><use href="#nx-icon-lock-open"></use></svg>
+                </span>
+                <div class="text-xs leading-relaxed text-emerald-950">
+                    <p class="font-bold">When can proponents edit wizard steps?</p>
+                    <p class="mt-0.5 text-emerald-900/90">Only in <strong>Drafting</strong> and <strong>For Revision</strong>. Co-proponents can update fields, upload revised workbooks, and resubmit when ready.</p>
+                </div>
+            </div>
+            <div class="rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3.5 flex items-start gap-3">
+                <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-600 text-white" aria-hidden="true">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><use href="#nx-icon-lock-closed"></use></svg>
+                </span>
+                <div class="text-xs leading-relaxed text-amber-950">
+                    <p class="font-bold">Why do fields lock after submission?</p>
+                    <p class="mt-0.5 text-amber-900/90">During <strong>Submitted for Review</strong>, <strong>In Review</strong>, and post-approval stages, wizard answers freeze so every reviewer inspects the exact same snapshot.</p>
+                </div>
+            </div>
         </div>
 
-        <p class="mt-4 text-sm text-gray-600">
-            After approval, two shorter trackers follow the same idea: the <strong>MOA</strong>
-            tracker (or “not required”), then the <strong>implementation</strong> tracker, which
-            ends with the terminal report and its photo documentation.
-        </p>
+        {# PHASE 01 TABLE: Proposal Statuses #}
+        <div x-show="activePhase === 'proposal'" class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-base font-bold text-gray-900">Phase 01 &mdash; Proposal Tracker Statuses</h3>
+                <span class="text-xs text-gray-500">9 milestones from initial draft to completed proposal</span>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left">Status</th>
+                            <th scope="col" class="px-4 py-3 text-left">Wizard State</th>
+                            <th scope="col" class="px-4 py-3 text-left">Primary Actor</th>
+                            <th scope="col" class="px-4 py-3 text-left">What it means &amp; next step</th>
+                            <th scope="col" class="px-4 py-3 text-right">Phase %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                        {% for st in proposal_statuses %}
+                        <tr class="hover:bg-gray-50/70">
+                            <th scope="row" class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-left">{{ st.label }}</th>
+                            <td class="px-4 py-3 whitespace-nowrap text-left">
+                                {% if st.editable %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
+                                    <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><use href="#nx-icon-edit"></use></svg>
+                                    <span>Editable</span>
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                    <svg class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><use href="#nx-icon-lock-closed"></use></svg>
+                                    <span>Locked</span>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-xs font-medium text-gray-600 whitespace-nowrap text-left">{{ st.actor }}</td>
+                            <td class="px-4 py-3 text-xs leading-relaxed text-gray-700 text-left">{{ st.meaning }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-right tabular-nums">{{ st.progress }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# PHASE 02 TABLE: MOA Statuses #}
+        <div x-show="activePhase === 'moa'" x-cloak class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-base font-bold text-gray-900">Phase 02 &mdash; Memorandum of Agreement (MOA) Statuses</h3>
+                <span class="text-xs text-gray-500">Guided .docx drafting, legal clearance, and partner execution</span>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left">MOA Status</th>
+                            <th scope="col" class="px-4 py-3 text-left">Primary Actor</th>
+                            <th scope="col" class="px-4 py-3 text-left">What happens at this stage</th>
+                            <th scope="col" class="px-4 py-3 text-right">Phase %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                        {% for st in moa_statuses %}
+                        <tr class="hover:bg-gray-50/70">
+                            <th scope="row" class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-left">{{ st.label }}</th>
+                            <td class="px-4 py-3 text-xs font-medium text-gray-600 whitespace-nowrap text-left">{{ st.actor }}</td>
+                            <td class="px-4 py-3 text-xs leading-relaxed text-gray-700 text-left">{{ st.meaning }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-right tabular-nums">{{ st.progress }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# PHASE 03 TABLE: Implementation Statuses #}
+        <div x-show="activePhase === 'implementation'" x-cloak class="space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-base font-bold text-gray-900">Phase 03 &mdash; Implementation &amp; Evaluation Statuses</h3>
+                <span class="text-xs text-gray-500">Field execution, post-activity &amp; progress reports, M&amp;E, and final documentation</span>
+            </div>
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left">Implementation Status</th>
+                            <th scope="col" class="px-4 py-3 text-left">Primary Actor</th>
+                            <th scope="col" class="px-4 py-3 text-left">What happens at this stage</th>
+                            <th scope="col" class="px-4 py-3 text-right">Phase %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                        {% for st in implementation_statuses %}
+                        <tr class="hover:bg-gray-50/70">
+                            <th scope="row" class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-left">{{ st.label }}</th>
+                            <td class="px-4 py-3 text-xs font-medium text-gray-600 whitespace-nowrap text-left">{{ st.actor }}</td>
+                            <td class="px-4 py-3 text-xs leading-relaxed text-gray-700 text-left">{{ st.meaning }}</td>
+                            <td class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-right tabular-nums">{{ st.progress }}%</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </section>
 
-    <section id="documents" class="scroll-mt-32">
-        <h2 class="text-2xl font-semibold text-gray-900">Documents &amp; photos</h2>
-        <ul class="mt-6 space-y-4 text-gray-700 leading-relaxed list-disc list-inside">
-            <li>
-                <strong>The Programs page</strong> lists only what is actually behind it: approved
-                proposals, plus programs entered by an admin as <em>legacy uploads</em> with their
-                own supporting document. There is no manual “add a program” screen, so nothing on
-                that page can drift away from a real record.
-            </li>
-            <li>
-                <strong>The Gallery</strong> shows photos uploaded with a terminal report's
-                documentation appendix, each with the caption the proponent wrote. If no report
-                has been filed yet, the gallery says so instead of showing placeholders.
-            </li>
-            <li>
-                <strong>Signed documents</strong> are uploaded by the proponent and released by
-                staff; the proposal's document screen lists every version it holds.
-            </li>
-        </ul>
+    {# SECTION 3: INSIDE THE WIZARD, COLLABORATORS & REVIEW ROUNDS #}
+    <section id="wizard-guide" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-6">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-primary">Authoring &amp; Collaboration</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Working inside the Proposal Wizard</h2>
+            <p class="mt-1.5 text-sm text-gray-600">
+                The Proposal Wizard adapts its fields and required uploads to your initiative's scope, document format, and extension classification.
+            </p>
+        </header>
+
+        <div class="grid gap-5 md:grid-cols-3">
+            <article class="rounded-xl border border-gray-200 bg-white p-5 space-y-2.5">
+                <div class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-900">Scope &amp; Document Format</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    On Step 1, choose whether your initiative is a multi-project <strong>Program</strong> (which unlocks component project titles, phases, and assigned Project Leaders), a standalone <strong>Project</strong>, or an <strong>Activity only</strong>, and pick between <strong>Extension Proposal</strong> and <strong>Training Design</strong> formatting.
+                </p>
+            </article>
+
+            <article class="rounded-xl border border-gray-200 bg-white p-5 space-y-2.5">
+                <div class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-900">Co-Proponents &amp; Live Presence</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Add registered colleagues on <strong>Step 3 (Proponents)</strong>. Co-proponents see the proposal on their own dashboard, can edit unlocked steps alongside you, and see live presence pills indicating which step a teammate is currently viewing. Draft text autosaves as you work.
+                </p>
+            </article>
+
+            <article class="rounded-xl border border-gray-200 bg-white p-5 space-y-2.5">
+                <div class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10 text-secondary" aria-hidden="true">
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><use href="#nx-icon-chat"></use></svg>
+                </div>
+                <h3 class="text-base font-bold text-gray-900">Section Comments &amp; Rounds</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    During review, coordinators, evaluators, and the Director attach feedback to individual steps. When a <strong>Comment Summary</strong> is issued and status moves to <strong>For Revision</strong>, address the flagged steps and resubmit &mdash; earlier rounds remain preserved for comparison.
+                </p>
+            </article>
+        </div>
     </section>
 
-    <section id="account" class="scroll-mt-32">
-        <h2 class="text-2xl font-semibold text-gray-900">Your account</h2>
-        <ul class="mt-6 space-y-4 text-gray-700 leading-relaxed list-disc list-inside">
-            <li>
-                A password needs at least eight characters, one number, and one uppercase letter.
-                The field shows which rules are already met as you type, and the eye button beside
-                it reveals what you have written and hides it again.
-            </li>
-            <li>
-                <strong>Forgot your password?</strong> The sign-in page has the link. The reset
-                message goes to the address on your account; the form will not say whether an
-                address is registered, which is deliberate.
-            </li>
-            <li>
-                <strong>Locked out after failed attempts?</strong> Sign-in pauses for a while after
-                too many wrong passwords. The page says when that has happened and tells you to
-                try again later.
-            </li>
-            <li>
-                <strong>Wrong campus or role?</strong> Those are set by an admin, not by you —
-                ask the Extension Office to correct them.
-            </li>
-        </ul>
+    {# SECTION 4: DOCUMENTS, CONDITIONAL UPLOADS & PHOTOS #}
+    <section id="documents" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-8">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-primary">Files, Templates &amp; Vault</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Documents, conditional uploads &amp; photos</h2>
+            <p class="mt-1.5 text-sm text-gray-600">
+                Required wizard attachments depend on the <strong>Extension Classification</strong> chosen on Step 4. Every uploaded workbook, PDF, MOA draft, and photo is stored in your proposal's <strong>Proposal Storage</strong> vault.
+            </p>
+        </header>
+
+        {# Conditional Upload Matrix Table #}
+        <div class="space-y-3">
+            <h3 class="text-base font-bold text-gray-900">Wizard Upload Requirements by Extension Classification</h3>
+            <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left">Classification</th>
+                            <th scope="col" class="px-4 py-3 text-left">Steps 17&ndash;18 (Workbooks)</th>
+                            <th scope="col" class="px-4 py-3 text-left">Step 19 (Research Basis)</th>
+                            <th scope="col" class="px-4 py-3 text-left">Step 20 (Completion Certificate)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white text-gray-700">
+                        {% for row in conditional_uploads %}
+                        <tr class="hover:bg-gray-50/70">
+                            <th scope="row" class="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap text-left">{{ row.classification }}</th>
+                            <td class="px-4 py-3 text-xs text-gray-700 text-left">{{ row.work_plan_budget }}</td>
+                            <td class="px-4 py-3 text-xs text-gray-700 text-left">{{ row.research_files }}</td>
+                            <td class="px-4 py-3 text-xs text-gray-700 text-left">{{ row.completion_cert }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# Four Document Lifecycle Cards #}
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-5 space-y-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-primary">Official Excel Templates (.xlsx)</p>
+                <h3 class="text-sm font-bold text-gray-900">Work Plan, Gantt Chart &amp; Line-Item Budget</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Download the official <code>.xlsx</code> workbooks directly inside Steps 17 and 18 or from the Template Library on <a href="{% url 'services_home' %}" class="font-medium text-primary underline">Services</a>. Fill in the sheets without altering column headers and upload the saved workbook back into the wizard.
+                </p>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-5 space-y-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-primary">Signed &amp; Released Documents</p>
+                <h3 class="text-sm font-bold text-gray-900">Signed Proposal, Award &amp; Endorsement</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Once your proposal reaches <strong>Ready to Print</strong>, print the formatted document, gather wet signatures, and upload the scanned PDF. Extension Staff then release the <strong>Letter of Award</strong>, <strong>Endorsement for Approval</strong>, and <strong>Extension Agreement</strong> to your record.
+                </p>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-5 space-y-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-secondary">Guided MOA Builder (.docx)</p>
+                <h3 class="text-sm font-bold text-gray-900">Automated Memorandum of Agreement</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    When a partner MOA is required, complete the 4-step MOA form (parties, purpose, mutual obligations, and signatories) to generate a formatted Word document ready for legal review, revision, and final upload.
+                </p>
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-5 space-y-2">
+                <p class="text-xs font-bold uppercase tracking-wider text-primary">Terminal Reports &amp; Activity Photos</p>
+                <h3 class="text-sm font-bold text-gray-900">Field Documentation &amp; Public Gallery Sync</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Upload four captioned activity photographs (JPEG, PNG, or WebP, up to 10 MB each) alongside your progress/terminal report. Approved proposals list automatically in <a href="{% url 'programs_page' %}" class="font-medium text-primary underline">Programs</a> and captioned photos publish to the <a href="{% url 'gallery_page' %}" class="font-medium text-primary underline">Gallery</a>.
+                </p>
+            </div>
+        </div>
     </section>
 
-    <section id="stuck" class="scroll-mt-32">
-        <h2 class="text-2xl font-semibold text-gray-900">If something is wrong</h2>
-        <ol class="mt-6 space-y-4 text-gray-700 leading-relaxed list-decimal list-inside">
-            <li>
-                Read the message at the top of the form. Errors are listed there first, in the same
-                order as the fields, and each one is a link to the field it belongs to.
-            </li>
-            <li>
-                If a page says it could not save, your entries stay in the form — nothing is lost by
-                trying again.
-            </li>
-            <li>
-                Still stuck, or something looks wrong? Send the page address and what you expected
-                to happen to the Extension Office.
-            </li>
-        </ol>
+    {# SECTION 5: ROLES & DASHBOARDS #}
+    <section id="roles-dashboards" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-6">
+        <header class="flex flex-wrap items-end justify-between gap-4">
+            <div class="max-w-3xl">
+                <p class="text-xs font-semibold uppercase tracking-widest text-secondary">Workspaces &amp; Permissions</p>
+                <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Roles &amp; dashboard views</h2>
+                <p class="mt-1.5 text-sm text-gray-600">
+                    Each user account carries one institutional role scoped to a campus, college, and department. Proposal lists on dashboards can be switched anytime between <strong>Speedometer Gauge Cards</strong> and a compact <strong>Table View</strong>.
+                </p>
+            </div>
+        </header>
 
-        <div class="mt-8 p-6 bg-gray-50 border border-gray-200 rounded-xl">
-            <h3 class="font-semibold text-gray-900">Extension Office</h3>
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for role in role_ecosystem %}
+            <div class="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+                <div class="flex items-center gap-2.5">
+                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary" aria-hidden="true">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ role.icon_path }}"/></svg>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900">{{ role.name }}</h3>
+                        <p class="text-[11px] font-medium text-gray-500">{{ role.group }}</p>
+                    </div>
+                </div>
+                <p class="text-xs leading-relaxed text-gray-600">{{ role.summary }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# SECTION 6: QUARTERLY ACCOMPLISHMENT REPORTS & TARGETS #}
+    <section id="accomplishments" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-5">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-primary">Institutional Monitoring</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Quarterly accomplishment reports &amp; annual targets</h2>
+            <p class="mt-1.5 text-sm text-gray-600">
+                Beyond individual proposal trackers, NExUS coordinates quarterly accomplishment reporting across departments and campuses.
+            </p>
+        </header>
+
+        <div class="grid gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-5">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-primary">Step 01 &middot; Request Window</span>
+                <h3 class="mt-1.5 text-sm font-bold text-gray-900">Office opens a quarter</h3>
+                <p class="mt-1 text-xs leading-relaxed text-gray-600">
+                    Extension Staff issue a quarterly report request (Q1&ndash;Q4) specifying the target year, due date, and instructions for coordinators.
+                </p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-5">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-primary">Step 02 &middot; Unit Filing</span>
+                <h3 class="mt-1.5 text-sm font-bold text-gray-900">Coordinators submit figures</h3>
+                <p class="mt-1 text-xs leading-relaxed text-gray-600">
+                    Department and Campus Coordinators record accomplished indicators, beneficiary counts, and supporting files directly from their dashboards.
+                </p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50/70 p-5">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-primary">Step 03 &middot; Target Rollup</span>
+                <h3 class="mt-1.5 text-sm font-bold text-gray-900">Campus KPI comparison</h3>
+                <p class="mt-1 text-xs leading-relaxed text-gray-600">
+                    Submitted accomplishments aggregate automatically against annual institutional targets so Staff and the Director can monitor progress per campus.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    {# SECTION 7: YOUR ACCOUNT & SESSION SECURITY VISUALIZATION #}
+    <section id="account" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-6">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-primary">Security &amp; Session Rules</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Your account &amp; session protection</h2>
+        </header>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+            {# Password & Login Protection Card #}
+            <div class="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                <h3 class="text-base font-bold text-gray-900">Password rules &amp; recovery</h3>
+                <ul class="grid gap-2.5 sm:grid-cols-3 text-xs">
+                    <li class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 font-semibold text-emerald-950 flex items-center gap-1.5">
+                        <svg class="h-4 w-4 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><use href="#nx-icon-check-circle"></use></svg>
+                        <span>8+ characters</span>
+                    </li>
+                    <li class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 font-semibold text-emerald-950 flex items-center gap-1.5">
+                        <svg class="h-4 w-4 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><use href="#nx-icon-check-circle"></use></svg>
+                        <span>1+ uppercase</span>
+                    </li>
+                    <li class="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 font-semibold text-emerald-950 flex items-center gap-1.5">
+                        <svg class="h-4 w-4 text-emerald-600 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><use href="#nx-icon-check-circle"></use></svg>
+                        <span>1+ number</span>
+                    </li>
+                </ul>
+                <ul class="space-y-2 text-xs leading-relaxed text-gray-700">
+                    <li><strong>Live validation:</strong> Password forms check each requirement as you type, warn when Caps Lock is active, and include a visibility toggle.</li>
+                    <li><strong>Forgot your password?</strong> Use <a href="{% url 'password_reset' %}" class="font-semibold text-primary underline">Forgot password?</a> on the sign-in screen to receive a single-use reset link.</li>
+                    <li><strong>Campus, department &amp; role updates:</strong> Contact an Administrator via the Extension Office if you transfer units or take on a coordinator, evaluator, or staff assignment.</li>
+                </ul>
+            </div>
+
+            {# Visual 10-Minute Idle Session Timeline #}
+            <div class="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+                <div class="flex items-center justify-between gap-2">
+                    <h3 class="text-base font-bold text-gray-900">10-Minute Idle-Session Guard</h3>
+                    <span class="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-semibold text-amber-900">Shared across tabs</span>
+                </div>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    To protect accounts on shared campus computers, NExUS monitors keyboard, mouse, and tab activity:
+                </p>
+
+                {# Visual Timeline Bar #}
+                <div class="space-y-2" role="img" aria-label="Idle session timeline: 0 to 9 minutes active, 9 to 10 minutes 60-second countdown warning banner, 10 minutes automatic sign-out">
+                    <div class="flex h-8 w-full overflow-hidden rounded-lg border border-gray-200 text-[11px] font-bold">
+                        <div class="flex items-center justify-center bg-primary text-white" style="width: 78%;">
+                            0:00 &ndash; 9:00 Active Window
+                        </div>
+                        <div class="flex items-center justify-center bg-amber-400 text-gray-950" style="width: 22%;">
+                            60s Warning
+                        </div>
+                    </div>
+                    <div class="flex justify-between text-[11px] text-gray-500 font-medium">
+                        <span>Any click/keystroke resets timer</span>
+                        <span>9:00 &ldquo;Stay logged in&rdquo; prompt</span>
+                        <span>10:00 Auto sign-out</span>
+                    </div>
+                </div>
+
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Clicking <strong>Stay logged in</strong> on the warning banner &mdash; or continuing work in another open NExUS browser tab &mdash; immediately extends your session.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    {# SECTION 8: INTERACTIVE SEARCHABLE & CATEGORIZED FAQ #}
+    <section id="faq" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-6"
+             x-data="{
+                 query: '',
+                 category: 'ALL',
+                 matches(qText, aText, cat) {
+                     const catOk = this.category === 'ALL' || this.category === cat;
+                     if (!catOk) return false;
+                     const needle = this.query.trim().toLowerCase();
+                     if (!needle) return true;
+                     return qText.toLowerCase().includes(needle) || aText.toLowerCase().includes(needle) || cat.toLowerCase().includes(needle);
+                 },
+                 toggleAll(openState) {
+                     this.$el.querySelectorAll('details[data-faq-item]').forEach(d => {
+                         if (d.offsetParent !== null) d.open = openState;
+                     });
+                 }
+             }">
+        <header class="flex flex-wrap items-end justify-between gap-4">
+            <div class="max-w-2xl">
+                <p class="text-xs font-semibold uppercase tracking-widest text-primary">Quick Answers</p>
+                <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">Frequently Asked Questions</h2>
+                <p class="mt-1.5 text-sm text-gray-600">
+                    Search by keyword or filter by topic across {{ faqs|length }} common questions from proponents, coordinators, reviewers, and staff.
+                </p>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+                <button type="button" @click="toggleAll(true)"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 hover:border-primary/40 hover:text-primary transition">
+                    Expand all
+                </button>
+                <button type="button" @click="toggleAll(false)"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 hover:border-primary/40 hover:text-primary transition">
+                    Collapse all
+                </button>
+            </div>
+        </header>
+
+        {# Search bar + Category pills #}
+        <div class="space-y-3">
+            <div class="relative">
+                <label for="help-faq-search" class="sr-only">Search frequently asked questions</label>
+                <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input id="help-faq-search"
+                       type="search"
+                       x-model="query"
+                       placeholder="Search FAQs (e.g. revision, co-proponent, Research-based, MOA, Excel template, timeout)..."
+                       class="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-20 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                <button type="button"
+                        x-show="query.length > 0"
+                        x-cloak
+                        @click="query = ''"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 rounded-md bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-200">
+                    Clear
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filter FAQs by category">
+                <button type="button"
+                        @click="category = 'ALL'"
+                        :class="category === 'ALL' ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 border-gray-200 hover:border-primary/40'"
+                        class="rounded-full border px-3 py-1 text-xs font-semibold transition">
+                    All topics ({{ faqs|length }})
+                </button>
+                {% for cat in faq_categories %}
+                <button type="button"
+                        @click="category = '{{ cat|escapejs }}'"
+                        :class="category === '{{ cat|escapejs }}' ? 'bg-primary text-white border-primary' : 'bg-white text-gray-700 border-gray-200 hover:border-primary/40'"
+                        class="rounded-full border px-3 py-1 text-xs font-semibold transition">
+                    {{ cat }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        {# FAQ Accordion Items #}
+        <div class="space-y-3">
+            {% for item in faqs %}
+            <details id="{{ item.id }}"
+                     data-faq-item
+                     x-show="matches('{{ item.question|escapejs }}', '{{ item.answer|escapejs }}', '{{ item.category|escapejs }}')"
+                     class="nx-faq-item group rounded-xl border border-gray-200 bg-white open:border-primary/40 open:bg-gray-50/40 transition">
+                <summary class="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-4 text-left select-none">
+                    <div class="space-y-1">
+                        <span class="inline-block rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                            {{ item.category }}
+                        </span>
+                        <h3 class="text-sm sm:text-base font-bold text-gray-900 group-hover:text-primary transition">
+                            {{ item.question }}
+                        </h3>
+                    </div>
+                    <span class="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 group-open:rotate-180 group-open:border-primary group-open:text-primary transition" aria-hidden="true">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><use href="#nx-icon-chevron-down"></use></svg>
+                    </span>
+                </summary>
+                <div class="border-t border-gray-100 px-5 py-4 text-sm leading-relaxed text-gray-700">
+                    {{ item.answer }}
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# SECTION 9: TROUBLESHOOTING & DYNAMIC OFFICE CONTACT #}
+    <section id="trouble" class="scroll-mt-24 nx-panel p-6 sm:p-8 space-y-6">
+        <header class="max-w-3xl">
+            <p class="text-xs font-semibold uppercase tracking-widest text-secondary">Support &amp; Recovery</p>
+            <h2 class="mt-1 text-xl sm:text-2xl font-bold text-gray-900">If something is wrong</h2>
+        </header>
+
+        <div class="grid gap-4 md:grid-cols-3">
+            <div class="rounded-xl border border-gray-200 bg-white p-5 space-y-1.5">
+                <h3 class="text-sm font-bold text-gray-900">Verification email missing</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Check your spam or junk folder first, then sign in with your credentials to trigger a fresh verification email.
+                </p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-5 space-y-1.5">
+                <h3 class="text-sm font-bold text-gray-900">Account temporarily locked</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Repeated failed sign-in attempts trigger a temporary brute-force cooldown. Wait for the window to clear or reset your password via <a href="{% url 'password_reset' %}" class="font-semibold text-primary underline">Forgot password?</a>.
+                </p>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-white p-5 space-y-1.5">
+                <h3 class="text-sm font-bold text-gray-900">Workbook or file rejected</h3>
+                <p class="text-xs leading-relaxed text-gray-600">
+                    Verify the file matches one of the accepted formats and size limits shown below the upload field, and use the unmodified official <code>.xlsx</code> template on Steps 17&ndash;18.
+                </p>
+            </div>
+        </div>
+
+        <div class="rounded-xl bg-gray-50 border border-gray-200 p-5 sm:p-6 text-sm text-gray-700 space-y-3">
+            <p class="font-bold text-gray-900">Reach the Extension Office</p>
             {% if site_control.contact_email or site_control.facebook_url %}
-                <ul class="mt-3 space-y-2 text-sm text-gray-700">
+                <p class="text-xs sm:text-sm text-gray-600">For role changes, campus assignments, partner inquiries, or issues you cannot resolve from your dashboard:</p>
+                <ul class="flex flex-wrap gap-3 pt-1">
                     {% if site_control.contact_email %}
-                        <li>
-                            Email:
-                            <a href="mailto:{{ site_control.contact_email }}"
-                               class="text-primary font-medium hover:text-secondary transition">
-                                {{ site_control.contact_email }}
-                            </a>
-                        </li>
+                    <li>
+                        <a href="mailto:{{ site_control.contact_email }}"
+                           class="inline-flex items-center gap-2 rounded-lg border border-primary/25 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-primary hover:bg-primary/5">
+                            <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            <span>{{ site_control.contact_email }}</span>
+                        </a>
+                    </li>
                     {% endif %}
                     {% if site_control.facebook_url %}
-                        <li>
-                            <a href="{{ site_control.facebook_url }}" target="_blank"
-                               rel="noopener noreferrer"
-                               class="text-primary font-medium hover:text-secondary transition">
-                                Facebook Page
-                            </a>
-                        </li>
+                    <li>
+                        <a href="{{ site_control.facebook_url }}" target="_blank" rel="noopener noreferrer"
+                           class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-800 hover:border-primary/40 hover:text-primary">
+                            <svg class="h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.5 21v-7.5h2.5l.4-3h-2.9V8.6c0-.9.3-1.5 1.5-1.5h1.6V4.4c-.3 0-1.2-.1-2.3-.1-2.3 0-3.8 1.4-3.8 3.9v2.3H8v3h2.5V21h3z"/></svg>
+                            <span>{{ site_control.facebook_label|default:"Official Facebook Page" }}</span>
+                            <span class="sr-only"> (opens in a new tab)</span>
+                        </a>
+                    </li>
                     {% endif %}
                 </ul>
             {% else %}
-                <p class="mt-3 text-sm text-gray-600">
-                    Contact details have not been published yet. They appear here as soon as an
-                    administrator adds them in Site Control.
-                </p>
+                <p class="text-gray-600">Direct contact details have not been published on the site yet &mdash; reach out to your campus or department extension coordinator.</p>
             {% endif %}
         </div>
     </section>
 
-</div>
+</main>
 {% endblock %}

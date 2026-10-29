@@ -29,15 +29,19 @@ def details_page(request):
 
 
 def help_page(request):
-    """The written help: how the workflow, documents and account rules work.
+    """The written help: how the workflow, documents, account rules, and FAQs work.
 
-    Deliberately a template, with the institutional contact details read from
-    Site Configuration — see the note at the top of ``details/help.html``.
+    Deliberately a template backed by live model choices and institutional
+    contact details from Site Configuration — see ``details/system_profile.py``.
     """
-    return render(request, "details/help.html")
+    from . import system_profile
+
+    return render(request, "details/help.html", system_profile.help_context())
 
 
-def _render_content_page(request, slug, template="details/content_page.html"):
+def _render_content_page(
+    request, slug, template="details/content_page.html", extra_context=None
+):
     """Render a fully admin-managed public page.
 
     Unpublished pages stay reachable for admins (so they can preview drafts)
@@ -52,16 +56,16 @@ def _render_content_page(request, slug, template="details/content_page.html"):
         if not is_admin:
             raise Http404("This page is not available.")
 
-    return render(
-        request,
-        template,
-        {
-            "page": page,
-            "sections": page.visible_sections,
-            "visible_blocks": build_visible_blocks(page),
-            "is_preview": not page.is_published,
-        },
-    )
+    context = {
+        "page": page,
+        "sections": page.visible_sections,
+        "visible_blocks": build_visible_blocks(page),
+        "is_preview": not page.is_published,
+    }
+    if extra_context:
+        context.update(extra_context)
+
+    return render(request, template, context)
 
 
 def programs_page(request):
@@ -75,8 +79,15 @@ def gallery_page(request):
 
 
 def about_page(request):
-    """The Extension Office's story, contacts, and mandate."""
-    return _render_content_page(request, SitePage.Slug.ABOUT)
+    """The Extension Office's story, system architecture, contacts, and mandate."""
+    from . import system_profile
+
+    return _render_content_page(
+        request,
+        SitePage.Slug.ABOUT,
+        template="details/about.html",
+        extra_context=system_profile.about_context(),
+    )
 
 
 def program_document(request, key):
