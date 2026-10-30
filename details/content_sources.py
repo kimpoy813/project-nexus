@@ -330,13 +330,147 @@ def _facet(entries, field, choices=None):
     ]
 
 
+_EXTENSION_TYPE_SERIES = (
+    ("COMMUNITY_BASED", "Community-based", "Community-based", "#ca8a04"),
+    ("REQUEST_BASED", "Request-based", "Request-based", "#5a1113"),
+    ("RESEARCH_BASED", "Research-based", "Research-based", "#103b07"),
+)
+
+_RESEARCH_BASIS_SERIES = (
+    ("FACULTY", "Based on Faculty Research", "Faculty Research", "#103b07"),
+    ("STUDENT", "Based on Student Research", "Student Research", "#2f6f3e"),
+    ("OTHERS", "Others", "Others", "#94a3b8"),
+)
+
+_PROPONENT_SERIES = (
+    ("FACULTY", "Faculty", "Faculty", "#103b07"),
+    ("JOINT", "Joint", "Joint", "#5a1113"),
+    ("STUDENT", "Student", "Student", "#ca8a04"),
+)
+
+
+def _format_campus_label(raw_name):
+    name = (raw_name or "").strip()
+    if not name:
+        return ""
+    if name.lower() == "sta maria":
+        return "Sta. Maria Campus"
+    if name.lower().endswith("campus"):
+        return name
+    return f"{name} Campus"
+
+
+def _build_donut_series(entries, field, definitions):
+    counts = {}
+    for entry in entries:
+        val = entry.get(field) or ""
+        if val:
+            counts[val] = counts.get(val, 0) + 1
+
+    total = len(entries)
+    cumulative = 0.0
+    series = []
+    for value, label, short_label, color in definitions:
+        count = counts.get(value, 0)
+        percent = round(100 * count / total) if total else 0
+        dash = round(100.0 * count / total, 3) if total and count else 0.0
+        gap = round(100.0 - dash, 3)
+        dashoffset = round(25.0 - cumulative, 3)
+        cumulative += dash
+        series.append(
+            {
+                "value": value,
+                "label": label,
+                "short_label": short_label,
+                "color": color,
+                "count": count,
+                "percent": percent,
+                "dash": dash,
+                "gap": gap,
+                "dashoffset": dashoffset,
+            }
+        )
+    return series
+
+
+def _build_campus_overview(entries):
+    from accounts.models import Campus
+
+    counts = {}
+    entry_labels = {}
+    for entry in entries:
+        raw = (entry.get("campus") or "").strip()
+        key = _campus_key(raw)
+        if not key:
+            continue
+        counts[key] = counts.get(key, 0) + 1
+        entry_labels.setdefault(key, raw)
+
+    campus_rows = {}
+    for campus in Campus.objects.all():
+        key = _campus_key(campus.name)
+        if not key:
+            continue
+        label = entry_labels.get(key) or _format_campus_label(campus.name)
+        campus_rows[key] = {
+            "key": key,
+            "value": entry_labels.get(key, label),
+            "label": label,
+            "count": counts.get(key, 0),
+        }
+
+    for key, count in counts.items():
+        if key not in campus_rows:
+            label = entry_labels.get(key) or key.title()
+            campus_rows[key] = {
+                "key": key,
+                "value": label,
+                "label": label,
+                "count": count,
+            }
+
+    total = len(entries)
+    ordered = sorted(
+        campus_rows.values(),
+        key=lambda row: (-row["count"], row["label"].lower()),
+    )
+    for row in ordered:
+        row["percent"] = round(100 * row["count"] / total) if total else 0
+    return ordered
+
+
+def _build_year_overview(year_counts, total):
+    from django.utils import timezone
+
+    current_year = timezone.localdate().year
+    start_year = min([2014, *year_counts.keys()])
+    end_year = max([current_year, *year_counts.keys()])
+    max_count = max(year_counts.values(), default=0)
+
+    years = []
+    for year in range(start_year, end_year + 1):
+        count = year_counts.get(year, 0)
+        years.append(
+            {
+                "value": str(year),
+                "label": str(year),
+                "short_label": str(year)[-2:],
+                "count": count,
+                "percent": round(100 * count / total) if total else 0,
+                "bar_percent": round(100 * count / max_count) if max_count else 0,
+            }
+        )
+    return years, f"{start_year}–{end_year}"
+
+
 def _resolve_programs(section):
-    """The Programs directory: merged entries, their facets, and totals.
+    """The Programs directory: merged entries, their facets, overview charts, and totals.
 
     Entries come from ``details.program_directory``, which reads approved and
     legacy proposals — the only place a program is recorded — so the page shows
     the office's real inventory with each program's own document, instead of a
-    second copy of it.
+    second copy of it. The summary cards and five overview charts always render
+    with baseline zero slots even before the first program is published.
     """
     from .program_directory import (
         EXTENSION_TYPE_LABELS,
@@ -353,9 +487,36 @@ def _resolve_programs(section):
         if entry["year"]:
             year_counts[entry["year"]] = year_counts.get(entry["year"], 0) + 1
 
+    campus_overview = _build_campus_overview(entries)
+    year_overview, year_range_label = _build_year_overview(year_counts, len(entries))
+    extension_types_overview = _build_donut_series(
+        entries, "extension_type", _EXTENSION_TYPE_SERIES
+    )
+    research_bases_overview = _build_donut_series(
+        entries, "research_basis", _RESEARCH_BASIS_SERIES
+    )
+    proponents_overview = _build_donut_series(
+        entries, "led_by", _PROPONENT_SERIES
+    )
+
+    stats = program_entry_stats(entries, total_campuses=len(campus_overview))
+    overview = {
+        "year_range_label": year_range_label,
+        "years": year_overview,
+        "campuses": campus_overview,
+        "extension_types": extension_types_overview,
+        "research_bases": research_bases_overview,
+        "proponents": proponents_overview,
+    }
+
     return {
         "programs": entries,
-        "stats": program_entry_stats(entries),
+        "stats": stats,
+        "overview": overview,
+        "overview_seed": {
+            "stats": stats,
+            "overview": overview,
+        },
         "facets": {
             "campuses": _facet(entries, "campus"),
             "years": [

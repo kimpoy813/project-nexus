@@ -67,7 +67,6 @@ def _render_content_page(
         and slug == SitePage.Slug.PROGRAMS
         and len(visible_blocks) == 1
         and visible_blocks[0][0].layout == "PROGRAMS"
-        and (visible_blocks[0][1] or {}).get("programs")
     ):
         subnav_items = [
             {"anchor": "program-summary", "label": "Summary"},

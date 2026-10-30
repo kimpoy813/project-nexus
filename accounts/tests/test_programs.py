@@ -228,11 +228,18 @@ class ProgramsPageTests(TestCase):
         self.assertEqual(data["stats"]["faculty"], 2)
         self.assertEqual(data["stats"]["beneficiaries"], 100)
         self.assertEqual(data["stats"]["campus_count"], 1)
+        self.assertGreaterEqual(data["stats"]["total_campuses"], 7)
+
+        overview_counts = {
+            row["label"]: row["count"] for row in data["overview"]["campuses"]
+        }
+        self.assertEqual(overview_counts["Main Campus"], 1)
+        self.assertEqual(overview_counts["Cervantes Campus"], 0)
 
         response = self.client.get(self.programs_url)
         self.assertContains(response, "VISIBLE")
         self.assertNotContains(response, "HIDDEN")
-        self.assertNotContains(response, "Cervantes Campus")
+        self.assertNotContains(response, 'data-campus="Cervantes Campus"')
 
     def test_an_unpublished_proposal_leaves_its_campus_out_of_the_filter(self):
         make_proposal(title="LIVE", campus="Main Campus")
@@ -253,7 +260,7 @@ class ProgramsPageTests(TestCase):
             title="ONE",
             campus="Main Campus",
             estimated_year=2025,
-            extension_type=Proposal.ExtensionType.RESEARCH_FACULTY,
+            extension_type=Proposal.ExtensionType.RESEARCH_STUDENT,
         )
         make_proposal(
             title="TWO",
@@ -263,16 +270,77 @@ class ProgramsPageTests(TestCase):
         )
         response = self.client.get(self.programs_url)
         self.assertContains(response, "Programs per year")
-        self.assertContains(response, "By type of extension")
         self.assertContains(response, "Programs by campus")
+        self.assertContains(response, "By type of extension")
+        self.assertContains(response, "By research basis")
+        self.assertContains(response, "By proponent")
         # Two programs on the same campus: the campus bar is the full width.
         self.assertContains(response, 'style="width: 100%"')
+        # 50% / 50% SVG donut arcs are rendered on the server.
+        self.assertContains(response, 'stroke-dasharray="50.0 50.0"')
 
     def test_the_empty_state_is_explicit(self):
         response = self.client.get(self.programs_url)
         self.assertContains(response, "No extension programs are published yet.")
         # It also says where programs come from, so an empty page is not a mystery.
         self.assertContains(response, "This directory is not filled in by hand")
+
+    def test_summary_and_all_five_overview_charts_render_even_without_data(self):
+        response = self.client.get(self.programs_url)
+        html = response.content.decode()
+
+        # All 6 Summary KPI cards appear with 0 baseline counts.
+        for label in (
+            "Extension Programs",
+            "Campuses Reached",
+            "Beneficiary Participants",
+            "Student Participants",
+            "Faculty Participants",
+            "Research Staff",
+        ):
+            with self.subTest(kpi=label):
+                self.assertIn(label, html)
+        self.assertIn("of 0 total", html)
+        self.assertIn("of 7 ISPSC campuses", html)
+
+        # All 5 Visual Overview graphs appear even before any program is published.
+        for chart_heading in (
+            "Programs per year",
+            "Programs by campus",
+            "By type of extension",
+            "By research basis",
+            "By proponent",
+        ):
+            with self.subTest(chart=chart_heading):
+                self.assertIn(chart_heading, html)
+
+        # All 7 seeded ISPSC campuses appear in Programs by campus with 0 / 0%.
+        for campus_label in (
+            "Candon Campus",
+            "Cervantes Campus",
+            "Main Campus",
+            "Narvacan Campus",
+            "Santiago Campus",
+            "Sta. Maria Campus",
+            "Tagudin Campus",
+        ):
+            with self.subTest(campus=campus_label):
+                self.assertIn(campus_label, html)
+
+        # Donut legend segments appear for all three categorical breakdowns.
+        for segment_label in (
+            "Community-based",
+            "Request-based",
+            "Research-based",
+            "Faculty Research",
+            "Student Research",
+            "Others",
+            "Faculty",
+            "Joint",
+            "Student",
+        ):
+            with self.subTest(segment=segment_label):
+                self.assertIn(segment_label, html)
 
     def test_the_new_blocks_are_registered_content_sources(self):
         for key, template in (
@@ -834,6 +902,11 @@ class PublicSubnavConsistencyTests(TestCase):
             self.assertIn(f'href="#{anchor}"', services_html)
 
     def test_programs_and_gallery_use_the_same_sticky_subnav_bar(self):
+        # Even with zero published programs, /programs/ renders the sticky subnav
+        # jumping to Summary, Overview, Filters, and Directory.
+        empty_programs_html = self.client.get(reverse("programs_page")).content.decode()
+        self._assert_subnav_targets_exist(empty_programs_html)
+
         make_proposal(title="SUBNAV-PROGRAM", campus="Main Campus", estimated_year=2025)
         programs_html = self.client.get(reverse("programs_page")).content.decode()
         self._assert_subnav_targets_exist(programs_html)

@@ -75,6 +75,12 @@ def proposal_document_key(proposal):
     return f"p{proposal.pk}"
 
 
+def normalize_campus_key(value):
+    """Normalise a campus name so 'Sta. Maria Campus' matches 'Sta Maria'."""
+    text = (value or "").lower().replace("campus", "")
+    return "".join(character for character in text if character.isalnum())
+
+
 def _proposal_led_by(proposal):
     """Who led the work: the institution's Faculty / Joint / Student split.
 
@@ -181,6 +187,7 @@ def _proposal_entry(proposal):
         "source_label": SOURCE_LABELS[source],
         "title": proposal.display_title,
         "campus": proposal.campus or "",
+        "campus_key": normalize_campus_key(proposal.campus),
         "year": _proposal_year(proposal),
         "extension_type": extension_type,
         "extension_type_label": EXTENSION_TYPE_LABELS[extension_type],
@@ -238,11 +245,34 @@ def build_program_entries():
     return entries
 
 
-def program_entry_stats(entries):
+def program_entry_stats(entries, total_campuses=None):
     """The totals row above the directory."""
+    campus_keys = {
+        entry.get("campus_key") or normalize_campus_key(entry.get("campus"))
+        for entry in entries
+        if entry.get("campus")
+    }
+    campus_keys.discard("")
+    campus_count = len(campus_keys)
+    if total_campuses is None:
+        try:
+            from accounts.models import Campus
+
+            seeded_keys = {
+                normalize_campus_key(name)
+                for name in Campus.objects.values_list("name", flat=True)
+            }
+            seeded_keys.discard("")
+            total_campuses = len(seeded_keys | campus_keys)
+        except Exception:
+            total_campuses = campus_count
+    else:
+        total_campuses = max(int(total_campuses), campus_count)
+
     return {
         "program_count": len(entries),
-        "campus_count": len({entry["campus"] for entry in entries if entry["campus"]}),
+        "campus_count": campus_count,
+        "total_campuses": total_campuses,
         "beneficiaries": sum(entry["beneficiaries"] or 0 for entry in entries),
         "students": sum(entry["student_participants"] or 0 for entry in entries),
         "faculty": sum(entry["faculty_participants"] or 0 for entry in entries),

@@ -13,14 +13,14 @@ Context: data.facets, data.stats
     <div id="program-filters" class="scroll-mt-32 mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <div class="xl:col-span-2">
-                <label for="program-search-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Search</label>
-                <input id="program-search-{{ section.id }}" type="search" x-model="query" @input.debounce.150ms="apply()"
+                <label for="program-search-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Search</label>
+                <input id="program-search-{{ section.id|default:'preview' }}" type="search" x-model="query" @input.debounce.150ms="apply()"
                        placeholder="Title, campus, or community"
                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
             </div>
             <div>
-                <label for="program-campus-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Campus</label>
-                <select id="program-campus-{{ section.id }}" x-model="campus" @change="apply()"
+                <label for="program-campus-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Campus</label>
+                <select id="program-campus-{{ section.id|default:'preview' }}" :value="campus" @change="campus = $event.target.value; apply()"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">All campuses</option>
                     {% for option in data.facets.campuses %}
@@ -29,8 +29,8 @@ Context: data.facets, data.stats
                 </select>
             </div>
             <div>
-                <label for="program-year-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Year</label>
-                <select id="program-year-{{ section.id }}" x-model="year" @change="apply()"
+                <label for="program-year-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Year</label>
+                <select id="program-year-{{ section.id|default:'preview' }}" :value="year" @change="year = $event.target.value; apply()"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">All years</option>
                     {% for option in data.facets.years %}
@@ -39,8 +39,8 @@ Context: data.facets, data.stats
                 </select>
             </div>
             <div>
-                <label for="program-type-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Type</label>
-                <select id="program-type-{{ section.id }}" x-model="type" @change="apply()"
+                <label for="program-type-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Type</label>
+                <select id="program-type-{{ section.id|default:'preview' }}" :value="type" @change="type = $event.target.value; apply()"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">All types</option>
                     {% for option in data.facets.extension_types %}
@@ -49,8 +49,8 @@ Context: data.facets, data.stats
                 </select>
             </div>
             <div>
-                <label for="program-basis-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Research basis</label>
-                <select id="program-basis-{{ section.id }}" x-model="basis" @change="apply()"
+                <label for="program-basis-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Research basis</label>
+                <select id="program-basis-{{ section.id|default:'preview' }}" :value="basis" @change="basis = $event.target.value; apply()"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">All bases</option>
                     {% for option in data.facets.research_bases %}
@@ -59,8 +59,8 @@ Context: data.facets, data.stats
                 </select>
             </div>
             <div>
-                <label for="program-led-{{ section.id }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Led by</label>
-                <select id="program-led-{{ section.id }}" x-model="led" @change="apply()"
+                <label for="program-led-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Led by</label>
+                <select id="program-led-{{ section.id|default:'preview' }}" :value="led" @change="led = $event.target.value; apply()"
                         class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                     <option value="">Anyone</option>
                     {% for option in data.facets.proponents %}
