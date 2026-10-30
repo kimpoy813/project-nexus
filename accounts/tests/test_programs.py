@@ -342,6 +342,36 @@ class ProgramsPageTests(TestCase):
             with self.subTest(segment=segment_label):
                 self.assertIn(segment_label, html)
 
+        # Full Filter & Refine suite renders even when zero programs exist.
+        for filter_control in (
+            "no filters applied",
+            "“quotes” = exact phrase",
+            "Cards",
+            "Table",
+            "Print / PDF",
+            "CSV",
+            "Reset",
+            "Campuses: All",
+            "Years: All",
+            "Extension types: All",
+            "Research bases: All",
+            "Proponents: All",
+            "Select all",
+            "Columns: Default",
+            "All 16",
+            "Documents: all",
+            "With linked document",
+            "No document",
+            "Sort: newest first",
+            "Sort: oldest first",
+            "Sort: title A–Z",
+            "Sort: most beneficiaries",
+            "Sort: most students",
+            "Sort: campus A–Z",
+        ):
+            with self.subTest(filter_control=filter_control):
+                self.assertIn(filter_control, html)
+
     def test_the_new_blocks_are_registered_content_sources(self):
         for key, template in (
             ("PROGRAMS", "details/blocks/programs.html"),

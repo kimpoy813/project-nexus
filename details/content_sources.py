@@ -348,6 +348,25 @@ _PROPONENT_SERIES = (
     ("STUDENT", "Student", "Student", "#ca8a04"),
 )
 
+_DIRECTORY_COLUMNS = (
+    ("year", "Year", True, True),
+    ("campus", "Campus", True, True),
+    ("title", "Program title", True, True),
+    ("extension_type_label", "Extension type", True, True),
+    ("research_basis_label", "Research basis", True, False),
+    ("led_by_label", "Led by", True, False),
+    ("target_community", "Target community / beneficiaries", True, True),
+    ("duration", "Duration & frequency", True, False),
+    ("objectives", "Objectives", False, False),
+    ("research_output", "Research output applied", False, False),
+    ("expected_deliverables", "Expected deliverables", False, False),
+    ("student_participants", "Students", True, False),
+    ("faculty_participants", "Faculty", True, False),
+    ("research_staff_participants", "Research staff", False, False),
+    ("beneficiaries", "Beneficiaries", True, True),
+    ("document_url", "Document link", False, False),
+)
+
 
 def _format_campus_label(raw_name):
     name = (raw_name or "").strip()
@@ -500,6 +519,22 @@ def _resolve_programs(section):
     )
 
     stats = program_entry_stats(entries, total_campuses=len(campus_overview))
+    columns = [
+        {
+            "key": key,
+            "label": label,
+            "default": is_default,
+            "minimal": is_minimal,
+        }
+        for key, label, is_default, is_minimal in _DIRECTORY_COLUMNS
+    ]
+    filter_options = {
+        "campuses": sorted(campus_overview, key=lambda row: row["label"].lower()),
+        "years": list(reversed(year_overview)),
+        "extension_types": extension_types_overview,
+        "research_bases": research_bases_overview,
+        "proponents": proponents_overview,
+    }
     overview = {
         "year_range_label": year_range_label,
         "years": year_overview,
@@ -513,9 +548,13 @@ def _resolve_programs(section):
         "programs": entries,
         "stats": stats,
         "overview": overview,
+        "filter_options": filter_options,
+        "columns": columns,
         "overview_seed": {
             "stats": stats,
             "overview": overview,
+            "columns": columns,
+            "programs": entries,
         },
         "facets": {
             "campuses": _facet(entries, "campus"),

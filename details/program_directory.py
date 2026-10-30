@@ -198,6 +198,11 @@ def _proposal_entry(proposal):
         "target_community": proposal.beneficiaries_who or "",
         "duration": _proposal_duration(proposal),
         "objectives": _proposal_objectives(proposal),
+        "research_output": (proposal.research_title or "").strip(),
+        "expected_deliverables": (
+            (proposal.output_outcome or "").strip()
+            or (proposal.moa_deliverables or "").strip()
+        ),
         "student_participants": proposal.student_participants or 0,
         "faculty_participants": proposal.faculty_participants or 0,
         "research_staff_participants": proposal.research_staff_participants or 0,

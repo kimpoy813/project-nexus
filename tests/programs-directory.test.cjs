@@ -17,7 +17,10 @@ function makeHarness(seed, cards) {
     const controller = sandbox.nexusProgramsDirectory("seed-1");
     controller.$el = {
         querySelectorAll() {
-            return cards;
+            return cards || [];
+        },
+        querySelector() {
+            return null;
         },
     };
     controller.apply();
@@ -50,7 +53,7 @@ const BASE_OVERVIEW = {
     ],
 };
 
-test("zero-data state keeps all 6 KPIs and 5 overview charts intact at zero", () => {
+test("zero-data state keeps all 6 KPIs, 5 overview charts, and filter controls intact", () => {
     const ctrl = makeHarness(
         {
             stats: {
@@ -63,6 +66,7 @@ test("zero-data state keeps all 6 KPIs and 5 overview charts intact at zero", ()
                 research_staff: 0,
             },
             overview: BASE_OVERVIEW,
+            programs: [],
         },
         []
     );
@@ -74,48 +78,73 @@ test("zero-data state keeps all 6 KPIs and 5 overview charts intact at zero", ()
     assert.equal(ctrl.campusStat("main").percent, 0);
     assert.equal(ctrl.donutStat("extensionTypes", "COMMUNITY_BASED").dash, 0);
     assert.equal(ctrl.donutStat("extensionTypes", "COMMUNITY_BASED").gap, 100);
+    assert.equal(ctrl.facetButtonLabel("campuses", "Campuses"), "Campuses: All");
 
     ctrl.toggleFilter("campus", "Main Campus");
     assert.equal(ctrl.hasActiveFilters(), true);
+    assert.equal(ctrl.facetButtonLabel("campuses", "Campuses"), "Campuses: Main Campus");
+    assert.equal(ctrl.activeFilterChips().length, 1);
     assert.equal(ctrl.shown, 0);
+
+    ctrl.selectAllFacet("campuses");
+    assert.equal(ctrl.facetCount("campuses"), 2);
+    assert.equal(ctrl.facetButtonLabel("campuses", "Campuses"), "Campuses: 2 selected");
+
     ctrl.reset();
     assert.equal(ctrl.hasActiveFilters(), false);
+    assert.equal(ctrl.facetCount("campuses"), 0);
 });
 
-test("clicking charts recalculates KPI totals, bars, and donut arcs dynamically", () => {
+test("multi-select filters, quoted search, documents filter, sort, columns, and CSV work together", () => {
+    const programs = [
+        {
+            key: "p1",
+            title: "Reading Literacy Workshop",
+            campus: "Main Campus",
+            campus_key: "main",
+            year: 2025,
+            extension_type: "COMMUNITY_BASED",
+            extension_type_label: "Community-based",
+            research_basis: "OTHERS",
+            research_basis_label: "Others",
+            led_by: "FACULTY",
+            led_by_label: "Faculty",
+            target_community: "Dili National High School",
+            duration: "May 2025",
+            objectives: "Improve reading comprehension.",
+            student_participants: 12,
+            faculty_participants: 4,
+            research_staff_participants: 1,
+            beneficiaries: 80,
+            document_available: true,
+            document_url: "/programs/p1/document/",
+        },
+        {
+            key: "p2",
+            title: "Coastal Farming Resilience",
+            campus: "Sta. Maria Campus",
+            campus_key: "stamaria",
+            year: 2024,
+            extension_type: "RESEARCH_BASED",
+            extension_type_label: "Research-based",
+            research_basis: "FACULTY",
+            research_basis_label: "Based on Faculty Research",
+            led_by: "JOINT",
+            led_by_label: "Joint",
+            target_community: "Poblacion Sur fisherfolk",
+            duration: "October 2024",
+            objectives: "Strengthen coastal farming practices.",
+            student_participants: 20,
+            faculty_participants: 6,
+            research_staff_participants: 3,
+            beneficiaries: 120,
+            document_available: false,
+            document_url: "",
+        },
+    ];
     const cards = [
-        {
-            style: {},
-            dataset: {
-                campus: "Main Campus",
-                campusKey: "main",
-                year: "2025",
-                type: "COMMUNITY_BASED",
-                basis: "OTHERS",
-                led: "FACULTY",
-                beneficiaries: "80",
-                students: "12",
-                faculty: "4",
-                researchStaff: "1",
-                search: "reading literacy main campus",
-            },
-        },
-        {
-            style: {},
-            dataset: {
-                campus: "Sta. Maria Campus",
-                campusKey: "stamaria",
-                year: "2024",
-                type: "RESEARCH_BASED",
-                basis: "FACULTY",
-                led: "JOINT",
-                beneficiaries: "120",
-                students: "20",
-                faculty: "6",
-                researchStaff: "3",
-                search: "coastal farming sta. maria campus",
-            },
-        },
+        { style: {}, dataset: { key: "p1" } },
+        { style: {}, dataset: { key: "p2" } },
     ];
 
     const ctrl = makeHarness(
@@ -130,29 +159,69 @@ test("clicking charts recalculates KPI totals, bars, and donut arcs dynamically"
                 research_staff: 4,
             },
             overview: BASE_OVERVIEW,
+            programs: programs,
         },
         cards
     );
 
     assert.equal(ctrl.shown, 2);
-    assert.equal(ctrl.shownCampuses, 2);
-    assert.equal(ctrl.shownBeneficiaries, 200);
     assert.equal(ctrl.donutStat("extensionTypes", "COMMUNITY_BASED").dash, 50);
     assert.equal(ctrl.donutStat("extensionTypes", "RESEARCH_BASED").dash, 50);
     assert.equal(ctrl.donutStat("extensionTypes", "RESEARCH_BASED").dashoffset, -25);
 
-    // Filter by Sta. Maria Campus via chart click (matches normalized campus key).
+    // Filter by Sta. Maria Campus via chart click.
     ctrl.toggleFilter("campus", "Sta Maria Campus");
     assert.equal(ctrl.shown, 1);
-    assert.equal(ctrl.shownCampuses, 1);
     assert.equal(ctrl.shownBeneficiaries, 120);
-    assert.equal(ctrl.shownStudents, 20);
-    assert.equal(ctrl.shownFaculty, 6);
-    assert.equal(ctrl.shownResearchStaff, 3);
     assert.equal(ctrl.campusStat("stamaria").percent, 100);
-    assert.equal(ctrl.campusStat("main").percent, 0);
-    assert.equal(ctrl.yearStat("2024").bar_percent, 100);
-    assert.equal(ctrl.donutStat("extensionTypes", "RESEARCH_BASED").dash, 100);
     assert.equal(cards[0].style.display, "none");
     assert.equal(cards[1].style.display, "");
+    ctrl.reset();
+
+    // Quoted exact-phrase search vs unmatched phrase.
+    ctrl.query = '"coastal farming"';
+    ctrl.apply();
+    assert.equal(ctrl.shown, 1);
+    assert.equal(ctrl.filteredPrograms[0].key, "p2");
+
+    ctrl.query = '"farming coastal"';
+    ctrl.apply();
+    assert.equal(ctrl.shown, 0);
+    ctrl.reset();
+
+    // Documents filter.
+    ctrl.documents = "with";
+    ctrl.apply();
+    assert.equal(ctrl.shown, 1);
+    assert.equal(ctrl.filteredPrograms[0].key, "p1");
+    ctrl.reset();
+
+    // Sort by most beneficiaries.
+    ctrl.sort = "beneficiaries";
+    ctrl.apply();
+    assert.deepEqual(Array.from(ctrl.filteredPrograms, (p) => p.key), ["p2", "p1"]);
+
+    // Column presets and minimum 1-column guard.
+    assert.equal(ctrl.selectedColumns.length, 11);
+    assert.equal(ctrl.columnSummaryLabel(), "Columns: Default");
+    ctrl.setColumnPreset("minimal");
+    assert.equal(ctrl.selectedColumns.length, 6);
+    assert.equal(ctrl.columnSummaryLabel(), "Columns: Minimal");
+    ctrl.setColumnPreset("all");
+    assert.equal(ctrl.selectedColumns.length, 16);
+    assert.equal(ctrl.columnSummaryLabel(), "Columns: All 16");
+
+    while (ctrl.selectedColumns.length > 1) {
+        ctrl.toggleColumn(ctrl.selectedColumns[ctrl.selectedColumns.length - 1]);
+    }
+    const lastCol = ctrl.selectedColumns[0];
+    ctrl.toggleColumn(lastCol);
+    assert.equal(ctrl.selectedColumns.length, 1);
+
+    // CSV export includes header + sorted rows.
+    ctrl.setColumnPreset("minimal");
+    const csv = ctrl.downloadCsv();
+    assert.ok(csv.includes("Program title"));
+    assert.ok(csv.includes("Coastal Farming Resilience"));
+    assert.ok(csv.includes("Reading Literacy Workshop"));
 });

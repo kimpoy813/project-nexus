@@ -1,83 +1,414 @@
 {% comment %}
-Filters for the Programs directory.
+Filters & Refine bar for the Programs directory (source key PROGRAMS).
 
-Lives in its own partial because the design-system audit requires a standalone
-page template that contains a <select> to extend templates/base.html; this is
-included inside the directory block instead. The Alpine state it binds to
-(campus, year, type, basis, led, query, apply, reset) is declared by
-``details/blocks/programs.html`` on the wrapping element.
+Mirrors the Extension Programs Dashboard filter suite — always rendered and
+populated with institutional options even when zero programs are published yet:
+  - Quoted-phrase search input ("quotes" = exact phrase) + clear button
+  - Cards / Table view switch + Print / PDF + CSV export + Reset
+  - Multi-select "Filter by" menus (Campuses, Years, Extension types,
+    Research bases, Proponents) with Select all / Clear and live counts
+  - "Refine" controls: Columns preset/field picker (Minimal / Default / All 16),
+    Documents filter, and Sort selector
+  - Active filter chips row
 
-Context: data.facets, data.stats
+Lives in its own underscore-prefixed partial because standalone page templates
+that contain a <select> must extend templates/base.html directly.
+
+Context: section, data.filter_options, data.columns, data.stats
 {% endcomment %}
-    <!-- Filters -->
-    <div id="program-filters" class="scroll-mt-32 mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel">
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <div class="xl:col-span-2">
-                <label for="program-search-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Search</label>
-                <input id="program-search-{{ section.id|default:'preview' }}" type="search" x-model="query" @input.debounce.150ms="apply()"
-                       placeholder="Title, campus, or community"
-                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+    <div id="program-filters"
+         class="scroll-mt-32 mt-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel print:hidden"
+         @keydown.escape.window="closeMenu()"
+         @click.outside="closeMenu()">
+
+        <!-- Filter header + View / Export toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Filters</h3>
+                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      :class="hasActiveFilters() ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'"
+                      x-text="hasActiveFilters() ? (activeFilterCount() + ' active') : 'no filters applied'">no filters applied</span>
             </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Cards / Table toggle -->
+                <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label="Directory view mode">
+                    <button type="button"
+                            @click="viewMode = 'cards'"
+                            :aria-pressed="(viewMode === 'cards').toString()"
+                            class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition"
+                            :class="viewMode === 'cards' ? 'bg-white text-primary shadow-sm' : 'text-gray-600 hover:text-gray-900'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm9 0a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2V6zM4 15a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3zm9 0a2 2 0 012-2h3a2 2 0 012 2v3a2 2 0 01-2 2h-3a2 2 0 01-2-2v-3z" />
+                        </svg>
+                        Cards
+                    </button>
+                    <button type="button"
+                            @click="viewMode = 'table'"
+                            :aria-pressed="(viewMode === 'table').toString()"
+                            class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition"
+                            :class="viewMode === 'table' ? 'bg-white text-primary shadow-sm' : 'text-gray-600 hover:text-gray-900'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M9 4v16m-4 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Table
+                    </button>
+                </div>
+
+                <button type="button" @click="printReport()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary nx-btn--compact">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 9V4h12v5M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-12 0h12v2H6v-2z" />
+                    </svg>
+                    Print / PDF
+                </button>
+                <button type="button" @click="downloadCsv()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary nx-btn--compact">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                    </svg>
+                    CSV
+                </button>
+                <button type="button" @click="reset()"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary nx-btn--compact">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- Search input -->
+        <div class="mt-4">
+            <label for="program-search-{{ section.id|default:'preview' }}" class="sr-only">Search extension programs</label>
+            <div class="relative flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input id="program-search-{{ section.id|default:'preview' }}"
+                       type="search"
+                       x-model="query"
+                       @input.debounce.150ms="apply()"
+                       placeholder="Search programs, campuses, communities, or objectives…"
+                       class="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-44 text-sm text-gray-900 placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                <div class="absolute right-3 flex items-center gap-2">
+                    <span class="hidden rounded-md bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500 sm:inline">“quotes” = exact phrase</span>
+                    <button type="button"
+                            x-show="query.length > 0"
+                            x-cloak
+                            @click="query = ''; apply()"
+                            aria-label="Clear search"
+                            class="rounded-md p-1 text-xs font-semibold text-gray-400 hover:bg-gray-100 hover:text-gray-700">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter by: 5 multi-select facet dropdowns -->
+        <div class="mt-4 border-t border-gray-100 pt-4">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Filter by</span>
+
+                <!-- 1. Campuses -->
+                <div class="relative">
+                    <button type="button"
+                            id="program-campus-{{ section.id|default:'preview' }}"
+                            @click="toggleMenu('campuses')"
+                            :aria-expanded="(openMenu === 'campuses').toString()"
+                            class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                            :class="facetCount('campuses') > 0 ? 'border-primary/40 bg-primary/5 text-primary font-semibold' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
+                        <span x-text="facetButtonLabel('campuses', 'Campuses')">Campuses: All</span>
+                        <span class="rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                              :class="facetCount('campuses') > 0 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'"
+                              x-text="facetCount('campuses')">0</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="openMenu === 'campuses'" x-cloak
+                         class="absolute left-0 z-30 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                        <div class="mb-2 flex items-center justify-between border-b border-gray-100 pb-2 text-xs">
+                            <button type="button" @click="selectAllFacet('campuses')" class="font-semibold text-primary hover:underline">Select all</button>
+                            <button type="button" @click="clearFacet('campuses')" class="font-medium text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
+                        </div>
+                        <ul class="max-h-60 space-y-1 overflow-y-auto">
+                            {% for option in data.filter_options.campuses %}
+                            <li>
+                                <label class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-gray-50">
+                                    <span class="flex items-center gap-2 text-gray-700">
+                                        <input type="checkbox"
+                                               :checked="isSelected('campuses', '{{ option.key|escapejs }}')"
+                                               @change="toggleFilter('campuses', '{{ option.key|escapejs }}')"
+                                               class="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/30">
+                                        <span>{{ option.label }}</span>
+                                    </span>
+                                    <span class="tabular-nums text-gray-400" x-text="campusStat('{{ option.key|escapejs }}').count">{{ option.count }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 2. Years -->
+                <div class="relative">
+                    <button type="button"
+                            id="program-year-{{ section.id|default:'preview' }}"
+                            @click="toggleMenu('years')"
+                            :aria-expanded="(openMenu === 'years').toString()"
+                            class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                            :class="facetCount('years') > 0 ? 'border-primary/40 bg-primary/5 text-primary font-semibold' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
+                        <span x-text="facetButtonLabel('years', 'Years')">Years: All</span>
+                        <span class="rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                              :class="facetCount('years') > 0 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'"
+                              x-text="facetCount('years')">0</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="openMenu === 'years'" x-cloak
+                         class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                        <div class="mb-2 flex items-center justify-between border-b border-gray-100 pb-2 text-xs">
+                            <button type="button" @click="selectAllFacet('years')" class="font-semibold text-primary hover:underline">Select all</button>
+                            <button type="button" @click="clearFacet('years')" class="font-medium text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
+                        </div>
+                        <ul class="max-h-60 space-y-1 overflow-y-auto">
+                            {% for option in data.filter_options.years %}
+                            <li>
+                                <label class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-gray-50">
+                                    <span class="flex items-center gap-2 text-gray-700">
+                                        <input type="checkbox"
+                                               :checked="isSelected('years', '{{ option.value|escapejs }}')"
+                                               @change="toggleFilter('years', '{{ option.value|escapejs }}')"
+                                               class="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/30">
+                                        <span>{{ option.label }}</span>
+                                    </span>
+                                    <span class="tabular-nums text-gray-400" x-text="yearStat('{{ option.value|escapejs }}').count">{{ option.count }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 3. Extension types -->
+                <div class="relative">
+                    <button type="button"
+                            id="program-type-{{ section.id|default:'preview' }}"
+                            @click="toggleMenu('types')"
+                            :aria-expanded="(openMenu === 'types').toString()"
+                            class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                            :class="facetCount('types') > 0 ? 'border-primary/40 bg-primary/5 text-primary font-semibold' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
+                        <span x-text="facetButtonLabel('types', 'Extension types')">Extension types: All</span>
+                        <span class="rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                              :class="facetCount('types') > 0 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'"
+                              x-text="facetCount('types')">0</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="openMenu === 'types'" x-cloak
+                         class="absolute left-0 z-30 mt-2 w-60 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                        <div class="mb-2 flex items-center justify-between border-b border-gray-100 pb-2 text-xs">
+                            <button type="button" @click="selectAllFacet('types')" class="font-semibold text-primary hover:underline">Select all</button>
+                            <button type="button" @click="clearFacet('types')" class="font-medium text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
+                        </div>
+                        <ul class="space-y-1">
+                            {% for option in data.filter_options.extension_types %}
+                            <li>
+                                <label class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-gray-50">
+                                    <span class="flex items-center gap-2 text-gray-700">
+                                        <input type="checkbox"
+                                               :checked="isSelected('types', '{{ option.value|escapejs }}')"
+                                               @change="toggleFilter('types', '{{ option.value|escapejs }}')"
+                                               class="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/30">
+                                        <span>{{ option.short_label }}</span>
+                                    </span>
+                                    <span class="tabular-nums text-gray-400" x-text="donutStat('extensionTypes', '{{ option.value|escapejs }}').count">{{ option.count }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 4. Research bases -->
+                <div class="relative">
+                    <button type="button"
+                            id="program-basis-{{ section.id|default:'preview' }}"
+                            @click="toggleMenu('bases')"
+                            :aria-expanded="(openMenu === 'bases').toString()"
+                            class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                            :class="facetCount('bases') > 0 ? 'border-primary/40 bg-primary/5 text-primary font-semibold' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
+                        <span x-text="facetButtonLabel('bases', 'Research bases')">Research bases: All</span>
+                        <span class="rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                              :class="facetCount('bases') > 0 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'"
+                              x-text="facetCount('bases')">0</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="openMenu === 'bases'" x-cloak
+                         class="absolute left-0 z-30 mt-2 w-60 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                        <div class="mb-2 flex items-center justify-between border-b border-gray-100 pb-2 text-xs">
+                            <button type="button" @click="selectAllFacet('bases')" class="font-semibold text-primary hover:underline">Select all</button>
+                            <button type="button" @click="clearFacet('bases')" class="font-medium text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
+                        </div>
+                        <ul class="space-y-1">
+                            {% for option in data.filter_options.research_bases %}
+                            <li>
+                                <label class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-gray-50">
+                                    <span class="flex items-center gap-2 text-gray-700">
+                                        <input type="checkbox"
+                                               :checked="isSelected('bases', '{{ option.value|escapejs }}')"
+                                               @change="toggleFilter('bases', '{{ option.value|escapejs }}')"
+                                               class="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/30">
+                                        <span>{{ option.short_label }}</span>
+                                    </span>
+                                    <span class="tabular-nums text-gray-400" x-text="donutStat('researchBases', '{{ option.value|escapejs }}').count">{{ option.count }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 5. Proponents -->
+                <div class="relative">
+                    <button type="button"
+                            id="program-led-{{ section.id|default:'preview' }}"
+                            @click="toggleMenu('proponents')"
+                            :aria-expanded="(openMenu === 'proponents').toString()"
+                            class="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                            :class="facetCount('proponents') > 0 ? 'border-primary/40 bg-primary/5 text-primary font-semibold' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
+                        <span x-text="facetButtonLabel('proponents', 'Proponents')">Proponents: All</span>
+                        <span class="rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums"
+                              :class="facetCount('proponents') > 0 ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'"
+                              x-text="facetCount('proponents')">0</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div x-show="openMenu === 'proponents'" x-cloak
+                         class="absolute left-0 z-30 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+                        <div class="mb-2 flex items-center justify-between border-b border-gray-100 pb-2 text-xs">
+                            <button type="button" @click="selectAllFacet('proponents')" class="font-semibold text-primary hover:underline">Select all</button>
+                            <button type="button" @click="clearFacet('proponents')" class="font-medium text-gray-500 hover:text-gray-800 hover:underline">Clear</button>
+                        </div>
+                        <ul class="space-y-1">
+                            {% for option in data.filter_options.proponents %}
+                            <li>
+                                <label class="flex cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-gray-50">
+                                    <span class="flex items-center gap-2 text-gray-700">
+                                        <input type="checkbox"
+                                               :checked="isSelected('proponents', '{{ option.value|escapejs }}')"
+                                               @change="toggleFilter('proponents', '{{ option.value|escapejs }}')"
+                                               class="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/30">
+                                        <span>{{ option.short_label }}</span>
+                                    </span>
+                                    <span class="tabular-nums text-gray-400" x-text="donutStat('proponents', '{{ option.value|escapejs }}').count">{{ option.count }}</span>
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Refine: Columns picker + Documents filter + Sort selector -->
+        <div class="mt-4 flex flex-wrap items-center gap-2.5 border-t border-gray-100 pt-4">
+            <span class="mr-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Refine</span>
+
+            <!-- Columns popover -->
+            <div class="relative">
+                <button type="button"
+                        id="program-columns-{{ section.id|default:'preview' }}"
+                        @click="toggleMenu('columns')"
+                        :aria-expanded="(openMenu === 'columns').toString()"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50">
+                    <span x-text="columnSummaryLabel()">Columns: Default</span>
+                    <span class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-gray-600"
+                          x-text="selectedColumns.length">11</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                <div x-show="openMenu === 'columns'" x-cloak
+                     class="absolute left-0 z-30 mt-2 w-80 rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button" @click="setColumnPreset('minimal')"
+                                class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50">Minimal</button>
+                        <button type="button" @click="setColumnPreset('default')"
+                                class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50">Default</button>
+                        <button type="button" @click="setColumnPreset('all')"
+                                class="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50">All {{ data.columns|length }}</button>
+                    </div>
+                    <p class="mt-2 text-[11px] leading-relaxed text-gray-500">
+                        Selected fields appear in the Table view, the Print/PDF report, and the CSV export. At least one field is required.
+                    </p>
+                    <ul class="mt-3 grid max-h-64 grid-cols-1 gap-1 overflow-y-auto border-t border-gray-100 pt-2">
+                        {% for col in data.columns %}
+                        <li>
+                            <label class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 text-xs text-gray-700 hover:bg-gray-50">
+                                <input type="checkbox"
+                                       :checked="hasColumn('{{ col.key|escapejs }}')"
+                                       :disabled="hasColumn('{{ col.key|escapejs }}') && selectedColumns.length <= 1"
+                                       @change="toggleColumn('{{ col.key|escapejs }}')"
+                                       class="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary/30">
+                                <span>{{ col.label }}</span>
+                            </label>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Documents filter -->
             <div>
-                <label for="program-campus-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Campus</label>
-                <select id="program-campus-{{ section.id|default:'preview' }}" :value="campus" @change="campus = $event.target.value; apply()"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option value="">All campuses</option>
-                    {% for option in data.facets.campuses %}
-                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
-                    {% endfor %}
+                <label for="program-documents-{{ section.id|default:'preview' }}" class="sr-only">Filter by linked document</label>
+                <select id="program-documents-{{ section.id|default:'preview' }}"
+                        :value="documents"
+                        @change="documents = $event.target.value; apply()"
+                        class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="">Documents: all</option>
+                    <option value="with">With linked document</option>
+                    <option value="without">No document</option>
                 </select>
             </div>
+
+            <!-- Sort selector -->
             <div>
-                <label for="program-year-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Year</label>
-                <select id="program-year-{{ section.id|default:'preview' }}" :value="year" @change="year = $event.target.value; apply()"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option value="">All years</option>
-                    {% for option in data.facets.years %}
-                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="program-type-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Type</label>
-                <select id="program-type-{{ section.id|default:'preview' }}" :value="type" @change="type = $event.target.value; apply()"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option value="">All types</option>
-                    {% for option in data.facets.extension_types %}
-                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="program-basis-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Research basis</label>
-                <select id="program-basis-{{ section.id|default:'preview' }}" :value="basis" @change="basis = $event.target.value; apply()"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option value="">All bases</option>
-                    {% for option in data.facets.research_bases %}
-                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="program-led-{{ section.id|default:'preview' }}" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Led by</label>
-                <select id="program-led-{{ section.id|default:'preview' }}" :value="led" @change="led = $event.target.value; apply()"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                    <option value="">Anyone</option>
-                    {% for option in data.facets.proponents %}
-                        <option value="{{ option.value }}">{{ option.label }} ({{ option.count }})</option>
-                    {% endfor %}
+                <label for="program-sort-{{ section.id|default:'preview' }}" class="sr-only">Sort programs</label>
+                <select id="program-sort-{{ section.id|default:'preview' }}"
+                        :value="sort"
+                        @change="sort = $event.target.value; apply()"
+                        class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="newest">Sort: newest first</option>
+                    <option value="oldest">Sort: oldest first</option>
+                    <option value="title">Sort: title A–Z</option>
+                    <option value="beneficiaries">Sort: most beneficiaries</option>
+                    <option value="students">Sort: most students</option>
+                    <option value="campus">Sort: campus A–Z</option>
                 </select>
             </div>
         </div>
 
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
-            <p class="text-sm text-gray-600" aria-live="polite">
-                Showing <strong class="text-gray-900" x-text="shown">{{ data.stats.program_count }}</strong>
-                of <strong class="text-gray-900">{{ data.stats.program_count }}</strong> program{{ data.stats.program_count|pluralize }}
-            </p>
-            <button type="button" @click="reset()"
-                    class="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
-                Reset filters
+        <!-- Active filter chips -->
+        <div x-show="hasActiveFilters()" x-cloak class="mt-4 flex flex-wrap items-center gap-1.5 border-t border-gray-100 pt-3">
+            <template x-for="chip in activeFilterChips()" :key="chip.id">
+                <button type="button"
+                        @click="removeChip(chip)"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/15">
+                    <span x-text="chip.label"></span>
+                    <span aria-hidden="true" class="font-bold">×</span>
+                </button>
+            </template>
+            <button type="button" @click="reset()" class="ml-1 text-xs font-semibold text-gray-500 hover:text-gray-900 hover:underline">
+                Clear all
             </button>
         </div>
     </div>
