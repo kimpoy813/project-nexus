@@ -71,6 +71,7 @@ def _render_content_page(
         subnav_items = [
             {"anchor": "program-summary", "label": "Summary"},
             {"anchor": "program-overview", "label": "Overview"},
+            {"anchor": "program-rankings", "label": "Rankings"},
             {"anchor": "program-filters", "label": "Filters"},
             {"anchor": "program-directory", "label": "Directory"},
         ]

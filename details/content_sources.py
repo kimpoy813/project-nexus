@@ -482,6 +482,180 @@ def _build_year_overview(year_counts, total):
     return years, f"{start_year}–{end_year}"
 
 
+def _rank_leaderboard(rows, metric="programs"):
+    """Sort and assign competition ranks (1, 1, 3...) for positive activity."""
+    if metric == "completed":
+        sort_key = lambda r: (
+            -r["completed"],
+            -r["programs"],
+            -r["beneficiaries"],
+            r["label"].lower(),
+            r["subtitle"].lower(),
+        )
+    elif metric == "beneficiaries":
+        sort_key = lambda r: (
+            -r["beneficiaries"],
+            -r["programs"],
+            -r["completed"],
+            r["label"].lower(),
+            r["subtitle"].lower(),
+        )
+    else:
+        metric = "programs"
+        sort_key = lambda r: (
+            -r["programs"],
+            -r["completed"],
+            -r["beneficiaries"],
+            r["label"].lower(),
+            r["subtitle"].lower(),
+        )
+
+    ordered = sorted(rows, key=sort_key)
+    max_val = max((r[metric] for r in ordered), default=0)
+
+    prev_score = None
+    current_rank = 0
+    for idx, row in enumerate(ordered, start=1):
+        val = row[metric]
+        if val > 0:
+            score_tuple = (row["programs"], row["completed"], row["beneficiaries"])
+            if score_tuple != prev_score:
+                current_rank = idx
+                prev_score = score_tuple
+            row["rank"] = current_rank
+        else:
+            row["rank"] = None
+        row["bar_percent"] = round(100 * val / max_val) if max_val > 0 else 0
+    return ordered
+
+
+def _build_rankings(entries, campus_overview):
+    from accounts.models import College, Department
+    from .program_directory import scoped_org_key
+
+    campus_map = {
+        row["key"]: {
+            "key": row["key"],
+            "label": row["label"],
+            "subtitle": "ISPSC Campus",
+            "programs": 0,
+            "completed": 0,
+            "beneficiaries": 0,
+        }
+        for row in campus_overview
+    }
+
+    college_map = {}
+    for col in College.objects.select_related("campus").all():
+        ck = _campus_key(col.campus.name) if col.campus_id else ""
+        key = scoped_org_key(ck, col.name)
+        if not key:
+            continue
+        college_map[key] = {
+            "key": key,
+            "label": col.name,
+            "subtitle": _format_campus_label(col.campus.name) if col.campus_id else "",
+            "programs": 0,
+            "completed": 0,
+            "beneficiaries": 0,
+        }
+
+    program_map = {}
+    for dept in Department.objects.select_related("campus", "college").all():
+        ck = _campus_key(dept.campus.name) if dept.campus_id else ""
+        key = scoped_org_key(ck, dept.name)
+        if not key:
+            continue
+        campus_lbl = _format_campus_label(dept.campus.name) if dept.campus_id else ""
+        college_lbl = dept.college.name if dept.college_id else ""
+        subtitle = " · ".join(part for part in (campus_lbl, college_lbl) if part)
+        program_map[key] = {
+            "key": key,
+            "label": dept.name,
+            "subtitle": subtitle,
+            "programs": 0,
+            "completed": 0,
+            "beneficiaries": 0,
+        }
+
+    faculty_map = {}
+
+    for entry in entries:
+        is_comp = 1 if entry.get("is_completed") else 0
+        ben = entry.get("beneficiaries") or 0
+
+        ck = entry.get("campus_key") or _campus_key(entry.get("campus"))
+        if ck:
+            if ck not in campus_map:
+                campus_map[ck] = {
+                    "key": ck,
+                    "label": entry.get("campus") or ck.title(),
+                    "subtitle": "ISPSC Campus",
+                    "programs": 0,
+                    "completed": 0,
+                    "beneficiaries": 0,
+                }
+            campus_map[ck]["programs"] += 1
+            campus_map[ck]["completed"] += is_comp
+            campus_map[ck]["beneficiaries"] += ben
+
+        col_key = entry.get("college_key") or ""
+        if col_key:
+            if col_key not in college_map:
+                college_map[col_key] = {
+                    "key": col_key,
+                    "label": entry.get("college") or col_key,
+                    "subtitle": _format_campus_label(entry.get("campus")),
+                    "programs": 0,
+                    "completed": 0,
+                    "beneficiaries": 0,
+                }
+            college_map[col_key]["programs"] += 1
+            college_map[col_key]["completed"] += is_comp
+            college_map[col_key]["beneficiaries"] += ben
+
+        prog_key = entry.get("program_key") or ""
+        if prog_key:
+            if prog_key not in program_map:
+                campus_lbl = _format_campus_label(entry.get("campus"))
+                college_lbl = entry.get("college") or ""
+                program_map[prog_key] = {
+                    "key": prog_key,
+                    "label": entry.get("department") or prog_key,
+                    "subtitle": " · ".join(p for p in (campus_lbl, college_lbl) if p),
+                    "programs": 0,
+                    "completed": 0,
+                    "beneficiaries": 0,
+                }
+            program_map[prog_key]["programs"] += 1
+            program_map[prog_key]["completed"] += is_comp
+            program_map[prog_key]["beneficiaries"] += ben
+
+        for credit in entry.get("faculty_credits") or ():
+            fk = credit.get("key") or ""
+            if not fk:
+                continue
+            if fk not in faculty_map:
+                faculty_map[fk] = {
+                    "key": fk,
+                    "label": credit.get("label") or fk,
+                    "subtitle": credit.get("subtitle") or "",
+                    "programs": 0,
+                    "completed": 0,
+                    "beneficiaries": 0,
+                }
+            faculty_map[fk]["programs"] += 1
+            faculty_map[fk]["completed"] += is_comp
+            faculty_map[fk]["beneficiaries"] += ben
+
+    return {
+        "campuses": _rank_leaderboard(list(campus_map.values()), "programs"),
+        "colleges": _rank_leaderboard(list(college_map.values()), "programs"),
+        "programs": _rank_leaderboard(list(program_map.values()), "programs"),
+        "faculty": _rank_leaderboard(list(faculty_map.values()), "programs"),
+    }
+
+
 def _resolve_programs(section):
     """The Programs directory: merged entries, their facets, overview charts, and totals.
 
@@ -543,16 +717,19 @@ def _resolve_programs(section):
         "research_bases": research_bases_overview,
         "proponents": proponents_overview,
     }
+    rankings = _build_rankings(entries, campus_overview)
 
     return {
         "programs": entries,
         "stats": stats,
         "overview": overview,
+        "rankings": rankings,
         "filter_options": filter_options,
         "columns": columns,
         "overview_seed": {
             "stats": stats,
             "overview": overview,
+            "rankings": rankings,
             "columns": columns,
             "programs": entries,
         },

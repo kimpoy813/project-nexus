@@ -29,7 +29,12 @@ from details.models import (
     SitePage,
     resolve_section_data,
 )
-from proposals.models import DocumentationPhoto, Proposal, ProposalFinalDocument
+from proposals.models import (
+    DocumentationPhoto,
+    Proposal,
+    ProposalFinalDocument,
+    ProposalProponent,
+)
 
 from . import factories
 
@@ -368,9 +373,127 @@ class ProgramsPageTests(TestCase):
             "Sort: most beneficiaries",
             "Sort: most students",
             "Sort: campus A–Z",
+            "Extension activity rankings",
+            "Campus rankings",
+            "College rankings",
+            "Academic program rankings",
+            "Individual faculty rankings",
+            "Most Programs",
+            "Most Completed",
+            "Most Beneficiaries",
+            "No faculty rankings recorded yet",
         ):
             with self.subTest(filter_control=filter_control):
                 self.assertIn(filter_control, html)
+
+    def test_rankings_score_campuses_colleges_programs_and_faculty(self):
+        faculty_one = factories.make_user("maria_santos", Profile.ROLE_FACULTY)
+        faculty_one.profile.full_name = "Dr. Maria Santos"
+        faculty_one.profile.campus = "Main"
+        faculty_one.profile.college = "College of Arts and Sciences"
+        faculty_one.profile.department = "Bachelor of Science in Computer Science"
+        faculty_one.profile.save()
+
+        faculty_two = factories.make_user("juan_delacruz", Profile.ROLE_FACULTY)
+        faculty_two.profile.full_name = "Prof. Juan Dela Cruz"
+        faculty_two.profile.campus = "Tagudin"
+        faculty_two.profile.college = "College of Teacher Education (CTE)"
+        faculty_two.profile.department = "Bachelor of Secondary Education"
+        faculty_two.profile.save()
+
+        draft_only = factories.make_user("draft_faculty", Profile.ROLE_FACULTY)
+        draft_only.profile.full_name = "Unpublished Proponent"
+        draft_only.profile.save()
+
+        uploader_admin = factories.make_user("legacy_uploader", Profile.ROLE_ADMIN)
+        uploader_admin.profile.full_name = "Uploading Admin"
+        uploader_admin.profile.save()
+
+        make_proposal(
+            owner=faculty_one,
+            title="CS-LITERACY-1",
+            campus="Main Campus",
+            college="College of Arts and Sciences",
+            department="Bachelor of Science in Computer Science",
+            beneficiaries_count=100,
+        )
+        make_proposal(
+            owner=faculty_one,
+            title="CS-LITERACY-2",
+            status="COMPLETED",
+            overall="COMPLETED",
+            campus="Main Campus",
+            college="College of Arts and Sciences",
+            department="Bachelor of Science in Computer Science",
+            beneficiaries_count=150,
+        )
+
+        legacy = make_legacy_proposal(
+            owner=uploader_admin,
+            title="TAGUDIN-TEACHER-LEGACY",
+            campus="Tagudin Campus",
+            college="College of Teacher Education (CTE)",
+            department="Bachelor of Secondary Education",
+            beneficiaries_count=400,
+        )
+        ProposalProponent.objects.create(
+            proposal=legacy,
+            user=faculty_two,
+            full_name="Prof. Juan Dela Cruz",
+            sort_order=0,
+        )
+
+        make_proposal(
+            owner=draft_only,
+            title="UNPUBLISHED-DRAFT",
+            status="DRAFTING",
+            overall="DRAFT",
+            campus="Cervantes Campus",
+            beneficiaries_count=999,
+        )
+
+        section = PageSection.objects.filter(
+            page__slug="programs", layout=PageSection.Layout.PROGRAMS
+        ).first()
+        rankings = resolve_section_data(section)["rankings"]
+
+        self.assertEqual(rankings["campuses"][0]["label"], "Main Campus")
+        self.assertEqual(rankings["campuses"][0]["rank"], 1)
+        self.assertEqual(rankings["campuses"][0]["programs"], 2)
+        self.assertEqual(rankings["campuses"][0]["completed"], 1)
+        self.assertEqual(rankings["campuses"][0]["beneficiaries"], 250)
+
+        self.assertEqual(rankings["campuses"][1]["label"], "Tagudin Campus")
+        self.assertEqual(rankings["campuses"][1]["rank"], 2)
+        self.assertEqual(rankings["campuses"][1]["programs"], 1)
+        self.assertEqual(rankings["campuses"][1]["completed"], 1)
+        self.assertEqual(rankings["campuses"][1]["beneficiaries"], 400)
+
+        cervantes = next(
+            r for r in rankings["campuses"] if r["label"] == "Cervantes Campus"
+        )
+        self.assertIsNone(cervantes["rank"])
+        self.assertEqual(cervantes["programs"], 0)
+
+        self.assertEqual(
+            rankings["colleges"][0]["label"], "College of Arts and Sciences"
+        )
+        self.assertEqual(rankings["colleges"][0]["rank"], 1)
+        self.assertEqual(rankings["colleges"][0]["programs"], 2)
+
+        self.assertEqual(
+            rankings["programs"][0]["label"],
+            "Bachelor of Science in Computer Science",
+        )
+        self.assertEqual(rankings["programs"][0]["rank"], 1)
+        self.assertEqual(rankings["programs"][0]["programs"], 2)
+
+        faculty_names = [row["label"] for row in rankings["faculty"]]
+        self.assertEqual(
+            faculty_names, ["Dr. Maria Santos", "Prof. Juan Dela Cruz"]
+        )
+        self.assertNotIn("Uploading Admin", faculty_names)
+        self.assertNotIn("Unpublished Proponent", faculty_names)
 
     def test_the_new_blocks_are_registered_content_sources(self):
         for key, template in (
@@ -943,6 +1066,7 @@ class PublicSubnavConsistencyTests(TestCase):
         for anchor in (
             "program-summary",
             "program-overview",
+            "program-rankings",
             "program-filters",
             "program-directory",
         ):

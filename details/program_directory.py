@@ -81,6 +81,138 @@ def normalize_campus_key(value):
     return "".join(character for character in text if character.isalnum())
 
 
+def normalize_org_key(value):
+    """Normalise a college, academic program, or person name for matching."""
+    return "".join(character for character in (value or "").lower() if character.isalnum())
+
+
+def scoped_org_key(campus_key, value):
+    """Key a college or academic program within its campus."""
+    org_key = normalize_org_key(value)
+    if not org_key:
+        return ""
+    return f"{campus_key or 'all'}::{org_key}"
+
+
+def _format_campus_short(raw_campus):
+    text = (raw_campus or "").strip()
+    if not text:
+        return ""
+    if text.lower() == "sta maria":
+        return "Sta. Maria Campus"
+    if text.lower().endswith("campus"):
+        return text
+    return f"{text} Campus"
+
+
+def _proposal_org_units(proposal):
+    """Resolve (campus, college, department) with proponent-profile fallback."""
+    campus = (proposal.campus or "").strip()
+    college = (proposal.college or "").strip()
+    department = (proposal.department or "").strip()
+
+    if college and department and campus:
+        return campus, college, department
+
+    candidate_profiles = []
+    for prop in proposal.proponents.all():
+        user = getattr(prop, "user", None)
+        profile = getattr(user, "profile", None) if user else None
+        if profile is not None:
+            candidate_profiles.append(profile)
+
+    if not proposal.is_legacy and getattr(proposal, "created_by_id", None):
+        creator_profile = getattr(proposal.created_by, "profile", None)
+        if creator_profile is not None and getattr(creator_profile, "role", "") not in {"ADMIN", "STAFF"}:
+            candidate_profiles.append(creator_profile)
+
+    campus_key = normalize_campus_key(campus)
+    for profile in candidate_profiles:
+        prof_campus = (getattr(profile, "campus", "") or "").strip()
+        prof_campus_key = normalize_campus_key(prof_campus)
+        if campus_key and prof_campus_key and prof_campus_key != campus_key:
+            continue
+        if not campus and prof_campus:
+            campus = _format_campus_short(prof_campus)
+            campus_key = prof_campus_key
+        if not college and getattr(profile, "college", ""):
+            college = profile.college.strip()
+        if not department and getattr(profile, "department", ""):
+            department = profile.department.strip()
+        if campus and college and department:
+            break
+
+    return campus, college, department
+
+
+def _proposal_faculty_credits(proposal, campus, college, department):
+    """Unique faculty proponents credited on a published extension activity."""
+    credits = []
+    seen = set()
+
+    def add_credit(key, label, subtitle_parts):
+        clean_label = (label or "").strip()
+        if not key or not clean_label or key in seen:
+            return
+        seen.add(key)
+        subtitle = " · ".join(part for part in subtitle_parts if part)
+        credits.append(
+            {
+                "key": key,
+                "label": clean_label,
+                "subtitle": subtitle,
+            }
+        )
+
+    proponents = list(proposal.proponents.all())
+    for prop in proponents:
+        user = getattr(prop, "user", None)
+        profile = getattr(user, "profile", None) if user else None
+        if user is not None:
+            name = (
+                (prop.full_name or "").strip()
+                or (getattr(profile, "full_name", "") or "").strip()
+                or user.get_full_name().strip()
+                or user.username
+            )
+            prof_campus = _format_campus_short(getattr(profile, "campus", "") or campus)
+            prof_unit = (
+                (getattr(profile, "department", "") or "").strip()
+                or (getattr(profile, "college", "") or "").strip()
+                or department
+                or college
+                or (prop.designation or "").strip()
+            )
+            add_credit(f"user-{user.pk}", name, [prof_campus, prof_unit])
+        else:
+            name = (prop.full_name or "").strip()
+            norm = normalize_org_key(name)
+            if norm:
+                unit = department or college or (prop.designation or "").strip()
+                add_credit(f"name-{norm}", name, [_format_campus_short(campus), unit])
+
+    if not credits and not proposal.is_legacy and getattr(proposal, "created_by_id", None):
+        creator = proposal.created_by
+        profile = getattr(creator, "profile", None)
+        role = getattr(profile, "role", "") if profile is not None else ""
+        if role not in {"ADMIN", "STAFF"}:
+            name = (
+                (getattr(profile, "full_name", "") or "").strip()
+                or creator.get_full_name().strip()
+                or creator.username
+            )
+            prof_campus = _format_campus_short(getattr(profile, "campus", "") or campus)
+            prof_unit = (
+                (getattr(profile, "department", "") or "").strip()
+                or (getattr(profile, "college", "") or "").strip()
+                or department
+                or college
+            )
+            add_credit(f"user-{creator.pk}", name, [prof_campus, prof_unit])
+
+    return credits
+
+
 def _proposal_led_by(proposal):
     """Who led the work: the institution's Faculty / Joint / Student split.
 
@@ -179,15 +311,34 @@ def _proposal_entry(proposal):
     source = SOURCE_LEGACY if proposal.is_legacy else SOURCE_APPROVED
     led_by = _proposal_led_by(proposal)
     document_available = _document_available(proposal)
+    resolved_campus, college, department = _proposal_org_units(proposal)
+    raw_campus = (proposal.campus or resolved_campus or "").strip()
+    campus_key = normalize_campus_key(raw_campus)
+    college_key = scoped_org_key(campus_key, college)
+    program_key = scoped_org_key(campus_key, department)
+    faculty_credits = _proposal_faculty_credits(
+        proposal, raw_campus, college, department
+    )
+    is_completed = bool(
+        proposal.proposal_status == "COMPLETED"
+        or proposal.status == "COMPLETED"
+    )
 
     return {
         "key": proposal_document_key(proposal),
         "proposal_id": proposal.pk,
         "source": source,
         "source_label": SOURCE_LABELS[source],
+        "is_completed": is_completed,
         "title": proposal.display_title,
-        "campus": proposal.campus or "",
-        "campus_key": normalize_campus_key(proposal.campus),
+        "campus": raw_campus,
+        "campus_key": campus_key,
+        "college": college,
+        "college_key": college_key,
+        "department": department,
+        "program_key": program_key,
+        "faculty_credits": faculty_credits,
+        "faculty_keys": [credit["key"] for credit in faculty_credits],
         "year": _proposal_year(proposal),
         "extension_type": extension_type,
         "extension_type_label": EXTENSION_TYPE_LABELS[extension_type],
@@ -228,6 +379,7 @@ def build_program_entries():
 
     proposals = (
         Proposal.objects.filter(proposal_status__in=APPROVED_PROPOSAL_STATUSES)
+        .select_related("created_by__profile")
         .prefetch_related(
             "proponents__user__profile",
             "specific_objectives",

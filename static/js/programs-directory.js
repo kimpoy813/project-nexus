@@ -5,6 +5,9 @@
  *  - 6 live Summary KPI cards
  *  - 5 interactive Visual Overview charts (Programs per year, Programs by
  *    campus, By type of extension, By research basis, By proponent)
+ *  - 4 interactive Extension Activity Leaderboards (Campuses, Colleges,
+ *    Academic Programs, and Individual Faculty) with switchable metric
+ *    (Most Programs, Most Completed, Most Beneficiaries)
  *  - Full multi-select Filter bar (Campuses, Years, Extension types, Research
  *    bases, Proponents, quoted-phrase Search, Columns preset/field picker,
  *    Documents filter, Sort order, Cards/Table view switch, CSV export, and
@@ -16,6 +19,11 @@
     var FIELD_TO_GROUP = {
         campus: "campuses",
         campuses: "campuses",
+        college: "colleges",
+        colleges: "colleges",
+        program: "academicPrograms",
+        academicPrograms: "academicPrograms",
+        faculty: "faculty",
         year: "years",
         years: "years",
         type: "types",
@@ -92,6 +100,77 @@
         return out;
     }
 
+    function rankLeaderboard(baseCatalog, bucketMap, metric) {
+        var activeMetric = (metric === "completed" || metric === "beneficiaries") ? metric : "programs";
+        var merged = {};
+        (baseCatalog || []).forEach(function (item) {
+            merged[item.key] = {
+                key: item.key,
+                label: item.label,
+                subtitle: item.subtitle || "",
+                programs: 0,
+                completed: 0,
+                beneficiaries: 0
+            };
+        });
+        Object.keys(bucketMap || {}).forEach(function (key) {
+            var b = bucketMap[key];
+            if (!merged[key]) {
+                merged[key] = {
+                    key: key,
+                    label: b.label || key,
+                    subtitle: b.subtitle || "",
+                    programs: 0,
+                    completed: 0,
+                    beneficiaries: 0
+                };
+            }
+            merged[key].programs = b.programs || 0;
+            merged[key].completed = b.completed || 0;
+            merged[key].beneficiaries = b.beneficiaries || 0;
+        });
+
+        var rows = Object.keys(merged).map(function (k) { return merged[k]; });
+        rows.sort(function (a, b) {
+            var primaryDiff;
+            if (activeMetric === "completed") {
+                primaryDiff = (b.completed - a.completed) || (b.programs - a.programs) || (b.beneficiaries - a.beneficiaries);
+            } else if (activeMetric === "beneficiaries") {
+                primaryDiff = (b.beneficiaries - a.beneficiaries) || (b.programs - a.programs) || (b.completed - a.completed);
+            } else {
+                primaryDiff = (b.programs - a.programs) || (b.completed - a.completed) || (b.beneficiaries - a.beneficiaries);
+            }
+            if (primaryDiff !== 0) return primaryDiff;
+            var lblCmp = String(a.label || "").toLowerCase().localeCompare(String(b.label || "").toLowerCase());
+            if (lblCmp !== 0) return lblCmp;
+            return String(a.subtitle || "").toLowerCase().localeCompare(String(b.subtitle || "").toLowerCase());
+        });
+
+        var maxVal = 0;
+        rows.forEach(function (r) {
+            if (r[activeMetric] > maxVal) maxVal = r[activeMetric];
+        });
+
+        var prevSig = "";
+        var curRank = 0;
+        rows.forEach(function (r, idx) {
+            var val = r[activeMetric] || 0;
+            if (val > 0) {
+                var sig = r.programs + ":" + r.completed + ":" + r.beneficiaries;
+                if (sig !== prevSig) {
+                    curRank = idx + 1;
+                    prevSig = sig;
+                }
+                r.rank = curRank;
+            } else {
+                r.rank = null;
+            }
+            r.bar_percent = maxVal > 0 ? Math.round((100 * val) / maxVal) : 0;
+        });
+
+        return rows;
+    }
+
     function comparePrograms(a, b, sortKey) {
         var titleA = String(a.title || "").toLowerCase();
         var titleB = String(b.title || "").toLowerCase();
@@ -125,7 +204,6 @@
             if (yearB !== yearA) return yearB - yearA;
             return titleA.localeCompare(titleB);
         }
-        // Default: newest first
         if (yearB !== yearA) return yearB - yearA;
         return titleA.localeCompare(titleB);
     }
@@ -142,9 +220,10 @@
         var el = typeof document !== "undefined" && document.getElementById
             ? document.getElementById(seedId)
             : null;
-        var seed = el && el.textContent ? JSON.parse(el.textContent) : { stats: {}, overview: {} };
+        var seed = el && el.textContent ? JSON.parse(el.textContent) : { stats: {}, overview: {}, rankings: {} };
         var stats = seed.stats || {};
         var overview = seed.overview || {};
+        var rankings = seed.rankings || {};
         var columns = seed.columns || [
             { key: "year", label: "Year", default: true, minimal: true },
             { key: "campus", label: "Campus", default: true, minimal: true },
@@ -172,6 +251,9 @@
 
         return {
             campuses: [],
+            colleges: [],
+            academicPrograms: [],
+            faculty: [],
             years: [],
             types: [],
             bases: [],
@@ -179,6 +261,13 @@
             documents: "",
             sort: "newest",
             viewMode: "cards",
+            rankMetric: "programs",
+            expandedRankings: {
+                campuses: false,
+                colleges: false,
+                programs: false,
+                faculty: false
+            },
             openMenu: "",
             query: "",
             columns: columns,
@@ -198,6 +287,20 @@
             baseExtensionTypes: overview.extension_types || [],
             baseResearchBases: overview.research_bases || [],
             baseProponents: overview.proponents || [],
+            baseRankCampuses: rankings.campuses || [],
+            baseRankColleges: rankings.colleges || [],
+            baseRankPrograms: rankings.programs || [],
+            baseRankFaculty: rankings.faculty || [],
+            rankedCampuses: rankings.campuses || [],
+            rankedColleges: rankings.colleges || [],
+            rankedPrograms: rankings.programs || [],
+            rankedFaculty: rankings.faculty || [],
+            _lastRankBuckets: {
+                campuses: {},
+                colleges: {},
+                programs: {},
+                faculty: {}
+            },
             yearsByVal: buildMap(overview.years || [], "value"),
             campusesByKey: buildMap(overview.campuses || [], "key"),
             donuts: {
@@ -211,6 +314,38 @@
             },
             closeMenu: function () {
                 this.openMenu = "";
+            },
+            setRankMetric: function (metric) {
+                this.rankMetric = metric;
+                this.recomputeRankings();
+            },
+            toggleExpandRanking: function (board) {
+                this.expandedRankings[board] = !this.expandedRankings[board];
+            },
+            visibleRankingRows: function (board) {
+                var list = board === "campuses"
+                    ? this.rankedCampuses
+                    : board === "colleges"
+                        ? this.rankedColleges
+                        : board === "programs"
+                            ? this.rankedPrograms
+                            : this.rankedFaculty;
+                return this.expandedRankings[board] ? list : list.slice(0, 7);
+            },
+            rankBadgeClass: function (rank) {
+                if (rank === 1) return "bg-amber-100 text-amber-800 ring-1 ring-amber-300";
+                if (rank === 2) return "bg-slate-200 text-slate-800 ring-1 ring-slate-300";
+                if (rank === 3) return "bg-orange-100 text-orange-800 ring-1 ring-orange-300";
+                if (rank) return "bg-gray-100 text-gray-700";
+                return "bg-gray-50 text-gray-400";
+            },
+            recomputeRankings: function () {
+                var m = this.rankMetric;
+                var b = this._lastRankBuckets;
+                this.rankedCampuses = rankLeaderboard(this.baseRankCampuses, b.campuses, m);
+                this.rankedColleges = rankLeaderboard(this.baseRankColleges, b.colleges, m);
+                this.rankedPrograms = rankLeaderboard(this.baseRankPrograms, b.programs, m);
+                this.rankedFaculty = rankLeaderboard(this.baseRankFaculty, b.faculty, m);
             },
             _groupList: function (field) {
                 var group = FIELD_TO_GROUP[field] || field;
@@ -285,6 +420,24 @@
                     }
                     return val;
                 }
+                if (group === "colleges") {
+                    for (i = 0; i < this.baseRankColleges.length; i++) {
+                        if (this.baseRankColleges[i].key === val) return this.baseRankColleges[i].label;
+                    }
+                    return val;
+                }
+                if (group === "academicPrograms") {
+                    for (i = 0; i < this.baseRankPrograms.length; i++) {
+                        if (this.baseRankPrograms[i].key === val) return this.baseRankPrograms[i].label;
+                    }
+                    return val;
+                }
+                if (group === "faculty") {
+                    for (i = 0; i < this.baseRankFaculty.length; i++) {
+                        if (this.baseRankFaculty[i].key === val) return this.baseRankFaculty[i].label;
+                    }
+                    return val;
+                }
                 if (group === "years") return val;
                 var source = group === "types"
                     ? this.baseExtensionTypes
@@ -301,6 +454,9 @@
             activeFilterCount: function () {
                 return (
                     this.campuses.length +
+                    this.colleges.length +
+                    this.academicPrograms.length +
+                    this.faculty.length +
                     this.years.length +
                     this.types.length +
                     this.bases.length +
@@ -317,6 +473,15 @@
                 var chips = [];
                 this.campuses.forEach(function (v) {
                     chips.push({ id: "campuses:" + v, group: "campuses", value: v, label: self._optionLabel("campuses", v) });
+                });
+                this.colleges.forEach(function (v) {
+                    chips.push({ id: "colleges:" + v, group: "colleges", value: v, label: "College: " + self._optionLabel("colleges", v) });
+                });
+                this.academicPrograms.forEach(function (v) {
+                    chips.push({ id: "academicPrograms:" + v, group: "academicPrograms", value: v, label: "Program: " + self._optionLabel("academicPrograms", v) });
+                });
+                this.faculty.forEach(function (v) {
+                    chips.push({ id: "faculty:" + v, group: "faculty", value: v, label: "Faculty: " + self._optionLabel("faculty", v) });
                 });
                 this.years.forEach(function (v) {
                     chips.push({ id: "years:" + v, group: "years", value: v, label: "Year: " + v });
@@ -405,6 +570,19 @@
             _matchesRecord: function (rec, parsedQuery) {
                 var campusKey = rec.campus_key || normalizeCampus(rec.campus);
                 if (this.campuses.length && this.campuses.indexOf(campusKey) === -1) return false;
+                if (this.colleges.length && this.colleges.indexOf(String(rec.college_key || "")) === -1) return false;
+                if (this.academicPrograms.length && this.academicPrograms.indexOf(String(rec.program_key || "")) === -1) return false;
+                if (this.faculty.length) {
+                    var fKeys = rec.faculty_keys || [];
+                    var hasFac = false;
+                    for (var f = 0; f < this.faculty.length; f++) {
+                        if (fKeys.indexOf(this.faculty[f]) !== -1) {
+                            hasFac = true;
+                            break;
+                        }
+                    }
+                    if (!hasFac) return false;
+                }
                 if (this.years.length && this.years.indexOf(String(rec.year || "")) === -1) return false;
                 if (this.types.length && this.types.indexOf(String(rec.extension_type || "")) === -1) return false;
                 if (this.bases.length && this.bases.indexOf(String(rec.research_basis || "")) === -1) return false;
@@ -428,6 +606,28 @@
                 var typeCounts = {};
                 var basisCounts = {};
                 var ledCounts = {};
+                var rankBuckets = {
+                    campuses: {},
+                    colleges: {},
+                    programs: {},
+                    faculty: {}
+                };
+
+                function addRankCount(bucket, key, label, subtitle, isCompleted, benCount) {
+                    if (!key) return;
+                    if (!bucket[key]) {
+                        bucket[key] = {
+                            label: label || key,
+                            subtitle: subtitle || "",
+                            programs: 0,
+                            completed: 0,
+                            beneficiaries: 0
+                        };
+                    }
+                    bucket[key].programs += 1;
+                    bucket[key].completed += isCompleted ? 1 : 0;
+                    bucket[key].beneficiaries += benCount;
+                }
 
                 var root = this.$el || this.$root;
                 var cards = root && root.querySelectorAll ? root.querySelectorAll("[data-program]") : [];
@@ -436,10 +636,14 @@
 
                 if (Array.isArray(this.allPrograms)) {
                     records = this.allPrograms.map(function (p) {
+                        var facNames = (p.faculty_credits || []).map(function (fc) { return fc.label; }).join(" ");
                         return Object.assign({}, p, {
                             _searchText: [
                                 p.title,
                                 p.campus,
+                                p.college,
+                                p.department,
+                                facNames,
                                 p.target_community,
                                 p.objectives,
                                 p.research_output,
@@ -465,6 +669,13 @@
                             title: d.title || d.search || "",
                             campus: d.campus || "",
                             campus_key: d.campusKey || normalizeCampus(d.campus),
+                            college: d.college || "",
+                            college_key: d.collegeKey || "",
+                            department: d.department || "",
+                            program_key: d.programKey || "",
+                            faculty_credits: [],
+                            faculty_keys: d.facultyKeys ? d.facultyKeys.split(",").filter(Boolean) : [],
+                            is_completed: d.completed === "true",
                             year: d.year ? parseInt(d.year, 10) || d.year : "",
                             extension_type: d.type || "",
                             research_basis: d.basis || "",
@@ -489,15 +700,30 @@
                     if (ok) {
                         matched.push(rec);
                         shown += 1;
-                        beneficiaries += Number(rec.beneficiaries) || 0;
+                        var benVal = Number(rec.beneficiaries) || 0;
+                        var isComp = Boolean(rec.is_completed);
+                        beneficiaries += benVal;
                         students += Number(rec.student_participants) || 0;
                         faculty += Number(rec.faculty_participants) || 0;
                         researchStaff += Number(rec.research_staff_participants) || 0;
+
                         var ck = rec.campus_key || normalizeCampus(rec.campus);
                         if (ck) {
                             campusSet[ck] = true;
                             campusCounts[ck] = (campusCounts[ck] || 0) + 1;
+                            addRankCount(rankBuckets.campuses, ck, rec.campus || ck, "ISPSC Campus", isComp, benVal);
                         }
+                        if (rec.college_key) {
+                            addRankCount(rankBuckets.colleges, rec.college_key, rec.college, rec.campus, isComp, benVal);
+                        }
+                        if (rec.program_key) {
+                            var progSub = [rec.campus, rec.college].filter(Boolean).join(" · ");
+                            addRankCount(rankBuckets.programs, rec.program_key, rec.department, progSub, isComp, benVal);
+                        }
+                        (rec.faculty_credits || []).forEach(function (fc) {
+                            addRankCount(rankBuckets.faculty, fc.key, fc.label, fc.subtitle, isComp, benVal);
+                        });
+
                         if (rec.year) {
                             yearCounts[String(rec.year)] = (yearCounts[String(rec.year)] || 0) + 1;
                         }
@@ -519,7 +745,6 @@
                 });
                 this.filteredPrograms = matched;
 
-                // Reorder visible DOM cards to reflect active sort order.
                 var grid = root && root.querySelector ? root.querySelector("[data-program-grid]") : null;
                 if (grid && grid.appendChild) {
                     matched.forEach(function (rec) {
@@ -572,6 +797,9 @@
                     researchBases: recomputeDonut(this.baseResearchBases, basisCounts, shown),
                     proponents: recomputeDonut(this.baseProponents, ledCounts, shown)
                 };
+
+                this._lastRankBuckets = rankBuckets;
+                this.recomputeRankings();
             },
             formatCell: function (program, colKey) {
                 var val = program[colKey];
@@ -625,6 +853,9 @@
             },
             reset: function () {
                 this.campuses = [];
+                this.colleges = [];
+                this.academicPrograms = [];
+                this.faculty = [];
                 this.years = [];
                 this.types = [];
                 this.bases = [];
@@ -644,6 +875,7 @@
         normalizeCampus: normalizeCampus,
         parseSearchQuery: parseSearchQuery,
         matchesSearchQuery: matchesSearchQuery,
-        recomputeDonut: recomputeDonut
+        recomputeDonut: recomputeDonut,
+        rankLeaderboard: rankLeaderboard
     };
 })(typeof window !== "undefined" ? window : globalThis);
