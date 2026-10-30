@@ -19,7 +19,7 @@ body.gallery-page-body .nexus-footer {
 
 /* ── Home ──────────────────────────────────────────────────────────────── */
 .home-page {
-  overflow: hidden;
+  overflow-x: clip;
   background: #fff;
 }
 
@@ -89,7 +89,7 @@ body.gallery-page-body .nexus-footer {
 
 /* ── Services ─────────────────────────────────────────────────────────── */
 .services-page {
-  overflow: hidden;
+  overflow-x: clip;
   background: #fff;
 }
 
@@ -132,5 +132,17 @@ body.gallery-page-body .nexus-footer {
   .services-page .services-hero__heading {
     max-width: 15ch;
   }
+}
+
+/* ── Directory & Gallery filter search inputs ─────────────────────────── */
+/* Preserve room for the leading search icon and trailing clear button after
+   nexus-components.css applies shared control padding. */
+.nexus-shell input.nx-filter-search {
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+}
+.nexus-shell input.nx-filter-search::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  display: none;
 }
 

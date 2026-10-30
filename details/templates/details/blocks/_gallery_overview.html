@@ -7,9 +7,6 @@ interactive breakdowns matching the Programs page visual language:
   2. Photos by campus (horizontal share bars across all ISPSC campuses)
   3. By documentation source (SVG donut chart + clickable legend)
 
-Lives in its own underscore-prefixed partial because it contains no standalone
-page shell and is included inside ``details/blocks/gallery.html``.
-
 Context: section, data.overview, data.stats
 {% endcomment %}
 {% load humanize %}
@@ -29,7 +26,7 @@ Context: section, data.overview, data.stats
                     <h4 id="gallery-by-year-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">Photos per year</h4>
                     <p class="mt-0.5 text-xs text-gray-500">Across school years {{ data.overview.year_range_label }} · click a year to filter.</p>
                 </div>
-                <button type="button" x-show="year !== ''" x-cloak @click="year = ''; apply()"
+                <button type="button" x-show="facetCount('years') > 0" x-cloak @click="clearFacet('years')"
                         class="text-xs font-semibold text-primary hover:underline">
                     All years
                 </button>
@@ -40,22 +37,22 @@ Context: section, data.overview, data.stats
                     {% for option in data.overview.years %}
                     <li class="flex h-full flex-1 flex-col justify-end">
                         <button type="button"
-                                @click="toggleYear('{{ option.value|escapejs }}')"
-                                :aria-pressed="(year === '{{ option.value|escapejs }}').toString()"
+                                @click="toggleFilter('years', '{{ option.value|escapejs }}')"
+                                :aria-pressed="isSelected('years', '{{ option.value|escapejs }}').toString()"
                                 title="{{ option.label }}: {{ option.count }} photo{{ option.count|pluralize }}"
                                 class="group flex h-full w-full flex-col items-center justify-end gap-1.5 rounded-lg px-0.5 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                                :class="year === '{{ option.value|escapejs }}' ? 'bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-gray-50'">
+                                :class="isSelected('years', '{{ option.value|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-gray-50'">
                             <span class="text-[11px] font-semibold tabular-nums leading-none"
                                   :class="yearStat('{{ option.value|escapejs }}').count > 0 ? 'text-primary' : 'text-gray-400'"
                                   x-text="yearStat('{{ option.value|escapejs }}').count">{{ option.count }}</span>
                             <span class="flex h-28 w-full max-w-[1.75rem] items-end overflow-hidden rounded-t-md bg-gray-100">
                                 <span class="block w-full rounded-t-md transition-all duration-300"
-                                      :class="yearStat('{{ option.value|escapejs }}').count > 0 ? (year === '{{ option.value|escapejs }}' ? 'bg-primary' : 'bg-primary/80 group-hover:bg-primary') : 'bg-gray-200'"
+                                      :class="yearStat('{{ option.value|escapejs }}').count > 0 ? (isSelected('years', '{{ option.value|escapejs }}') ? 'bg-primary' : 'bg-primary/80 group-hover:bg-primary') : 'bg-gray-200'"
                                       style="height: {% if option.bar_percent %}{{ option.bar_percent }}%{% else %}3px{% endif %}"
                                       :style="yearStat('{{ option.value|escapejs }}').bar_percent > 0 ? ('height: ' + yearStat('{{ option.value|escapejs }}').bar_percent + '%') : 'height: 3px'"></span>
                             </span>
                             <span class="text-[11px] tabular-nums leading-none"
-                                  :class="year === '{{ option.value|escapejs }}' ? 'font-bold text-primary' : 'text-gray-500'">'{{ option.short_label }}</span>
+                                  :class="isSelected('years', '{{ option.value|escapejs }}') ? 'font-bold text-primary' : 'text-gray-500'">'{{ option.short_label }}</span>
                         </button>
                     </li>
                     {% endfor %}
@@ -71,7 +68,7 @@ Context: section, data.overview, data.stats
                     <h4 id="gallery-by-campus-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">Photos by campus</h4>
                     <p class="mt-0.5 text-xs text-gray-500">Share of the current selection · click a row to filter.</p>
                 </div>
-                <button type="button" x-show="campus !== ''" x-cloak @click="campus = ''; apply()"
+                <button type="button" x-show="facetCount('campuses') > 0" x-cloak @click="clearFacet('campuses')"
                         class="text-xs font-semibold text-primary hover:underline">
                     All campuses
                 </button>
@@ -81,10 +78,10 @@ Context: section, data.overview, data.stats
                 {% for option in data.overview.campuses %}
                 <li>
                     <button type="button"
-                            @click="toggleCampus('{{ option.key|escapejs }}')"
-                            :aria-pressed="(campus === '{{ option.key|escapejs }}').toString()"
+                            @click="toggleFilter('campuses', '{{ option.key|escapejs }}')"
+                            :aria-pressed="isSelected('campuses', '{{ option.key|escapejs }}').toString()"
                             class="flex w-full items-center gap-3 rounded-lg px-2 py-1 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                            :class="campus === '{{ option.key|escapejs }}' ? 'bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-gray-50'">
+                            :class="isSelected('campuses', '{{ option.key|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-gray-50'">
                         <span class="w-28 shrink-0 truncate text-xs font-medium text-gray-700" title="{{ option.label }}">{{ option.label }}</span>
                         <span class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
                             <span class="block h-full rounded-full bg-primary/80 transition-all duration-300"
@@ -109,7 +106,7 @@ Context: section, data.overview, data.stats
                     <h4 id="gallery-by-source-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">By source</h4>
                     <p class="mt-0.5 text-xs text-gray-500">Click a segment or row to filter.</p>
                 </div>
-                <button type="button" x-show="source !== ''" x-cloak @click="source = ''; apply()"
+                <button type="button" x-show="facetCount('sources') > 0" x-cloak @click="clearFacet('sources')"
                         class="text-xs font-semibold text-primary hover:underline">
                     All
                 </button>
@@ -128,7 +125,7 @@ Context: section, data.overview, data.stats
                                 stroke-dashoffset="{{ seg.dashoffset }}"
                                 :stroke-dasharray="sourceStat('{{ seg.value|escapejs }}').dash + ' ' + sourceStat('{{ seg.value|escapejs }}').gap"
                                 :stroke-dashoffset="sourceStat('{{ seg.value|escapejs }}').dashoffset"
-                                @click="toggleSource('{{ seg.value|escapejs }}')"
+                                @click="toggleFilter('sources', '{{ seg.value|escapejs }}')"
                                 class="cursor-pointer transition-all duration-300 hover:opacity-85">
                             <title>{{ seg.label }}</title>
                         </circle>
@@ -144,10 +141,10 @@ Context: section, data.overview, data.stats
                     {% for seg in data.overview.sources %}
                     <li>
                         <button type="button"
-                                @click="toggleSource('{{ seg.value|escapejs }}')"
-                                :aria-pressed="(source === '{{ seg.value|escapejs }}').toString()"
+                                @click="toggleFilter('sources', '{{ seg.value|escapejs }}')"
+                                :aria-pressed="isSelected('sources', '{{ seg.value|escapejs }}').toString()"
                                 class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                                :class="source === '{{ seg.value|escapejs }}' ? 'bg-primary/5 ring-1 ring-primary/30 font-semibold' : 'hover:bg-gray-50'">
+                                :class="isSelected('sources', '{{ seg.value|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30 font-semibold' : 'hover:bg-gray-50'">
                             <span class="flex min-w-0 items-center gap-2">
                                 <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ seg.color }}"></span>
                                 <span class="truncate text-gray-700">{{ seg.short_label }}</span>

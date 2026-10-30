@@ -350,7 +350,7 @@ class ProgramsPageTests(TestCase):
         # Full Filter & Refine suite renders even when zero programs exist.
         for filter_control in (
             "no filters applied",
-            "“quotes” = exact phrase",
+            'placeholder="Search programs…"',
             "Cards",
             "Table",
             "Print / PDF",
@@ -385,6 +385,8 @@ class ProgramsPageTests(TestCase):
         ):
             with self.subTest(filter_control=filter_control):
                 self.assertIn(filter_control, html)
+        self.assertNotIn("“quotes” = exact phrase", html)
+        self.assertNotRegex(html, r'<div id="program-filters"[\s\S]*?<select\b')
 
     def test_rankings_score_campuses_colleges_programs_and_faculty(self):
         faculty_one = factories.make_user("maria_santos", Profile.ROLE_FACULTY)
@@ -647,9 +649,16 @@ class GalleryTests(TestCase):
             "Photos per year",
             "Photos by campus",
             "By source",
+            'placeholder="Search photos…"',
+            "Campuses: All",
+            "Years: All",
+            "Sources: All",
+            "Sort: newest first",
         ):
             with self.subTest(label=label):
                 self.assertIn(label, empty_html)
+        self.assertNotIn('("quotes" = exact phrase)', empty_html)
+        self.assertNotRegex(empty_html, r'<div id="gallery-filters"[\s\S]*?<select\b')
 
         make_documentation_photo(
             make_proposal(title="GALLERY-PROG-1", campus="Main Campus", estimated_year=2025),
@@ -1178,4 +1187,15 @@ class PublicSubnavConsistencyTests(TestCase):
                 ("campuses", "Campuses"),
             ],
         )
+
+    def test_home_and_services_wrappers_do_not_break_sticky_subnav(self):
+        from django.conf import settings
+
+        css = (settings.BASE_DIR / "static/css/public-pages.css").read_text()
+        for selector in (r"\.home-page", r"\.services-page"):
+            match = re.search(rf"{selector}\s*\{{([^}}]*)\}}", css)
+            self.assertIsNotNone(match)
+            declarations = match.group(1)
+            self.assertNotRegex(declarations, r"overflow\s*:\s*(hidden|auto|scroll)")
+            self.assertIn("overflow-x: clip", declarations)
 

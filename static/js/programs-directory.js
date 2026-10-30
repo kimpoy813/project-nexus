@@ -269,6 +269,7 @@
                 faculty: false
             },
             openMenu: "",
+            menuAlign: "left",
             query: "",
             columns: columns,
             selectedColumns: defaultColumnKeys.slice(),
@@ -309,11 +310,56 @@
                 proponents: buildMap(overview.proponents || [], "value")
             },
             normalizeCampus: normalizeCampus,
-            toggleMenu: function (name) {
-                this.openMenu = this.openMenu === name ? "" : name;
+            toggleMenu: function (name, evt) {
+                if (this.openMenu === name) {
+                    this.openMenu = "";
+                    return;
+                }
+                var align = "left";
+                var trigger = evt && evt.currentTarget;
+                if (
+                    trigger &&
+                    typeof trigger.getBoundingClientRect === "function" &&
+                    typeof window !== "undefined" &&
+                    window.innerWidth
+                ) {
+                    var rect = trigger.getBoundingClientRect();
+                    var panelWidth = name === "columns" ? 320 : 256;
+                    if (rect.left + panelWidth > window.innerWidth - 16 && rect.right >= panelWidth) {
+                        align = "right";
+                    }
+                }
+                this.menuAlign = align;
+                this.openMenu = name;
             },
             closeMenu: function () {
                 this.openMenu = "";
+            },
+            documentsLabel: function () {
+                if (this.documents === "with") return "With linked document";
+                if (this.documents === "without") return "No document";
+                return "Documents: all";
+            },
+            setDocuments: function (val) {
+                this.documents = val || "";
+                this.openMenu = "";
+                this.apply();
+            },
+            sortLabel: function () {
+                var labels = {
+                    newest: "Sort: newest first",
+                    oldest: "Sort: oldest first",
+                    title: "Sort: title A–Z",
+                    beneficiaries: "Sort: most beneficiaries",
+                    students: "Sort: most students",
+                    campus: "Sort: campus A–Z"
+                };
+                return labels[this.sort] || "Sort: newest first";
+            },
+            setSort: function (val) {
+                this.sort = val || "newest";
+                this.openMenu = "";
+                this.apply();
             },
             setRankMetric: function (metric) {
                 this.rankMetric = metric;

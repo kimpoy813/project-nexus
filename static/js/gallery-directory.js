@@ -5,13 +5,22 @@
  *  - 5 live Summary KPI cards (#gallery-summary)
  *  - 3 interactive Visual Overview charts (#gallery-overview: Photos per year,
  *    Photos by campus, By documentation source)
- *  - Filter & Sort controls (#gallery-filters: quoted-phrase Search, Campus,
- *    Year, Source, Sort order, and Reset)
+ *  - Multi-select Filter & Sort popover menus (#gallery-filters: Search,
+ *    Campuses, Years, Sources, Sort order, Active filter chips, and Reset)
  *  - Live photo grid filtering and non-destructive CSS order sorting (#gallery-photos)
  *    even when zero photos are published yet.
  */
 (function (global) {
     "use strict";
+
+    var FIELD_TO_GROUP = {
+        campus: "campuses",
+        campuses: "campuses",
+        year: "years",
+        years: "years",
+        source: "sources",
+        sources: "sources"
+    };
 
     function buildMap(list, keyField) {
         var map = {};
@@ -111,6 +120,9 @@
     function createController(seed) {
         var baseOverview = (seed && seed.overview) || {};
         var baseStats = (seed && seed.stats) || {};
+        var baseCampuses = baseOverview.campuses || [];
+        var baseYears = baseOverview.years || [];
+        var baseSources = baseOverview.sources || [];
         var allPhotos = ((seed && seed.photos) || []).map(function (p, index) {
             var copy = Object.assign({}, p);
             copy.order_index = typeof p.order_index === "number" ? p.order_index : index;
@@ -127,10 +139,12 @@
 
         return {
             q: "",
-            campus: "",
-            year: "",
-            source: "",
+            campuses: [],
+            years: [],
+            sources: [],
             sortBy: "newest",
+            openMenu: "",
+            menuAlign: "left",
 
             total: allPhotos.length,
             shown: baseStats.photo_count || 0,
@@ -140,67 +154,210 @@
             shownLegacy: baseStats.legacy_count || 0,
             chartDenom: baseStats.photo_count || 0,
 
-            yearsMap: buildMap(baseOverview.years, "value"),
-            campusesMap: buildMap(baseOverview.campuses, "key"),
-            sourcesMap: buildMap(baseOverview.sources, "value"),
+            baseCampuses: baseCampuses,
+            baseYears: baseYears,
+            baseSources: baseSources,
+            yearsMap: buildMap(baseYears, "value"),
+            campusesMap: buildMap(baseCampuses, "key"),
+            sourcesMap: buildMap(baseSources, "value"),
             filteredKeys: allPhotos.map(function (p) { return p.key; }),
 
-            hasActiveFilters: function () {
-                return Boolean(
-                    this.q.trim() ||
-                    this.campus ||
-                    this.year ||
-                    this.source
-                );
+            toggleMenu: function (name, evt) {
+                if (this.openMenu === name) {
+                    this.openMenu = "";
+                    return;
+                }
+                var align = "left";
+                var trigger = evt && evt.currentTarget;
+                if (
+                    trigger &&
+                    typeof trigger.getBoundingClientRect === "function" &&
+                    typeof window !== "undefined" &&
+                    window.innerWidth
+                ) {
+                    var rect = trigger.getBoundingClientRect();
+                    var panelWidth = 256;
+                    if (rect.left + panelWidth > window.innerWidth - 16 && rect.right >= panelWidth) {
+                        align = "right";
+                    }
+                }
+                this.menuAlign = align;
+                this.openMenu = name;
             },
 
-            activeFilterCount: function () {
-                var total = 0;
-                if (this.q.trim()) total += 1;
-                if (this.campus) total += 1;
-                if (this.year) total += 1;
-                if (this.source) total += 1;
-                return total;
+            closeMenu: function () {
+                this.openMenu = "";
+            },
+
+            _groupList: function (field) {
+                var group = FIELD_TO_GROUP[field] || field;
+                return this[group] || [];
+            },
+
+            isSelected: function (field, val) {
+                var list = this._groupList(field);
+                var clean = String(val || "");
+                return Boolean(clean) && list.indexOf(clean) !== -1;
+            },
+
+            toggleFilter: function (field, val) {
+                var group = FIELD_TO_GROUP[field] || field;
+                var clean = String(val || "");
+                if (!clean || !Array.isArray(this[group])) return;
+                var idx = this[group].indexOf(clean);
+                if (idx === -1) {
+                    this[group] = this[group].concat([clean]);
+                } else {
+                    var copy = this[group].slice();
+                    copy.splice(idx, 1);
+                    this[group] = copy;
+                }
+                this.apply();
             },
 
             toggleCampus: function (key) {
-                var clean = String(key || "");
-                this.campus = this.campus === clean ? "" : clean;
-                this.apply();
+                this.toggleFilter("campuses", key);
             },
 
             toggleYear: function (yr) {
-                var clean = String(yr || "");
-                this.year = this.year === clean ? "" : clean;
-                this.apply();
+                this.toggleFilter("years", yr);
             },
 
             toggleSource: function (src) {
-                var clean = String(src || "");
-                this.source = this.source === clean ? "" : clean;
+                this.toggleFilter("sources", src);
+            },
+
+            selectAllFacet: function (field) {
+                var group = FIELD_TO_GROUP[field] || field;
+                if (group === "campuses") {
+                    this.campuses = this.baseCampuses.map(function (c) { return String(c.key); });
+                } else if (group === "years") {
+                    this.years = this.baseYears.map(function (y) { return String(y.value); });
+                } else if (group === "sources") {
+                    this.sources = this.baseSources.map(function (s) { return String(s.value); });
+                }
                 this.apply();
+            },
+
+            clearFacet: function (field) {
+                var group = FIELD_TO_GROUP[field] || field;
+                if (Array.isArray(this[group])) {
+                    this[group] = [];
+                    this.apply();
+                }
+            },
+
+            facetCount: function (field) {
+                return this._groupList(field).length;
+            },
+
+            _optionLabel: function (group, val) {
+                var i;
+                if (group === "campuses") {
+                    for (i = 0; i < this.baseCampuses.length; i++) {
+                        if (String(this.baseCampuses[i].key) === String(val)) {
+                            return this.baseCampuses[i].label;
+                        }
+                    }
+                    return val;
+                }
+                if (group === "years") return val;
+                for (i = 0; i < this.baseSources.length; i++) {
+                    if (String(this.baseSources[i].value) === String(val)) {
+                        return this.baseSources[i].short_label || this.baseSources[i].label;
+                    }
+                }
+                return val;
+            },
+
+            facetButtonLabel: function (field, prefix) {
+                var group = FIELD_TO_GROUP[field] || field;
+                var list = this[group] || [];
+                if (!list.length) return prefix + ": All";
+                if (list.length === 1) {
+                    return prefix + ": " + this._optionLabel(group, list[0]);
+                }
+                return prefix + ": " + list.length + " selected";
+            },
+
+            sortLabel: function () {
+                var labels = {
+                    newest: "Sort: newest first",
+                    oldest: "Sort: oldest first",
+                    program_asc: "Sort: program A–Z",
+                    campus_asc: "Sort: campus A–Z"
+                };
+                return labels[this.sortBy] || "Sort: newest first";
+            },
+
+            setSort: function (val) {
+                this.sortBy = val || "newest";
+                this.openMenu = "";
+                this.apply();
+            },
+
+            hasActiveFilters: function () {
+                return this.activeFilterCount() > 0;
+            },
+
+            activeFilterCount: function () {
+                return (
+                    this.campuses.length +
+                    this.years.length +
+                    this.sources.length +
+                    (this.q.trim() ? 1 : 0)
+                );
+            },
+
+            activeFilterChips: function () {
+                var self = this;
+                var chips = [];
+                this.campuses.forEach(function (v) {
+                    chips.push({ id: "campuses:" + v, group: "campuses", value: v, label: self._optionLabel("campuses", v) });
+                });
+                this.years.forEach(function (v) {
+                    chips.push({ id: "years:" + v, group: "years", value: v, label: "Year: " + v });
+                });
+                this.sources.forEach(function (v) {
+                    chips.push({ id: "sources:" + v, group: "sources", value: v, label: self._optionLabel("sources", v) });
+                });
+                if (this.q.trim()) {
+                    chips.push({ id: "q", group: "q", value: this.q.trim(), label: "Search: " + this.q.trim() });
+                }
+                return chips;
+            },
+
+            removeChip: function (chip) {
+                if (!chip) return;
+                if (chip.group === "q") {
+                    this.q = "";
+                    this.apply();
+                } else {
+                    this.toggleFilter(chip.group, chip.value);
+                }
             },
 
             reset: function () {
                 this.q = "";
-                this.campus = "";
-                this.year = "";
-                this.source = "";
+                this.campuses = [];
+                this.years = [];
+                this.sources = [];
                 this.sortBy = "newest";
+                this.openMenu = "";
                 this.apply();
             },
 
-            matchesPhoto: function (photo, parsedSearch, ignoreField) {
-                if (ignoreField !== "q" && !matchesSearchQuery(photo._haystack, parsedSearch)) {
+            matchesPhoto: function (photo, parsedSearch) {
+                if (!matchesSearchQuery(photo._haystack, parsedSearch)) {
                     return false;
                 }
-                if (ignoreField !== "campus" && this.campus && photo.campus_key !== this.campus) {
+                if (this.campuses.length && this.campuses.indexOf(String(photo.campus_key || "")) === -1) {
                     return false;
                 }
-                if (ignoreField !== "year" && this.year && String(photo.year || "") !== this.year) {
+                if (this.years.length && this.years.indexOf(String(photo.year || "")) === -1) {
                     return false;
                 }
-                if (ignoreField !== "source" && this.source && photo.source !== this.source) {
+                if (this.sources.length && this.sources.indexOf(String(photo.source || "")) === -1) {
                     return false;
                 }
                 return true;
@@ -211,7 +368,7 @@
                 var parsedSearch = parseSearchQuery(this.q);
 
                 var matched = allPhotos.filter(function (photo) {
-                    return self.matchesPhoto(photo, parsedSearch, null);
+                    return self.matchesPhoto(photo, parsedSearch);
                 });
                 var ordered = sortPhotos(matched, this.sortBy);
                 this.filteredKeys = ordered.map(function (p) { return p.key; });
@@ -252,12 +409,12 @@
                 this.shownLegacy = legacyCount;
 
                 var maxYear = 0;
-                (baseOverview.years || []).forEach(function (yr) {
+                baseYears.forEach(function (yr) {
                     var c = yearCounts[String(yr.value)] || 0;
                     if (c > maxYear) maxYear = c;
                 });
                 var nextYears = {};
-                (baseOverview.years || []).forEach(function (yr) {
+                baseYears.forEach(function (yr) {
                     var c = yearCounts[String(yr.value)] || 0;
                     nextYears[String(yr.value)] = {
                         value: yr.value,
@@ -271,7 +428,7 @@
                 this.yearsMap = nextYears;
 
                 var nextCampuses = {};
-                (baseOverview.campuses || []).forEach(function (camp) {
+                baseCampuses.forEach(function (camp) {
                     var c = campusCounts[camp.key] || 0;
                     nextCampuses[String(camp.key)] = {
                         key: camp.key,
@@ -284,7 +441,7 @@
                 this.campusesMap = nextCampuses;
 
                 this.sourcesMap = recomputeDonut(
-                    baseOverview.sources,
+                    baseSources,
                     sourceCounts,
                     denom
                 );
@@ -337,7 +494,7 @@
 
             sourceSegments: function () {
                 var self = this;
-                return (baseOverview.sources || []).map(function (item) {
+                return baseSources.map(function (item) {
                     return self.sourcesMap[String(item.value)] || item;
                 });
             }
