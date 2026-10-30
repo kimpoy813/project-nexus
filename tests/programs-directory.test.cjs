@@ -357,3 +357,33 @@ test("rankings re-order by metric and filter by college, academic program, and f
     ctrl.reset();
     assert.equal(ctrl.shown, 3);
 });
+
+test("Documents and Sort popover actions close menu, update labels, and align within viewport", () => {
+    const ctrl = makeHarness(
+        {
+            stats: { program_count: 2, campus_count: 1, total_campuses: 7, beneficiaries: 0, students: 0, faculty: 0, research_staff: 0 },
+            overview: BASE_OVERVIEW,
+            columns: [],
+            programs: [
+                { key: "p1", title: "Alpha", campus: "Main Campus", campus_key: "main", year: 2025, document_available: true },
+                { key: "p2", title: "Beta", campus: "Main Campus", campus_key: "main", year: 2024, document_available: false },
+            ],
+        },
+        []
+    );
+
+    ctrl.toggleMenu("documents");
+    assert.equal(ctrl.openMenu, "documents");
+    assert.equal(ctrl.documentsLabel(), "Documents: all");
+
+    ctrl.setDocuments("with");
+    assert.equal(ctrl.openMenu, "");
+    assert.equal(ctrl.documentsLabel(), "With linked document");
+    assert.equal(ctrl.shown, 1);
+
+    ctrl.toggleMenu("sort");
+    assert.equal(ctrl.openMenu, "sort");
+    ctrl.setSort("oldest");
+    assert.equal(ctrl.openMenu, "");
+    assert.equal(ctrl.sortLabel(), "Sort: oldest first");
+});

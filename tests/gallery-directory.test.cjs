@@ -56,7 +56,7 @@ const BASE_OVERVIEW = {
     ],
 };
 
-test("zero-photo state keeps Summary KPIs, Visual Overview charts, and Filters intact", () => {
+test("zero-photo state keeps Summary KPIs, Visual Overview charts, and popover Filters intact", () => {
     const ctrl = makeHarness({
         stats: {
             photo_count: 0,
@@ -76,12 +76,16 @@ test("zero-photo state keeps Summary KPIs, Visual Overview charts, and Filters i
     assert.equal(ctrl.shownTerminal, 0);
     assert.equal(ctrl.shownLegacy, 0);
     assert.equal(ctrl.hasActiveFilters(), false);
+    assert.equal(ctrl.facetButtonLabel("campuses", "Campuses"), "Campuses: All");
+    assert.equal(ctrl.facetButtonLabel("years", "Years"), "Years: All");
+    assert.equal(ctrl.facetButtonLabel("sources", "Sources"), "Sources: All");
+    assert.equal(ctrl.sortLabel(), "Sort: newest first");
     assert.equal(ctrl.campusStat("main").count, 0);
     assert.equal(ctrl.yearStat("2025").count, 0);
     assert.equal(ctrl.sourceStat("TERMINAL_REPORT").count, 0);
 });
 
-test("filtering, quoted-phrase search, and non-destructive CSS order sorting recalculate KPIs and charts", () => {
+test("multi-select popover filters, quoted-phrase search, chips, and sort menu recalculate KPIs and CSS order", () => {
     const figures = [makeFigure("photo-1"), makeFigure("photo-2"), makeFigure("photo-3")];
     const ctrl = makeHarness(
         {
@@ -146,8 +150,11 @@ test("filtering, quoted-phrase search, and non-destructive CSS order sorting rec
     assert.equal(ctrl.shownActivities, 2);
     assert.equal(ctrl.shownCampuses, 2);
 
-    // Filter by campus via chart toggle
-    ctrl.toggleCampus("stamaria");
+    // Open campuses menu, toggle campus filter, verify label & chips
+    ctrl.toggleMenu("campuses");
+    assert.equal(ctrl.openMenu, "campuses");
+    ctrl.toggleFilter("campuses", "stamaria");
+    assert.equal(ctrl.facetButtonLabel("campuses", "Campuses"), "Campuses: Sta. Maria Campus");
     assert.equal(ctrl.shown, 2);
     assert.equal(ctrl.shownActivities, 1);
     assert.equal(ctrl.shownTerminal, 2);
@@ -155,6 +162,7 @@ test("filtering, quoted-phrase search, and non-destructive CSS order sorting rec
     assert.equal(figures[0].hidden, false);
     assert.equal(figures[1].hidden, false);
     assert.equal(figures[2].hidden, true);
+    assert.equal(ctrl.activeFilterChips()[0].label, "Sta. Maria Campus");
 
     // Quoted exact phrase search narrows further
     ctrl.q = '"nursery workshop"';
@@ -164,11 +172,14 @@ test("filtering, quoted-phrase search, and non-destructive CSS order sorting rec
     assert.equal(figures[0].hidden, false);
     assert.equal(figures[1].hidden, true);
 
-    // Reset restores all items, then sort oldest-first updates CSS order
+    // Reset restores all items, then setSort updates label, closes menu, and updates CSS order
     ctrl.reset();
     assert.equal(ctrl.shown, 3);
-    ctrl.sortBy = "oldest";
-    ctrl.apply();
+    ctrl.toggleMenu("sort");
+    assert.equal(ctrl.openMenu, "sort");
+    ctrl.setSort("oldest");
+    assert.equal(ctrl.openMenu, "");
+    assert.equal(ctrl.sortLabel(), "Sort: oldest first");
     assert.deepEqual(Array.from(ctrl.filteredKeys), ["photo-3", "photo-1", "photo-2"]);
     assert.equal(figures[2].style.order, "1");
     assert.equal(figures[0].style.order, "2");
