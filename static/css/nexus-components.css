@@ -223,6 +223,26 @@ form.nx-action-form { display: inline-flex; margin: 0; }
   font-size: var(--nx-component-text);
   line-height: 1.5;
 }
+.nexus-shell [data-nx-dropdown-trigger] {
+  min-height: var(--nx-control-height);
+  padding: .625rem .75rem;
+  border: 1px solid var(--nx-component-border);
+  border-radius: var(--nx-control-radius);
+  background-color: #fff;
+  color: var(--nexus-ink);
+  font-size: var(--nx-component-text);
+  line-height: 1.5;
+  cursor: pointer;
+}
+.nexus-shell [data-nx-dropdown-trigger]:hover {
+  border-color: #94a3b8;
+}
+.nexus-shell [data-nx-dropdown-trigger][aria-expanded="true"],
+.nexus-shell [data-nx-dropdown-trigger]:focus-visible {
+  border-color: rgb(var(--nexus-primary-rgb, 16 59 7) / .52);
+  box-shadow: 0 0 0 4px rgb(var(--nexus-primary-rgb, 16 59 7) / .10);
+  outline: none;
+}
 .nexus-shell input[type="file"] { font-size: var(--nx-component-text); line-height: 1.5; }
 .nexus-shell :is(input, select, textarea):disabled {
   color: var(--nx-component-muted) !important;

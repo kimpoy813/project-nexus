@@ -174,12 +174,45 @@
                   <input type="text" name="field_key[]" value="{{ field.field_key }}" placeholder="auto if blank" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
                 </div>
                 <div class="lg:col-span-3 flex flex-col">
-                  <label class="block text-xs font-bold text-gray-600 mb-1.5">Type</label>
-                  <select name="field_type[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
-                    {% for value,label in field_type_choices %}
-                      <option value="{{ value }}" {% if field.field_type == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                  </select>
+                  <label class="block text-xs font-bold text-gray-600 mb-1.5 cursor-pointer" data-nx-dropdown-heading>Type</label>
+                  <div class="relative mt-auto" data-nx-builder-dropdown>
+                    <input type="hidden" name="field_type[]" value="{{ field.field_type }}">
+                    <button type="button"
+                            data-nx-dropdown-trigger
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-label="Type"
+                            class="flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm font-medium text-gray-900 transition hover:border-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <span class="truncate" data-nx-dropdown-label>{% for value, label in field_type_choices %}{% if field.field_type == value %}{{ label }}{% endif %}{% endfor %}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           data-nx-dropdown-chevron
+                           class="h-4 w-4 shrink-0 text-primary transition-transform duration-150"
+                           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <div data-nx-dropdown-menu
+                         role="listbox"
+                         aria-label="Type"
+                         hidden
+                         class="hidden absolute left-0 right-0 top-full z-40 mt-1.5 min-w-[11rem] max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+                      {% for value, label in field_type_choices %}
+                        <button type="button"
+                                role="option"
+                                data-nx-dropdown-option="{{ value }}"
+                                data-nx-dropdown-option-label="{{ label }}"
+                                aria-selected="{% if field.field_type == value %}true{% else %}false{% endif %}"
+                                class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition {% if field.field_type == value %}bg-primary/10 font-bold text-primary{% else %}font-medium text-gray-700 hover:bg-gray-50{% endif %}">
+                          <span class="truncate">{{ label }}</span>
+                          <svg data-nx-dropdown-check xmlns="http://www.w3.org/2000/svg"
+                               class="h-4 w-4 shrink-0 text-primary {% if field.field_type != value %}hidden{% endif %}"
+                               viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                          </svg>
+                        </button>
+                      {% endfor %}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -201,13 +234,58 @@
 
               <div class="pt-3 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 {% if form_obj and form_obj.is_proponent_repeater %}lg:grid-cols-3{% endif %} gap-4" data-field-conditions-grid>
                 <div class="maps-to-cell {% if not form_obj or not form_obj.is_proponent_repeater %}hidden{% endif %} md:col-span-2 lg:col-span-1 flex flex-col">
-                  <label class="block text-xs font-bold text-gray-600 mb-1.5">Stores in proponent record</label>
-                  <select name="field_maps_to[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
-                    <option value="">Keep as an extra detail</option>
-                    {% for value,label in proponent_map_choices %}
-                      <option value="{{ value }}" {% if field.maps_to == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                  </select>
+                  <label class="block text-xs font-bold text-gray-600 mb-1.5 cursor-pointer" data-nx-dropdown-heading>Stores in proponent record</label>
+                  <div class="relative mt-auto" data-nx-builder-dropdown>
+                    <input type="hidden" name="field_maps_to[]" value="{{ field.maps_to }}">
+                    <button type="button"
+                            data-nx-dropdown-trigger
+                            aria-haspopup="listbox"
+                            aria-expanded="false"
+                            aria-label="Stores in proponent record"
+                            class="flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm font-medium text-gray-900 transition hover:border-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <span class="truncate" data-nx-dropdown-label>{% if not field.maps_to %}Keep as an extra detail{% else %}{% for value, label in proponent_map_choices %}{% if field.maps_to == value %}{{ label }}{% endif %}{% endfor %}{% endif %}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           data-nx-dropdown-chevron
+                           class="h-4 w-4 shrink-0 text-primary transition-transform duration-150"
+                           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <div data-nx-dropdown-menu
+                         role="listbox"
+                         aria-label="Stores in proponent record"
+                         hidden
+                         class="hidden absolute left-0 right-0 top-full z-40 mt-1.5 min-w-[13rem] max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+                      <button type="button"
+                              role="option"
+                              data-nx-dropdown-option=""
+                              data-nx-dropdown-option-label="Keep as an extra detail"
+                              aria-selected="{% if not field.maps_to %}true{% else %}false{% endif %}"
+                              class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition {% if not field.maps_to %}bg-primary/10 font-bold text-primary{% else %}font-medium text-gray-700 hover:bg-gray-50{% endif %}">
+                        <span class="truncate">Keep as an extra detail</span>
+                        <svg data-nx-dropdown-check xmlns="http://www.w3.org/2000/svg"
+                             class="h-4 w-4 shrink-0 text-primary {% if field.maps_to %}hidden{% endif %}"
+                             viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                        </svg>
+                      </button>
+                      {% for value, label in proponent_map_choices %}
+                        <button type="button"
+                                role="option"
+                                data-nx-dropdown-option="{{ value }}"
+                                data-nx-dropdown-option-label="{{ label }}"
+                                aria-selected="{% if field.maps_to == value %}true{% else %}false{% endif %}"
+                                class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition {% if field.maps_to == value %}bg-primary/10 font-bold text-primary{% else %}font-medium text-gray-700 hover:bg-gray-50{% endif %}">
+                          <span class="truncate">{{ label }}</span>
+                          <svg data-nx-dropdown-check xmlns="http://www.w3.org/2000/svg"
+                               class="h-4 w-4 shrink-0 text-primary {% if field.maps_to != value %}hidden{% endif %}"
+                               viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                          </svg>
+                        </button>
+                      {% endfor %}
+                    </div>
+                  </div>
                 </div>
                 <div class="flex flex-col">
                   <label class="block text-xs font-bold text-gray-600 mb-1.5">Depends On Field Key</label>

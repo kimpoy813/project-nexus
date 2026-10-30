@@ -37,11 +37,15 @@
             // cloned controls. Only one native button may lead the select.
             if (select.querySelector(":scope > button")) return;
 
+            var priorIndex = typeof select.selectedIndex === "number" ? select.selectedIndex : -1;
             var button = document.createElement("button");
             button.type = "button";
             button.className = "nx-select__button";
             button.appendChild(document.createElement("selectedcontent"));
             select.insertBefore(button, select.firstChild);
+            if (priorIndex >= 0 && select.selectedIndex !== priorIndex) {
+                select.selectedIndex = priorIndex;
+            }
         });
     }
 
