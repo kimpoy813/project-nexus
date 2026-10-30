@@ -18,13 +18,69 @@ def build_visible_blocks(page):
     return blocks
 
 
+PROGRAMS_SUBNAV_ITEMS = (
+    {"anchor": "program-summary", "label": "Summary"},
+    {"anchor": "program-overview", "label": "Overview"},
+    {"anchor": "program-rankings", "label": "Rankings"},
+    {"anchor": "program-filters", "label": "Filters"},
+    {"anchor": "program-directory", "label": "Directory"},
+)
+
+GALLERY_SUBNAV_ITEMS = (
+    {"anchor": "gallery-summary", "label": "Summary"},
+    {"anchor": "gallery-overview", "label": "Overview"},
+    {"anchor": "gallery-filters", "label": "Filters"},
+    {"anchor": "gallery-photos", "label": "Photos"},
+)
+
+#: Concise, Programs-style jump labels for seeded section headings. When an
+#: admin renames a section heading in the Page Editor, their custom heading is
+#: preserved instead.
+DEFAULT_SUBNAV_LABELS = {
+    ("THRUST", "extension thrust"): "Thrusts",
+    ("THRUST", "extension thrusts"): "Thrusts",
+    ("PROCESSES", "extension processes"): "Processes",
+    ("PROCESSES", "current process flow"): "Processes",
+    ("TARGETS", "extension targets"): "Targets",
+    ("PERSONNEL", "extension personnel"): "Personnel",
+    ("SDG", "sustainable development goals"): "SDGs",
+    ("ACTIVITIES", "extension activities"): "Activities",
+    ("TEMPLATES", "official templates"): "Templates",
+    ("TEMPLATES", "template library"): "Templates",
+    ("CAMPUSES", "campuses we serve"): "Campuses",
+    ("SYSTEM_PROFILE", "system profile"): "Profile",
+}
+
+
+def _concise_subnav_label(section):
+    heading = (section.heading or "").strip()
+    if not heading:
+        return ""
+    key = (section.layout or "", heading.casefold())
+    return DEFAULT_SUBNAV_LABELS.get(key, heading)
+
+
 def build_subnav_items(visible_blocks):
-    """``{"anchor": ..., "label": ...}`` dicts for anchored visible sections."""
-    return [
-        {"anchor": section.anchor, "label": section.heading}
-        for section, _data in visible_blocks
-        if section.anchor and section.heading
-    ]
+    """``{"anchor": ..., "label": ...}`` dicts for visible page subsections.
+
+    Multi-part directory/gallery blocks expand into their structured in-page
+    subsections (Summary, Overview, Filters, …), while standard blocks use
+    concise jump labels unless an admin customized the section heading.
+    """
+    items = []
+    for section, _data in visible_blocks:
+        if section.layout == "PROGRAMS":
+            items.extend(dict(item) for item in PROGRAMS_SUBNAV_ITEMS)
+        elif section.layout == "GALLERY":
+            items.extend(dict(item) for item in GALLERY_SUBNAV_ITEMS)
+        elif section.anchor and section.heading:
+            items.append(
+                {
+                    "anchor": section.anchor,
+                    "label": _concise_subnav_label(section),
+                }
+            )
+    return items
 
 
 def details_page(request):
@@ -61,20 +117,6 @@ def _render_content_page(
     visible_blocks = build_visible_blocks(page)
     anchored = build_subnav_items(visible_blocks)
     subnav_items = anchored if len(anchored) > 1 else []
-
-    if (
-        not subnav_items
-        and slug == SitePage.Slug.PROGRAMS
-        and len(visible_blocks) == 1
-        and visible_blocks[0][0].layout == "PROGRAMS"
-    ):
-        subnav_items = [
-            {"anchor": "program-summary", "label": "Summary"},
-            {"anchor": "program-overview", "label": "Overview"},
-            {"anchor": "program-rankings", "label": "Rankings"},
-            {"anchor": "program-filters", "label": "Filters"},
-            {"anchor": "program-directory", "label": "Directory"},
-        ]
 
     context = {
         "page": page,
