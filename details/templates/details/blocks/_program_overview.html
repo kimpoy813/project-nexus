@@ -1,77 +1,299 @@
 {% comment %}
 Visual overview for the Programs directory (source key PROGRAMS).
 
-Three small bar panels — per year, by type, by campus — computed server-side
-from the published rows, matching the totals above. Each bar is a button that
-applies the matching filter, so the picture and the list stay one interface.
+Always rendered — even when zero programs are published yet — with five
+interactive charts mirroring the institutional Extension Programs Dashboard:
+  1. Programs per year (vertical column bar chart across school years)
+  2. Programs by campus (horizontal share bars across all ISPSC campuses)
+  3. By type of extension (SVG donut chart + clickable legend)
+  4. By research basis (SVG donut chart + clickable legend)
+  5. By proponent (SVG donut chart + clickable legend)
 
-Lives in its own partial because the design-system audit requires a standalone
-page template containing a <select> to extend templates/base.html; this block
-has no form controls and is included by the directory block.
+Lives in its own underscore-prefixed partial because it contains no standalone
+page shell and is included inside ``details/blocks/programs.html``.
 
-Context: data.facets, data.stats
+Context: section, data.overview, data.stats
 {% endcomment %}
-{% if data.stats.program_count %}
-<div id="program-overview" class="scroll-mt-32 mt-6 grid gap-4 lg:grid-cols-3">
+{% load humanize %}
+<div id="program-overview" class="scroll-mt-32 mt-8 space-y-4">
+    <div class="flex flex-wrap items-baseline gap-2">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Visual overview</h3>
+        <span class="text-xs text-gray-500">click any bar, segment, or campus to filter — the charts follow your filters</span>
+    </div>
 
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-year-{{ section.id }}">
-        <h3 id="programs-by-year-{{ section.id }}" class="text-sm font-semibold text-gray-900">Programs per year</h3>
-        <p class="mt-0.5 text-xs text-gray-500">Click a year to filter the list.</p>
-        <ul class="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-            {% for option in data.facets.years %}
+    <!-- Row 1: Programs per year (vertical column bars) + Programs by campus (horizontal bars) -->
+    <div class="grid gap-4 lg:grid-cols-12">
+
+        <!-- 1. Programs per year -->
+        <section class="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel lg:col-span-7"
+                 aria-labelledby="programs-by-year-{{ section.id|default:'preview' }}">
+            <div class="flex items-baseline justify-between gap-2">
+                <div>
+                    <h4 id="programs-by-year-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">Programs per year</h4>
+                    <p class="mt-0.5 text-xs text-gray-500">Documented across school years {{ data.overview.year_range_label }} · click a year to filter.</p>
+                </div>
+                <button type="button" x-show="facetCount('years') > 0" x-cloak @click="clearFacet('years')"
+                        class="text-xs font-semibold text-primary hover:underline">
+                    All years
+                </button>
+            </div>
+
+            <div class="mt-5 flex-1 overflow-x-auto pb-1">
+                <ul class="flex h-44 min-w-[26rem] items-end gap-1.5 sm:gap-2">
+                    {% for option in data.overview.years %}
+                    <li class="flex h-full flex-1 flex-col justify-end">
+                        <button type="button"
+                                @click="toggleFilter('years', '{{ option.value|escapejs }}')"
+                                :aria-pressed="isSelected('years', '{{ option.value|escapejs }}').toString()"
+                                title="{{ option.label }}: {{ option.count }} program{{ option.count|pluralize }}"
+                                class="group flex h-full w-full flex-col items-center justify-end gap-1.5 rounded-lg px-0.5 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                :class="isSelected('years', '{{ option.value|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-gray-50'">
+                            <span class="text-[11px] font-semibold tabular-nums leading-none"
+                                  :class="yearStat('{{ option.value|escapejs }}').count > 0 ? 'text-primary' : 'text-gray-400'"
+                                  x-text="yearStat('{{ option.value|escapejs }}').count">{{ option.count }}</span>
+                            <span class="flex h-28 w-full max-w-[2rem] items-end overflow-hidden rounded-t-md bg-gray-100">
+                                <span class="block w-full rounded-t-md transition-all duration-300"
+                                      :class="yearStat('{{ option.value|escapejs }}').count > 0 ? (isSelected('years', '{{ option.value|escapejs }}') ? 'bg-primary' : 'bg-primary/80 group-hover:bg-primary') : 'bg-gray-200'"
+                                      style="height: {% if option.bar_percent %}{{ option.bar_percent }}%{% else %}3px{% endif %}"
+                                      :style="yearStat('{{ option.value|escapejs }}').bar_percent > 0 ? ('height: ' + yearStat('{{ option.value|escapejs }}').bar_percent + '%') : 'height: 3px'"></span>
+                            </span>
+                            <span class="text-[11px] tabular-nums leading-none"
+                                  :class="isSelected('years', '{{ option.value|escapejs }}') ? 'font-bold text-primary' : 'text-gray-500'">'{{ option.short_label }}</span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <!-- 2. Programs by campus -->
+        <section class="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel lg:col-span-5"
+                 aria-labelledby="programs-by-campus-{{ section.id|default:'preview' }}">
+            <div class="flex items-baseline justify-between gap-2">
+                <div>
+                    <h4 id="programs-by-campus-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">Programs by campus</h4>
+                    <p class="mt-0.5 text-xs text-gray-500">Share of the current selection · click a row to filter.</p>
+                </div>
+                <button type="button" x-show="facetCount('campuses') > 0" x-cloak @click="clearFacet('campuses')"
+                        class="text-xs font-semibold text-primary hover:underline">
+                    All campuses
+                </button>
+            </div>
+
+            <ul class="mt-4 space-y-2.5">
+                {% for option in data.overview.campuses %}
                 <li>
-                    <button type="button" @click="year = '{{ option.value|escapejs }}'; apply()"
-                            class="flex w-full items-center gap-3 rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-                        <span class="w-10 shrink-0 text-xs tabular-nums text-gray-500">{{ option.label }}</span>
+                    <button type="button"
+                            @click="toggleFilter('campuses', '{{ option.key|escapejs }}')"
+                            :aria-pressed="isSelected('campuses', '{{ option.key|escapejs }}').toString()"
+                            class="flex w-full items-center gap-3 rounded-lg px-2 py-1 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            :class="isSelected('campuses', '{{ option.key|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30' : 'hover:bg-gray-50'">
+                        <span class="w-32 shrink-0 truncate text-xs font-medium text-gray-700" title="{{ option.label }}">{{ option.label }}</span>
                         <span class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                            <span class="block h-full rounded-full bg-primary/70" style="width: {{ option.percent }}%"></span>
+                            <span class="block h-full rounded-full bg-primary/80 transition-all duration-300"
+                                  style="width: {{ option.percent }}%"
+                                  :style="'width: ' + campusStat('{{ option.key|escapejs }}').percent + '%'"></span>
                         </span>
-                        <span class="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-700">{{ option.count }}</span>
-                    </button>
-                </li>
-            {% endfor %}
-        </ul>
-    </section>
-
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-type-{{ section.id }}">
-        <h3 id="programs-by-type-{{ section.id }}" class="text-sm font-semibold text-gray-900">By type of extension</h3>
-        <p class="mt-0.5 text-xs text-gray-500">Click a type to filter the list.</p>
-        <ul class="mt-4 space-y-3">
-            {% for option in data.facets.extension_types %}
-                <li>
-                    <button type="button" @click="type = '{{ option.value|escapejs }}'; apply()"
-                            class="w-full rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-                        <span class="flex items-center justify-between text-xs">
-                            <span class="font-medium text-gray-700">{{ option.label }}</span>
-                            <span class="tabular-nums text-gray-500">{{ option.count }} · {{ option.percent }}%</span>
-                        </span>
-                        <span class="mt-1.5 block h-2 overflow-hidden rounded-full bg-gray-100">
-                            <span class="block h-full rounded-full bg-primary/70" style="width: {{ option.percent }}%"></span>
+                        <span class="w-16 shrink-0 text-right text-xs tabular-nums text-gray-600">
+                            <strong class="font-semibold text-gray-900" x-text="campusStat('{{ option.key|escapejs }}').count">{{ option.count }}</strong>
+                            <span class="text-gray-400" x-text="campusStat('{{ option.key|escapejs }}').percent + '%'">{{ option.percent }}%</span>
                         </span>
                     </button>
                 </li>
-            {% endfor %}
-        </ul>
-    </section>
+                {% endfor %}
+            </ul>
+        </section>
 
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel" aria-labelledby="programs-by-campus-{{ section.id }}">
-        <h3 id="programs-by-campus-{{ section.id }}" class="text-sm font-semibold text-gray-900">Programs by campus</h3>
-        <p class="mt-0.5 text-xs text-gray-500">Click a campus to filter the list.</p>
-        <ul class="mt-4 max-h-64 space-y-2 overflow-y-auto pr-1">
-            {% for option in data.facets.campuses %}
-                <li>
-                    <button type="button" @click="campus = '{{ option.value|escapejs }}'; apply()"
-                            class="flex w-full items-center gap-3 rounded text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-                        <span class="w-24 shrink-0 truncate text-xs text-gray-600" title="{{ option.label }}">{{ option.label }}</span>
-                        <span class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                            <span class="block h-full rounded-full bg-primary/70" style="width: {{ option.percent }}%"></span>
-                        </span>
-                        <span class="w-6 shrink-0 text-right text-xs font-semibold tabular-nums text-gray-700">{{ option.count }}</span>
-                    </button>
-                </li>
-            {% endfor %}
-        </ul>
-    </section>
+    </div>
 
+    <!-- Row 2: Three interactive SVG donut charts -->
+    <div class="grid gap-4 md:grid-cols-3">
+
+        <!-- 3. By type of extension -->
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel"
+                 aria-labelledby="programs-by-type-{{ section.id|default:'preview' }}">
+            <div class="flex items-baseline justify-between gap-2">
+                <div>
+                    <h4 id="programs-by-type-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">By type of extension</h4>
+                    <p class="mt-0.5 text-xs text-gray-500">Click a segment or row to filter.</p>
+                </div>
+                <button type="button" x-show="facetCount('types') > 0" x-cloak @click="clearFacet('types')"
+                        class="text-xs font-semibold text-primary hover:underline">
+                    All
+                </button>
+            </div>
+
+            <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row">
+                <div class="relative h-28 w-28 shrink-0">
+                    <svg viewBox="0 0 42 42" class="h-28 w-28 overflow-visible" role="img" aria-label="By type of extension donut chart">
+                        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="5.5"></circle>
+                        {% for seg in data.overview.extension_types %}
+                        <circle cx="21" cy="21" r="15.9155" fill="none"
+                                stroke="{{ seg.color }}"
+                                stroke-width="5.5"
+                                stroke-linecap="butt"
+                                stroke-dasharray="{{ seg.dash }} {{ seg.gap }}"
+                                stroke-dashoffset="{{ seg.dashoffset }}"
+                                :stroke-dasharray="donutStat('extensionTypes', '{{ seg.value|escapejs }}').dash + ' ' + donutStat('extensionTypes', '{{ seg.value|escapejs }}').gap"
+                                :stroke-dashoffset="donutStat('extensionTypes', '{{ seg.value|escapejs }}').dashoffset"
+                                @click="toggleFilter('types', '{{ seg.value|escapejs }}')"
+                                class="cursor-pointer transition-all duration-300 hover:opacity-85">
+                            <title>{{ seg.label }}</title>
+                        </circle>
+                        {% endfor %}
+                    </svg>
+                    <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <span class="text-base font-bold leading-none text-gray-900 tabular-nums" x-text="shown.toLocaleString()">{{ data.stats.program_count|intcomma }}</span>
+                        <span class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">programs</span>
+                    </div>
+                </div>
+
+                <ul class="w-full min-w-0 flex-1 space-y-1.5">
+                    {% for seg in data.overview.extension_types %}
+                    <li>
+                        <button type="button"
+                                @click="toggleFilter('types', '{{ seg.value|escapejs }}')"
+                                :aria-pressed="isSelected('types', '{{ seg.value|escapejs }}').toString()"
+                                class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                :class="isSelected('types', '{{ seg.value|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30 font-semibold' : 'hover:bg-gray-50'">
+                            <span class="flex min-w-0 items-center gap-2">
+                                <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ seg.color }}"></span>
+                                <span class="truncate text-gray-700">{{ seg.short_label }}</span>
+                            </span>
+                            <span class="shrink-0 tabular-nums text-gray-500">
+                                <strong class="font-semibold text-gray-900" x-text="donutStat('extensionTypes', '{{ seg.value|escapejs }}').count">{{ seg.count }}</strong>
+                                <span class="ml-1" x-text="donutStat('extensionTypes', '{{ seg.value|escapejs }}').percent + '%'">{{ seg.percent }}%</span>
+                            </span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <!-- 4. By research basis -->
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel"
+                 aria-labelledby="programs-by-basis-{{ section.id|default:'preview' }}">
+            <div class="flex items-baseline justify-between gap-2">
+                <div>
+                    <h4 id="programs-by-basis-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">By research basis</h4>
+                    <p class="mt-0.5 text-xs text-gray-500">Faculty, student, or others · click to filter.</p>
+                </div>
+                <button type="button" x-show="facetCount('bases') > 0" x-cloak @click="clearFacet('bases')"
+                        class="text-xs font-semibold text-primary hover:underline">
+                    All
+                </button>
+            </div>
+
+            <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row">
+                <div class="relative h-28 w-28 shrink-0">
+                    <svg viewBox="0 0 42 42" class="h-28 w-28 overflow-visible" role="img" aria-label="By research basis donut chart">
+                        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="5.5"></circle>
+                        {% for seg in data.overview.research_bases %}
+                        <circle cx="21" cy="21" r="15.9155" fill="none"
+                                stroke="{{ seg.color }}"
+                                stroke-width="5.5"
+                                stroke-linecap="butt"
+                                stroke-dasharray="{{ seg.dash }} {{ seg.gap }}"
+                                stroke-dashoffset="{{ seg.dashoffset }}"
+                                :stroke-dasharray="donutStat('researchBases', '{{ seg.value|escapejs }}').dash + ' ' + donutStat('researchBases', '{{ seg.value|escapejs }}').gap"
+                                :stroke-dashoffset="donutStat('researchBases', '{{ seg.value|escapejs }}').dashoffset"
+                                @click="toggleFilter('bases', '{{ seg.value|escapejs }}')"
+                                class="cursor-pointer transition-all duration-300 hover:opacity-85">
+                            <title>{{ seg.label }}</title>
+                        </circle>
+                        {% endfor %}
+                    </svg>
+                    <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <span class="text-base font-bold leading-none text-gray-900 tabular-nums" x-text="shown.toLocaleString()">{{ data.stats.program_count|intcomma }}</span>
+                        <span class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">programs</span>
+                    </div>
+                </div>
+
+                <ul class="w-full min-w-0 flex-1 space-y-1.5">
+                    {% for seg in data.overview.research_bases %}
+                    <li>
+                        <button type="button"
+                                @click="toggleFilter('bases', '{{ seg.value|escapejs }}')"
+                                :aria-pressed="isSelected('bases', '{{ seg.value|escapejs }}').toString()"
+                                class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                :class="isSelected('bases', '{{ seg.value|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30 font-semibold' : 'hover:bg-gray-50'">
+                            <span class="flex min-w-0 items-center gap-2">
+                                <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ seg.color }}"></span>
+                                <span class="truncate text-gray-700" title="{{ seg.label }}">{{ seg.short_label }}</span>
+                            </span>
+                            <span class="shrink-0 tabular-nums text-gray-500">
+                                <strong class="font-semibold text-gray-900" x-text="donutStat('researchBases', '{{ seg.value|escapejs }}').count">{{ seg.count }}</strong>
+                                <span class="ml-1" x-text="donutStat('researchBases', '{{ seg.value|escapejs }}').percent + '%'">{{ seg.percent }}%</span>
+                            </span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <!-- 5. By proponent -->
+        <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm nx-panel"
+                 aria-labelledby="programs-by-proponent-{{ section.id|default:'preview' }}">
+            <div class="flex items-baseline justify-between gap-2">
+                <div>
+                    <h4 id="programs-by-proponent-{{ section.id|default:'preview' }}" class="text-sm font-semibold text-gray-900">By proponent</h4>
+                    <p class="mt-0.5 text-xs text-gray-500">Who led the activity · click to filter.</p>
+                </div>
+                <button type="button" x-show="facetCount('proponents') > 0" x-cloak @click="clearFacet('proponents')"
+                        class="text-xs font-semibold text-primary hover:underline">
+                    All
+                </button>
+            </div>
+
+            <div class="mt-4 flex flex-col items-center gap-4 sm:flex-row">
+                <div class="relative h-28 w-28 shrink-0">
+                    <svg viewBox="0 0 42 42" class="h-28 w-28 overflow-visible" role="img" aria-label="By proponent donut chart">
+                        <circle cx="21" cy="21" r="15.9155" fill="none" stroke="#e2e8f0" stroke-width="5.5"></circle>
+                        {% for seg in data.overview.proponents %}
+                        <circle cx="21" cy="21" r="15.9155" fill="none"
+                                stroke="{{ seg.color }}"
+                                stroke-width="5.5"
+                                stroke-linecap="butt"
+                                stroke-dasharray="{{ seg.dash }} {{ seg.gap }}"
+                                stroke-dashoffset="{{ seg.dashoffset }}"
+                                :stroke-dasharray="donutStat('proponents', '{{ seg.value|escapejs }}').dash + ' ' + donutStat('proponents', '{{ seg.value|escapejs }}').gap"
+                                :stroke-dashoffset="donutStat('proponents', '{{ seg.value|escapejs }}').dashoffset"
+                                @click="toggleFilter('proponents', '{{ seg.value|escapejs }}')"
+                                class="cursor-pointer transition-all duration-300 hover:opacity-85">
+                            <title>{{ seg.label }}</title>
+                        </circle>
+                        {% endfor %}
+                    </svg>
+                    <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <span class="text-base font-bold leading-none text-gray-900 tabular-nums" x-text="shown.toLocaleString()">{{ data.stats.program_count|intcomma }}</span>
+                        <span class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">programs</span>
+                    </div>
+                </div>
+
+                <ul class="w-full min-w-0 flex-1 space-y-1.5">
+                    {% for seg in data.overview.proponents %}
+                    <li>
+                        <button type="button"
+                                @click="toggleFilter('proponents', '{{ seg.value|escapejs }}')"
+                                :aria-pressed="isSelected('proponents', '{{ seg.value|escapejs }}').toString()"
+                                class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1 text-left text-xs transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                                :class="isSelected('proponents', '{{ seg.value|escapejs }}') ? 'bg-primary/5 ring-1 ring-primary/30 font-semibold' : 'hover:bg-gray-50'">
+                            <span class="flex min-w-0 items-center gap-2">
+                                <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ seg.color }}"></span>
+                                <span class="truncate text-gray-700">{{ seg.short_label }}</span>
+                            </span>
+                            <span class="shrink-0 tabular-nums text-gray-500">
+                                <strong class="font-semibold text-gray-900" x-text="donutStat('proponents', '{{ seg.value|escapejs }}').count">{{ seg.count }}</strong>
+                                <span class="ml-1" x-text="donutStat('proponents', '{{ seg.value|escapejs }}').percent + '%'">{{ seg.percent }}%</span>
+                            </span>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+    </div>
 </div>
-{% endif %}

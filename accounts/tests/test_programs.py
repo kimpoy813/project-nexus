@@ -29,7 +29,12 @@ from details.models import (
     SitePage,
     resolve_section_data,
 )
-from proposals.models import DocumentationPhoto, Proposal, ProposalFinalDocument
+from proposals.models import (
+    DocumentationPhoto,
+    Proposal,
+    ProposalFinalDocument,
+    ProposalProponent,
+)
 
 from . import factories
 
@@ -228,11 +233,18 @@ class ProgramsPageTests(TestCase):
         self.assertEqual(data["stats"]["faculty"], 2)
         self.assertEqual(data["stats"]["beneficiaries"], 100)
         self.assertEqual(data["stats"]["campus_count"], 1)
+        self.assertGreaterEqual(data["stats"]["total_campuses"], 7)
+
+        overview_counts = {
+            row["label"]: row["count"] for row in data["overview"]["campuses"]
+        }
+        self.assertEqual(overview_counts["Main Campus"], 1)
+        self.assertEqual(overview_counts["Cervantes Campus"], 0)
 
         response = self.client.get(self.programs_url)
         self.assertContains(response, "VISIBLE")
         self.assertNotContains(response, "HIDDEN")
-        self.assertNotContains(response, "Cervantes Campus")
+        self.assertNotContains(response, 'data-campus="Cervantes Campus"')
 
     def test_an_unpublished_proposal_leaves_its_campus_out_of_the_filter(self):
         make_proposal(title="LIVE", campus="Main Campus")
@@ -253,7 +265,7 @@ class ProgramsPageTests(TestCase):
             title="ONE",
             campus="Main Campus",
             estimated_year=2025,
-            extension_type=Proposal.ExtensionType.RESEARCH_FACULTY,
+            extension_type=Proposal.ExtensionType.RESEARCH_STUDENT,
         )
         make_proposal(
             title="TWO",
@@ -263,16 +275,225 @@ class ProgramsPageTests(TestCase):
         )
         response = self.client.get(self.programs_url)
         self.assertContains(response, "Programs per year")
-        self.assertContains(response, "By type of extension")
         self.assertContains(response, "Programs by campus")
+        self.assertContains(response, "By type of extension")
+        self.assertContains(response, "By research basis")
+        self.assertContains(response, "By proponent")
         # Two programs on the same campus: the campus bar is the full width.
         self.assertContains(response, 'style="width: 100%"')
+        # 50% / 50% SVG donut arcs are rendered on the server.
+        self.assertContains(response, 'stroke-dasharray="50.0 50.0"')
 
     def test_the_empty_state_is_explicit(self):
         response = self.client.get(self.programs_url)
         self.assertContains(response, "No extension programs are published yet.")
         # It also says where programs come from, so an empty page is not a mystery.
         self.assertContains(response, "This directory is not filled in by hand")
+
+    def test_summary_and_all_five_overview_charts_render_even_without_data(self):
+        response = self.client.get(self.programs_url)
+        html = response.content.decode()
+
+        # All 6 Summary KPI cards appear with 0 baseline counts.
+        for label in (
+            "Extension Programs",
+            "Campuses Reached",
+            "Beneficiary Participants",
+            "Student Participants",
+            "Faculty Participants",
+            "Research Staff",
+        ):
+            with self.subTest(kpi=label):
+                self.assertIn(label, html)
+        self.assertIn("of 0 total", html)
+        self.assertIn("of 7 ISPSC campuses", html)
+
+        # All 5 Visual Overview graphs appear even before any program is published.
+        for chart_heading in (
+            "Programs per year",
+            "Programs by campus",
+            "By type of extension",
+            "By research basis",
+            "By proponent",
+        ):
+            with self.subTest(chart=chart_heading):
+                self.assertIn(chart_heading, html)
+
+        # All 7 seeded ISPSC campuses appear in Programs by campus with 0 / 0%.
+        for campus_label in (
+            "Candon Campus",
+            "Cervantes Campus",
+            "Main Campus",
+            "Narvacan Campus",
+            "Santiago Campus",
+            "Sta. Maria Campus",
+            "Tagudin Campus",
+        ):
+            with self.subTest(campus=campus_label):
+                self.assertIn(campus_label, html)
+
+        # Donut legend segments appear for all three categorical breakdowns.
+        for segment_label in (
+            "Community-based",
+            "Request-based",
+            "Research-based",
+            "Faculty Research",
+            "Student Research",
+            "Others",
+            "Faculty",
+            "Joint",
+            "Student",
+        ):
+            with self.subTest(segment=segment_label):
+                self.assertIn(segment_label, html)
+
+        # Full Filter & Refine suite renders even when zero programs exist.
+        for filter_control in (
+            "no filters applied",
+            "“quotes” = exact phrase",
+            "Cards",
+            "Table",
+            "Print / PDF",
+            "CSV",
+            "Reset",
+            "Campuses: All",
+            "Years: All",
+            "Extension types: All",
+            "Research bases: All",
+            "Proponents: All",
+            "Select all",
+            "Columns: Default",
+            "All 16",
+            "Documents: all",
+            "With linked document",
+            "No document",
+            "Sort: newest first",
+            "Sort: oldest first",
+            "Sort: title A–Z",
+            "Sort: most beneficiaries",
+            "Sort: most students",
+            "Sort: campus A–Z",
+            "Extension activity rankings",
+            "Campus rankings",
+            "College rankings",
+            "Academic program rankings",
+            "Individual faculty rankings",
+            "Most Programs",
+            "Most Completed",
+            "Most Beneficiaries",
+            "No faculty rankings recorded yet",
+        ):
+            with self.subTest(filter_control=filter_control):
+                self.assertIn(filter_control, html)
+
+    def test_rankings_score_campuses_colleges_programs_and_faculty(self):
+        faculty_one = factories.make_user("maria_santos", Profile.ROLE_FACULTY)
+        faculty_one.profile.full_name = "Dr. Maria Santos"
+        faculty_one.profile.campus = "Main"
+        faculty_one.profile.college = "College of Arts and Sciences"
+        faculty_one.profile.department = "Bachelor of Science in Computer Science"
+        faculty_one.profile.save()
+
+        faculty_two = factories.make_user("juan_delacruz", Profile.ROLE_FACULTY)
+        faculty_two.profile.full_name = "Prof. Juan Dela Cruz"
+        faculty_two.profile.campus = "Tagudin"
+        faculty_two.profile.college = "College of Teacher Education (CTE)"
+        faculty_two.profile.department = "Bachelor of Secondary Education"
+        faculty_two.profile.save()
+
+        draft_only = factories.make_user("draft_faculty", Profile.ROLE_FACULTY)
+        draft_only.profile.full_name = "Unpublished Proponent"
+        draft_only.profile.save()
+
+        uploader_admin = factories.make_user("legacy_uploader", Profile.ROLE_ADMIN)
+        uploader_admin.profile.full_name = "Uploading Admin"
+        uploader_admin.profile.save()
+
+        make_proposal(
+            owner=faculty_one,
+            title="CS-LITERACY-1",
+            campus="Main Campus",
+            college="College of Arts and Sciences",
+            department="Bachelor of Science in Computer Science",
+            beneficiaries_count=100,
+        )
+        make_proposal(
+            owner=faculty_one,
+            title="CS-LITERACY-2",
+            status="COMPLETED",
+            overall="COMPLETED",
+            campus="Main Campus",
+            college="College of Arts and Sciences",
+            department="Bachelor of Science in Computer Science",
+            beneficiaries_count=150,
+        )
+
+        legacy = make_legacy_proposal(
+            owner=uploader_admin,
+            title="TAGUDIN-TEACHER-LEGACY",
+            campus="Tagudin Campus",
+            college="College of Teacher Education (CTE)",
+            department="Bachelor of Secondary Education",
+            beneficiaries_count=400,
+        )
+        ProposalProponent.objects.create(
+            proposal=legacy,
+            user=faculty_two,
+            full_name="Prof. Juan Dela Cruz",
+            sort_order=0,
+        )
+
+        make_proposal(
+            owner=draft_only,
+            title="UNPUBLISHED-DRAFT",
+            status="DRAFTING",
+            overall="DRAFT",
+            campus="Cervantes Campus",
+            beneficiaries_count=999,
+        )
+
+        section = PageSection.objects.filter(
+            page__slug="programs", layout=PageSection.Layout.PROGRAMS
+        ).first()
+        rankings = resolve_section_data(section)["rankings"]
+
+        self.assertEqual(rankings["campuses"][0]["label"], "Main Campus")
+        self.assertEqual(rankings["campuses"][0]["rank"], 1)
+        self.assertEqual(rankings["campuses"][0]["programs"], 2)
+        self.assertEqual(rankings["campuses"][0]["completed"], 1)
+        self.assertEqual(rankings["campuses"][0]["beneficiaries"], 250)
+
+        self.assertEqual(rankings["campuses"][1]["label"], "Tagudin Campus")
+        self.assertEqual(rankings["campuses"][1]["rank"], 2)
+        self.assertEqual(rankings["campuses"][1]["programs"], 1)
+        self.assertEqual(rankings["campuses"][1]["completed"], 1)
+        self.assertEqual(rankings["campuses"][1]["beneficiaries"], 400)
+
+        cervantes = next(
+            r for r in rankings["campuses"] if r["label"] == "Cervantes Campus"
+        )
+        self.assertIsNone(cervantes["rank"])
+        self.assertEqual(cervantes["programs"], 0)
+
+        self.assertEqual(
+            rankings["colleges"][0]["label"], "College of Arts and Sciences"
+        )
+        self.assertEqual(rankings["colleges"][0]["rank"], 1)
+        self.assertEqual(rankings["colleges"][0]["programs"], 2)
+
+        self.assertEqual(
+            rankings["programs"][0]["label"],
+            "Bachelor of Science in Computer Science",
+        )
+        self.assertEqual(rankings["programs"][0]["rank"], 1)
+        self.assertEqual(rankings["programs"][0]["programs"], 2)
+
+        faculty_names = [row["label"] for row in rankings["faculty"]]
+        self.assertEqual(
+            faculty_names, ["Dr. Maria Santos", "Prof. Juan Dela Cruz"]
+        )
+        self.assertNotIn("Uploading Admin", faculty_names)
+        self.assertNotIn("Unpublished Proponent", faculty_names)
 
     def test_the_new_blocks_are_registered_content_sources(self):
         for key, template in (
@@ -834,12 +1055,18 @@ class PublicSubnavConsistencyTests(TestCase):
             self.assertIn(f'href="#{anchor}"', services_html)
 
     def test_programs_and_gallery_use_the_same_sticky_subnav_bar(self):
+        # Even with zero published programs, /programs/ renders the sticky subnav
+        # jumping to Summary, Overview, Filters, and Directory.
+        empty_programs_html = self.client.get(reverse("programs_page")).content.decode()
+        self._assert_subnav_targets_exist(empty_programs_html)
+
         make_proposal(title="SUBNAV-PROGRAM", campus="Main Campus", estimated_year=2025)
         programs_html = self.client.get(reverse("programs_page")).content.decode()
         self._assert_subnav_targets_exist(programs_html)
         for anchor in (
             "program-summary",
             "program-overview",
+            "program-rankings",
             "program-filters",
             "program-directory",
         ):
