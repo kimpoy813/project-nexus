@@ -761,6 +761,12 @@ def _resolve_programs(section):
     }
 
 
+_GALLERY_SOURCE_SERIES = (
+    ("TERMINAL_REPORT", "Terminal report", "Terminal report", "#103b07"),
+    ("LEGACY", "Legacy upload", "Legacy upload", "#5a1113"),
+)
+
+
 def _resolve_gallery(section):
     """Photos for the Gallery block: the documentation filed with a proposal.
 
@@ -773,7 +779,8 @@ def _resolve_gallery(section):
     One structure, one place: a photo belongs to the activity it documents, so
     it can never appear in the gallery without the program behind it. Each
     entry is a plain dict, so the block template does not care where an image
-    came from.
+    came from. Summary KPIs, visual overview charts, and filter controls always
+    render with baseline zero slots even before the first photo is uploaded.
     """
     from proposals.models import DocumentationPhoto, Proposal
 
@@ -787,24 +794,111 @@ def _resolve_gallery(section):
         .order_by("-proposal__estimated_year", "-proposal__last_saved_at", "order", "id")
     )
 
-    entries = [
-        {
-            "image_url": photo.image.url,
-            "title": photo.caption or photo.proposal.display_title,
-            "caption": photo.caption if photo.caption != photo.proposal.display_title else "",
-            "subtitle": photo.proposal.display_title,
-            "campus": photo.proposal.campus or "",
-            "taken_on": photo.uploaded_at.date() if photo.uploaded_at else None,
-            "source": "LEGACY" if photo.proposal.is_legacy else "TERMINAL_REPORT",
-            "source_label": (
-                "Legacy upload" if photo.proposal.is_legacy else "Terminal report"
-            ),
-        }
-        for photo in photos
-        if photo.image
-    ]
+    entries = []
+    seed_photos = []
+    year_counts = {}
+    activity_ids = set()
+    campus_keys = set()
+    terminal_report_count = 0
+    legacy_count = 0
 
-    return {"photos": entries, "photo_count": len(entries)}
+    for idx, photo in enumerate(photos):
+        if not photo.image:
+            continue
+        proposal = photo.proposal
+        taken_on = photo.uploaded_at.date() if photo.uploaded_at else None
+        year_int = proposal.estimated_year or (taken_on.year if taken_on else None)
+        if year_int:
+            year_counts[year_int] = year_counts.get(year_int, 0) + 1
+        year_str = str(year_int) if year_int else ""
+        campus_raw = (proposal.campus or "").strip()
+        campus_key = _campus_key(campus_raw)
+        if campus_key:
+            campus_keys.add(campus_key)
+        activity_ids.add(proposal.id)
+        source = "LEGACY" if proposal.is_legacy else "TERMINAL_REPORT"
+        if source == "LEGACY":
+            legacy_count += 1
+        else:
+            terminal_report_count += 1
+        source_label = "Legacy upload" if proposal.is_legacy else "Terminal report"
+        title = photo.caption or proposal.display_title
+        caption = photo.caption if photo.caption != proposal.display_title else ""
+        subtitle = proposal.display_title
+        key = f"photo-{photo.id}"
+
+        entries.append(
+            {
+                "key": key,
+                "order_index": idx,
+                "proposal_id": proposal.id,
+                "image_url": photo.image.url,
+                "title": title,
+                "caption": caption,
+                "subtitle": subtitle,
+                "campus": campus_raw,
+                "campus_key": campus_key,
+                "year": year_str,
+                "taken_on": taken_on,
+                "source": source,
+                "source_label": source_label,
+            }
+        )
+        seed_photos.append(
+            {
+                "key": key,
+                "order_index": idx,
+                "proposal_id": proposal.id,
+                "title": title,
+                "caption": caption,
+                "subtitle": subtitle,
+                "campus": campus_raw,
+                "campus_key": campus_key,
+                "year": year_str,
+                "taken_on": taken_on.isoformat() if taken_on else "",
+                "source": source,
+                "source_label": source_label,
+            }
+        )
+
+    campus_overview = _build_campus_overview(entries)
+    year_overview, year_range_label = _build_year_overview(year_counts, len(entries))
+    sources_overview = _build_donut_series(
+        entries, "source", _GALLERY_SOURCE_SERIES
+    )
+
+    stats = {
+        "photo_count": len(entries),
+        "activity_count": len(activity_ids),
+        "campus_count": len(campus_keys),
+        "total_campuses": len(campus_overview),
+        "terminal_report_count": terminal_report_count,
+        "legacy_count": legacy_count,
+    }
+    overview = {
+        "year_range_label": year_range_label,
+        "years": year_overview,
+        "campuses": campus_overview,
+        "sources": sources_overview,
+    }
+    filter_options = {
+        "campuses": sorted(campus_overview, key=lambda row: row["label"].lower()),
+        "years": list(reversed(year_overview)),
+        "sources": sources_overview,
+    }
+
+    return {
+        "photos": entries,
+        "photo_count": len(entries),
+        "stats": stats,
+        "overview": overview,
+        "filter_options": filter_options,
+        "gallery_seed": {
+            "stats": stats,
+            "overview": overview,
+            "photos": seed_photos,
+        },
+    }
 
 
 # ==============================================================

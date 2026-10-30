@@ -630,6 +630,45 @@ class GalleryTests(TestCase):
         ).first()
         self.assertEqual(resolve_section_data(section)["photo_count"], 1)
 
+    def test_gallery_renders_summary_overview_and_filters_even_when_empty(self):
+        empty_html = self.client.get(self.gallery_url).content.decode()
+        for anchor in (
+            "gallery-summary",
+            "gallery-overview",
+            "gallery-filters",
+            "gallery-photos",
+        ):
+            with self.subTest(anchor=anchor):
+                self.assertIn(f'id="{anchor}"', empty_html)
+        for label in (
+            "Published Photos",
+            "Documented Programs",
+            "Campuses Documented",
+            "Photos per year",
+            "Photos by campus",
+            "By source",
+        ):
+            with self.subTest(label=label):
+                self.assertIn(label, empty_html)
+
+        make_documentation_photo(
+            make_proposal(title="GALLERY-PROG-1", campus="Main Campus", estimated_year=2025),
+            caption="Photo One",
+        )
+        make_documentation_photo(
+            make_legacy_proposal(title="GALLERY-PROG-2", campus="Candon Campus", estimated_year=2024),
+            caption="Photo Two",
+        )
+        section = PageSection.objects.filter(
+            page__slug="gallery", layout=PageSection.Layout.GALLERY
+        ).first()
+        data = resolve_section_data(section)
+        self.assertEqual(data["stats"]["photo_count"], 2)
+        self.assertEqual(data["stats"]["activity_count"], 2)
+        self.assertEqual(data["stats"]["campus_count"], 2)
+        self.assertEqual(data["stats"]["terminal_report_count"], 1)
+        self.assertEqual(data["stats"]["legacy_count"], 1)
+
 
 class NavigationTests(TestCase):
     """The public menu offers the active pages and omits retired ones."""
@@ -1026,11 +1065,11 @@ class RetiredAboutAndHelpTests(TestCase):
 
 
 class PublicSubnavConsistencyTests(TestCase):
-    """Every public page uses the same sticky horizontal sub-menu bar."""
+    """Every public page uses the same Programs-style sticky horizontal sub-menu bar."""
 
     SUBNAV_MARKER = 'class="nx-public-subnav bg-white border-b border-gray-100 sticky top-20 z-40"'
 
-    def _assert_subnav_targets_exist(self, html):
+    def _extract_subnav_items(self, html):
         self.assertIn(self.SUBNAV_MARKER, html)
         subnav_match = re.search(
             r'<section class="nx-public-subnav[^>]*>(.*?)</section>',
@@ -1038,39 +1077,87 @@ class PublicSubnavConsistencyTests(TestCase):
             re.DOTALL,
         )
         self.assertIsNotNone(subnav_match)
-        anchors = re.findall(r'href="#([^"]+)"', subnav_match.group(1))
-        self.assertGreaterEqual(len(anchors), 2)
-        for anchor in anchors:
+        items = re.findall(
+            r'<a href="#([^"]+)"[^>]*>([^<]+)</a>',
+            subnav_match.group(1),
+        )
+        self.assertGreaterEqual(len(items), 2)
+        for anchor, _label in items:
             with self.subTest(anchor=anchor):
                 self.assertIn(f'id="{anchor}"', html)
+        return items
 
-    def test_home_and_services_share_the_sticky_subnav_bar(self):
+    def test_home_and_services_share_the_concise_sticky_subnav_bar(self):
         home_html = self.client.get(reverse("details_page")).content.decode()
         services_html = self.client.get(reverse("services_home")).content.decode()
 
-        self._assert_subnav_targets_exist(home_html)
-        self._assert_subnav_targets_exist(services_html)
+        home_items = self._extract_subnav_items(home_html)
+        self.assertEqual(
+            home_items,
+            [
+                ("thrust", "Thrusts"),
+                ("process", "Processes"),
+                ("targets", "Targets"),
+                ("personnel", "Personnel"),
+                ("sdg", "SDGs"),
+                ("activities", "Activities"),
+            ],
+        )
+
+        services_items = self._extract_subnav_items(services_html)
         self.assertNotIn("services-jump-links", services_html)
-        for anchor in ("workflow", "proposal-wizard", "status-lifecycle"):
-            self.assertIn(f'href="#{anchor}"', services_html)
+        self.assertEqual(
+            services_items,
+            [
+                ("workflow", "Workflow"),
+                ("maintained-process", "Processes"),
+                ("template-library", "Templates"),
+                ("proposal-wizard", "Checklist"),
+                ("status-lifecycle", "Tracking"),
+            ],
+        )
 
-    def test_programs_and_gallery_use_the_same_sticky_subnav_bar(self):
-        # Even with zero published programs, /programs/ renders the sticky subnav
-        # jumping to Summary, Overview, Filters, and Directory.
+    def test_custom_admin_section_heading_is_preserved_in_subnav(self):
+        section = PageSection.objects.get(page__slug="home", anchor="thrust")
+        section.heading = "Priority Areas"
+        section.save()
+
+        home_html = self.client.get(reverse("details_page")).content.decode()
+        home_items = dict(self._extract_subnav_items(home_html))
+        self.assertEqual(home_items["thrust"], "Priority Areas")
+
+    def test_programs_and_gallery_always_render_the_programs_style_subnav_bar(self):
+        # Even with zero published programs and zero published photos, both
+        # /programs/ and /gallery/ render the sticky subnav with concise jump links.
         empty_programs_html = self.client.get(reverse("programs_page")).content.decode()
-        self._assert_subnav_targets_exist(empty_programs_html)
+        self.assertEqual(
+            self._extract_subnav_items(empty_programs_html),
+            [
+                ("program-summary", "Summary"),
+                ("program-overview", "Overview"),
+                ("program-rankings", "Rankings"),
+                ("program-filters", "Filters"),
+                ("program-directory", "Directory"),
+            ],
+        )
 
-        make_proposal(title="SUBNAV-PROGRAM", campus="Main Campus", estimated_year=2025)
+        empty_gallery_html = self.client.get(reverse("gallery_page")).content.decode()
+        self.assertEqual(
+            self._extract_subnav_items(empty_gallery_html),
+            [
+                ("gallery-summary", "Summary"),
+                ("gallery-overview", "Overview"),
+                ("gallery-filters", "Filters"),
+                ("gallery-photos", "Photos"),
+            ],
+        )
+        self.assertIn("No photos yet.", empty_gallery_html)
+
+        proposal = make_proposal(title="SUBNAV-PROGRAM", campus="Main Campus", estimated_year=2025)
+        make_documentation_photo(proposal, caption="SUBNAV-PHOTO")
+
         programs_html = self.client.get(reverse("programs_page")).content.decode()
-        self._assert_subnav_targets_exist(programs_html)
-        for anchor in (
-            "program-summary",
-            "program-overview",
-            "program-rankings",
-            "program-filters",
-            "program-directory",
-        ):
-            self.assertIn(f'href="#{anchor}"', programs_html)
+        self._extract_subnav_items(programs_html)
 
         gallery = SitePage.get_for("gallery")
         PageSection.objects.create(
@@ -1081,5 +1168,14 @@ class PublicSubnavConsistencyTests(TestCase):
             order=9,
         )
         gallery_html = self.client.get(reverse("gallery_page")).content.decode()
-        self._assert_subnav_targets_exist(gallery_html)
+        self.assertEqual(
+            self._extract_subnav_items(gallery_html),
+            [
+                ("gallery-summary", "Summary"),
+                ("gallery-overview", "Overview"),
+                ("gallery-filters", "Filters"),
+                ("gallery-photos", "Photos"),
+                ("campuses", "Campuses"),
+            ],
+        )
 

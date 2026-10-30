@@ -1,6 +1,13 @@
 {% comment %}
 Block: Program Gallery (source key GALLERY).
 
+Structured to match the Programs directory page with four anchored subsections:
+  - 5-card Summary strip (#gallery-summary)
+  - 3 interactive Visual Overview charts (#gallery-overview)
+  - Filter & Sort controls (#gallery-filters)
+  - Photo grid & lightbox (#gallery-photos), including an explicit empty state
+    before any photo is published.
+
 Every photo is the documentation filed with an activity: the proponent submits
 it with the terminal report, the office submits it with a legacy upload. Photos
 arrive as plain dicts from ``_resolve_gallery``, so the block does not care
@@ -9,79 +16,161 @@ where they came from; clicking a tile opens a lightbox.
 Each tile owns its own Alpine state, so the lightbox markup stays next to the
 photo it shows and captions need no escaping into a JavaScript string.
 
-Context: section, data.photos, data.photo_count
+Context: section, data.photos, data.photo_count, data.stats, data.overview,
+         data.filter_options, data.gallery_seed
 {% endcomment %}
+{% load humanize static %}
 {% include "details/blocks/_heading.html" %}
 
-<div class="mt-10">
-{% if data.photos %}
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {% for photo in data.photos %}
-        <figure x-data="{ open: false }" class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm nx-panel">
-            <button type="button" @click="open = true"
-                    class="block w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
-                    aria-label="Open photo: {{ photo.title }}">
-                <img src="{{ photo.image_url }}" alt="{{ photo.title }}"
-                     class="h-64 w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy">
+{% with block_uid=section.id|default:"preview"|stringformat:"s" %}
+{% with seed_id="gallery-seed-"|add:block_uid %}
+{{ data.gallery_seed|json_script:seed_id }}
+<script src="{% static 'js/gallery-directory.js' %}"></script>
+
+<div class="mt-10"
+     x-data="nexusGalleryDirectory('{{ seed_id }}')"
+     x-init="apply()">
+
+    <!-- Summary section (always visible, recalculates live with filters) -->
+    <div id="gallery-summary" class="scroll-mt-32">
+        <div class="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <div class="flex flex-wrap items-baseline gap-2">
+                <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Summary</h3>
+                <span class="text-xs text-gray-500">recalculates with every filter</span>
+            </div>
+            <button type="button" x-show="hasActiveFilters()" x-cloak @click="reset()"
+                    class="text-xs font-semibold text-primary hover:underline print:hidden">
+                Reset filters
             </button>
+        </div>
 
-            <figcaption class="flex flex-wrap items-center gap-x-2 gap-y-1 p-4">
-                <span class="text-sm font-semibold text-gray-900">{{ photo.title }}</span>
-                {% if photo.subtitle %}
-                    <span class="text-xs text-gray-500">· {{ photo.subtitle }}</span>
-                {% endif %}
-                <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                    {{ photo.source_label }}
-                </span>
-                {% if photo.campus %}
-                    <span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">{{ photo.campus }}</span>
-                {% endif %}
-            </figcaption>
-
-            <template x-if="open">
-                <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
-                     role="dialog" aria-modal="true" aria-label="{{ photo.title }}"
-                     @click.self="open = false" @keydown.escape.window="open = false">
-                    <div class="relative max-h-full w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
-                        <button type="button" @click="open = false" x-init="$nextTick(() => $el.focus())"
-                                class="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white transition hover:bg-black/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
-                                aria-label="Close photo">✕</button>
-                        <img src="{{ photo.image_url }}" alt="{{ photo.title }}"
-                             class="max-h-[75vh] w-full object-contain bg-black">
-                        <div class="p-5">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ photo.title }}</h3>
-                            {% if photo.subtitle %}
-                                <p class="mt-1 text-sm font-medium text-primary">{{ photo.subtitle }}</p>
-                            {% endif %}
-                            {% if photo.caption %}
-                                <p class="mt-2 whitespace-pre-line text-sm text-gray-600">{{ photo.caption }}</p>
-                            {% endif %}
-                            <p class="mt-3 text-xs text-gray-500">
-                                {% if photo.campus %}{{ photo.campus }}{% endif %}
-                                {% if photo.taken_on %}{% if photo.campus %} · {% endif %}{{ photo.taken_on|date:"F j, Y" }}{% endif %}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </figure>
-        {% endfor %}
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums" x-text="shown.toLocaleString()">{{ data.stats.photo_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-semibold text-gray-800">Published Photos</p>
+                <p class="mt-0.5 text-[11px] text-gray-500">of {{ data.stats.photo_count|intcomma }} total</p>
+            </div>
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums" x-text="shownActivities.toLocaleString()">{{ data.stats.activity_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-semibold text-gray-800">Documented Programs</p>
+                <p class="mt-0.5 text-[11px] text-gray-500">activities with photos</p>
+            </div>
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums" x-text="shownCampuses.toLocaleString()">{{ data.stats.campus_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-semibold text-gray-800">Campuses Documented</p>
+                <p class="mt-0.5 text-[11px] text-gray-500">of {{ data.stats.total_campuses|intcomma }} ISPSC campuses</p>
+            </div>
+            <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm nx-panel">
+                <p class="text-2xl font-bold text-primary tabular-nums" x-text="shownTerminal.toLocaleString()">{{ data.stats.terminal_report_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-semibold text-gray-800">Terminal Reports</p>
+                <p class="mt-0.5 text-[11px] text-gray-500">filed by proponents</p>
+            </div>
+            <div class="col-span-2 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm nx-panel sm:col-span-1">
+                <p class="text-2xl font-bold text-primary tabular-nums" x-text="shownLegacy.toLocaleString()">{{ data.stats.legacy_count|intcomma }}</p>
+                <p class="mt-1 text-xs font-semibold text-gray-800">Legacy Uploads</p>
+                <p class="mt-0.5 text-[11px] text-gray-500">imported archive</p>
+            </div>
+        </div>
     </div>
-{% else %}
-    {# Photos arrive from the workflow; an empty gallery means nothing is filed yet. #}
-    <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center nx-panel">
-        <p class="text-base font-semibold text-gray-900">No photos yet.</p>
-        <p class="mx-auto mt-2 max-w-xl text-sm text-gray-600">
-            The gallery is filled from the documentation photos proponents submit with
-            their terminal reports in the Implementation Tracker — the same photos the
-            office already requires at “Final Evaluation and Documentation”.
-        </p>
-        {% if user.is_authenticated and user.profile.role == 'ADMIN' %}
-            <a href="{% url 'admin_legacy_proposal_create' %}"
-               class="mt-6 inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
-                Import older work with its photos
-            </a>
+
+    {% include "details/blocks/_gallery_overview.html" %}
+
+    {% include "details/blocks/_gallery_filters.html" %}
+
+    <!-- Photo grid -->
+    <div id="gallery-photos" class="scroll-mt-32 mt-8">
+        <div class="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <p class="text-sm text-gray-600" aria-live="polite">
+                <strong class="text-base font-bold text-gray-900 tabular-nums" x-text="shown.toLocaleString()">{{ data.stats.photo_count|intcomma }}</strong>
+                <span x-text="shown === 1 ? 'photo' : 'photos'">photo{{ data.stats.photo_count|pluralize }}</span>
+                <span class="text-gray-400">of {{ data.stats.photo_count|intcomma }} total</span>
+            </p>
+            <a href="#gallery-summary" class="text-xs font-semibold text-primary hover:underline print:hidden">Back to top</a>
+        </div>
+
+        {% if data.photos %}
+            <div data-gallery-grid class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {% for photo in data.photos %}
+                <figure data-gallery-key="{{ photo.key }}" x-data="{ open: false }" class="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm nx-panel">
+                    <button type="button" @click="open = true"
+                            class="block w-full focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
+                            aria-label="Open photo: {{ photo.title }}">
+                        <img src="{{ photo.image_url }}" alt="{{ photo.title }}"
+                             class="h-64 w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy">
+                    </button>
+
+                    <figcaption class="flex flex-wrap items-center gap-x-2 gap-y-1 p-4">
+                        <span class="text-sm font-semibold text-gray-900">{{ photo.title }}</span>
+                        {% if photo.subtitle %}
+                            <span class="text-xs text-gray-500">· {{ photo.subtitle }}</span>
+                        {% endif %}
+                        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                            {{ photo.source_label }}
+                        </span>
+                        {% if photo.campus %}
+                            <span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">{{ photo.campus }}</span>
+                        {% endif %}
+                    </figcaption>
+
+                    <template x-if="open">
+                        <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+                             role="dialog" aria-modal="true" aria-label="{{ photo.title }}"
+                             @click.self="open = false" @keydown.escape.window="open = false">
+                            <div class="relative max-h-full w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                                <button type="button" @click="open = false" x-init="$nextTick(() => $el.focus())"
+                                        class="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white transition hover:bg-black/80 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/40"
+                                        aria-label="Close photo">✕</button>
+                                <img src="{{ photo.image_url }}" alt="{{ photo.title }}"
+                                     class="max-h-[75vh] w-full object-contain bg-black">
+                                <div class="p-5">
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ photo.title }}</h3>
+                                    {% if photo.subtitle %}
+                                        <p class="mt-1 text-sm font-medium text-primary">{{ photo.subtitle }}</p>
+                                    {% endif %}
+                                    {% if photo.caption %}
+                                        <p class="mt-2 whitespace-pre-line text-sm text-gray-600">{{ photo.caption }}</p>
+                                    {% endif %}
+                                    <p class="mt-3 text-xs text-gray-500">
+                                        {% if photo.campus %}{{ photo.campus }}{% endif %}
+                                        {% if photo.taken_on %}{% if photo.campus %} · {% endif %}{{ photo.taken_on|date:"F j, Y" }}{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </figure>
+                {% endfor %}
+            </div>
+
+            <div x-show="total > 0 && shown === 0" x-cloak
+                 class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center nx-panel">
+                <p class="text-base font-semibold text-gray-900">No photos match the active filters.</p>
+                <p class="mx-auto mt-2 max-w-xl text-sm text-gray-600">
+                    Try clearing one of the selected campus, year, or source filters, or reset the search query.
+                </p>
+                <button type="button" @click="reset()"
+                        class="mt-5 inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
+                    Reset filters
+                </button>
+            </div>
+        {% else %}
+            {# Photos arrive from the workflow; an empty gallery means nothing is filed yet. #}
+            <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center nx-panel">
+                <p class="text-base font-semibold text-gray-900">No photos yet.</p>
+                <p class="mx-auto mt-2 max-w-xl text-sm text-gray-600">
+                    The gallery is filled from the documentation photos proponents submit with
+                    their terminal reports in the Implementation Tracker — the same photos the
+                    office already requires at “Final Evaluation and Documentation”.
+                </p>
+                {% if user.is_authenticated and user.profile.role == 'ADMIN' %}
+                    <a href="{% url 'admin_legacy_proposal_create' %}"
+                       class="mt-6 inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 nx-btn nx-btn--secondary">
+                        Import older work with its photos
+                    </a>
+                {% endif %}
+            </div>
         {% endif %}
     </div>
-{% endif %}
 </div>
+{% endwith %}
+{% endwith %}

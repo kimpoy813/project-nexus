@@ -62,8 +62,8 @@ def services_home(request):
     if workflow_phases:
         subnav_items.append({"anchor": "workflow", "label": "Workflow"})
     subnav_items.extend(build_subnav_items(visible_blocks))
-    subnav_items.append({"anchor": "proposal-wizard", "label": "Proposal checklist"})
-    subnav_items.append({"anchor": "status-lifecycle", "label": "Status tracking"})
+    subnav_items.append({"anchor": "proposal-wizard", "label": "Checklist"})
+    subnav_items.append({"anchor": "status-lifecycle", "label": "Tracking"})
 
     context = {
         "workflow_phases": workflow_phases,

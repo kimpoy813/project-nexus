@@ -36,6 +36,12 @@ body.gallery-page-body .nexus-footer {
   box-shadow: 0 4px 14px rgba(15, 23, 42, .04);
 }
 
+@media print {
+  .nx-public-subnav {
+    display: none !important;
+  }
+}
+
 .home-page .home-thrust-card,
 .home-page .home-person-card,
 .home-page .home-sdg-card,
