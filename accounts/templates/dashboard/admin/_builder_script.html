@@ -3,6 +3,9 @@ Shared script for the no-code wizard step editor.
 
   * addFieldRow() clones the field row markup: kept in sync with the server
     rendered rows so a new row submits exactly the same field_*[] arrays.
+  * Custom popover dropdowns ([data-nx-builder-dropdown]) keep hidden
+    field_type[] and field_maps_to[] inputs in sync while avoiding cranky
+    browser select-picker light-dismiss / anchor-flipping quirks.
   * field row reordering: rows are read back in DOM order, and the server
     stores "order" from that position, so moving the element is the whole
     feature.
@@ -10,8 +13,250 @@ Shared script for the no-code wizard step editor.
     data-proponent-step on #fieldRows.
 {% endcomment %}
 <script>
-const fieldTypes = `{% for value,label in field_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
-const mapsToOptions = `{% for value,label in proponent_map_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}`;
+const fieldTypeChoices = [
+  {% for value, label in field_type_choices %}
+  { value: "{{ value|escapejs }}", label: "{{ label|escapejs }}" }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+const mapsToChoices = [
+  { value: "", label: "Keep as an extra detail" }{% if proponent_map_choices %},{% endif %}
+  {% for value, label in proponent_map_choices %}
+  { value: "{{ value|escapejs }}", label: "{{ label|escapejs }}" }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+function escapeBuilderHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderBuilderDropdownHtml(name, choices, selectedValue, ariaLabel, minWidthClass) {
+    const list = Array.isArray(choices) && choices.length
+        ? choices
+        : [{ value: '', label: '' }];
+    const current = list.find(function (item) {
+        return item.value === selectedValue;
+    }) || list[0];
+    const safeName = escapeBuilderHtml(name);
+    const safeAria = escapeBuilderHtml(ariaLabel);
+    const safeCurrentVal = escapeBuilderHtml(current.value);
+    const safeCurrentLabel = escapeBuilderHtml(current.label);
+    const widthCls = minWidthClass || 'min-w-[11rem]';
+
+    const optionsHtml = list.map(function (item) {
+        const isSelected = item.value === current.value;
+        const safeVal = escapeBuilderHtml(item.value);
+        const safeLabel = escapeBuilderHtml(item.label);
+        const stateCls = isSelected
+            ? 'bg-primary/10 font-bold text-primary'
+            : 'font-medium text-gray-700 hover:bg-gray-50';
+        const checkHiddenCls = isSelected ? '' : 'hidden';
+        return `
+          <button type="button"
+                  role="option"
+                  data-nx-dropdown-option="${safeVal}"
+                  data-nx-dropdown-option-label="${safeLabel}"
+                  aria-selected="${isSelected ? 'true' : 'false'}"
+                  class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition ${stateCls}">
+            <span class="truncate">${safeLabel}</span>
+            <svg data-nx-dropdown-check xmlns="http://www.w3.org/2000/svg"
+                 class="h-4 w-4 shrink-0 text-primary ${checkHiddenCls}"
+                 viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+            </svg>
+          </button>`;
+    }).join('');
+
+    return `
+      <div class="relative mt-auto" data-nx-builder-dropdown>
+        <input type="hidden" name="${safeName}" value="${safeCurrentVal}">
+        <button type="button"
+                data-nx-dropdown-trigger
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-label="${safeAria}"
+                class="flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-left text-sm font-medium text-gray-900 transition hover:border-gray-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+          <span class="truncate" data-nx-dropdown-label>${safeCurrentLabel}</span>
+          <svg xmlns="http://www.w3.org/2000/svg"
+               data-nx-dropdown-chevron
+               class="h-4 w-4 shrink-0 text-primary transition-transform duration-150"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div data-nx-dropdown-menu
+             role="listbox"
+             aria-label="${safeAria}"
+             hidden
+             class="hidden absolute left-0 right-0 top-full z-40 mt-1.5 ${widthCls} max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+          ${optionsHtml}
+        </div>
+      </div>`;
+}
+
+function isBuilderDropdownOpen(dropdown) {
+    const menu = dropdown && dropdown.querySelector('[data-nx-dropdown-menu]');
+    return Boolean(menu && !menu.hidden && !menu.classList.contains('hidden'));
+}
+
+function syncBuilderDropdownUI(dropdown, value) {
+    if (!dropdown) return;
+    const input = dropdown.querySelector('input[type="hidden"]');
+    const labelEl = dropdown.querySelector('[data-nx-dropdown-label]');
+    const options = Array.from(dropdown.querySelectorAll('[data-nx-dropdown-option]'));
+    if (!options.length) return;
+
+    const targetVal = value !== undefined
+        ? String(value)
+        : (input ? String(input.value || '') : '');
+    const activeOption = options.find(function (opt) {
+        return opt.getAttribute('data-nx-dropdown-option') === targetVal;
+    }) || options[0];
+
+    const resolvedVal = activeOption.getAttribute('data-nx-dropdown-option') || '';
+    const resolvedLabel = activeOption.getAttribute('data-nx-dropdown-option-label')
+        || activeOption.textContent.trim();
+
+    if (input) {
+        input.value = resolvedVal;
+        input.setAttribute('value', resolvedVal);
+    }
+    if (labelEl) {
+        labelEl.textContent = resolvedLabel;
+    }
+
+    options.forEach(function (opt) {
+        const selected = opt === activeOption;
+        opt.setAttribute('aria-selected', selected ? 'true' : 'false');
+        opt.classList.toggle('bg-primary/10', selected);
+        opt.classList.toggle('font-bold', selected);
+        opt.classList.toggle('text-primary', selected);
+        opt.classList.toggle('font-medium', !selected);
+        opt.classList.toggle('text-gray-700', !selected);
+        opt.classList.toggle('hover:bg-gray-50', !selected);
+        const check = opt.querySelector('[data-nx-dropdown-check]');
+        if (check) check.classList.toggle('hidden', !selected);
+    });
+}
+
+function syncBuilderDropdowns(root) {
+    const scope = root || document;
+    const dropdowns = scope.matches && scope.matches('[data-nx-builder-dropdown]')
+        ? [scope]
+        : Array.from(scope.querySelectorAll('[data-nx-builder-dropdown]'));
+    dropdowns.forEach(function (dropdown) {
+        syncBuilderDropdownUI(dropdown);
+    });
+}
+
+function closeBuilderDropdown(dropdown, opts) {
+    if (!dropdown) return;
+    const menu = dropdown.querySelector('[data-nx-dropdown-menu]');
+    const trigger = dropdown.querySelector('[data-nx-dropdown-trigger]');
+    const chevron = dropdown.querySelector('[data-nx-dropdown-chevron]');
+
+    if (menu) {
+        menu.hidden = true;
+        menu.classList.add('hidden');
+    }
+    if (trigger) {
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.classList.remove('border-primary', 'ring-2', 'ring-primary/20');
+    }
+    if (chevron) {
+        chevron.classList.remove('rotate-180');
+    }
+    dropdown.classList.remove('z-40');
+
+    const row = dropdown.closest('.field-row');
+    if (row) {
+        const stillOpen = Array.from(row.querySelectorAll('[data-nx-builder-dropdown]')).some(isBuilderDropdownOpen);
+        if (!stillOpen) {
+            row.classList.remove('relative', 'z-30');
+        }
+    }
+
+    if (opts && opts.restoreFocus && trigger && typeof trigger.focus === 'function') {
+        trigger.focus();
+    }
+}
+
+function closeAllBuilderDropdowns(exceptDropdown, opts) {
+    document.querySelectorAll('[data-nx-builder-dropdown]').forEach(function (dropdown) {
+        if (dropdown !== exceptDropdown && isBuilderDropdownOpen(dropdown)) {
+            closeBuilderDropdown(dropdown, opts);
+        }
+    });
+}
+
+function openBuilderDropdown(dropdown, opts) {
+    if (!dropdown) return;
+    const menu = dropdown.querySelector('[data-nx-dropdown-menu]');
+    const trigger = dropdown.querySelector('[data-nx-dropdown-trigger]');
+    const chevron = dropdown.querySelector('[data-nx-dropdown-chevron]');
+    if (!menu || !trigger) return;
+
+    closeAllBuilderDropdowns(dropdown);
+
+    const row = dropdown.closest('.field-row');
+    if (row) {
+        row.classList.add('relative', 'z-30');
+    }
+    dropdown.classList.add('z-40');
+
+    // Place upward only when near the bottom of the viewport and there is more room above.
+    let openUpward = false;
+    if (typeof trigger.getBoundingClientRect === 'function' && typeof window.innerHeight === 'number' && window.innerHeight > 0) {
+        const rect = trigger.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const estimatedHeight = Math.min(288, menu.querySelectorAll('[data-nx-dropdown-option]').length * 38 + 16);
+        openUpward = spaceBelow < estimatedHeight + 16 && spaceAbove > spaceBelow;
+    }
+
+    menu.classList.toggle('top-full', !openUpward);
+    menu.classList.toggle('mt-1.5', !openUpward);
+    menu.classList.toggle('bottom-full', openUpward);
+    menu.classList.toggle('mb-1.5', openUpward);
+
+    menu.hidden = false;
+    menu.classList.remove('hidden');
+    trigger.setAttribute('aria-expanded', 'true');
+    trigger.classList.add('border-primary', 'ring-2', 'ring-primary/20');
+    if (chevron) {
+        chevron.classList.add('rotate-180');
+    }
+
+    if (opts && opts.focusSelected) {
+        const selectedOpt = menu.querySelector('[data-nx-dropdown-option][aria-selected="true"]')
+            || menu.querySelector('[data-nx-dropdown-option]');
+        if (selectedOpt && typeof selectedOpt.focus === 'function') {
+            selectedOpt.focus();
+        }
+    }
+}
+
+function selectBuilderDropdownOption(dropdown, optionBtn, opts) {
+    if (!dropdown || !optionBtn) return;
+    const nextValue = optionBtn.getAttribute('data-nx-dropdown-option') || '';
+    const input = dropdown.querySelector('input[type="hidden"]');
+    const previousValue = input ? input.value : null;
+
+    syncBuilderDropdownUI(dropdown, nextValue);
+    closeBuilderDropdown(dropdown, { restoreFocus: Boolean(opts && opts.restoreFocus) });
+
+    const row = dropdown.closest('.field-row');
+    if (row) {
+        syncFieldChoices(row);
+    }
+    if (input && previousValue !== nextValue) {
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+}
 
 function renumberFieldRows() {
     const rows = document.querySelectorAll('#fieldRows .field-row');
@@ -33,10 +278,10 @@ function syncFieldChoices(root) {
         ? [scope]
         : scope.querySelectorAll('.field-row');
     rows.forEach(function (row) {
-        const typeSelect = row.querySelector('select[name="field_type[]"]');
+        const typeField = row.querySelector('[name="field_type[]"]');
         const choicesCell = row.querySelector('.choices-cell');
-        if (typeSelect && choicesCell) {
-            choicesCell.classList.toggle('hidden', typeSelect.value !== 'SELECT');
+        if (typeField && choicesCell) {
+            choicesCell.classList.toggle('hidden', typeField.value !== 'SELECT');
         }
     });
 }
@@ -44,6 +289,22 @@ function syncFieldChoices(root) {
 function addFieldRow() {
     const wrap = document.getElementById('fieldRows');
     const div = document.createElement('div');
+    const defaultType = fieldTypeChoices.length ? fieldTypeChoices[0].value : 'TEXT';
+    const typeDropdownHtml = renderBuilderDropdownHtml(
+        'field_type[]',
+        fieldTypeChoices,
+        defaultType,
+        'Type',
+        'min-w-[11rem]'
+    );
+    const mapsToDropdownHtml = renderBuilderDropdownHtml(
+        'field_maps_to[]',
+        mapsToChoices,
+        '',
+        'Stores in proponent record',
+        'min-w-[13rem]'
+    );
+
     div.className = 'field-row rounded-2xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5 space-y-4';
     div.innerHTML = `
         <input type="hidden" name="field_id[]" value="">
@@ -90,8 +351,8 @@ function addFieldRow() {
             <input type="text" name="field_key[]" placeholder="auto if blank" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
           </div>
           <div class="lg:col-span-3 flex flex-col">
-            <label class="block text-xs font-bold text-gray-600 mb-1.5">Type</label>
-            <select name="field_type[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">${fieldTypes}</select>
+            <label class="block text-xs font-bold text-gray-600 mb-1.5 cursor-pointer" data-nx-dropdown-heading>Type</label>
+            ${typeDropdownHtml}
           </div>
         </div>
 
@@ -113,11 +374,8 @@ function addFieldRow() {
 
         <div class="pt-3 border-t border-dashed border-gray-200 grid grid-cols-1 md:grid-cols-2 gap-4" data-field-conditions-grid>
           <div class="maps-to-cell hidden md:col-span-2 lg:col-span-1 flex flex-col">
-            <label class="block text-xs font-bold text-gray-600 mb-1.5">Stores in proponent record</label>
-            <select name="field_maps_to[]" class="mt-auto w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">
-              <option value="">Keep as an extra detail</option>
-              ${mapsToOptions}
-            </select>
+            <label class="block text-xs font-bold text-gray-600 mb-1.5 cursor-pointer" data-nx-dropdown-heading>Stores in proponent record</label>
+            ${mapsToDropdownHtml}
           </div>
           <div class="flex flex-col">
             <label class="block text-xs font-bold text-gray-600 mb-1.5">Depends On Field Key</label>
@@ -130,6 +388,7 @@ function addFieldRow() {
         </div>`;
     wrap.appendChild(div);
     renumberFieldRows();
+    syncBuilderDropdowns(div);
     syncFieldChoices(div);
     syncMapsToCells();
     return div;
@@ -142,6 +401,7 @@ function moveFieldRow(button, direction) {
     if (!row) return;
     const sibling = direction === 'up' ? row.previousElementSibling : row.nextElementSibling;
     if (!sibling) return;
+    closeAllBuilderDropdowns();
     if (direction === 'up') {
         row.parentNode.insertBefore(row, sibling);
     } else {
@@ -164,6 +424,39 @@ function syncMapsToCells() {
 }
 
 document.addEventListener('click', function (event) {
+    const trigger = event.target.closest('[data-nx-dropdown-trigger]');
+    if (trigger) {
+        const dropdown = trigger.closest('[data-nx-builder-dropdown]');
+        if (isBuilderDropdownOpen(dropdown)) {
+            closeBuilderDropdown(dropdown);
+        } else {
+            openBuilderDropdown(dropdown);
+        }
+        return;
+    }
+
+    const optionBtn = event.target.closest('[data-nx-dropdown-option]');
+    if (optionBtn) {
+        const dropdown = optionBtn.closest('[data-nx-builder-dropdown]');
+        selectBuilderDropdownOption(dropdown, optionBtn, { restoreFocus: false });
+        return;
+    }
+
+    const heading = event.target.closest('[data-nx-dropdown-heading]');
+    if (heading && heading.parentElement) {
+        const dropdown = heading.parentElement.querySelector('[data-nx-builder-dropdown]');
+        if (dropdown) {
+            if (isBuilderDropdownOpen(dropdown)) {
+                closeBuilderDropdown(dropdown, { restoreFocus: true });
+            } else {
+                openBuilderDropdown(dropdown, { focusSelected: false });
+                const btn = dropdown.querySelector('[data-nx-dropdown-trigger]');
+                if (btn && typeof btn.focus === 'function') btn.focus();
+            }
+            return;
+        }
+    }
+
     const moveButton = event.target.closest('[data-field-move]');
     if (moveButton) {
         moveFieldRow(moveButton, moveButton.dataset.fieldMove);
@@ -172,24 +465,88 @@ document.addEventListener('click', function (event) {
 
     const removeButton = event.target.closest('[data-field-remove]');
     if (removeButton) {
+        closeAllBuilderDropdowns();
         const row = removeButton.closest('.field-row');
         if (row) {
             row.remove();
             renumberFieldRows();
         }
+        return;
+    }
+
+    if (!event.target.closest('[data-nx-builder-dropdown]')) {
+        closeAllBuilderDropdowns();
+    }
+});
+
+document.addEventListener('keydown', function (event) {
+    const activeDropdown = Array.from(document.querySelectorAll('[data-nx-builder-dropdown]')).find(isBuilderDropdownOpen);
+
+    if (event.key === 'Escape' && activeDropdown) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeBuilderDropdown(activeDropdown, { restoreFocus: true });
+        return;
+    }
+
+    const trigger = event.target.closest && event.target.closest('[data-nx-dropdown-trigger]');
+    if (trigger) {
+        const dropdown = trigger.closest('[data-nx-builder-dropdown]');
+        if (!isBuilderDropdownOpen(dropdown) &&
+            (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Enter' || event.key === ' ')) {
+            event.preventDefault();
+            openBuilderDropdown(dropdown, { focusSelected: true });
+            return;
+        }
+    }
+
+    if (!activeDropdown || !activeDropdown.contains(event.target)) return;
+
+    if (event.key === 'Tab') {
+        closeBuilderDropdown(activeDropdown, { restoreFocus: false });
+        return;
+    }
+
+    const options = Array.from(activeDropdown.querySelectorAll('[data-nx-dropdown-option]'));
+    if (!options.length) return;
+    const currentIndex = options.indexOf(event.target.closest('[data-nx-dropdown-option]'));
+
+    if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % options.length;
+        options[nextIndex].focus();
+    } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const prevIndex = currentIndex <= 0 ? options.length - 1 : currentIndex - 1;
+        options[prevIndex].focus();
+    } else if (event.key === 'Home') {
+        event.preventDefault();
+        options[0].focus();
+    } else if (event.key === 'End') {
+        event.preventDefault();
+        options[options.length - 1].focus();
+    } else if ((event.key === 'Enter' || event.key === ' ') && currentIndex >= 0) {
+        event.preventDefault();
+        selectBuilderDropdownOption(activeDropdown, options[currentIndex], { restoreFocus: true });
     }
 });
 
 document.addEventListener('change', function (event) {
-    const typeSelect = event.target.closest('select[name="field_type[]"]');
-    if (typeSelect) {
-        syncFieldChoices(typeSelect.closest('.field-row'));
+    const typeField = event.target.closest && event.target.closest('[name="field_type[]"]');
+    if (typeField) {
+        syncFieldChoices(typeField.closest('.field-row'));
     }
 });
 
-document.addEventListener('DOMContentLoaded', function () {
+function initBuilderFields() {
     renumberFieldRows();
+    syncBuilderDropdowns();
     syncFieldChoices();
     syncMapsToCells();
-});
+}
+
+initBuilderFields();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBuilderFields);
+}
 </script>

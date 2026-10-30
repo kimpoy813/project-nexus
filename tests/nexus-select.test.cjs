@@ -138,3 +138,26 @@ test('unsupported browsers keep the untouched native select and no observer', ()
     assert.equal(nativeButton(select), undefined);
     assert.equal(context.observer(), null);
 });
+
+test('preserves selectedIndex when inserting the native button ahead of dynamic options', () => {
+    const select = new Element('select');
+    const optA = new Element('option');
+    const optB = new Element('option');
+    select.appendChild(optA);
+    select.appendChild(optB);
+    let currentIndex = 0;
+    Object.defineProperty(select, 'selectedIndex', {
+        get() { return currentIndex; },
+        set(val) { currentIndex = val; },
+    });
+    const origInsertBefore = select.insertBefore.bind(select);
+    select.insertBefore = function (child, reference) {
+        const res = origInsertBefore(child, reference);
+        if (child.tagName === 'button') currentIndex = -1;
+        return res;
+    };
+
+    setup({ selects: [select] });
+    assert.ok(nativeButton(select));
+    assert.equal(select.selectedIndex, 0);
+});

@@ -130,6 +130,13 @@ class ComponentContractTests(SimpleTestCase):
         self.assertIn('.nexus-shell .nx-table select', closed_state)
         self.assertIn('min-width: 8rem', closed_state)
 
+        # Invoker button must cover the full control surface (including behind
+        # ::picker-icon) so clicking padding or the arrow never triggers a
+        # light-dismiss + re-open flicker.
+        self.assertIn('align-self: stretch', enhanced)
+        self.assertIn('pointer-events: none', enhanced)
+        self.assertIn('position-try-order: most-block-size', enhanced)
+
     def test_every_select_bearing_page_inherits_the_covered_application_shell(self):
         template_roots = tuple(
             settings.BASE_DIR / folder

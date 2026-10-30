@@ -436,6 +436,20 @@ class WizardAdminTests(TestCase):
         # Dynamic builder script stays synchronized with server-rendered field rows.
         self.assertIn("function renumberFieldRows()", html_1)
         self.assertIn("function syncFieldChoices(", html_1)
+        # Field Type and Proponent mapping use custom popover dropdowns instead
+        # of cranky native selects while preserving field_type[] / field_maps_to[].
+        self.assertIn("data-nx-builder-dropdown", html_1)
+        self.assertIn('data-nx-dropdown-trigger', html_1)
+        self.assertIn('<input type="hidden" name="field_type[]"', html_1)
+        self.assertIn('<input type="hidden" name="field_maps_to[]"', html_1)
+        self.assertNotIn('<select name="field_type[]"', html_1)
+        self.assertNotIn('<select name="field_maps_to[]"', html_1)
+
+        resp_3 = self.admin_client.get(reverse("wizard_step_edit", args=[3]))
+        self.assertEqual(resp_3.status_code, 200)
+        html_3 = resp_3.content.decode()
+        self.assertIn('data-nx-dropdown-option="designation"', html_3)
+        self.assertIn("Keep as an extra detail", html_3)
 
         resp_17 = self.admin_client.get(reverse("wizard_step_edit", args=[17]))
         self.assertEqual(resp_17.status_code, 200)
@@ -448,6 +462,8 @@ class WizardAdminTests(TestCase):
         html_create = resp_create.content.decode()
         self.assertNotIn("md:grid-cols-3 xl:grid-cols-4", html_create)
         self.assertIn("nx-page-header", html_create)
+        self.assertIn("function renderBuilderDropdownHtml(", html_create)
+        self.assertNotIn('<select name="field_type[]"', html_create)
 
     def test_multiple_new_fields_preserve_independent_required_flags(self):
         payload, _fields = self._step_editor_payload(2)

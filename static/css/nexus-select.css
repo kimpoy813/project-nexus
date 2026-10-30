@@ -30,11 +30,15 @@ select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdow
   select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdown-months) {
     /* Legacy field classes can set display: block. Keep the native value and
        picker icon on one row anyway; width utilities still control the size. */
+    position: relative;
     display: inline-flex;
     align-items: center;
     flex-wrap: nowrap;
     vertical-align: middle;
     cursor: pointer;
+  }
+  select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdown-months):has(> button.nx-select__button) {
+    padding: 0 .75rem 0 0 !important;
   }
   /* Auto-layout tables may otherwise shrink the enhanced control to its arrow
      on narrow screens. Their existing overflow wrapper handles the extra width. */
@@ -44,16 +48,21 @@ select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdow
     }
   }
   /* js/nexus-select.js adds these native children only when base-select is
-     supported. The browser still owns selection and updates selectedcontent;
-     this flex layout only keeps long labels away from the arrow. */
+     supported. Stretch the invoker button across the full control height and
+     underneath ::picker-icon so clicking padding or the chevron never falls
+     outside the invoker and triggers a light-dismiss re-open flicker. */
   select > button.nx-select__button {
     display: flex;
     align-items: center;
+    align-self: stretch;
+    flex: 1 1 auto;
     gap: .5rem;
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    padding: 0;
+    min-height: inherit;
+    margin-right: -1.75rem;
+    padding: .375rem 2.25rem .375rem .75rem;
     border: 0;
     background: transparent;
     color: inherit;
@@ -73,7 +82,10 @@ select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdow
     cursor: not-allowed;
   }
   select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdown-months)::picker-icon {
+    position: relative;
+    z-index: 1;
     flex-shrink: 0;
+    pointer-events: none;
     color: var(--nexus-primary, #103b07);
     transition: rotate .16s ease;
   }
@@ -89,14 +101,16 @@ select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdow
      z-index cannot clip it. Its dimensions remain bounded on small screens. */
   select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdown-months)::picker(select) {
     box-sizing: border-box;
+    min-width: anchor-size(self-inline);
     max-width: calc(100vw - 2rem);
-    max-height: min(20rem, 50vh);
-    margin: .375rem 0;
-    padding: .375rem;
+    max-height: min(22rem, calc(100vh - 4rem));
+    position-try-order: most-block-size;
+    margin: .25rem 0;
+    padding: .3125rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--nx-component-border, #dce3e8) !important;
-    border-radius: 1rem;
+    border-radius: .875rem;
     background: #fff !important;
     color: var(--nexus-ink, #0f172a);
     box-shadow: 0 18px 45px rgb(15 23 42 / .16), 0 3px 10px rgb(15 23 42 / .06);
@@ -118,10 +132,10 @@ select:not([multiple]):not([size]):not(.ck-editor *):not(.flatpickr-monthDropdow
     align-items: center;
     gap: .5rem;
     box-sizing: border-box;
-    min-height: 2.5rem;
-    margin: .125rem 0;
-    padding: .625rem .75rem;
-    border-radius: .625rem;
+    min-height: 2.125rem;
+    margin: 1px 0;
+    padding: .4375rem .6875rem;
+    border-radius: .5rem;
     background: transparent !important;
     color: #334155 !important;
     font-family: inherit;
