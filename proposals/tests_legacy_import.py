@@ -1,6 +1,7 @@
 """Legacy imports must join the live workflow, not become disconnected archives."""
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
@@ -423,6 +424,17 @@ class LegacyActivityImportTests(TestCase):
         self.assertNotContains(response, 'Hold Ctrl or Command')
         self.assertContains(response, 'Choose extension type')
         self.assertContains(response, 'Choose scope')
+
+        # Legacy upload enhances its selects with dedicated popover dropdowns
+        # and excludes them from the global base-select button injection.
+        legacy_js = (settings.BASE_DIR / "static/js/legacy-import.js").read_text()
+        legacy_css = (settings.BASE_DIR / "static/css/legacy-import.css").read_text()
+        select_js = (settings.BASE_DIR / "static/js/nexus-select.js").read_text()
+        self.assertIn("data-li-dropdown", legacy_js)
+        self.assertIn("syncLegacyDropdown(college)", legacy_js)
+        self.assertIn("syncLegacyDropdown(department)", legacy_js)
+        self.assertIn(".legacy-dropdown__menu", legacy_css)
+        self.assertIn(":not([data-native-select] *)", select_js)
 
     def test_import_ux_restores_checked_accounts_and_opens_invalid_optional_details(self):
         response = self.admin_client.post(self.url, self.data(title="", estimated_year=-1))

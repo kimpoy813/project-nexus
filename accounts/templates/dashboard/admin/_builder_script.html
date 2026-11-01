@@ -208,12 +208,15 @@ function openBuilderDropdown(dropdown, opts) {
     }
     dropdown.classList.add('z-40');
 
-    // Place upward only when near the bottom of the viewport and there is more room above.
+    // Place upward only when near the bottom of the viewport and there is more room above (below the fixed navbar).
     let openUpward = false;
     if (typeof trigger.getBoundingClientRect === 'function' && typeof window.innerHeight === 'number' && window.innerHeight > 0) {
         const rect = trigger.getBoundingClientRect();
+        const nav = typeof document.querySelector === 'function' ? document.querySelector('.nexus-navbar') : null;
+        const navRect = nav && typeof nav.getBoundingClientRect === 'function' ? nav.getBoundingClientRect() : null;
+        const topInset = navRect && navRect.bottom > 0 && navRect.top <= 4 ? Math.round(navRect.bottom) : 0;
         const spaceBelow = window.innerHeight - rect.bottom;
-        const spaceAbove = rect.top;
+        const spaceAbove = Math.max(0, rect.top - topInset);
         const estimatedHeight = Math.min(288, menu.querySelectorAll('[data-nx-dropdown-option]').length * 38 + 16);
         openUpward = spaceBelow < estimatedHeight + 16 && spaceAbove > spaceBelow;
     }

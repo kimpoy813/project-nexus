@@ -138,6 +138,10 @@ class ProposalTemplateReplacementForm(forms.Form):
 
         super().__init__(*args, **kwargs)
         self.fields["key"].choices = TEMPLATE_KEY_CHOICES
+        self.fields["key"].widget.attrs.setdefault(
+            "class",
+            "w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20",
+        )
         self.fields["file"].widget.attrs["class"] = (
             "w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm"
         )
@@ -691,6 +695,7 @@ class PageSectionForm(forms.ModelForm):
         ]
         widgets = {
             "body": CKEditor5Widget(config_name="default"),
+            "layout": forms.Select(attrs={"class": "ps-input w-full"}),
         }
 
     def clean_anchor(self):

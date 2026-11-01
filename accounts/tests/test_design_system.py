@@ -137,6 +137,39 @@ class ComponentContractTests(SimpleTestCase):
         self.assertIn('pointer-events: none', enhanced)
         self.assertIn('position-try-order: most-block-size', enhanced)
 
+    def test_application_shell_select_popover_enhancer_syncs_and_portals_cleanly(self):
+        css = (settings.BASE_DIR / 'static/css/nexus-select.css').read_text()
+        script = (settings.BASE_DIR / 'static/js/nexus-select.js').read_text()
+
+        for token in (
+            '.nexus-shell select.nx-select-native',
+            '.nx-select-popover__trigger',
+            'min-height: var(--nx-control-height, 2.75rem);',
+            'border-radius: var(--nx-control-radius, .75rem);',
+            '.nx-select-popover__menu.is-portaled',
+            '.nx-select-popover__option[aria-selected="true"]',
+        ):
+            with self.subTest(css_token=token):
+                self.assertIn(token, css)
+
+        for token in (
+            'data-nx-select-popover',
+            'data-nx-select-trigger',
+            'data-nx-select-menu',
+            'data-nx-select-option',
+            'MutationObserver',
+            'getFixedTopInset',
+        ):
+            with self.subTest(js_token=token):
+                self.assertIn(token, script)
+
+    def test_navbar_dropdowns_place_outside_click_handlers_on_outer_containers(self):
+        base = (settings.BASE_DIR / 'templates/base.html').read_text()
+        self.assertNotIn('@click.away=', base)
+        self.assertIn('@click.outside="openNotif = false"', base)
+        self.assertIn('@click.outside="open = false"', base)
+        self.assertIn('@click.outside="mobileMenu = false"', base)
+
     def test_every_select_bearing_page_inherits_the_covered_application_shell(self):
         template_roots = tuple(
             settings.BASE_DIR / folder
