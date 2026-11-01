@@ -1,38 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="nx-page nx-page--measure">
+    <h2 class="text-2xl font-bold mb-6">Manage Roles</h2>
 
-<h2 class="text-2xl font-bold mb-6">Manage Roles</h2>
-
-<table class="w-full bg-white shadow rounded-lg nx-table">
-    <tr class="bg-gray-100">
-        <th class="p-3 text-left">Name</th>
-        <th class="p-3 text-left">Current Role</th>
-        <th class="p-3 text-left">Change Role</th>
-    </tr>
-
-    {% for profile in profiles %}
-    <tr class="border-t">
-        <td class="p-3">{{ profile.full_name }}</td>
-        <td class="p-3">{{ profile.role }}</td>
-        <td class="p-3">
-            <form method="POST" class="flex gap-2">
-                {% csrf_token %}
-                <input type="hidden" name="user_id" value="{{ profile.user.id }}">
-                <select name="role" class="border p-2 rounded">
-                    <option value="FACULTY">Faculty</option>
-                    <option value="EVALUATOR">Evaluators</option>
-                    <option value="DEPARTMENT_COORDINATOR">Department Coordinators</option>
-                    <option value="CAMPUS_COORDINATOR">Campus Coordinators</option>
-                    <option value="DIRECTOR">Director</option>
-                    <option value="ADMIN">Admin</option>
-                </select>
-                <button class="bg-primary text-white px-4 py-2 rounded-lg font-semibold hover:bg-secondary transition nx-btn nx-btn--primary">
-                    Update
-                </button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
-
+    <div class="overflow-x-auto bg-white shadow rounded-2xl border border-gray-200 nx-panel">
+        <table class="w-full nx-table">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="p-3 nx-th text-left">Name</th>
+                    <th class="p-3 nx-th text-left">Current Role</th>
+                    <th class="p-3 nx-th text-left">Change Role</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for profile in profiles %}
+                <tr class="border-t">
+                    <td class="p-3">{{ profile.full_name }}</td>
+                    <td class="p-3">{{ profile.get_role_display|default:profile.role }}</td>
+                    <td class="p-3">
+                        <form method="POST" class="flex flex-wrap items-center gap-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                            <select name="role" class="w-52 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+                                <option value="FACULTY" {% if profile.role == 'FACULTY' %}selected{% endif %}>Faculty</option>
+                                <option value="STAFF" {% if profile.role == 'STAFF' %}selected{% endif %}>Staff</option>
+                                <option value="EVALUATOR" {% if profile.role == 'EVALUATOR' %}selected{% endif %}>Evaluator</option>
+                                <option value="DEPARTMENT_COORDINATOR" {% if profile.role == 'DEPARTMENT_COORDINATOR' %}selected{% endif %}>Department Coordinator</option>
+                                <option value="CAMPUS_COORDINATOR" {% if profile.role == 'CAMPUS_COORDINATOR' %}selected{% endif %}>Campus Coordinator</option>
+                                <option value="DIRECTOR" {% if profile.role == 'DIRECTOR' %}selected{% endif %}>Director</option>
+                                <option value="ADMIN" {% if profile.role == 'ADMIN' %}selected{% endif %}>Admin</option>
+                            </select>
+                            <button class="bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-secondary transition nx-btn nx-btn--primary">
+                                Update
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

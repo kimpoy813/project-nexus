@@ -95,7 +95,7 @@
             </div>
 
             <input type="hidden" name="add_user_id" id="addUserId">
-            <div id="searchResults" class="mt-2 border border-gray-200 rounded-xl overflow-hidden hidden bg-white nx-panel"></div>
+            <div id="searchResults" class="mt-2 max-h-60 overflow-y-auto border border-gray-200 rounded-xl hidden bg-white shadow-lg nx-panel"></div>
         </div>
 
         {% comment %}
@@ -377,6 +377,18 @@ function pickUser(idx){
 }
 
 document.getElementById("userSearch")?.addEventListener("input", (e) => doSearch(e.target.value));
+document.getElementById("userSearch")?.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        document.getElementById("searchResults")?.classList.add("hidden");
+    }
+});
+document.addEventListener("click", (e) => {
+    const searchInput = document.getElementById("userSearch");
+    const box = document.getElementById("searchResults");
+    if (box && !box.classList.contains("hidden") && searchInput && !searchInput.contains(e.target) && !box.contains(e.target)) {
+        box.classList.add("hidden");
+    }
+});
 </script>
 {% endif %}
 
