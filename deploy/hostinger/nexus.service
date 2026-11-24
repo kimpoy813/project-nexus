@@ -1,0 +1,19 @@
+[Unit]
+Description=NExUS Django application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexus
+Group=nexus
+WorkingDirectory=/srv/nexus
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/nexus/.venv/bin/gunicorn conf.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 120 --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
