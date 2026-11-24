@@ -1,5 +1,7 @@
 # NExUS Deployment Guide: PostgreSQL + Supabase Storage
 
+For Hostinger VPS deployment, see [the Hostinger guide](deploy/hostinger/README.md).
+
 This project should use **PostgreSQL for database records** and **Supabase Storage for uploaded files** in production.
 
 ## 0. Quick start: Render + Supabase
